@@ -41,7 +41,14 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      {
+        "from": "node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "extraResources": [
       {
@@ -52,6 +59,13 @@
         ]
       }
     ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
     "win": {
       "signAndEditExecutable": false
     }

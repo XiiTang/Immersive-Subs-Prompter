@@ -48,7 +48,7 @@ npm run start   # 构建 TypeScript 并启动 Electron
 | ---- | ---- | ---- |
 | `desktop-app` | `npm run start` | 构建 + 启动 Electron（watch-free） |
 | `desktop-app` | `npm run build` | 仅构建 TypeScript 与静态资源到 `dist/` |
-| `desktop-app` | `npm run dist:win/mac/linux` | 使用 electron-builder 产出对应平台安装包 |
+| `desktop-app` | `npm run dist:win/mac/linux` | 使用 electron-builder 产出对应平台安装包（Win 版安装向导可自由选择路径） |
 | `desktop-app` | `npm run dist:all` | 同时打包 Win/Mac/Linux（需在各自平台执行） |
 
 插件部分暂无打包脚本，直接使用源码目录即可。

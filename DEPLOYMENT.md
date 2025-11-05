@@ -48,6 +48,8 @@ npm run dist:win    # 或 dist:mac / dist:linux / dist:all
 
 构建流程会先执行 `npm run build`，随后将 `dist/` 内容打进安装包（输出到 `desktop-app/release/`）。如需自定义图标、签名、Bundle Identifier，可修改 `package.json` 中的 `build` 字段。
 
+- Windows 默认使用 NSIS 安装向导，已开启 `oneClick: false` 与 `allowToChangeInstallationDirectory: true`，安装过程中用户可以自由选择目录并决定是否创建桌面/开始菜单快捷方式。
+
 > 若更偏好 `electron-packager` 亦可替换，核心步骤一致：先 `npm run build`，再将 `dist/` 与 `node_modules` 打进特定平台目录。
 
 ### 2.3 代码签名（可选）
@@ -60,7 +62,7 @@ npm run dist:win    # 或 dist:mac / dist:linux / dist:all
 
 桌面端现在自带自动下载机制：当字幕服务首次运行时，会检测用户数据目录下的 `yt-dlp/<platform>` 是否存在可执行文件；若无，则从 GitHub Release 拉取对应平台最新版本并缓存。下载失败会在 UI 中体现错误消息。
 
-若需要离线安装或内网环境，可将官方二进制预先放入 `desktop-app/resources/yt-dlp/`，electron-builder 会在打包时将其复制进应用资源目录，运行时也会优先检测该目录中的文件。
+若需要离线安装或内网环境，可将官方二进制预先放入 `desktop-app/resources/yt-dlp/`，electron-builder 会在打包时将其复制进应用 `resources/yt-dlp` 目录，运行时也会优先检测该目录中的文件（优先级：用户数据缓存 > resources/yt-dlp > 系统 PATH）。
 
 ## 4. 发布前检查清单
 
