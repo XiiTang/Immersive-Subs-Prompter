@@ -3,7 +3,8 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { AppSettings, DEFAULT_YTDLP_ARGS, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
+import { DEFAULT_YTDLP_ARGS } from "./settings.js";
+import { AppSettings, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",

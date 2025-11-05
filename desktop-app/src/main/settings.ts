@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { AppSettings, CloseBehavior } from "./types.js";
 
+export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
+
 export const DEFAULT_SETTINGS: AppSettings = {
   closeBehavior: "tray",
   autoLaunch: false,

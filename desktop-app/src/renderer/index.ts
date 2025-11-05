@@ -1,5 +1,6 @@
-import { DEFAULT_YTDLP_ARGS } from "../main/types.js";
 import type { AppSettings, DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
+
+const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 
 const connectionIndicator = document.getElementById("connection-indicator") as HTMLElement;
 const videoTitle = document.getElementById("video-title") as HTMLElement;

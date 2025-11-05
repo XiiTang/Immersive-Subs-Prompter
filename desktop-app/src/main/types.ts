@@ -1,5 +1,3 @@
-export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
-
 export interface SubtitleCue {
   start: number;
   end: number;
