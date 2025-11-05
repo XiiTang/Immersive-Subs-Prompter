@@ -1,10 +1,11 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from "electron";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
-import { SubtitleService, pickBestTrack } from "./subtitleService";
-import { YtDlpManager } from "./ytDlpManager";
-import { SettingsStore, DEFAULT_SETTINGS } from "./settings";
+import { SubtitleService, pickBestTrack } from "./subtitleService.js";
+import { YtDlpManager } from "./ytDlpManager.js";
+import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import {
   AppSettings,
   DesktopState,
@@ -13,12 +14,13 @@ import {
   ExtensionPayload,
   PlaybackState,
   VideoControlCommand
-} from "./types";
+} from "./types.js";
 
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 const ytDlpManager = new YtDlpManager();
 let appSettings: AppSettings = DEFAULT_SETTINGS;
 const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => appSettings);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
 

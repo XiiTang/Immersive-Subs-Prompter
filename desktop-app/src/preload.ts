@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
-import type { AppSettings } from "./main/types";
+import type { AppSettings } from "./main/types.js";
 
 type Listener<T> = (payload: T) => void;
 
