@@ -17,6 +17,8 @@ const LANGUAGE_PRIORITY = [
   "en"
 ];
 
+const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
+
 type BinaryResolver = () => Promise<string>;
 type SettingsProvider = () => Pick<AppSettings, "ytDlpArgs">;
 
@@ -60,18 +62,19 @@ export class SubtitleService {
     try {
       const binaryPath = await this.binaryResolver();
       await runCommand(binaryPath, args, workingDir);
-      const vttFiles = (await fs.readdir(workingDir))
-        .filter((file) => file.endsWith(".vtt"))
+      const subtitleFiles = (await fs.readdir(workingDir))
+        .filter((file) => SUBTITLE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(`.${ext}`)))
         .map((file) => path.join(workingDir, file));
 
-      if (vttFiles.length === 0) {
+      if (subtitleFiles.length === 0) {
         throw new Error("未找到字幕文件，请确认该视频是否提供字幕。");
       }
 
       const tracks: SubtitleTrack[] = [];
-      for (const filePath of vttFiles) {
+      for (const filePath of subtitleFiles) {
         const content = await fs.readFile(filePath, "utf-8");
-        const cues = parseVtt(content);
+        const ext = path.extname(filePath).slice(1).toLowerCase();
+        const cues = parseSubtitle(content, ext);
         if (!cues.length) continue;
 
         const language = detectLanguage(filePath);
@@ -112,9 +115,7 @@ export class SubtitleService {
       "--write-auto-sub",
       "--write-sub",
       "--sub-format",
-      "vtt",
-      "--convert-subs",
-      "vtt",
+      "vtt/srt",
       "--sub-langs",
       "all",
       "-o",
@@ -154,8 +155,15 @@ async function runCommand(cmd: string, args: string[], cwd: string): Promise<voi
 }
 
 function detectLanguage(filePath: string): string {
-  const match = filePath.match(/\.([^.]+)\.vtt$/);
-  return match ? match[1] : "unknown";
+  const base = path.basename(filePath);
+  for (const extension of SUBTITLE_EXTENSIONS) {
+    const regex = new RegExp(`\\.([^.]+)\\.${extension}$`, "i");
+    const match = base.match(regex);
+    if (match) {
+      return match[1];
+    }
+  }
+  return "unknown";
 }
 
 function formatTrackLabel(filePath: string, language: string): string {
@@ -184,6 +192,13 @@ export function pickBestTrack(tracks: SubtitleTrack[]): SubtitleTrack {
       })
       .sort((a, b) => a.weight - b.weight)[0].track
   );
+}
+
+function parseSubtitle(content: string, extension: string): SubtitleCue[] {
+  if (extension === "srt") {
+    return parseSrt(content);
+  }
+  return parseVtt(content);
 }
 
 function parseVtt(content: string): SubtitleCue[] {
@@ -219,6 +234,35 @@ function parseVtt(content: string): SubtitleCue[] {
       continue;
     } else {
       i += 1;
+    }
+  }
+
+  return cues;
+}
+
+function parseSrt(content: string): SubtitleCue[] {
+  const blocks = content.replace(/\r/g, "").split(/\n\s*\n/);
+  const cues: SubtitleCue[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) continue;
+
+    let cursor = 0;
+    if (/^\d+$/.test(lines[cursor])) {
+      cursor += 1;
+    }
+    if (cursor >= lines.length) continue;
+
+    const timingLine = lines[cursor];
+    const match = timingLine.match(/(.+?)\s+-->\s+(.+)/);
+    if (!match) continue;
+
+    const start = parseTimestamp(match[1].trim());
+    const end = parseTimestamp(match[2].trim());
+    const text = lines.slice(cursor + 1).map(stripTags).join("\n").trim();
+    if (!Number.isNaN(start) && !Number.isNaN(end) && text) {
+      cues.push({ start, end, text });
     }
   }
 
@@ -272,7 +316,8 @@ function splitArgs(input: string): string[] {
 }
 
 function parseTimestamp(value: string): number {
-  const match = value.match(/(?:(\d+):)?(\d{2}):(\d{2}(?:\.\d+)?)/);
+  const normalized = value.replace(/,/g, ".");
+  const match = normalized.match(/(?:(\d+):)?(\d{2}):(\d{2}(?:\.\d+)?)/);
   if (!match) {
     return NaN;
   }
