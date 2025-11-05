@@ -51,6 +51,9 @@
           "**/*"
         ]
       }
-    ]
+    ],
+    "win": {
+      "signAndEditExecutable": false
+    }
   }
 }
