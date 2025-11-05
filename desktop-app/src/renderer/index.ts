@@ -14,6 +14,10 @@ const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSel
 const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
+const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
+const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
+const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
+const windowContainer = document.querySelector(".window") as HTMLElement;
 const rootElement = document.documentElement;
 const computedStyles = window.getComputedStyle(rootElement);
 const DEFAULT_SUBTITLE_FONT_FAMILY =
@@ -29,6 +33,7 @@ let cueElements: HTMLElement[] = [];
 let cues: SubtitleCue[] = [];
 let activeCueIndex: number | null = null;
 let lastTrackSignature = "";
+let isSettingsOpen = false;
 
 function formatUrl(url: string | null): string {
   if (!url) return "";
@@ -190,6 +195,20 @@ function renderState(state: DesktopState) {
   }
 }
 
+function setSettingsOpen(nextValue: boolean) {
+  if (!windowContainer || !settingsPanelElement || isSettingsOpen === nextValue) {
+    return;
+  }
+  isSettingsOpen = nextValue;
+  windowContainer.classList.toggle("window--settings-open", nextValue);
+  settingsPanelElement.setAttribute("aria-hidden", String(!nextValue));
+  if (nextValue) {
+    closeBehaviorSelect.focus();
+  } else {
+    settingsButton.focus();
+  }
+}
+
 function applySubtitleStyles(settings: AppSettings) {
   const family = settings.subtitleFontFamily?.trim();
   const fontSize = Number(settings.subtitleFontSize) || DEFAULT_SUBTITLE_FONT_SIZE;
@@ -218,6 +237,14 @@ function updateSettings(partial: Partial<AppSettings>) {
 trackSelector.addEventListener("change", () => {
   const value = trackSelector.value || null;
   window.usp.selectSubtitleTrack(value);
+});
+
+settingsButton.addEventListener("click", () => {
+  setSettingsOpen(true);
+});
+
+settingsBackButton.addEventListener("click", () => {
+  setSettingsOpen(false);
 });
 
 closeBehaviorSelect.addEventListener("change", () => {
@@ -265,6 +292,12 @@ subtitleList.addEventListener("click", (event) => {
   const cue = cues[index];
   if (cue) {
     window.usp.controlVideo({ type: "seek", time: cue.start });
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isSettingsOpen) {
+    setSettingsOpen(false);
   }
 });
 
