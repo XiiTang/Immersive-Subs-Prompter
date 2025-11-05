@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { SubtitleCue, SubtitleLoadResult, SubtitleTrack, YtDlpConfig } from "./types.js";
+import { SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",
@@ -17,20 +17,13 @@ const LANGUAGE_PRIORITY = [
 ];
 
 type BinaryResolver = () => Promise<string>;
-type ConfigProvider = () => YtDlpConfig;
-
-const DEFAULT_CONFIG: YtDlpConfig = {
-  cookiesFile: "",
-  subtitleLanguages: []
-};
 
 export class SubtitleService {
   private cache = new Map<string, SubtitleLoadResult>();
   private inflight = new Map<string, Promise<SubtitleLoadResult>>();
 
   constructor(
-    private readonly binaryResolver: BinaryResolver = async () => "yt-dlp",
-    private readonly configProvider: ConfigProvider = () => DEFAULT_CONFIG
+    private readonly binaryResolver: BinaryResolver = async () => "yt-dlp"
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
@@ -59,11 +52,6 @@ export class SubtitleService {
   private async downloadSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-"));
     const baseOutput = path.join(workingDir, randomUUID());
-    const config = this.configProvider();
-    const subtitleLangs =
-      config.subtitleLanguages && config.subtitleLanguages.length
-        ? config.subtitleLanguages.join(",")
-        : "all";
     const args = [
       "--skip-download",
       "--write-auto-sub",
@@ -73,15 +61,11 @@ export class SubtitleService {
       "--convert-subs",
       "vtt",
       "--sub-langs",
-      subtitleLangs,
+      "all",
       "-o",
       baseOutput,
       videoUrl
     ];
-
-    if (config.cookiesFile) {
-      args.push("--cookies", config.cookiesFile);
-    }
 
     try {
       const binaryPath = await this.binaryResolver();

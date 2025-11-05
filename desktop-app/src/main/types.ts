@@ -68,8 +68,3 @@ export type VideoControlCommand =
   | { type: "seek"; time: number }
   | { type: "pause" }
   | { type: "play" };
-
-export interface YtDlpConfig {
-  cookiesFile: string;
-  subtitleLanguages: string[];
-}

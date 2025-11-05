@@ -29,26 +29,6 @@
         </div>
       </section>
       <section class="status-banner" id="status-banner">正在初始化...</section>
-      <section class="yt-dlp-settings" id="yt-dlp-settings">
-        <div class="settings__header">
-          <h3>yt-dlp 配置</h3>
-          <p>可选：填写 cookies 文件路径，或固定只下载指定语言的字幕（逗号分隔）。</p>
-        </div>
-        <form class="settings__form" id="yt-dlp-form">
-          <label class="form-field">
-            <span>Cookies 文件路径</span>
-            <input type="text" id="yt-dlp-cookies" placeholder="/path/to/cookies.txt" spellcheck="false" />
-          </label>
-          <label class="form-field">
-            <span>字幕语言（留空=全部，例：zh-Hans,en）</span>
-            <input type="text" id="yt-dlp-languages" placeholder="zh-Hans,zh,en" spellcheck="false" />
-          </label>
-          <div class="settings__actions">
-            <button type="submit" id="yt-dlp-save">保存配置</button>
-            <span class="settings__status" id="yt-dlp-status"></span>
-          </div>
-        </form>
-      </section>
       <section class="subtitle-list" id="subtitle-list"></section>
     </div>
     <script type="module" src="./index.js"></script>
