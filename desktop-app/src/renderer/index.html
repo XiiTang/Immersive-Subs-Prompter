@@ -73,6 +73,16 @@
               <span class="settings-field__label">字幕字号</span>
               <input type="number" id="subtitle-font-size" min="10" max="48" step="1" />
             </label>
+            <label class="settings-field">
+              <span class="settings-field__label">yt-dlp 配置</span>
+              <textarea
+                id="yt-dlp-args"
+                rows="3"
+                spellcheck="false"
+                placeholder="--skip-download --write-subs --all-subs --cookies-from-browser firefox"
+              ></textarea>
+              <small class="settings-field__hint">留空时将使用默认配置</small>
+            </label>
           </div>
         </section>
       </div>

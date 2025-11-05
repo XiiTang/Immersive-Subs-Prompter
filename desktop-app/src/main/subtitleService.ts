@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
+import { AppSettings, DEFAULT_YTDLP_ARGS, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",
@@ -17,13 +17,15 @@ const LANGUAGE_PRIORITY = [
 ];
 
 type BinaryResolver = () => Promise<string>;
+type SettingsProvider = () => Pick<AppSettings, "ytDlpArgs">;
 
 export class SubtitleService {
   private cache = new Map<string, SubtitleLoadResult>();
   private inflight = new Map<string, Promise<SubtitleLoadResult>>();
 
   constructor(
-    private readonly binaryResolver: BinaryResolver = async () => "yt-dlp"
+    private readonly binaryResolver: BinaryResolver = async () => "yt-dlp",
+    private readonly settingsProvider: SettingsProvider = () => ({ ytDlpArgs: DEFAULT_YTDLP_ARGS })
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
@@ -52,20 +54,7 @@ export class SubtitleService {
   private async downloadSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-"));
     const baseOutput = path.join(workingDir, randomUUID());
-    const args = [
-      "--skip-download",
-      "--write-auto-sub",
-      "--write-sub",
-      "--sub-format",
-      "vtt",
-      "--convert-subs",
-      "vtt",
-      "--sub-langs",
-      "all",
-      "-o",
-      baseOutput,
-      videoUrl
-    ];
+    const args = this.buildArgs(videoUrl, baseOutput);
 
     try {
       const binaryPath = await this.binaryResolver();
@@ -111,6 +100,26 @@ export class SubtitleService {
     } finally {
       await fs.rm(workingDir, { recursive: true, force: true });
     }
+  }
+
+  private buildArgs(videoUrl: string, baseOutput: string): string[] {
+    const settings = this.settingsProvider ? this.settingsProvider() : { ytDlpArgs: DEFAULT_YTDLP_ARGS };
+    const customLine = settings?.ytDlpArgs?.trim() || DEFAULT_YTDLP_ARGS;
+    const customArgs = splitArgs(customLine);
+    return [
+      ...customArgs,
+      "--write-auto-sub",
+      "--write-sub",
+      "--sub-format",
+      "vtt",
+      "--convert-subs",
+      "vtt",
+      "--sub-langs",
+      "all",
+      "-o",
+      baseOutput,
+      videoUrl
+    ];
   }
 }
 
@@ -217,6 +226,48 @@ function parseVtt(content: string): SubtitleCue[] {
 
 function stripTags(input: string): string {
   return input.replace(/<\/?[^>]+>/g, "");
+}
+
+function splitArgs(input: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let quote: string | null = null;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else if (char === "\\" && input[i + 1] === quote) {
+        current += quote;
+        i += 1;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      if (current) {
+        result.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) {
+    result.push(current);
+  }
+
+  return result;
 }
 
 function parseTimestamp(value: string): number {

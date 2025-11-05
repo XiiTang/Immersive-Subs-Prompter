@@ -7,7 +7,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   closeBehavior: "tray",
   autoLaunch: false,
   subtitleFontFamily: "",
-  subtitleFontSize: 14
+  subtitleFontSize: 14,
+  ytDlpArgs: ""
 };
 
 function isCloseBehavior(value: unknown): value is CloseBehavior {
@@ -24,12 +25,14 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
     subtitleFontSize = DEFAULT_SETTINGS.subtitleFontSize;
   }
   subtitleFontSize = Math.min(48, Math.max(10, Math.round(subtitleFontSize)));
+  const ytDlpArgs = typeof source.ytDlpArgs === "string" ? source.ytDlpArgs.trim() : DEFAULT_SETTINGS.ytDlpArgs;
 
   return {
     closeBehavior,
     autoLaunch,
     subtitleFontFamily,
-    subtitleFontSize
+    subtitleFontSize,
+    ytDlpArgs
   };
 }
 

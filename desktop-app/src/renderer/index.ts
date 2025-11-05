@@ -1,3 +1,4 @@
+import { DEFAULT_YTDLP_ARGS } from "../main/types.js";
 import type { AppSettings, DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
 
 const connectionIndicator = document.getElementById("connection-indicator") as HTMLElement;
@@ -14,6 +15,7 @@ const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSel
 const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
+const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
 const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
@@ -225,6 +227,10 @@ function renderSettings(settings: AppSettings) {
   autostartToggle.checked = settings.autoLaunch;
   subtitleFontInput.value = settings.subtitleFontFamily;
   subtitleFontSizeInput.value = String(settings.subtitleFontSize);
+  ytDlpArgsInput.placeholder = DEFAULT_YTDLP_ARGS;
+  if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
+    ytDlpArgsInput.value = settings.ytDlpArgs;
+  }
   applySubtitleStyles(settings);
 }
 
@@ -274,6 +280,10 @@ subtitleFontSizeInput.addEventListener("change", () => {
     return;
   }
   updateSettings({ subtitleFontSize: nextValue });
+});
+
+ytDlpArgsInput.addEventListener("input", () => {
+  updateSettings({ ytDlpArgs: ytDlpArgsInput.value });
 });
 
 pauseButton.addEventListener("click", () => {

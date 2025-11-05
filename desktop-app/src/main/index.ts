@@ -18,7 +18,8 @@ import {
 
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 const ytDlpManager = new YtDlpManager();
-const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath());
+let appSettings: AppSettings = DEFAULT_SETTINGS;
+const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => appSettings);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
@@ -30,7 +31,6 @@ const socketTabs = new Map<WebSocket, Set<number>>();
 let tray: Tray | null = null;
 let isQuitting = false;
 let settingsStore: SettingsStore | null = null;
-let appSettings: AppSettings = DEFAULT_SETTINGS;
 
 const state: DesktopState = {
   connectionCount: 0,
