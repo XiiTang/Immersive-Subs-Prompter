@@ -1,25 +1,73 @@
 (function () {
   const UPDATE_INTERVAL_MS = 300;
-  const port = chrome.runtime.connect({ name: "usp-video-channel" });
+  const PORT_NAME = "usp-video-channel";
+  const RECONNECT_DELAY_MS = 1000;
+  let port = null;
+  let reconnectTimer = null;
   let activeVideo = null;
   let ticker = null;
   const hooked = new WeakSet();
   let lastPageUrl = location.href;
 
-  function send(type, payload = {}) {
-    try {
-      port.postMessage({ type, payload });
-    } catch (err) {
-      console.warn("[USP] Failed to send message", err);
-    }
-  }
-
-  port.onMessage.addListener((message) => {
+  function handlePortMessage(message) {
     if (!message || typeof message !== "object") return;
     if (message.type === "control") {
       applyControl(message.action, message.payload || {});
     }
-  });
+  }
+
+  function schedulePortReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connectPort();
+    }, RECONNECT_DELAY_MS);
+  }
+
+  function connectPort() {
+    if (port) return port;
+    let nextPort = null;
+    try {
+      nextPort = chrome.runtime.connect({ name: PORT_NAME });
+    } catch (err) {
+      console.warn("[USP] Failed to connect to background", err);
+      schedulePortReconnect();
+      return null;
+    }
+
+    nextPort.onMessage.addListener(handlePortMessage);
+    nextPort.onDisconnect.addListener(() => {
+      if (port === nextPort) {
+        port = null;
+      }
+      schedulePortReconnect();
+    });
+
+    port = nextPort;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    if (activeVideo) {
+      send("video-context", gatherVideoState(activeVideo));
+      handleTimeUpdate(activeVideo);
+    }
+    return nextPort;
+  }
+
+  function send(type, payload = {}) {
+    const channel = port || connectPort();
+    if (!channel) return;
+    try {
+      channel.postMessage({ type, payload });
+    } catch (err) {
+      console.warn("[USP] Failed to send message", err);
+      if (port === channel) {
+        port = null;
+      }
+      schedulePortReconnect();
+    }
+  }
 
   function detectSite() {
     const host = location.hostname;
@@ -183,6 +231,7 @@
     setTimeout(monitorUrlChanges, 1000);
   }
 
+  connectPort();
   scanForVideos();
   monitorUrlChanges();
 })();
