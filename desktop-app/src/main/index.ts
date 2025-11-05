@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import { SubtitleService, pickBestTrack } from "./subtitleService.js";
+import { YtDlpManager } from "./ytDlpManager.js";
 import {
   DesktopState,
   ExtensionMessage,
@@ -13,7 +14,8 @@ import {
 } from "./types.js";
 
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
-const subtitleService = new SubtitleService();
+const ytDlpManager = new YtDlpManager();
+const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath());
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;

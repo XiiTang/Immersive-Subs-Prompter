@@ -8,7 +8,11 @@
     "build": "npm run clean && tsc && npm run copy-static",
     "copy-static": "copyfiles -u 1 \"src/renderer/**/*.{html,css}\" dist/renderer",
     "start": "npm run build && electron .",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:all": "npm run build && electron-builder -mwl"
   },
   "keywords": [
     "electron",
@@ -25,7 +29,28 @@
     "@types/ws": "^8.18.1",
     "copyfiles": "^2.4.1",
     "electron": "^30.0.0",
+    "electron-builder": "^26.0.12",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5"
+  },
+  "build": {
+    "appId": "com.example.universalsubtitle",
+    "productName": "Universal Subtitle",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/yt-dlp",
+        "to": "yt-dlp",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   }
 }

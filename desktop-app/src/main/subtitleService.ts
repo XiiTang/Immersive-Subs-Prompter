@@ -16,9 +16,15 @@ const LANGUAGE_PRIORITY = [
   "en"
 ];
 
+type BinaryResolver = () => Promise<string>;
+
 export class SubtitleService {
   private cache = new Map<string, SubtitleLoadResult>();
   private inflight = new Map<string, Promise<SubtitleLoadResult>>();
+
+  constructor(
+    private readonly binaryResolver: BinaryResolver = async () => "yt-dlp"
+  ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
     const cached = this.cache.get(videoUrl);
@@ -62,7 +68,8 @@ export class SubtitleService {
     ];
 
     try {
-      await runCommand("yt-dlp", args, workingDir);
+      const binaryPath = await this.binaryResolver();
+      await runCommand(binaryPath, args, workingDir);
       const vttFiles = (await fs.readdir(workingDir))
         .filter((file) => file.endsWith(".vtt"))
         .map((file) => path.join(workingDir, file));
