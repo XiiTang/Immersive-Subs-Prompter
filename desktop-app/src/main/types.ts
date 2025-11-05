@@ -68,3 +68,12 @@ export type VideoControlCommand =
   | { type: "seek"; time: number }
   | { type: "pause" }
   | { type: "play" };
+
+export type CloseBehavior = "quit" | "tray";
+
+export interface AppSettings {
+  closeBehavior: CloseBehavior;
+  autoLaunch: boolean;
+  subtitleFontFamily: string;
+  subtitleFontSize: number;
+}

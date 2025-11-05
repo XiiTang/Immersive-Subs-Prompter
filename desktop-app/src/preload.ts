@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
+import type { AppSettings } from "./main/types.js";
 
 type Listener<T> = (payload: T) => void;
 
@@ -13,7 +14,11 @@ const api = {
   onStateChange: (listener: Listener<any>) => subscribe("usp:state", listener),
   onPlayback: (listener: Listener<any>) => subscribe("usp:time", listener),
   selectSubtitleTrack: (trackId: string | null) => ipcRenderer.invoke("usp:select-track", trackId),
-  controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command)
+  controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command),
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("usp:get-settings"),
+  updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
+    ipcRenderer.invoke("usp:update-settings", changes),
+  onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener)
 };
 
 contextBridge.exposeInMainWorld("usp", api);

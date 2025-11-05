@@ -1,4 +1,4 @@
-import type { DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
+import type { AppSettings, DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
 
 const connectionIndicator = document.getElementById("connection-indicator") as HTMLElement;
 const videoTitle = document.getElementById("video-title") as HTMLElement;
@@ -10,9 +10,21 @@ const controlPanel = document.getElementById("control-panel") as HTMLElement;
 const trackSelector = document.getElementById("track-selector") as HTMLSelectElement;
 const playButton = document.getElementById("play-btn") as HTMLButtonElement;
 const pauseButton = document.getElementById("pause-btn") as HTMLButtonElement;
+const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSelectElement;
+const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
+const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
+const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
+const rootElement = document.documentElement;
+const computedStyles = window.getComputedStyle(rootElement);
+const DEFAULT_SUBTITLE_FONT_FAMILY =
+  computedStyles.getPropertyValue("--subtitle-font-family").trim() ||
+  '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
+const DEFAULT_SUBTITLE_FONT_SIZE =
+  parseInt(computedStyles.getPropertyValue("--subtitle-font-size"), 10) || 14;
 
 let currentState: DesktopState | null = null;
 let currentPlayback: PlaybackState | null = null;
+let currentSettings: AppSettings | null = null;
 let cueElements: HTMLElement[] = [];
 let cues: SubtitleCue[] = [];
 let activeCueIndex: number | null = null;
@@ -178,9 +190,63 @@ function renderState(state: DesktopState) {
   }
 }
 
+function applySubtitleStyles(settings: AppSettings) {
+  const family = settings.subtitleFontFamily?.trim();
+  const fontSize = Number(settings.subtitleFontSize) || DEFAULT_SUBTITLE_FONT_SIZE;
+  rootElement.style.setProperty(
+    "--subtitle-font-family",
+    family && family.length ? family : DEFAULT_SUBTITLE_FONT_FAMILY
+  );
+  rootElement.style.setProperty("--subtitle-font-size", `${fontSize}px`);
+}
+
+function renderSettings(settings: AppSettings) {
+  currentSettings = settings;
+  closeBehaviorSelect.value = settings.closeBehavior;
+  autostartToggle.checked = settings.autoLaunch;
+  subtitleFontInput.value = settings.subtitleFontFamily;
+  subtitleFontSizeInput.value = String(settings.subtitleFontSize);
+  applySubtitleStyles(settings);
+}
+
+function updateSettings(partial: Partial<AppSettings>) {
+  window.usp.updateSettings(partial).catch((error: unknown) => {
+    console.error("[Renderer] Failed to update settings", error);
+  });
+}
+
 trackSelector.addEventListener("change", () => {
   const value = trackSelector.value || null;
   window.usp.selectSubtitleTrack(value);
+});
+
+closeBehaviorSelect.addEventListener("change", () => {
+  const nextValue = closeBehaviorSelect.value === "quit" ? "quit" : "tray";
+  if (!currentSettings || currentSettings.closeBehavior === nextValue) {
+    return;
+  }
+  updateSettings({ closeBehavior: nextValue });
+});
+
+autostartToggle.addEventListener("change", () => {
+  const nextValue = Boolean(autostartToggle.checked);
+  if (!currentSettings || currentSettings.autoLaunch === nextValue) {
+    return;
+  }
+  updateSettings({ autoLaunch: nextValue });
+});
+
+subtitleFontInput.addEventListener("change", () => {
+  updateSettings({ subtitleFontFamily: subtitleFontInput.value.trim() });
+});
+
+subtitleFontSizeInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitleFontSizeInput.value, 10);
+  if (!Number.isFinite(nextValue)) {
+    subtitleFontSizeInput.value = String(currentSettings?.subtitleFontSize ?? DEFAULT_SUBTITLE_FONT_SIZE);
+    return;
+  }
+  updateSettings({ subtitleFontSize: nextValue });
 });
 
 pauseButton.addEventListener("click", () => {
@@ -213,6 +279,13 @@ async function bootstrap() {
     statusBanner.className = "status-banner status-banner--error";
   }
 
+  try {
+    const initialSettings = await window.usp.getSettings();
+    renderSettings(initialSettings);
+  } catch (error) {
+    console.error("[Renderer] Failed to load settings:", error);
+  }
+
   window.usp.onStateChange((nextState) => {
     currentState = nextState;
     renderState(nextState);
@@ -221,6 +294,10 @@ async function bootstrap() {
   window.usp.onPlayback((payload) => {
     currentPlayback = payload;
     highlightActiveCue(payload.currentTime);
+  });
+
+  window.usp.onSettingsChange((settings) => {
+    renderSettings(settings);
   });
 }
 

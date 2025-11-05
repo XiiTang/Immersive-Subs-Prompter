@@ -29,6 +29,36 @@
         </div>
       </section>
       <section class="status-banner" id="status-banner">正在初始化...</section>
+      <section class="settings-panel" id="settings-panel">
+        <div class="settings-panel__title">设置</div>
+        <label class="settings-field">
+          <span class="settings-field__label">关闭行为</span>
+          <select id="close-behavior">
+            <option value="tray">关闭时最小化到托盘</option>
+            <option value="quit">关闭时直接退出</option>
+          </select>
+        </label>
+        <div class="settings-field settings-field--inline">
+          <span class="settings-field__label">开机自启动</span>
+          <label class="toggle">
+            <input type="checkbox" id="autostart-toggle" />
+            <span class="toggle__text">启用</span>
+          </label>
+        </div>
+        <label class="settings-field">
+          <span class="settings-field__label">字幕字体</span>
+          <input
+            type="text"
+            id="subtitle-font"
+            placeholder="例如: LXGW WenKai, sans-serif"
+            autocomplete="off"
+          />
+        </label>
+        <label class="settings-field">
+          <span class="settings-field__label">字幕字号</span>
+          <input type="number" id="subtitle-font-size" min="10" max="48" step="1" />
+        </label>
+      </section>
       <section class="subtitle-list" id="subtitle-list"></section>
     </div>
     <script type="module" src="./index.js"></script>

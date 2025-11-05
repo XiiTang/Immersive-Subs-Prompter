@@ -1,10 +1,13 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from "electron";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import { SubtitleService, pickBestTrack } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
+import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import {
+  AppSettings,
   DesktopState,
   ExtensionMessage,
   ExtensionMessageType,
@@ -17,11 +20,17 @@ const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 const ytDlpManager = new YtDlpManager();
 const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath());
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TRAY_ICON_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
 
 let mainWindow: BrowserWindow | null = null;
 let subtitleRequestToken = 0;
 const tabSockets = new Map<number, WebSocket>();
 const socketTabs = new Map<WebSocket, Set<number>>();
+let tray: Tray | null = null;
+let isQuitting = false;
+let settingsStore: SettingsStore | null = null;
+let appSettings: AppSettings = DEFAULT_SETTINGS;
 
 const state: DesktopState = {
   connectionCount: 0,
@@ -42,6 +51,116 @@ const state: DesktopState = {
   subtitles: null
 };
 
+function getAutostartDesktopEntryPath() {
+  const configDir = path.join(app.getPath("home"), ".config", "autostart");
+  return path.join(configDir, "universal-subtitle.desktop");
+}
+
+function applyAutoLaunch(enabled: boolean) {
+  if (process.platform === "win32" || process.platform === "darwin") {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        path: process.execPath
+      });
+    } catch (error) {
+      console.error("[USP] Failed to update login item settings", error);
+    }
+    return;
+  }
+
+  if (process.platform === "linux") {
+    const desktopFile = getAutostartDesktopEntryPath();
+    try {
+      if (enabled) {
+        fs.mkdirSync(path.dirname(desktopFile), { recursive: true });
+        const execPath = process.execPath;
+        const entry = [
+          "[Desktop Entry]",
+          "Type=Application",
+          "Version=1.0",
+          "Name=Universal Subtitle",
+          `Exec="${execPath}"`,
+          "Terminal=false",
+          "X-GNOME-Autostart-enabled=true"
+        ].join("\n");
+        fs.writeFileSync(desktopFile, `${entry}\n`, "utf-8");
+      } else if (fs.existsSync(desktopFile)) {
+        fs.rmSync(desktopFile);
+      }
+    } catch (error) {
+      console.error("[USP] Failed to update autostart entry", error);
+    }
+  }
+}
+
+function ensureTray() {
+  if (tray) {
+    return;
+  }
+  const icon = nativeImage.createFromDataURL(TRAY_ICON_DATA_URL);
+  tray = new Tray(icon);
+  tray.setToolTip("Universal Subtitle");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: "显示窗口",
+        click: () => showMainWindow()
+      },
+      { type: "separator" },
+      {
+        label: "退出",
+        click: () => {
+          isQuitting = true;
+          tray?.destroy();
+          tray = null;
+          app.quit();
+        }
+      }
+    ])
+  );
+  tray.on("click", () => {
+    showMainWindow();
+  });
+}
+
+function showMainWindow() {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+    return;
+  }
+  createWindow();
+}
+
+function pushSettings() {
+  if (!mainWindow) return;
+  mainWindow.webContents.send("usp:settings", appSettings);
+}
+
+function updateAppSettings(partial: Partial<AppSettings>) {
+  if (!settingsStore) {
+    return appSettings;
+  }
+  const previous = appSettings;
+  appSettings = settingsStore.update(partial);
+  if (previous.autoLaunch !== appSettings.autoLaunch) {
+    applyAutoLaunch(appSettings.autoLaunch);
+  }
+  if (previous.closeBehavior !== appSettings.closeBehavior && mainWindow) {
+    if (appSettings.closeBehavior === "quit") {
+      mainWindow.setSkipTaskbar(false);
+    } else if (!mainWindow.isVisible()) {
+      mainWindow.setSkipTaskbar(true);
+    }
+  }
+  pushSettings();
+  return appSettings;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 460,
@@ -61,10 +180,33 @@ function createWindow() {
   mainWindow.setAlwaysOnTop(false);
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 
+  mainWindow.on("close", (event) => {
+    if (!isQuitting && appSettings.closeBehavior === "tray") {
+      event.preventDefault();
+      mainWindow?.hide();
+      mainWindow?.setSkipTaskbar(true);
+    }
+  });
+
+  mainWindow.on("show", () => {
+    mainWindow?.setSkipTaskbar(false);
+  });
+
+  mainWindow.on("hide", () => {
+    if (appSettings.closeBehavior === "tray") {
+      mainWindow?.setSkipTaskbar(true);
+    }
+  });
+
   // 开发模式下自动打开开发者工具
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
+
+  mainWindow.webContents.once("did-finish-load", () => {
+    pushSettings();
+    pushState();
+  });
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -322,16 +464,30 @@ ipcMain.handle("usp:select-track", (_event, trackId: string | null) => {
 ipcMain.handle("usp:control", (_event, command) => {
   sendControlCommand(command);
 });
+ipcMain.handle("usp:get-settings", () => appSettings);
+ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
+  return updateAppSettings(payload);
+});
 
 app.whenReady().then(() => {
+  settingsStore = new SettingsStore();
+  appSettings = settingsStore.get();
+  applyAutoLaunch(appSettings.autoLaunch);
+  ensureTray();
   bootstrapWebSocketServer();
   createWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    showMainWindow();
   });
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
 });
 
 app.on("window-all-closed", () => {
