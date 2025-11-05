@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Universal Subtitle</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="window">
+      <header class="window__header">
+        <div class="window__title">Universal Subtitle</div>
+        <div class="window__status" id="connection-indicator">未连接</div>
+      </header>
+      <section class="video-meta" id="video-meta">
+        <p class="video-meta__title" id="video-title">等待视频...</p>
+        <p class="video-meta__url" id="video-url"></p>
+        <p class="video-meta__language" id="subtitle-language"></p>
+      </section>
+      <section class="control-panel" id="control-panel">
+        <label class="track-picker">
+          <span>字幕轨道</span>
+          <select id="track-selector"></select>
+        </label>
+        <div class="playback-buttons">
+          <button id="play-btn" type="button">播放</button>
+          <button id="pause-btn" type="button">暂停</button>
+        </div>
+      </section>
+      <section class="status-banner" id="status-banner">正在初始化...</section>
+      <section class="subtitle-list" id="subtitle-list"></section>
+    </div>
+    <script type="module" src="./index.js" defer></script>
+  </body>
+</html>

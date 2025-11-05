@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Universal Subtitle Messenger",
+  "version": "0.1.0",
+  "description": "Injects into major video sites, captures playback info, and relays it to the Universal Subtitle desktop app.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://*.bilibili.com/*",
+    "https://*.douyin.com/*",
+    "https://www.bilibili.com/*",
+    "https://www.youtube.com/*",
+    "https://www.douyin.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.youtube.com/*",
+        "https://*.bilibili.com/*",
+        "https://*.douyin.com/*",
+        "https://www.bilibili.com/*",
+        "https://www.youtube.com/*",
+        "https://www.douyin.com/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Universal Subtitle Messenger"
+  }
+}
