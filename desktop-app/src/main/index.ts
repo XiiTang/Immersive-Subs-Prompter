@@ -61,6 +61,11 @@ function createWindow() {
   mainWindow.setAlwaysOnTop(false);
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 
+  // 开发模式下自动打开开发者工具
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools();
+  }
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -308,7 +313,9 @@ function sendControlCommand(command: VideoControlCommand): boolean {
   return true;
 }
 
-ipcMain.handle("usp:get-state", () => state);
+ipcMain.handle("usp:get-state", () => {
+  return state;
+});
 ipcMain.handle("usp:select-track", (_event, trackId: string | null) => {
   setSubtitleTrack(trackId);
 });

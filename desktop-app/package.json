@@ -5,8 +5,10 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run clean && tsc && npm run copy-static",
-    "copy-static": "copyfiles -u 1 \"src/renderer/**/*.{html,css}\" dist/renderer",
+    "build": "npm run clean && npm run build:main && npm run build:preload && npm run copy-static",
+    "build:main": "tsc --project tsconfig.json",
+    "build:preload": "tsc --project tsconfig.preload.json",
+    "copy-static": "copyfiles -u 2 \"src/renderer/**/*.{html,css}\" dist/renderer",
     "start": "npm run build && electron .",
     "clean": "rimraf dist",
     "dist:win": "npm run build && electron-builder --win",

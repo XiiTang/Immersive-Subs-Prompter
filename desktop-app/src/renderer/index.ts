@@ -208,7 +208,8 @@ async function bootstrap() {
     currentState = initialState;
     renderState(initialState);
   } catch (error) {
-    statusBanner.textContent = "无法获取初始状态，请重启应用。";
+    console.error("[Renderer] Failed to get initial state:", error);
+    statusBanner.textContent = `无法获取初始状态: ${error instanceof Error ? error.message : String(error)}`;
     statusBanner.className = "status-banner status-banner--error";
   }
 

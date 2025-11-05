@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -20,9 +20,6 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
-  ],
-  "exclude": [
     "src/preload.ts"
   ]
 }

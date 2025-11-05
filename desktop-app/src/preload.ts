@@ -1,20 +1,19 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
-import { DesktopState, PlaybackState, VideoControlCommand } from "./main/types.js";
+const { contextBridge, ipcRenderer } = require("electron");
 
 type Listener<T> = (payload: T) => void;
 
 function subscribe<T>(channel: string, listener: Listener<T>) {
-  const wrapped = (_event: IpcRendererEvent, payload: T) => listener(payload);
+  const wrapped = (_event: any, payload: T) => listener(payload);
   ipcRenderer.on(channel, wrapped);
   return () => ipcRenderer.removeListener(channel, wrapped);
 }
 
 const api = {
-  getInitialState: (): Promise<DesktopState> => ipcRenderer.invoke("usp:get-state"),
-  onStateChange: (listener: Listener<DesktopState>) => subscribe("usp:state", listener),
-  onPlayback: (listener: Listener<PlaybackState>) => subscribe("usp:time", listener),
+  getInitialState: (): Promise<any> => ipcRenderer.invoke("usp:get-state"),
+  onStateChange: (listener: Listener<any>) => subscribe("usp:state", listener),
+  onPlayback: (listener: Listener<any>) => subscribe("usp:time", listener),
   selectSubtitleTrack: (trackId: string | null) => ipcRenderer.invoke("usp:select-track", trackId),
-  controlVideo: (command: VideoControlCommand) => ipcRenderer.invoke("usp:control", command)
+  controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command)
 };
 
 contextBridge.exposeInMainWorld("usp", api);
