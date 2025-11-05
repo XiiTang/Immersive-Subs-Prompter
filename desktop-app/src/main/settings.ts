@@ -1,7 +1,7 @@
 import { app } from "electron";
 import fs from "fs";
 import path from "path";
-import { AppSettings, CloseBehavior } from "./types.js";
+import { AppSettings, CloseBehavior } from "./types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   closeBehavior: "tray",
