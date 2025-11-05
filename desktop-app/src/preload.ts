@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
+import type { YtDlpConfig } from "./main/types.js";
 
 type Listener<T> = (payload: T) => void;
 
@@ -13,7 +14,10 @@ const api = {
   onStateChange: (listener: Listener<any>) => subscribe("usp:state", listener),
   onPlayback: (listener: Listener<any>) => subscribe("usp:time", listener),
   selectSubtitleTrack: (trackId: string | null) => ipcRenderer.invoke("usp:select-track", trackId),
-  controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command)
+  controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command),
+  getYtDlpConfig: (): Promise<YtDlpConfig> => ipcRenderer.invoke("usp:get-yt-dlp-config"),
+  updateYtDlpConfig: (config: Partial<YtDlpConfig>): Promise<YtDlpConfig> =>
+    ipcRenderer.invoke("usp:update-yt-dlp-config", config)
 };
 
 contextBridge.exposeInMainWorld("usp", api);

@@ -10,12 +10,18 @@ import {
   ExtensionMessageType,
   ExtensionPayload,
   PlaybackState,
-  VideoControlCommand
+  VideoControlCommand,
+  YtDlpConfig
 } from "./types.js";
+import { ConfigStore } from "./configStore.js";
 
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
+const configStore = new ConfigStore();
 const ytDlpManager = new YtDlpManager();
-const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath());
+const subtitleService = new SubtitleService(
+  () => ytDlpManager.getBinaryPath(),
+  () => configStore.get()
+);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
@@ -322,8 +328,15 @@ ipcMain.handle("usp:select-track", (_event, trackId: string | null) => {
 ipcMain.handle("usp:control", (_event, command) => {
   sendControlCommand(command);
 });
+ipcMain.handle("usp:get-yt-dlp-config", () => {
+  return configStore.get();
+});
+ipcMain.handle("usp:update-yt-dlp-config", async (_event, payload: Partial<YtDlpConfig> = {}) => {
+  return configStore.update(payload);
+});
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await configStore.load();
   bootstrapWebSocketServer();
   createWindow();
 

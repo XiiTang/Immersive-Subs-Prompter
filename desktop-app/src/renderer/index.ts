@@ -1,4 +1,4 @@
-import type { DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
+import type { DesktopState, PlaybackState, SubtitleCue, YtDlpConfig } from "../main/types.js";
 
 const connectionIndicator = document.getElementById("connection-indicator") as HTMLElement;
 const videoTitle = document.getElementById("video-title") as HTMLElement;
@@ -10,6 +10,10 @@ const controlPanel = document.getElementById("control-panel") as HTMLElement;
 const trackSelector = document.getElementById("track-selector") as HTMLSelectElement;
 const playButton = document.getElementById("play-btn") as HTMLButtonElement;
 const pauseButton = document.getElementById("pause-btn") as HTMLButtonElement;
+const ytDlpForm = document.getElementById("yt-dlp-form") as HTMLFormElement;
+const ytDlpCookiesInput = document.getElementById("yt-dlp-cookies") as HTMLInputElement;
+const ytDlpLanguagesInput = document.getElementById("yt-dlp-languages") as HTMLInputElement;
+const ytDlpStatus = document.getElementById("yt-dlp-status") as HTMLElement;
 
 let currentState: DesktopState | null = null;
 let currentPlayback: PlaybackState | null = null;
@@ -17,6 +21,7 @@ let cueElements: HTMLElement[] = [];
 let cues: SubtitleCue[] = [];
 let activeCueIndex: number | null = null;
 let lastTrackSignature = "";
+let currentYtDlpConfig: YtDlpConfig | null = null;
 
 function formatUrl(url: string | null): string {
   if (!url) return "";
@@ -202,6 +207,60 @@ subtitleList.addEventListener("click", (event) => {
   }
 });
 
+function parseLanguageInput(value: string): string[] {
+  return value
+    .split(/[,，\s]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function renderYtDlpConfig(config: YtDlpConfig) {
+  currentYtDlpConfig = config;
+  ytDlpCookiesInput.value = config.cookiesFile ?? "";
+  ytDlpLanguagesInput.value = config.subtitleLanguages.join(", ");
+}
+
+function setSettingsStatus(message: string, isError = false) {
+  if (!ytDlpStatus) return;
+  ytDlpStatus.textContent = message;
+  ytDlpStatus.classList.toggle("settings__status--error", isError && !!message);
+}
+
+async function loadYtDlpConfig() {
+  try {
+    const config = await window.usp.getYtDlpConfig();
+    renderYtDlpConfig(config);
+    setSettingsStatus("");
+  } catch (error) {
+    console.error("[Renderer] Failed to load yt-dlp config:", error);
+    setSettingsStatus(
+      `无法加载配置：${error instanceof Error ? error.message : String(error)}`,
+      true
+    );
+  }
+}
+
+ytDlpForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const payload: Partial<YtDlpConfig> = {
+    cookiesFile: ytDlpCookiesInput.value.trim(),
+    subtitleLanguages: parseLanguageInput(ytDlpLanguagesInput.value)
+  };
+
+  try {
+    setSettingsStatus("保存中...");
+    const updated = await window.usp.updateYtDlpConfig(payload);
+    renderYtDlpConfig(updated);
+    setSettingsStatus("配置已保存");
+  } catch (error) {
+    console.error("[Renderer] Failed to save yt-dlp config:", error);
+    setSettingsStatus(
+      `保存失败：${error instanceof Error ? error.message : String(error)}`,
+      true
+    );
+  }
+});
+
 async function bootstrap() {
   try {
     const initialState = await window.usp.getInitialState();
@@ -222,6 +281,8 @@ async function bootstrap() {
     currentPlayback = payload;
     highlightActiveCue(payload.currentTime);
   });
+
+  await loadYtDlpConfig();
 }
 
 bootstrap();
