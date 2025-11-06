@@ -10,7 +10,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoLaunch: false,
   subtitleFontFamily: "",
   subtitleFontSize: 14,
-  ytDlpArgs: ""
+  ytDlpArgs: "",
+  subtitleAutoScrollTimeout: 3 // 默认3秒后恢复自动滚动
 };
 
 function isCloseBehavior(value: unknown): value is CloseBehavior {
@@ -28,13 +29,19 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
   }
   subtitleFontSize = Math.min(48, Math.max(10, Math.round(subtitleFontSize)));
   const ytDlpArgs = typeof source.ytDlpArgs === "string" ? source.ytDlpArgs.trim() : DEFAULT_SETTINGS.ytDlpArgs;
+  let subtitleAutoScrollTimeout = Number(source.subtitleAutoScrollTimeout);
+  if (!Number.isFinite(subtitleAutoScrollTimeout)) {
+    subtitleAutoScrollTimeout = DEFAULT_SETTINGS.subtitleAutoScrollTimeout;
+  }
+  subtitleAutoScrollTimeout = Math.max(1, Math.round(subtitleAutoScrollTimeout));
 
   return {
     closeBehavior,
     autoLaunch,
     subtitleFontFamily,
     subtitleFontSize,
-    ytDlpArgs
+    ytDlpArgs,
+    subtitleAutoScrollTimeout
   };
 }
 

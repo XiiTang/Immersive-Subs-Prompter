@@ -20,23 +20,27 @@
       </header>
       <div class="window__content">
         <div class="primary-view" id="primary-view">
-          <section class="video-meta" id="video-meta">
-            <p class="video-meta__title" id="video-title">等待视频...</p>
-            <p class="video-meta__url" id="video-url"></p>
-            <p class="video-meta__language" id="subtitle-language"></p>
+          <section class="video-info-section">
+            <section class="video-meta" id="video-meta">
+              <p class="video-meta__title" id="video-title">等待视频...</p>
+              <p class="video-meta__url" id="video-url"></p>
+              <p class="video-meta__language" id="subtitle-language"></p>
+            </section>
+            <section class="control-panel" id="control-panel">
+              <label class="track-picker">
+                <span>字幕轨道</span>
+                <select id="track-selector"></select>
+              </label>
+              <div class="playback-buttons">
+                <button id="play-btn" type="button">播放</button>
+                <button id="pause-btn" type="button">暂停</button>
+              </div>
+            </section>
+            <section class="status-banner" id="status-banner">正在初始化...</section>
           </section>
-          <section class="control-panel" id="control-panel">
-            <label class="track-picker">
-              <span>字幕轨道</span>
-              <select id="track-selector"></select>
-            </label>
-            <div class="playback-buttons">
-              <button id="play-btn" type="button">播放</button>
-              <button id="pause-btn" type="button">暂停</button>
-            </div>
+          <section class="subtitle-scroll-section">
+            <section class="subtitle-list" id="subtitle-list"></section>
           </section>
-          <section class="status-banner" id="status-banner">正在初始化...</section>
-          <section class="subtitle-list" id="subtitle-list"></section>
         </div>
         <section class="settings-panel" id="settings-panel" aria-hidden="true">
           <div class="settings-panel__header">
@@ -72,6 +76,11 @@
             <label class="settings-field">
               <span class="settings-field__label">字幕字号</span>
               <input type="number" id="subtitle-font-size" min="10" max="48" step="1" />
+            </label>
+            <label class="settings-field">
+              <span class="settings-field__label">自动滚动恢复时间（秒）</span>
+              <input type="number" id="subtitle-auto-scroll-timeout" min="1" max="60" step="1" />
+              <small class="settings-field__hint">手动滚动后，指定秒数后恢复自动跟踪字幕</small>
             </label>
             <label class="settings-field">
               <span class="settings-field__label">yt-dlp 配置</span>

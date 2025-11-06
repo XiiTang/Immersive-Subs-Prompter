@@ -16,6 +16,7 @@ const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSel
 const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
+const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
@@ -29,7 +30,6 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
 const DEFAULT_SUBTITLE_FONT_SIZE =
   parseInt(computedStyles.getPropertyValue("--subtitle-font-size"), 10) || 14;
 
-let currentState: DesktopState | null = null;
 let currentPlayback: PlaybackState | null = null;
 let currentSettings: AppSettings | null = null;
 let cueElements: HTMLElement[] = [];
@@ -37,6 +37,8 @@ let cues: SubtitleCue[] = [];
 let activeCueIndex: number | null = null;
 let lastTrackSignature = "";
 let isSettingsOpen = false;
+let autoScrollEnabled = true;
+let autoScrollTimer: number | null = null;
 
 function formatUrl(url: string | null): string {
   if (!url) return "";
@@ -128,9 +130,27 @@ function highlightActiveCue(currentTime: number) {
   const element = cueElements[newIndex];
   if (element) {
     element.classList.add("subtitle-item--active");
-    element.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (autoScrollEnabled) {
+      element.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
     activeCueIndex = newIndex;
   }
+}
+
+function resetAutoScrollTimer() {
+  if (autoScrollTimer !== null) {
+    clearTimeout(autoScrollTimer);
+  }
+  autoScrollEnabled = false;
+  const timeoutSeconds = currentSettings?.subtitleAutoScrollTimeout ?? 3;
+  autoScrollTimer = window.setTimeout(() => {
+    autoScrollEnabled = true;
+    autoScrollTimer = null;
+    // 恢复自动滚动时，立即滚动到当前激活的字幕
+    if (activeCueIndex !== null && cueElements[activeCueIndex]) {
+      cueElements[activeCueIndex].scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, timeoutSeconds * 1000);
 }
 
 function renderTrackSelector(state: DesktopState) {
@@ -228,6 +248,7 @@ function renderSettings(settings: AppSettings) {
   autostartToggle.checked = settings.autoLaunch;
   subtitleFontInput.value = settings.subtitleFontFamily;
   subtitleFontSizeInput.value = String(settings.subtitleFontSize);
+  subtitleAutoScrollTimeoutInput.value = String(settings.subtitleAutoScrollTimeout);
   ytDlpArgsInput.placeholder = DEFAULT_YTDLP_ARGS;
   if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
     ytDlpArgsInput.value = settings.ytDlpArgs;
@@ -283,6 +304,15 @@ subtitleFontSizeInput.addEventListener("change", () => {
   updateSettings({ subtitleFontSize: nextValue });
 });
 
+subtitleAutoScrollTimeoutInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitleAutoScrollTimeoutInput.value, 10);
+  if (!Number.isFinite(nextValue) || nextValue < 1) {
+    subtitleAutoScrollTimeoutInput.value = String(currentSettings?.subtitleAutoScrollTimeout ?? 3);
+    return;
+  }
+  updateSettings({ subtitleAutoScrollTimeout: nextValue });
+});
+
 ytDlpArgsInput.addEventListener("input", () => {
   updateSettings({ ytDlpArgs: ytDlpArgsInput.value });
 });
@@ -306,6 +336,15 @@ subtitleList.addEventListener("click", (event) => {
   }
 });
 
+// 监听用户手动滚动字幕列表
+subtitleList.addEventListener("wheel", () => {
+  resetAutoScrollTimer();
+}, { passive: true });
+
+subtitleList.addEventListener("touchmove", () => {
+  resetAutoScrollTimer();
+}, { passive: true });
+
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && isSettingsOpen) {
     setSettingsOpen(false);
@@ -315,7 +354,6 @@ window.addEventListener("keydown", (event) => {
 async function bootstrap() {
   try {
     const initialState = await window.usp.getInitialState();
-    currentState = initialState;
     renderState(initialState);
   } catch (error) {
     console.error("[Renderer] Failed to get initial state:", error);
@@ -331,7 +369,6 @@ async function bootstrap() {
   }
 
   window.usp.onStateChange((nextState) => {
-    currentState = nextState;
     renderState(nextState);
   });
 

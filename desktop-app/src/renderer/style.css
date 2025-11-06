@@ -102,6 +102,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: opacity 0.2s ease;
+  min-height: 0;
 }
 
 .window--settings-open .primary-view {
@@ -113,6 +114,20 @@ body {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(0);
+}
+
+.video-info-section {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.subtitle-scroll-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .video-meta {
@@ -323,6 +338,25 @@ body {
   flex-direction: column;
   gap: 6px;
   min-height: 0;
+  scroll-behavior: smooth;
+}
+
+.subtitle-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.subtitle-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.subtitle-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.subtitle-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .subtitle-item {
