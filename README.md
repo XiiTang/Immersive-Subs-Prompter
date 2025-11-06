@@ -15,7 +15,7 @@ desktop-app/   # Electron + TypeScript 桌面应用
 
 - Node.js 18+ 与 npm
 - Chrome / Edge / 基于 Chromium 的浏览器用于加载扩展
-- 桌面端首次运行会自动从 GitHub 下载对应平台的 `yt-dlp`，需保证可访问外网；如无法联网，可按部署指南预置二进制
+- 桌面端首次运行会自动从 GitHub 下载对应平台的 `yt-dlp`，并在后续启动时对比最新 Release 自动更新；如无法联网，可按部署指南预置二进制
 
 ### 启动桌面端
 

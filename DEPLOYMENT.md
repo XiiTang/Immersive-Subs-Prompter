@@ -60,7 +60,7 @@ npm run dist:win    # 或 dist:mac / dist:linux / dist:all
 
 ## 3. `yt-dlp` 的随包策略
 
-桌面端现在自带自动下载机制：当字幕服务首次运行时，会检测用户数据目录下的 `yt-dlp/<platform>` 是否存在可执行文件；若无，则从 GitHub Release 拉取对应平台最新版本并缓存。下载失败会在 UI 中体现错误消息。
+桌面端现在自带自动下载与自更新机制：当字幕服务运行时，会检测用户数据目录下的 `yt-dlp/<platform>` 是否存在可执行文件，并通过 GitHub Release API 获取最新版本号。若本地缺失或版本落后，则自动下载最新二进制并覆盖缓存。更新失败时会在 UI 中提示错误，同时保留旧版本作为回退。
 
 若需要离线安装或内网环境，可将官方二进制预先放入 `desktop-app/resources/yt-dlp/`，electron-builder 会在打包时将其复制进应用 `resources/yt-dlp` 目录，运行时也会优先检测该目录中的文件（优先级：用户数据缓存 > resources/yt-dlp > 系统 PATH）。
 
