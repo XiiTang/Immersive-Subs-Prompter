@@ -63,7 +63,11 @@ export class SubtitleService {
 
     try {
       binaryPath = await this.binaryResolver();
+      logger.log("USP", `Starting yt-dlp for: ${videoUrl}`);
+      
       await runCommand(binaryPath, args, workingDir);
+      logger.log("USP", "yt-dlp command completed successfully");
+      
       const subtitleFiles = (await fs.readdir(workingDir))
         .filter((file) => SUBTITLE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(`.${ext}`)))
         .map((file) => path.join(workingDir, file));
@@ -71,6 +75,8 @@ export class SubtitleService {
       if (subtitleFiles.length === 0) {
         throw new Error("未找到字幕文件，请确认该视频是否提供字幕。");
       }
+
+      logger.log("USP", `Found ${subtitleFiles.length} subtitle file(s)`);
 
       const tracks: SubtitleTrack[] = [];
       for (const filePath of subtitleFiles) {
@@ -93,6 +99,8 @@ export class SubtitleService {
       if (!tracks.length) {
         throw new Error("字幕文件解析失败或为空。");
       }
+
+      logger.log("USP", `Successfully parsed ${tracks.length} subtitle track(s)`);
 
       return {
         tracks

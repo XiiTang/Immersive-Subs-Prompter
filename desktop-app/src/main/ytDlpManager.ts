@@ -93,6 +93,8 @@ export class YtDlpManager {
     const metadata = await this.readMetadata(storageDir);
 
     try {
+      logger.log("USP", "Checking yt-dlp binary status");
+      
       const releaseInfo = await this.fetchLatestReleaseInfo();
       const releaseVersion = releaseInfo.version;
       const downloadUrl =
@@ -103,13 +105,16 @@ export class YtDlpManager {
         !(await this.fileExists(targetPath)) || metadata?.version !== releaseVersion;
 
       if (needsDownload) {
+        logger.log("USP", `Downloading yt-dlp ${releaseVersion}...`);
         await this.downloadBinary(downloadUrl, targetPath);
         await this.ensurePermissions(targetPath);
         await this.writeMetadata(storageDir, {
           version: releaseVersion,
           downloadedAt: new Date().toISOString()
         });
+        logger.log("USP", `yt-dlp ${releaseVersion} downloaded successfully`);
       } else {
+        logger.log("USP", `Using cached yt-dlp ${metadata?.version || 'unknown version'}`);
         await this.ensurePermissions(targetPath);
       }
 
@@ -123,19 +128,17 @@ export class YtDlpManager {
         return targetPath;
       }
 
-      try {
-        const fallbackUrl = `${LATEST_DOWNLOAD_BASE}${config.assetName}`;
-        await this.downloadBinary(fallbackUrl, targetPath);
-        await this.ensurePermissions(targetPath);
-        await this.writeMetadata(storageDir, {
-          version: "latest",
-          downloadedAt: new Date().toISOString()
-        });
-        this.binaryPath = targetPath;
-        return targetPath;
-      } catch (fallbackError) {
-        throw fallbackError;
-      }
+      logger.log("USP", "Attempting to download yt-dlp from fallback URL");
+      const fallbackUrl = `${LATEST_DOWNLOAD_BASE}${config.assetName}`;
+      await this.downloadBinary(fallbackUrl, targetPath);
+      await this.ensurePermissions(targetPath);
+      await this.writeMetadata(storageDir, {
+        version: "latest",
+        downloadedAt: new Date().toISOString()
+      });
+      logger.log("USP", "yt-dlp downloaded successfully from fallback URL");
+      this.binaryPath = targetPath;
+      return targetPath;
     }
   }
 
