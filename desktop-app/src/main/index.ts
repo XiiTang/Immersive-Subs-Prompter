@@ -6,6 +6,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { SubtitleService, pickBestTrack } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
+import { logger } from "./logger.js";
 import {
   AppSettings,
   DesktopState,
@@ -64,7 +65,7 @@ function applyAutoLaunch(enabled: boolean) {
         path: process.execPath
       });
     } catch (error) {
-      console.error("[USP] Failed to update login item settings", error);
+      logger.error("USP", "Failed to update login item settings", error);
     }
     return;
   }
@@ -89,7 +90,7 @@ function applyAutoLaunch(enabled: boolean) {
         fs.rmSync(desktopFile);
       }
     } catch (error) {
-      console.error("[USP] Failed to update autostart entry", error);
+      logger.error("USP", "Failed to update autostart entry", error);
     }
   }
 }
@@ -224,7 +225,7 @@ function sendPlaybackUpdate(playback: PlaybackState) {
 }
 
 function log(message: string, ...rest: unknown[]) {
-  console.log(`[USP] ${message}`, ...rest);
+  logger.log("USP", message, ...rest);
 }
 
 function updateConnectionCount(delta: number) {
@@ -384,10 +385,10 @@ function bootstrapWebSocketServer() {
         };
         rememberTabSocket(tabId, socket);
         handleMessage({ tabId, type, payload }).catch((error) => {
-          console.error("[USP] Failed to handle message", error);
+          logger.error("USP", "Failed to handle message", error);
         });
       } catch (error) {
-        console.error("[USP] Failed to process message", error);
+        logger.error("USP", "Failed to process message", error);
       }
     });
 
@@ -398,13 +399,13 @@ function bootstrapWebSocketServer() {
     });
 
     socket.on("error", (error: Error) => {
-      console.error("[USP] WebSocket error", error);
+      logger.error("USP", "WebSocket error", error);
       socket.close();
     });
   });
 
   wss.on("error", (error: Error) => {
-    console.error("[USP] WebSocket server error", error);
+    logger.error("USP", "WebSocket server error", error);
   });
 }
 

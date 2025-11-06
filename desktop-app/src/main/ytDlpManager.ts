@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { promises as fs } from "fs";
 import path from "path";
+import { logger } from "./logger.js";
 
 const RELEASE_API = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
 const LATEST_DOWNLOAD_BASE = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/";
@@ -116,7 +117,7 @@ export class YtDlpManager {
       return targetPath;
     } catch (error) {
       if (await this.fileExists(targetPath)) {
-        console.warn("[USP] Failed to refresh yt-dlp, falling back to cached binary:", error);
+        logger.warn("USP", "Failed to refresh yt-dlp, falling back to cached binary:", error);
         await this.ensurePermissions(targetPath);
         this.binaryPath = targetPath;
         return targetPath;
@@ -223,7 +224,7 @@ export class YtDlpManager {
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-        console.warn("[USP] Failed to read yt-dlp metadata:", error);
+        logger.warn("USP", "Failed to read yt-dlp metadata:", error);
       }
     }
     return null;
@@ -237,7 +238,7 @@ export class YtDlpManager {
         "utf-8"
       );
     } catch (error) {
-      console.warn("[USP] Failed to persist yt-dlp metadata:", error);
+      logger.warn("USP", "Failed to persist yt-dlp metadata:", error);
     }
   }
 }

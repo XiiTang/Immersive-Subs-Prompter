@@ -5,6 +5,7 @@ import { tmpdir } from "os";
 import path from "path";
 import { DEFAULT_YTDLP_ARGS } from "./settings.js";
 import { AppSettings, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
+import { logger } from "./logger.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",
@@ -99,14 +100,14 @@ export class SubtitleService {
     } catch (error) {
       const commandLine = binaryPath ? formatCommandLine(binaryPath, args) : "";
       if (error instanceof CommandExecutionError) {
-        console.error("[USP] yt-dlp command failed", {
+        logger.error("USP", "yt-dlp command failed", {
           command: commandLine,
           exitCode: error.info.exitCode,
           stderr: error.info.stderr,
           stdout: error.info.stdout
         });
       } else {
-        console.error("[USP] yt-dlp invocation failed", error);
+        logger.error("USP", "yt-dlp invocation failed", error);
       }
       const detailedMessage = formatCommandError(error, commandLine);
       throw new Error(`[yt-dlp] ${detailedMessage}`);
