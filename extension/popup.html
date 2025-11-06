@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Media Monitor</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="usp-header">
+      <div>
+        <h1>Media Monitor</h1>
+        <p>Shows every media element playing across your browser.</p>
+      </div>
+      <span class="usp-status" id="status-indicator">Connecting…</span>
+    </header>
+    <main id="media-root" class="media-root">
+      <div class="empty-state">
+        <strong>No media detected</strong>
+        <p>Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
+      </div>
+    </main>
+
+    <template id="media-card-template">
+      <article class="media-card">
+        <div class="media-card__header">
+          <div class="media-card__title"></div>
+          <span class="media-card__status"></span>
+        </div>
+        <div class="media-card__subtitle"></div>
+        <div class="media-card__meta"></div>
+        <div class="media-card__progress">
+          <div class="media-card__progress-bar"></div>
+        </div>
+        <div class="media-card__time"></div>
+        <div class="media-card__actions">
+          <a class="media-card__link" target="_blank" rel="noreferrer noopener">Open tab</a>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

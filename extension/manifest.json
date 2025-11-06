@@ -35,6 +35,7 @@
     }
   ],
   "action": {
-    "default_title": "Universal Subtitle Messenger"
+    "default_title": "Universal Subtitle Messenger",
+    "default_popup": "popup.html"
   }
 }

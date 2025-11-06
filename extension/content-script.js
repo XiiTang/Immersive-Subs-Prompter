@@ -83,6 +83,9 @@
       pageUrl: location.href,
       site: detectSite(),
       videoSrc: video.currentSrc || video.src || null,
+      videoWidth: Number.isFinite(video.videoWidth) ? video.videoWidth : null,
+      videoHeight: Number.isFinite(video.videoHeight) ? video.videoHeight : null,
+      pictureInPicture: document.pictureInPictureElement === video,
       playbackRate: video.playbackRate,
       currentTime: video.currentTime,
       duration: Number.isFinite(video.duration) ? video.duration : null,
@@ -90,7 +93,8 @@
       muted: video.muted,
       volume: video.volume,
       readyState: video.readyState,
-      title: document.title
+      title: document.title,
+      updatedAt: Date.now()
     };
   }
 
@@ -155,6 +159,30 @@
     });
 
     video.addEventListener("timeupdate", () => {
+      if (activeVideo === video) {
+        handleTimeUpdate(video);
+      }
+    });
+
+    video.addEventListener("durationchange", () => {
+      if (activeVideo === video) {
+        handleTimeUpdate(video);
+      }
+    });
+
+    video.addEventListener("volumechange", () => {
+      if (activeVideo === video) {
+        handleTimeUpdate(video);
+      }
+    });
+
+    video.addEventListener("enterpictureinpicture", () => {
+      if (activeVideo === video) {
+        handleTimeUpdate(video);
+      }
+    });
+
+    video.addEventListener("leavepictureinpicture", () => {
       if (activeVideo === video) {
         handleTimeUpdate(video);
       }
