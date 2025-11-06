@@ -58,9 +58,10 @@ export class SubtitleService {
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-"));
     const baseOutput = path.join(workingDir, randomUUID());
     const args = this.buildArgs(videoUrl, baseOutput);
+    let binaryPath: string | null = null;
 
     try {
-      const binaryPath = await this.binaryResolver();
+      binaryPath = await this.binaryResolver();
       await runCommand(binaryPath, args, workingDir);
       const subtitleFiles = (await fs.readdir(workingDir))
         .filter((file) => SUBTITLE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(`.${ext}`)))
@@ -96,11 +97,19 @@ export class SubtitleService {
         tracks
       };
     } catch (error) {
-      const message =
-        error && typeof error === "object" && "message" in error
-          ? (error as Error).message
-          : "未知错误";
-      throw new Error(`[yt-dlp] ${message}`);
+      const commandLine = binaryPath ? formatCommandLine(binaryPath, args) : "";
+      if (error instanceof CommandExecutionError) {
+        console.error("[USP] yt-dlp command failed", {
+          command: commandLine,
+          exitCode: error.info.exitCode,
+          stderr: error.info.stderr,
+          stdout: error.info.stdout
+        });
+      } else {
+        console.error("[USP] yt-dlp invocation failed", error);
+      }
+      const detailedMessage = formatCommandError(error, commandLine);
+      throw new Error(`[yt-dlp] ${detailedMessage}`);
     } finally {
       await fs.rm(workingDir, { recursive: true, force: true });
     }
@@ -125,30 +134,64 @@ export class SubtitleService {
   }
 }
 
-async function runCommand(cmd: string, args: string[], cwd: string): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd });
-    let stderr = "";
+type CommandResult = {
+  stdout: string;
+  stderr: string;
+};
 
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
+type CommandErrorInfo = CommandResult & {
+  exitCode: number | null;
+  command: string;
+  args: string[];
+};
+
+class CommandExecutionError extends Error {
+  info: CommandErrorInfo;
+  constructor(message: string, info: CommandErrorInfo) {
+    super(message);
+    this.name = "CommandExecutionError";
+    this.info = info;
+  }
+}
+
+async function runCommand(cmd: string, args: string[], cwd: string): Promise<CommandResult> {
+  return new Promise<CommandResult>((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd });
+    const info: CommandErrorInfo = {
+      command: cmd,
+      args,
+      exitCode: null,
+      stdout: "",
+      stderr: ""
+    };
+
+    child.stdout?.on("data", (chunk) => {
+      info.stdout += chunk.toString();
+    });
+
+    child.stderr?.on("data", (chunk) => {
+      info.stderr += chunk.toString();
     });
 
     child.on("error", (err) => {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        reject(
-          new Error("未找到 yt-dlp 可执行文件，请先安装 yt-dlp 并确保其在 PATH 中。")
-        );
-      } else {
-        reject(err);
-      }
+      const enoent = (err as NodeJS.ErrnoException).code === "ENOENT";
+      const message = enoent
+        ? "未找到 yt-dlp 可执行文件，请先安装 yt-dlp 并确保其在 PATH 中。"
+        : err?.message || "yt-dlp 调用失败。";
+      reject(new CommandExecutionError(message, info));
     });
 
     child.on("close", (code) => {
       if (code === 0) {
-        resolve();
+        resolve({ stdout: info.stdout, stderr: info.stderr });
       } else {
-        reject(new Error(stderr || `yt-dlp exited with code ${code}`));
+        info.exitCode = code ?? null;
+        reject(
+          new CommandExecutionError(
+            info.stderr || `yt-dlp exited with code ${code}`,
+            info
+          )
+        );
       }
     });
   });
@@ -326,4 +369,45 @@ function parseTimestamp(value: string): number {
   const minutes = Number(match[2]);
   const seconds = Number(match[3]);
   return hours * 3600 + minutes * 60 + seconds;
+}
+
+function formatCommandLine(binary: string, args: string[]): string {
+  return [binary, ...args]
+    .map((part) => {
+      if (/["\s]/.test(part)) {
+        return `"${part.replace(/(["\\])/g, "\\$1")}"`;
+      }
+      return part;
+    })
+    .join(" ");
+}
+
+function formatCommandError(error: unknown, commandLine: string): string {
+  const baseMessage =
+    error && typeof error === "object" && "message" in error
+      ? (error as Error).message
+      : "未知错误";
+
+  if (!(error instanceof CommandExecutionError)) {
+    return commandLine ? `${baseMessage}\n命令: ${commandLine}` : baseMessage;
+  }
+
+  const output = (error.info.stderr || error.info.stdout || "").trim();
+  const snippet = output ? trimLines(output, 40) : "";
+  const parts = [baseMessage];
+  if (commandLine) {
+    parts.push(`命令: ${commandLine}`);
+  }
+  if (snippet) {
+    parts.push(`输出:\n${snippet}`);
+  }
+  return parts.join("\n");
+}
+
+function trimLines(text: string, maxLines: number): string {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length);
+  if (lines.length <= maxLines) {
+    return lines.join("\n");
+  }
+  return lines.slice(-maxLines).join("\n");
 }
