@@ -141,8 +141,7 @@ body {
   font-weight: 600;
 }
 
-.video-meta__url,
-.video-meta__language {
+.video-meta__url {
   margin: 0;
   font-size: 12px;
   color: #a1a1aa;
@@ -158,15 +157,11 @@ body {
 }
 
 .track-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: #a1a1aa;
   flex: 1;
 }
 
 .track-picker select {
+  width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);

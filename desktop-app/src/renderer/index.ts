@@ -5,7 +5,6 @@ const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-fr
 const connectionIndicator = document.getElementById("connection-indicator") as HTMLElement;
 const videoTitle = document.getElementById("video-title") as HTMLElement;
 const videoUrl = document.getElementById("video-url") as HTMLElement;
-const subtitleLanguage = document.getElementById("subtitle-language") as HTMLElement;
 const statusBanner = document.getElementById("status-banner") as HTMLElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
@@ -195,9 +194,6 @@ function renderState(state: DesktopState) {
 
   videoTitle.textContent = state.title ?? "等待视频...";
   videoUrl.textContent = formatUrl(state.videoUrl);
-  subtitleLanguage.textContent = state.subtitles
-    ? `当前字幕：${state.subtitles.label}`
-    : "";
 
   const { text, modifier } = formatStatus(state);
   statusBanner.textContent = text;
