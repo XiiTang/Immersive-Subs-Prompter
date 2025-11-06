@@ -250,6 +250,52 @@
     HTMLMediaElement.prototype[methodName].toString = () => original.toString();
   });
 
+  [
+    "play",
+    "playing",
+    "pause",
+    "timeupdate",
+    "loadedmetadata",
+    "loadeddata",
+    "ratechange",
+    "durationchange",
+    "volumechange",
+    "enterpictureinpicture",
+    "leavepictureinpicture",
+    "ended"
+  ].forEach((eventName) => {
+    window.addEventListener(
+      eventName,
+      (event) => {
+        const target = event?.target;
+        if (!(target instanceof HTMLVideoElement)) return;
+        const firstSeen = !hooked.has(target);
+        if (firstSeen) {
+          watchVideo(target);
+          if (eventName === "ratechange") {
+            if (activeVideo === target) {
+              send("playback-rate", gatherVideoState(target));
+            }
+          } else if (eventName === "ended") {
+            if (activeVideo === target) {
+              send("video-ended", { pageUrl: location.href });
+              setActiveVideo(null);
+            }
+          } else {
+            if (eventName === "play" || eventName === "playing" || eventName === "loadedmetadata" || eventName === "loadeddata") {
+              setActiveVideo(target);
+            }
+            handleTimeUpdate(target);
+          }
+        } else if (eventName === "play" && activeVideo !== target) {
+          setActiveVideo(target);
+          handleTimeUpdate(target);
+        }
+      },
+      { capture: true, passive: true }
+    );
+  });
+
   connectPort();
   monitorUrlChanges();
 })();
