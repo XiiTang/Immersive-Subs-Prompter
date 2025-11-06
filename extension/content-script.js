@@ -7,6 +7,21 @@
   let activeVideo = null;
   let ticker = null;
   const hooked = new WeakSet();
+  const observedDocs = new WeakSet();
+  const MEDIA_EVENTS = [
+    "play",
+    "playing",
+    "pause",
+    "timeupdate",
+    "loadedmetadata",
+    "loadeddata",
+    "ratechange",
+    "durationchange",
+    "volumechange",
+    "enterpictureinpicture",
+    "leavepictureinpicture",
+    "ended"
+  ];
   let lastPageUrl = location.href;
 
   function handlePortMessage(message) {
@@ -130,77 +145,16 @@
   }
 
   function watchVideo(video) {
-    if (!video || hooked.has(video) || !(video instanceof HTMLVideoElement)) return;
+    if (!video || !(video instanceof HTMLVideoElement)) return;
+    const root = video.getRootNode?.();
+    if (root instanceof ShadowRoot) {
+      ensureDocListeners(root);
+    } else {
+      ensureDocListeners(window);
+      ensureDocListeners(document);
+    }
+    if (hooked.has(video)) return;
     hooked.add(video);
-
-    video.addEventListener("play", () => {
-      setActiveVideo(video);
-      handleTimeUpdate(video);
-    });
-
-    video.addEventListener("loadedmetadata", () => {
-      if (!activeVideo) {
-        setActiveVideo(video);
-      } else {
-        send("video-context", gatherVideoState(video));
-      }
-    });
-
-    video.addEventListener("pause", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("ratechange", () => {
-      if (activeVideo === video) {
-        send("playback-rate", gatherVideoState(video));
-      }
-    });
-
-    video.addEventListener("timeupdate", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("durationchange", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("volumechange", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("enterpictureinpicture", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("leavepictureinpicture", () => {
-      if (activeVideo === video) {
-        handleTimeUpdate(video);
-      }
-    });
-
-    video.addEventListener("loadeddata", () => {
-      if (!activeVideo) {
-        setActiveVideo(video);
-      }
-      handleTimeUpdate(video);
-    });
-
-    video.addEventListener("ended", () => {
-      if (activeVideo === video) {
-        send("video-ended", { pageUrl: location.href });
-        setActiveVideo(null);
-      }
-    });
   }
 
   function applyControl(action, payload) {
@@ -236,6 +190,63 @@
     setTimeout(monitorUrlChanges, 1000);
   }
 
+  function ensureDocListeners(target) {
+    if (!target || typeof target.addEventListener !== "function" || observedDocs.has(target)) return;
+    observedDocs.add(target);
+    MEDIA_EVENTS.forEach((eventName) => {
+      target.addEventListener(eventName, handleDocumentMediaEvent, { capture: true, passive: true });
+    });
+  }
+
+  function handleDocumentMediaEvent(event) {
+    const target = event?.target;
+    if (!(target instanceof HTMLVideoElement)) return;
+    watchVideo(target);
+    switch (event.type) {
+      case "play":
+      case "playing":
+        setActiveVideo(target);
+        handleTimeUpdate(target);
+        break;
+      case "loadedmetadata":
+        if (!activeVideo) {
+          setActiveVideo(target);
+        } else {
+          send("video-context", gatherVideoState(target));
+        }
+        break;
+      case "loadeddata":
+        if (!activeVideo) {
+          setActiveVideo(target);
+        }
+        handleTimeUpdate(target);
+        break;
+      case "pause":
+      case "timeupdate":
+      case "durationchange":
+      case "volumechange":
+      case "enterpictureinpicture":
+      case "leavepictureinpicture":
+        if (activeVideo === target) {
+          handleTimeUpdate(target);
+        }
+        break;
+      case "ratechange":
+        if (activeVideo === target) {
+          send("playback-rate", gatherVideoState(target));
+        }
+        break;
+      case "ended":
+        if (activeVideo === target) {
+          send("video-ended", { pageUrl: location.href });
+          setActiveVideo(null);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   // Mirror GlobalSpeed's passive detection by wrapping media prototype methods.
   ["play", "pause", "load"].forEach((methodName) => {
     const original = HTMLMediaElement.prototype[methodName];
@@ -250,52 +261,18 @@
     HTMLMediaElement.prototype[methodName].toString = () => original.toString();
   });
 
-  [
-    "play",
-    "playing",
-    "pause",
-    "timeupdate",
-    "loadedmetadata",
-    "loadeddata",
-    "ratechange",
-    "durationchange",
-    "volumechange",
-    "enterpictureinpicture",
-    "leavepictureinpicture",
-    "ended"
-  ].forEach((eventName) => {
-    window.addEventListener(
-      eventName,
-      (event) => {
-        const target = event?.target;
-        if (!(target instanceof HTMLVideoElement)) return;
-        const firstSeen = !hooked.has(target);
-        if (firstSeen) {
-          watchVideo(target);
-          if (eventName === "ratechange") {
-            if (activeVideo === target) {
-              send("playback-rate", gatherVideoState(target));
-            }
-          } else if (eventName === "ended") {
-            if (activeVideo === target) {
-              send("video-ended", { pageUrl: location.href });
-              setActiveVideo(null);
-            }
-          } else {
-            if (eventName === "play" || eventName === "playing" || eventName === "loadedmetadata" || eventName === "loadeddata") {
-              setActiveVideo(target);
-            }
-            handleTimeUpdate(target);
-          }
-        } else if (eventName === "play" && activeVideo !== target) {
-          setActiveVideo(target);
-          handleTimeUpdate(target);
-        }
-      },
-      { capture: true, passive: true }
-    );
-  });
+  const originalAttachShadow = Element.prototype.attachShadow;
+  if (typeof originalAttachShadow === "function") {
+    Element.prototype.attachShadow = function (...args) {
+      const shadowRoot = originalAttachShadow.apply(this, args);
+      ensureDocListeners(shadowRoot);
+      return shadowRoot;
+    };
+    Element.prototype.attachShadow.toString = () => originalAttachShadow.toString();
+  }
 
   connectPort();
+  ensureDocListeners(window);
+  ensureDocListeners(document);
   monitorUrlChanges();
 })();
