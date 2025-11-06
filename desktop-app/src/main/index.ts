@@ -272,11 +272,9 @@ async function handleMessage(message: ExtensionMessage) {
       state.site = message.payload.site ?? null;
       state.title = message.payload.title ?? null;
       state.error = null;
-      state.subtitles = null;
-      state.subtitleTracks = [];
-      state.selectedSubtitleId = null;
 
       const url = resolveVideoUrl(message.payload);
+      const previousVideoUrl = state.videoUrl;
       state.videoUrl = url;
 
       if (!url) {
@@ -286,6 +284,17 @@ async function handleMessage(message: ExtensionMessage) {
         return;
       }
 
+      // 如果视频 URL 没有改变，说明是同一个视频（例如只是跳转时间戳），不需要重新加载字幕
+      if (url === previousVideoUrl && state.subtitleTracks.length > 0) {
+        // 只更新页面信息，保持字幕选择不变
+        pushState();
+        return;
+      }
+
+      // URL 改变了，需要重新加载字幕
+      state.subtitles = null;
+      state.subtitleTracks = [];
+      state.selectedSubtitleId = null;
       state.status = "loading-subtitles";
       pushState();
 
