@@ -2,6 +2,8 @@ const WS_ENDPOINT = "ws://127.0.0.1:44501";
 const RETRY_DELAY_MS = 2000;
 const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
+// Minimum duration to consider a video as valid media (mirrors GlobalSpeed's MINIMUM_DURATION)
+const MINIMUM_DURATION = 10;
 
 class DesktopBridge {
   constructor(onDesktopMessage) {
@@ -94,6 +96,14 @@ const dashboardPorts = new Set();
 function buildMediaSnapshot() {
   const now = Date.now();
   return [...mediaStates.values()]
+    .filter((state) => {
+      // Filter out invalid media: must have readyState and duration > MINIMUM_DURATION
+      // This mirrors GlobalSpeed's filtering logic
+      if (!state.readyState) return false;
+      const duration = typeof state.duration === "number" && Number.isFinite(state.duration) ? state.duration : 0;
+      if (duration <= MINIMUM_DURATION) return false;
+      return true;
+    })
     .map((state) => {
       const duration = typeof state.duration === "number" && Number.isFinite(state.duration) ? state.duration : null;
       const currentTime = typeof state.currentTime === "number" && Number.isFinite(state.currentTime) ? state.currentTime : null;
@@ -169,6 +179,29 @@ function removeMediaState(tabId) {
   broadcastMediaSnapshot();
 }
 
+// Check if message should be sent to desktop-app (mirrors GlobalSpeed's filtering logic)
+function shouldSendToDesktop(message) {
+  if (!message || typeof message !== "object") return false;
+  const { type, payload } = message;
+  
+  // Always send control messages and video-ended
+  if (type === "video-ended" || type === "page-url-changed") return true;
+  
+  // For media state messages, check duration
+  if (type === "video-context" || type === "time-update" || type === "playback-rate") {
+    if (!payload) return false;
+    
+    // Must have readyState and duration > MINIMUM_DURATION
+    if (!payload.readyState) return false;
+    const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
+    if (duration <= MINIMUM_DURATION) return false;
+    
+    return true;
+  }
+  
+  return true; // Send other message types by default
+}
+
 function ingestMediaMessage(tabId, message) {
   if (!message || typeof message !== "object") return;
   const { type, payload } = message;
@@ -230,11 +263,14 @@ function handleContentPort(port) {
   tabPorts.set(tabId, port);
 
   port.onMessage.addListener((message) => {
-    bridge.send({
-      tabId,
-      type: message.type,
-      payload: message.payload
-    });
+    // Filter out invalid media before sending to desktop-app (mirrors GlobalSpeed's filtering)
+    if (shouldSendToDesktop(message)) {
+      bridge.send({
+        tabId,
+        type: message.type,
+        payload: message.payload
+      });
+    }
 
     if (message.type === "video-context") {
       const tabInfo = tabMetadata.get(tabId) || {};
