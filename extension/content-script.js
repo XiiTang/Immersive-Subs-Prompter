@@ -130,7 +130,7 @@
   }
 
   function watchVideo(video) {
-    if (!video || hooked.has(video)) return;
+    if (!video || hooked.has(video) || !(video instanceof HTMLVideoElement)) return;
     hooked.add(video);
 
     video.addEventListener("play", () => {
@@ -228,38 +228,28 @@
     }
   }
 
-  function scanForVideos() {
-    document.querySelectorAll("video").forEach(watchVideo);
-  }
-
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (!(node instanceof Element)) return;
-        if (node.tagName === "VIDEO") {
-          watchVideo(node);
-        } else {
-          node.querySelectorAll("video").forEach(watchVideo);
-        }
-      });
-    }
-  });
-
-  observer.observe(document.documentElement || document.body, {
-    childList: true,
-    subtree: true
-  });
-
   function monitorUrlChanges() {
     if (lastPageUrl !== location.href) {
       lastPageUrl = location.href;
       send("page-url-changed", { pageUrl: lastPageUrl, title: document.title });
-      scanForVideos();
     }
     setTimeout(monitorUrlChanges, 1000);
   }
 
+  // Mirror GlobalSpeed's passive detection by wrapping media prototype methods.
+  ["play", "pause", "load"].forEach((methodName) => {
+    const original = HTMLMediaElement.prototype[methodName];
+    if (typeof original !== "function") return;
+    HTMLMediaElement.prototype[methodName] = function (...args) {
+      const result = original.apply(this, args);
+      if (this instanceof HTMLVideoElement) {
+        watchVideo(this);
+      }
+      return result;
+    };
+    HTMLMediaElement.prototype[methodName].toString = () => original.toString();
+  });
+
   connectPort();
-  scanForVideos();
   monitorUrlChanges();
 })();
