@@ -241,14 +241,23 @@ function updateConnectionCount(delta: number) {
   pushState();
 }
 
+const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
+
 function resolveVideoUrl(payload: ExtensionPayload): string | null {
-  const src = payload.videoSrc;
-  if (src && /^https?:\/\//i.test(src)) {
-    return src;
+  const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
+  const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
+  const site = payload.site;
+
+  if (pageUrl && /^https?:\/\//i.test(pageUrl) && site && PAGE_URL_SITES.has(site)) {
+    return pageUrl;
   }
 
-  if (payload.pageUrl) {
-    return payload.pageUrl;
+  if (videoSrc && /^https?:\/\//i.test(videoSrc)) {
+    return videoSrc;
+  }
+
+  if (pageUrl && /^https?:\/\//i.test(pageUrl)) {
+    return pageUrl;
   }
 
   return null;
