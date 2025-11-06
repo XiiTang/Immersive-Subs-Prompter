@@ -121,12 +121,6 @@ export class SubtitleService {
     const customArgs = splitArgs(customLine);
     return [
       ...customArgs,
-      "--write-auto-sub",
-      "--write-sub",
-      "--sub-format",
-      "vtt/srt",
-      "--sub-langs",
-      "all",
       "-o",
       baseOutput,
       videoUrl
