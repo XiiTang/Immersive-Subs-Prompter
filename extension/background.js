@@ -19,6 +19,9 @@ const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
 // Minimum duration to consider a video as valid media (mirrors GlobalSpeed's MINIMUM_DURATION)
 const MINIMUM_DURATION = 10;
+const KEEPALIVE_ALARM_NAME = "usp-keepalive";
+const KEEPALIVE_INTERVAL_SECONDS = 25;
+const KEEPALIVE_PERIOD_MINUTES = KEEPALIVE_INTERVAL_SECONDS / 60;
 
 class DesktopBridge {
   constructor(onDesktopMessage) {
@@ -353,3 +356,31 @@ function handleDashboardPort(port) {
     dashboardPorts.delete(port);
   });
 }
+
+function ensureKeepAliveAlarm() {
+  chrome.alarms.get(KEEPALIVE_ALARM_NAME, (existing) => {
+    if (chrome.runtime?.lastError) {
+      log.warn('alarm', '查询闹钟失败', chrome.runtime.lastError);
+    }
+    const desired = KEEPALIVE_PERIOD_MINUTES;
+    if (!existing || Math.abs((existing.periodInMinutes || 0) - desired) > 0.001) {
+      chrome.alarms.create(KEEPALIVE_ALARM_NAME, {
+        periodInMinutes: desired,
+        delayInMinutes: desired
+      });
+      log.info('alarm', `${existing ? '更新' : '创建'}保活闹钟`, { intervalSeconds: KEEPALIVE_INTERVAL_SECONDS });
+    }
+  });
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm?.name !== KEEPALIVE_ALARM_NAME) {
+    return;
+  }
+  log.debug('alarm', 'keepalive tick', { scheduledTime: alarm.scheduledTime });
+  bridge.connect();
+});
+
+ensureKeepAliveAlarm();
+chrome.runtime.onInstalled.addListener(ensureKeepAliveAlarm);
+chrome.runtime.onStartup.addListener(ensureKeepAliveAlarm);
