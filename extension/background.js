@@ -116,6 +116,7 @@ class DesktopBridge {
 }
 
 const tabMetadata = new Map();
+// tabId -> Map<frameId, chrome.runtime.Port>
 const tabPorts = new Map();
 const mediaStates = new Map();
 const dashboardPorts = new Set();
@@ -183,6 +184,45 @@ function sendSnapshotToPort(port) {
   }
 }
 
+function ensureTabInfo(tabId) {
+  if (!tabMetadata.has(tabId)) {
+    tabMetadata.set(tabId, { lastVideoUrl: null, lastFrameId: null });
+  } else {
+    const existing = tabMetadata.get(tabId);
+    if (!Object.prototype.hasOwnProperty.call(existing, "lastVideoUrl")) {
+      existing.lastVideoUrl = null;
+    }
+    if (!Object.prototype.hasOwnProperty.call(existing, "lastFrameId")) {
+      existing.lastFrameId = null;
+    }
+  }
+  return tabMetadata.get(tabId);
+}
+
+function rememberActiveFrame(tabId, frameId, pageUrl) {
+  if (typeof tabId !== "number") return;
+  const info = ensureTabInfo(tabId);
+  if (typeof frameId === "number") {
+    info.lastFrameId = frameId;
+  }
+  if (pageUrl) {
+    info.lastVideoUrl = pageUrl;
+  }
+  tabMetadata.set(tabId, info);
+}
+
+function getPortForTab(tabId, preferredFrameId) {
+  const framePorts = tabPorts.get(tabId);
+  if (!framePorts) {
+    return null;
+  }
+  if (typeof preferredFrameId === "number" && framePorts.has(preferredFrameId)) {
+    return framePorts.get(preferredFrameId);
+  }
+  const iterator = framePorts.values().next();
+  return iterator.done ? null : iterator.value;
+}
+
 function setMediaState(tabId, patch = {}, lastEventType) {
   if (typeof tabId !== "number" || !patch || typeof patch !== "object") return;
   const prev = mediaStates.get(tabId) || { tabId };
@@ -198,9 +238,10 @@ function setMediaState(tabId, patch = {}, lastEventType) {
 }
 
 function removeMediaState(tabId) {
-  if (!mediaStates.has(tabId)) return;
+  if (!mediaStates.has(tabId)) return false;
   mediaStates.delete(tabId);
   broadcastMediaSnapshot();
+  return true;
 }
 
 // Check if media is valid (mirrors GlobalSpeed's filtering logic)
@@ -222,19 +263,25 @@ function isValidMedia(payload) {
   return true;
 }
 
-function ingestMediaMessage(tabId, message) {
+function ingestMediaMessage(tabId, frameId, message) {
   if (!message || typeof message !== "object") return;
   const { type, payload } = message;
   if (!type) return;
 
   log.debug('msg', `Tab${tabId} ← ${type}`);
 
+  if (type === "video-context") {
+    rememberActiveFrame(tabId, frameId, payload?.pageUrl);
+  }
+
   if (type === "video-context" || type === "time-update" || type === "playback-rate") {
     // Only store valid media in mediaStates (duration > MINIMUM_DURATION)
     const isValid = isValidMedia(payload);
     if (isValid) {
       log.info('media', `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
-      setMediaState(tabId, payload || {}, type);
+      const patch =
+        typeof frameId === "number" ? { ...(payload || {}), frameId } : payload || {};
+      setMediaState(tabId, patch, type);
     }
   } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
     log.info('page', `Tab${tabId} URL changed`, { url: payload.pageUrl });
@@ -246,13 +293,14 @@ function ingestMediaMessage(tabId, message) {
 }
 
 function sendToContentScript(tabId, message) {
-  const port = tabPorts.get(tabId);
+  const preferredFrameId = tabMetadata.get(tabId)?.lastFrameId;
+  const port = getPortForTab(tabId, preferredFrameId);
   if (!port) {
-    log.warn('msg', `Tab${tabId} No port`);
+    log.warn('msg', `Tab${tabId} No port`, { preferredFrameId });
     return;
   }
   try {
-    log.debug('msg', `Tab${tabId} → ${message.type}`);
+    log.debug('msg', `Tab${tabId} → ${message.type}`, { frameId: preferredFrameId });
     port.postMessage(message);
   } catch (err) {
     log.error('msg', `Tab${tabId} Send failed`, err);
@@ -263,9 +311,9 @@ function handleDesktopMessage(message) {
   if (!message || typeof message !== "object") return;
   if (message.source !== "usp-desktop") return;
 
-  log.info('ctrl', `Desktop command: ${message.action}`, { tabId: message.tabId });
-
   if (message.type === "control-command" && typeof message.tabId === "number") {
+    const frameId = tabMetadata.get(message.tabId)?.lastFrameId ?? null;
+    log.info('ctrl', `Desktop command: ${message.action}`, { tabId: message.tabId, frameId });
     sendToContentScript(message.tabId, {
       type: "control",
       action: message.action,
@@ -290,15 +338,18 @@ function handleContentPort(port) {
     log.warn('conn', 'Ignored: no tabId');
     return;
   }
+  const frameId = typeof port.sender?.frameId === "number" ? port.sender.frameId : 0;
 
-  log.info('conn', `Tab${tabId} Connected`, { url: port.sender?.tab?.url });
+  log.info('conn', `Tab${tabId} Connected`, { url: port.sender?.tab?.url, frameId });
 
-  tabMetadata.set(tabId, { lastVideoUrl: null });
-  tabPorts.set(tabId, port);
+  ensureTabInfo(tabId);
+  const framePorts = tabPorts.get(tabId) || new Map();
+  framePorts.set(frameId, port);
+  tabPorts.set(tabId, framePorts);
 
   port.onMessage.addListener((message) => {
     // Store and filter media state
-    ingestMediaMessage(tabId, message);
+    ingestMediaMessage(tabId, frameId, message);
     
     // Forward to desktop-app with consistent data format
     if (message.type === "video-ended") {
@@ -326,24 +377,37 @@ function handleContentPort(port) {
         payload: mediaInfo
       });
     }
-
-    if (message.type === "video-context") {
-      const tabInfo = tabMetadata.get(tabId) || {};
-      tabInfo.lastVideoUrl = message.payload.pageUrl;
-      tabMetadata.set(tabId, tabInfo);
-    }
   });
 
   port.onDisconnect.addListener(() => {
-    log.info('conn', `Tab${tabId} Disconnected`);
-    tabMetadata.delete(tabId);
-    tabPorts.delete(tabId);
-    removeMediaState(tabId);
-    bridge.send({
-      tabId,
-      type: "video-ended",
-      payload: {}
-    });
+    log.info('conn', `Tab${tabId} Frame${frameId} Disconnected`);
+    const frames = tabPorts.get(tabId);
+    if (frames) {
+      frames.delete(frameId);
+      if (!frames.size) {
+        tabPorts.delete(tabId);
+      }
+    }
+
+    let stateRemoved = false;
+    const tabInfo = tabMetadata.get(tabId);
+    if (tabInfo && tabInfo.lastFrameId === frameId) {
+      tabInfo.lastFrameId = null;
+      tabMetadata.set(tabId, tabInfo);
+      stateRemoved = removeMediaState(tabId) || stateRemoved;
+    }
+    if (!tabPorts.has(tabId)) {
+      tabMetadata.delete(tabId);
+      stateRemoved = removeMediaState(tabId) || stateRemoved;
+    }
+
+    if (stateRemoved) {
+      bridge.send({
+        tabId,
+        type: "video-ended",
+        payload: {}
+      });
+    }
   });
 }
 
