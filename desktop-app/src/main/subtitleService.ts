@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
+import iconv from "iconv-lite";
 import { tmpdir } from "os";
 import path from "path";
 import { DEFAULT_YTDLP_ARGS } from "./settings.js";
@@ -74,7 +75,7 @@ export class SubtitleService {
         .map((file) => path.join(workingDir, file));
 
       if (subtitleFiles.length === 0) {
-        throw new Error("未找到字幕文件，请确认该视频是否提供字幕。");
+        throw new Error("No subtitles were found. Please confirm if subtitles are provided for this video.");
       }
 
       this.log.info(`Found ${subtitleFiles.length} subtitle file(s)`);
@@ -169,12 +170,25 @@ async function runCommand(cmd: string, args: string[], cwd: string): Promise<Com
       stderr: ""
     };
 
-    child.stdout?.on("data", (chunk) => {
-      info.stdout += chunk.toString();
+    // On Windows, yt-dlp output may be in GBK encoding
+    // Try to decode with GBK first, fall back to UTF-8 if it fails
+    const decodeBuffer = (chunk: Buffer): string => {
+      if (process.platform === "win32") {
+        try {
+          return iconv.decode(chunk, "gbk");
+        } catch {
+          // Fall back to UTF-8 if GBK decode fails
+        }
+      }
+      return chunk.toString("utf8");
+    };
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      info.stdout += decodeBuffer(chunk);
     });
 
-    child.stderr?.on("data", (chunk) => {
-      info.stderr += chunk.toString();
+    child.stderr?.on("data", (chunk: Buffer) => {
+      info.stderr += decodeBuffer(chunk);
     });
 
     child.on("error", (err) => {

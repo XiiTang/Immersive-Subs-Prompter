@@ -59,9 +59,22 @@ npm run start   # 构建 TypeScript 并启动 Electron
 
 ## 疑难排查
 
-- 桌面端提示 `未找到 yt-dlp`：首次启动未能联网下载，或 GitHub 被阻断。可手动将二进制放入 `desktop-app/resources/yt-dlp/` 并重新打包，或在用户数据目录的 `yt-dlp` 子目录中放置可执行文件。
-- 插件显示未连接：确保 Electron 已启动且 WebSocket 监听端口未被占用；必要时在 `extension/background.js` 中修改 `WS_ENDPOINT` 与桌面端保持一致。
-- 字幕缺失：部分视频不提供字幕或 `yt-dlp` 无法获取。可查看桌面端控制台/终端日志了解 `yt-dlp` 输出。
+- **桌面端提示 `未找到 yt-dlp`**：首次启动未能联网下载，或 GitHub 被阻断。可手动将二进制放入 `desktop-app/resources/yt-dlp/` 并重新打包，或在用户数据目录的 `yt-dlp` 子目录中放置可执行文件。
+- **插件显示未连接**：确保 Electron 已启动且 WebSocket 监听端口未被占用；必要时在 `extension/background.js` 中修改 `WS_ENDPOINT` 与桌面端保持一致。
+- **字幕缺失**：部分视频不提供字幕或 `yt-dlp` 无法获取。可查看桌面端控制台/终端日志了解 `yt-dlp` 输出。
+- **Windows PowerShell 日志乱码**：
+  - **原因**：Windows PowerShell 默认使用 GBK 编码，而应用日志使用 UTF-8 编码，导致中文字符显示为乱码。
+  - **临时解决方案**：在运行应用前，在 PowerShell 中执行以下命令：
+    ```powershell
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+    ```
+  - **永久解决方案**：编辑 PowerShell 配置文件，添加上述命令使其自动生效：
+    1. 运行 `notepad $PROFILE` 打开配置文件（如不存在会自动创建）
+    2. 添加上述三行命令
+    3. 保存并重新打开 PowerShell
+  - **推荐**：使用 Windows Terminal 或 VS Code 内置终端，它们默认支持 UTF-8 编码。
 
 ## 许可证
 
