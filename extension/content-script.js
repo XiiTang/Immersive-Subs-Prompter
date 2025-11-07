@@ -18,7 +18,6 @@ const log = (() => {
   const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
   const BLACKLIST_MODES = new Set(["contains", "exact", "regex"]);
   const UPDATE_INTERVAL_MS = 300;
-  const PAUSED_PING_INTERVAL_MS = 20000;
   const PORT_NAME = "usp-video-channel";
   const RECONNECT_DELAY_MS = 1000;
 
@@ -26,7 +25,6 @@ const log = (() => {
   let reconnectTimer = null;
   let activeVideo = null;
   let ticker = null;
-  let pausedPingTimer = null;
   const hooked = new WeakSet();
   const observedDocs = new WeakSet();
   const MEDIA_EVENTS = [
@@ -317,29 +315,6 @@ const log = (() => {
       clearInterval(ticker);
       ticker = null;
     }
-    cancelPausedPing();
-  }
-
-  function schedulePausedPing() {
-    cancelPausedPing();
-    if (!monitoringActive || !activeVideo || !activeVideo.paused) {
-      return;
-    }
-    pausedPingTimer = setTimeout(() => {
-      pausedPingTimer = null;
-      if (!monitoringActive || !activeVideo || !activeVideo.paused) {
-        return;
-      }
-      handleTimeUpdate(activeVideo);
-      schedulePausedPing();
-    }, PAUSED_PING_INTERVAL_MS);
-  }
-
-  function cancelPausedPing() {
-    if (pausedPingTimer) {
-      clearTimeout(pausedPingTimer);
-      pausedPingTimer = null;
-    }
   }
 
   function setActiveVideo(video) {
@@ -351,11 +326,6 @@ const log = (() => {
       log.info('video', '激活视频', { src: video.currentSrc || video.src, duration: video.duration });
       send("video-context", gatherVideoState(video));
       ensureTicker();
-      if (video.paused) {
-        schedulePausedPing();
-      } else {
-        cancelPausedPing();
-      }
     } else {
       log.info('video', '视频已清空');
       stopTicker();
@@ -444,7 +414,6 @@ const log = (() => {
       case "playing":
         setActiveVideo(target);
         handleTimeUpdate(target);
-        cancelPausedPing();
         break;
       case "loadedmetadata":
         if (!activeVideo) {
@@ -466,9 +435,6 @@ const log = (() => {
       case "leavepictureinpicture":
         if (activeVideo === target) {
           handleTimeUpdate(target);
-          if (event.type === "pause") {
-            schedulePausedPing();
-          }
         }
         break;
       case "ratechange":
