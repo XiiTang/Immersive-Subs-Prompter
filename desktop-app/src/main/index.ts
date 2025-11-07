@@ -272,7 +272,6 @@ async function handleMessage(message: ExtensionMessage) {
       state.pageUrl = message.payload.pageUrl ?? null;
       state.site = message.payload.site ?? null;
       state.title = message.payload.title ?? null;
-      state.error = null;
 
       const url = resolveVideoUrl(message.payload);
       const previousVideoUrl = state.videoUrl;
@@ -286,13 +285,15 @@ async function handleMessage(message: ExtensionMessage) {
       }
 
       // 如果视频 URL 没有改变，说明是同一个视频（例如只是跳转时间戳），不需要重新加载字幕
-      if (url === previousVideoUrl && state.subtitleTracks.length > 0) {
-        // 只更新页面信息，保持字幕选择不变
+      // 即使之前下载失败，也不重复尝试，避免重复触发下载
+      if (url === previousVideoUrl && (state.subtitleTracks.length > 0 || state.status === "error")) {
+        // 只更新页面信息，保持字幕或错误状态不变
         pushState();
         return;
       }
 
       // URL 改变了，需要重新加载字幕
+      state.error = null;
       state.subtitles = null;
       state.subtitleTracks = [];
       state.selectedSubtitleId = null;
