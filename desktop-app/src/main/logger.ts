@@ -14,40 +14,20 @@ function formatMessage(level: string, prefix: string, message: string): string {
   return `[${getTimestamp()}] [${level}] [${prefix}] ${message}`;
 }
 
-function formatArgs(args: unknown[]): string[] {
-  return args.map(arg => {
-    if (arg instanceof Error) {
-      return `${arg.name}: ${arg.message}${arg.stack ? '\n' + arg.stack : ''}`;
-    }
-    if (typeof arg === 'object') {
-      try {
-        return JSON.stringify(arg);
-      } catch {
-        return String(arg);
-      }
-    }
-    return String(arg);
-  });
-}
-
 export const logger = {
   log(prefix: string, message: string, ...rest: unknown[]) {
-    const formatted = formatArgs(rest);
-    console.log(formatMessage('INFO', prefix, message), ...formatted);
+    console.log(formatMessage('INFO', prefix, message), ...rest);
   },
   
   error(prefix: string, message: string, ...rest: unknown[]) {
-    const formatted = formatArgs(rest);
-    console.error(formatMessage('ERROR', prefix, message), ...formatted);
+    console.error(formatMessage('ERROR', prefix, message), ...rest);
   },
   
   warn(prefix: string, message: string, ...rest: unknown[]) {
-    const formatted = formatArgs(rest);
-    console.warn(formatMessage('WARN', prefix, message), ...formatted);
+    console.warn(formatMessage('WARN', prefix, message), ...rest);
   },
   
   info(prefix: string, message: string, ...rest: unknown[]) {
-    const formatted = formatArgs(rest);
-    console.info(formatMessage('INFO', prefix, message), ...formatted);
+    console.info(formatMessage('INFO', prefix, message), ...rest);
   }
 };

@@ -115,8 +115,7 @@ export class SubtitleService {
           stdout: error.info.stdout
         });
       } else {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error("USP", `yt-dlp invocation failed: ${errorMessage}`);
+        logger.error("USP", "yt-dlp invocation failed", error);
       }
       const detailedMessage = formatCommandError(error, commandLine);
       throw new Error(`[yt-dlp] ${detailedMessage}`);
