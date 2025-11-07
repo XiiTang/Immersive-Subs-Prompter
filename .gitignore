@@ -114,4 +114,5 @@ release/
 # yt-dlp cache (if any)
 __pycache__/
 *.pyc
+globalspeed
 
