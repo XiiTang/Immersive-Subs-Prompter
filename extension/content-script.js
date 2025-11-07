@@ -31,7 +31,6 @@ const log = (() => {
     "play",
     "playing",
     "pause",
-    "timeupdate",
     "loadedmetadata",
     "loadeddata",
     "ratechange",
@@ -336,7 +335,6 @@ const log = (() => {
     if (root instanceof ShadowRoot) {
       ensureDocListeners(root);
     } else {
-      ensureDocListeners(window);
       ensureDocListeners(document);
     }
     if (hooked.has(video)) return;
@@ -428,7 +426,6 @@ const log = (() => {
         handleTimeUpdate(target);
         break;
       case "pause":
-      case "timeupdate":
       case "durationchange":
       case "volumechange":
       case "enterpictureinpicture":
@@ -491,7 +488,6 @@ const log = (() => {
     monitoringActive = true;
     ensurePrototypeHooks();
     connectPort();
-    ensureDocListeners(window);
     ensureDocListeners(document);
   }
 
