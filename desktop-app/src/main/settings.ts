@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   subtitleFontSize: 14,
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3, // Default 3 seconds before restoring auto-scroll
+  subtitleScrollPosition: 33, // Default 33% from top (center-top position)
   primarySubtitlePriority: [],
   secondarySubtitlePriority: []
 };
@@ -47,6 +48,11 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
     subtitleAutoScrollTimeout = DEFAULT_SETTINGS.subtitleAutoScrollTimeout;
   }
   subtitleAutoScrollTimeout = Math.max(1, Math.round(subtitleAutoScrollTimeout));
+  let subtitleScrollPosition = Number(source.subtitleScrollPosition);
+  if (!Number.isFinite(subtitleScrollPosition)) {
+    subtitleScrollPosition = DEFAULT_SETTINGS.subtitleScrollPosition;
+  }
+  subtitleScrollPosition = Math.min(100, Math.max(0, Math.round(subtitleScrollPosition)));
   const primarySubtitlePriority = sanitizePriorityList(source.primarySubtitlePriority);
   const secondarySubtitlePriority = sanitizePriorityList(source.secondarySubtitlePriority);
 
@@ -57,6 +63,7 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
     subtitleFontSize,
     ytDlpArgs,
     subtitleAutoScrollTimeout,
+    subtitleScrollPosition,
     primarySubtitlePriority,
     secondarySubtitlePriority
   };

@@ -23,6 +23,8 @@ const autostartToggle = document.getElementById("autostart-toggle") as HTMLInput
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
 const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
+const subtitleScrollPositionInput = document.getElementById("subtitle-scroll-position") as HTMLInputElement;
+const subtitleScrollPositionValue = document.getElementById("subtitle-scroll-position-value") as HTMLElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const primaryPriorityList = document.getElementById("primary-priority-list") as HTMLElement;
 const secondaryPriorityList = document.getElementById("secondary-priority-list") as HTMLElement;
@@ -423,10 +425,26 @@ function highlightActiveCue(currentTime: number) {
   if (element) {
     element.classList.add("subtitle-item--active");
     if (autoScrollEnabled) {
-      element.scrollIntoView({ block: "center", behavior: "smooth" });
+      scrollToActiveSubtitle(element);
     }
     activeCueIndex = newIndex;
   }
+}
+
+function scrollToActiveSubtitle(element: HTMLElement) {
+  const container = subtitleList;
+  const elementTop = element.offsetTop;
+  const containerHeight = container.clientHeight;
+  const elementHeight = element.offsetHeight;
+  
+  // 使用设置中的位置百分比 (0-100)
+  const positionPercent = (currentSettings?.subtitleScrollPosition ?? 33) / 100;
+  const targetScroll = elementTop - containerHeight * positionPercent + elementHeight / 2;
+  
+  container.scrollTo({
+    top: targetScroll,
+    behavior: "smooth"
+  });
 }
 
 function resetAutoScrollTimer() {
@@ -440,7 +458,7 @@ function resetAutoScrollTimer() {
     autoScrollTimer = null;
     // When auto-scroll is restored, immediately scroll to the currently active subtitle
     if (activeCueIndex !== null && cueElements[activeCueIndex]) {
-      cueElements[activeCueIndex].scrollIntoView({ block: "center", behavior: "smooth" });
+      scrollToActiveSubtitle(cueElements[activeCueIndex]);
     }
   }, timeoutSeconds * 1000);
 }
@@ -557,6 +575,8 @@ function renderSettings(settings: AppSettings) {
   subtitleFontInput.value = settings.subtitleFontFamily;
   subtitleFontSizeInput.value = String(settings.subtitleFontSize);
   subtitleAutoScrollTimeoutInput.value = String(settings.subtitleAutoScrollTimeout);
+  subtitleScrollPositionInput.value = String(settings.subtitleScrollPosition);
+  subtitleScrollPositionValue.textContent = `${settings.subtitleScrollPosition}%`;
   ytDlpArgsInput.placeholder = DEFAULT_YTDLP_ARGS;
   if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
     ytDlpArgsInput.value = settings.ytDlpArgs;
@@ -629,6 +649,21 @@ subtitleAutoScrollTimeoutInput.addEventListener("change", () => {
     return;
   }
   updateSettings({ subtitleAutoScrollTimeout: nextValue });
+});
+
+subtitleScrollPositionInput.addEventListener("input", () => {
+  const value = Number.parseInt(subtitleScrollPositionInput.value, 10);
+  subtitleScrollPositionValue.textContent = `${value}%`;
+});
+
+subtitleScrollPositionInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitleScrollPositionInput.value, 10);
+  if (!Number.isFinite(nextValue)) {
+    subtitleScrollPositionInput.value = String(currentSettings?.subtitleScrollPosition ?? 33);
+    subtitleScrollPositionValue.textContent = `${currentSettings?.subtitleScrollPosition ?? 33}%`;
+    return;
+  }
+  updateSettings({ subtitleScrollPosition: nextValue });
 });
 
 ytDlpArgsInput.addEventListener("input", () => {
