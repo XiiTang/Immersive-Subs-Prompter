@@ -1,4 +1,22 @@
+// 简化的日志函数
+const log = (() => {
+  const PREFIX = "[USP][content]";
+  const fmt = (cat, msg, data) => {
+    const time = new Date().toISOString().split('T')[1].slice(0, -1);
+    return data !== undefined 
+      ? `${PREFIX}[${cat}] ${time} ${msg}` 
+      : `${PREFIX}[${cat}] ${time} ${msg}`;
+  };
+  return {
+    debug: (cat, msg, data) => console.log(fmt(cat, msg), data),
+    info: (cat, msg, data) => console.info(fmt(cat, msg), data),
+    warn: (cat, msg, data) => console.warn(fmt(cat, msg), data),
+    error: (cat, msg, err) => console.error(fmt(cat, msg), err)
+  };
+})();
+
 (function () {
+  
   const UPDATE_INTERVAL_MS = 300;
   const PORT_NAME = "usp-video-channel";
   const RECONNECT_DELAY_MS = 1000;
@@ -26,13 +44,16 @@
 
   function handlePortMessage(message) {
     if (!message || typeof message !== "object") return;
+    log.debug('msg', `← ${message.type}`, message);
     if (message.type === "control") {
+      log.info('ctrl', `接收: ${message.action}`, message.payload);
       applyControl(message.action, message.payload || {});
     }
   }
 
   function schedulePortReconnect() {
     if (reconnectTimer) return;
+    log.info('conn', `重连中... ${RECONNECT_DELAY_MS}ms`);
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
       connectPort();
@@ -44,8 +65,9 @@
     let nextPort = null;
     try {
       nextPort = chrome.runtime.connect({ name: PORT_NAME });
+      log.info('conn', '已连接', { url: location.href });
     } catch (err) {
-      console.warn("[USP] Failed to connect to background", err);
+      log.error('conn', '连接失败', err);
       schedulePortReconnect();
       return null;
     }
@@ -54,6 +76,7 @@
     nextPort.onDisconnect.addListener(() => {
       if (port === nextPort) {
         port = null;
+        log.info('conn', '已断开');
       }
       schedulePortReconnect();
     });
@@ -64,6 +87,7 @@
       reconnectTimer = null;
     }
     if (activeVideo) {
+      log.info('conn', '重连成功，同步视频状态');
       send("video-context", gatherVideoState(activeVideo));
       handleTimeUpdate(activeVideo);
     }
@@ -72,11 +96,15 @@
 
   function send(type, payload = {}) {
     const channel = port || connectPort();
-    if (!channel) return;
+    if (!channel) {
+      log.warn('msg', `发送失败: ${type} (无连接)`);
+      return;
+    }
     try {
+      log.debug('msg', `→ ${type}`, payload);
       channel.postMessage({ type, payload });
     } catch (err) {
-      console.warn("[USP] Failed to send message", err);
+      log.error('msg', `发送失败: ${type}`, err);
       if (port === channel) {
         port = null;
       }
@@ -86,10 +114,11 @@
 
   function detectSite() {
     const host = location.hostname;
-    if (host.includes("youtube.com")) return "youtube";
-    if (host.includes("bilibili.com")) return "bilibili";
-    if (host.includes("douyin.com")) return "douyin";
-    return "unknown";
+    const site = host.includes("youtube.com") ? "youtube" :
+                 host.includes("bilibili.com") ? "bilibili" :
+                 host.includes("douyin.com") ? "douyin" : "unknown";
+    log.debug('site', `检测: ${site}`, { hostname: host });
+    return site;
   }
 
   function gatherVideoState(video) {
@@ -137,9 +166,11 @@
   function setActiveVideo(video) {
     activeVideo = video;
     if (video) {
+      log.info('video', '激活视频', { src: video.currentSrc || video.src, duration: video.duration });
       send("video-context", gatherVideoState(video));
       ensureTicker();
     } else if (!video) {
+      log.info('video', '视频已清空');
       stopTicker();
     }
   }
@@ -155,11 +186,19 @@
     }
     if (hooked.has(video)) return;
     hooked.add(video);
+    log.info('video', '检测到视频', { 
+      src: video.currentSrc || video.src || '(no src)',
+      duration: video.duration,
+      readyState: video.readyState
+    });
   }
 
   function applyControl(action, payload) {
     const target = activeVideo || document.querySelector("video");
-    if (!target) return;
+    if (!target) {
+      log.warn('ctrl', `执行失败: ${action} (无视频)`);
+      return;
+    }
 
     switch (action) {
       case "seek":
@@ -167,17 +206,24 @@
           const clamped = Math.max(0, Math.min(payload.time, target.duration || payload.time));
           target.currentTime = clamped;
           handleTimeUpdate(target);
+          log.info('ctrl', `seek → ${clamped.toFixed(2)}s`);
+        } else {
+          log.warn('ctrl', `seek 失败: 无效时间`, payload);
         }
         break;
       case "pause":
         target.pause();
+        log.info('ctrl', 'pause');
         break;
       case "play":
         target.play().catch((err) => {
-          console.warn("[USP] Failed to resume playback", err);
+          log.error('ctrl', 'play 失败', err);
+        }).then(() => {
+          log.info('ctrl', 'play');
         });
         break;
       default:
+        log.warn('ctrl', `未知命令: ${action}`);
         break;
     }
   }
@@ -185,6 +231,7 @@
   function monitorUrlChanges() {
     if (lastPageUrl !== location.href) {
       lastPageUrl = location.href;
+      log.info('page', 'URL变化', { url: lastPageUrl, title: document.title });
       send("page-url-changed", { pageUrl: lastPageUrl, title: document.title });
     }
     setTimeout(monitorUrlChanges, 1000);
@@ -201,6 +248,13 @@
   function handleDocumentMediaEvent(event) {
     const target = event?.target;
     if (!(target instanceof HTMLVideoElement)) return;
+    
+    log.debug('event', event.type, { 
+      time: target.currentTime?.toFixed(1), 
+      paused: target.paused,
+      active: target === activeVideo 
+    });
+    
     watchVideo(target);
     switch (event.type) {
       case "play":
@@ -238,6 +292,7 @@
         break;
       case "ended":
         if (activeVideo === target) {
+          log.info('video', '播放结束');
           send("video-ended", { pageUrl: location.href });
           setActiveVideo(null);
         }

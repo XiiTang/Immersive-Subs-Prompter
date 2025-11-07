@@ -1,3 +1,18 @@
+// 简化的日志函数
+const log = (() => {
+  const PREFIX = "[USP][bg]";
+  const fmt = (cat, msg) => {
+    const time = new Date().toISOString().split('T')[1].slice(0, -1);
+    return `${PREFIX}[${cat}] ${time} ${msg}`;
+  };
+  return {
+    debug: (cat, msg, data) => console.log(fmt(cat, msg), data),
+    info: (cat, msg, data) => console.info(fmt(cat, msg), data),
+    warn: (cat, msg, data) => console.warn(fmt(cat, msg), data),
+    error: (cat, msg, err) => console.error(fmt(cat, msg), err)
+  };
+})();
+
 const WS_ENDPOINT = "ws://127.0.0.1:44501";
 const RETRY_DELAY_MS = 2000;
 const CONTENT_PORT = "usp-video-channel";
@@ -21,20 +36,21 @@ class DesktopBridge {
     clearTimeout(this.retryTimer);
 
     try {
+      log.info('ws', '连接中...', { endpoint: WS_ENDPOINT });
       this.socket = new WebSocket(WS_ENDPOINT);
     } catch (err) {
-      console.error("[USP] Failed to create WebSocket", err);
+      log.error('ws', '创建连接失败', err);
       this.scheduleReconnect();
       return;
     }
 
     this.socket.addEventListener("open", () => {
-      console.info("[USP] Connected to desktop app");
+      log.info('ws', '已连接');
       this.flushPending();
     });
 
     this.socket.addEventListener("close", () => {
-      console.warn("[USP] Desktop app disconnected");
+      log.warn('ws', '已断开');
       this.scheduleReconnect();
     });
 
@@ -48,25 +64,30 @@ class DesktopBridge {
             : "";
         if (!raw) return;
         const payload = JSON.parse(raw);
+        log.debug('ws', `← ${payload.type}`, { source: payload.source });
         this.onDesktopMessage?.(payload);
       } catch (err) {
-        console.error("[USP] Failed to parse desktop message", err);
+        log.error('ws', '解析消息失败', err);
       }
     });
 
     this.socket.addEventListener("error", (err) => {
-      console.error("[USP] WebSocket error", err);
+      log.error('ws', 'WebSocket错误', err);
       this.socket.close();
     });
   }
 
   scheduleReconnect() {
     clearTimeout(this.retryTimer);
+    log.info('ws', `重连中... ${RETRY_DELAY_MS}ms`);
     this.retryTimer = setTimeout(() => this.connect(), RETRY_DELAY_MS);
   }
 
   flushPending() {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    if (this.pending.length > 0) {
+      log.info('ws', `发送队列: ${this.pending.length} 条消息`);
+    }
     while (this.pending.length) {
       this.socket.send(this.pending.shift());
     }
@@ -79,9 +100,12 @@ class DesktopBridge {
       sentAt: Date.now()
     });
 
+    log.debug('ws', `→ ${payload.type}`, { tabId: payload.tabId });
+
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
+      log.debug('ws', `队列 +1 (${this.pending.length + 1})`);
       this.pending.push(data);
       this.connect();
     }
@@ -182,9 +206,15 @@ function isValidMedia(payload) {
   if (!payload) return false;
   
   // Must have readyState and duration > MINIMUM_DURATION
-  if (!payload.readyState) return false;
+  if (!payload.readyState) {
+    log.debug('filter', '过滤: 无 readyState');
+    return false;
+  }
   const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
-  if (duration <= MINIMUM_DURATION) return false;
+  if (duration <= MINIMUM_DURATION) {
+    log.debug('filter', `过滤: duration=${duration}s`);
+    return false;
+  }
   
   return true;
 }
@@ -194,14 +224,20 @@ function ingestMediaMessage(tabId, message) {
   const { type, payload } = message;
   if (!type) return;
 
+  log.debug('msg', `Tab${tabId} ← ${type}`);
+
   if (type === "video-context" || type === "time-update" || type === "playback-rate") {
     // Only store valid media in mediaStates (duration > MINIMUM_DURATION)
-    if (isValidMedia(payload)) {
+    const isValid = isValidMedia(payload);
+    if (isValid) {
+      log.info('media', `Tab${tabId} 更新: ${type}`, { duration: payload.duration?.toFixed(1) });
       setMediaState(tabId, payload || {}, type);
     }
   } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
+    log.info('page', `Tab${tabId} URL变化`, { url: payload.pageUrl });
     setMediaState(tabId, payload || {}, type);
   } else if (type === "video-ended") {
+    log.info('media', `Tab${tabId} 播放结束`);
     removeMediaState(tabId);
   }
 }
@@ -209,19 +245,22 @@ function ingestMediaMessage(tabId, message) {
 function sendToContentScript(tabId, message) {
   const port = tabPorts.get(tabId);
   if (!port) {
-    console.warn("[USP] No content script port for tab", tabId);
+    log.warn('msg', `Tab${tabId} 无端口`);
     return;
   }
   try {
+    log.debug('msg', `Tab${tabId} → ${message.type}`);
     port.postMessage(message);
   } catch (err) {
-    console.error("[USP] Failed to deliver message to tab", tabId, err);
+    log.error('msg', `Tab${tabId} 发送失败`, err);
   }
 }
 
 function handleDesktopMessage(message) {
   if (!message || typeof message !== "object") return;
   if (message.source !== "usp-desktop") return;
+
+  log.info('ctrl', `Desktop命令: ${message.action}`, { tabId: message.tabId });
 
   if (message.type === "control-command" && typeof message.tabId === "number") {
     sendToContentScript(message.tabId, {
@@ -245,9 +284,11 @@ chrome.runtime.onConnect.addListener((port) => {
 function handleContentPort(port) {
   const tabId = port.sender?.tab?.id;
   if (tabId === undefined) {
-    console.warn("[USP] Ignoring port without tab id");
+    log.warn('conn', '忽略: 无tabId');
     return;
   }
+
+  log.info('conn', `Tab${tabId} 已连接`, { url: port.sender?.tab?.url });
 
   tabMetadata.set(tabId, { lastVideoUrl: null });
   tabPorts.set(tabId, port);
@@ -272,6 +313,10 @@ function handleContentPort(port) {
     } else if (mediaStates.has(tabId)) {
       // Use buildMediaInfo to ensure consistent data format
       const mediaInfo = buildMediaInfo(mediaStates.get(tabId));
+      log.debug('fwd', `→Desktop Tab${tabId}:${message.type}`, { 
+        dur: mediaInfo.duration?.toFixed(1),
+        time: mediaInfo.currentTime?.toFixed(1)
+      });
       bridge.send({
         tabId,
         type: message.type,
@@ -287,6 +332,7 @@ function handleContentPort(port) {
   });
 
   port.onDisconnect.addListener(() => {
+    log.info('conn', `Tab${tabId} 已断开`);
     tabMetadata.delete(tabId);
     tabPorts.delete(tabId);
     removeMediaState(tabId);
@@ -299,9 +345,11 @@ function handleContentPort(port) {
 }
 
 function handleDashboardPort(port) {
+  log.info('conn', `Dashboard 已连接 (总数: ${dashboardPorts.size + 1})`);
   dashboardPorts.add(port);
   sendSnapshotToPort(port);
   port.onDisconnect.addListener(() => {
+    log.info('conn', `Dashboard 已断开 (总数: ${dashboardPorts.size - 1})`);
     dashboardPorts.delete(port);
   });
 }
