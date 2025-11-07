@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Injects into major video sites, captures playback info, and relays it to the Universal Subtitle desktop app.",
   "permissions": [
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://*.youtube.com/*",

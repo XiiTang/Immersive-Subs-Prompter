@@ -19,6 +19,14 @@ const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
 // Minimum duration to consider a video as valid media (mirrors GlobalSpeed's MINIMUM_DURATION)
 const MINIMUM_DURATION = 10;
+const BLACKLIST_STORAGE_KEY = "uspBlacklist";
+const BLACKLIST_MENU_IDS = {
+  root: "usp-blacklist-root",
+  toggleCurrent: "usp-blacklist-toggle-current",
+  clearAll: "usp-blacklist-clear",
+  empty: "usp-blacklist-empty",
+  hostPrefix: "usp-blacklist-host-"
+};
 
 class DesktopBridge {
   constructor(onDesktopMessage) {
@@ -116,6 +124,273 @@ const tabMetadata = new Map();
 const tabPorts = new Map();
 const mediaStates = new Map();
 const dashboardPorts = new Set();
+const tabBlockState = new Map();
+let blacklist = new Set();
+let suppressBlacklistStorageEvent = false;
+
+function extractHostname(url) {
+  if (!url || typeof url !== "string") return null;
+  try {
+    return new URL(url).hostname || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isUrlBlacklisted(url) {
+  const host = extractHostname(url);
+  return host ? blacklist.has(host) : false;
+}
+
+function hostMenuId(host) {
+  return `${BLACKLIST_MENU_IDS.hostPrefix}${encodeURIComponent(host)}`;
+}
+
+function decodeHostFromMenuId(menuId) {
+  if (!menuId || !menuId.startsWith(BLACKLIST_MENU_IDS.hostPrefix)) return null;
+  try {
+    return decodeURIComponent(menuId.slice(BLACKLIST_MENU_IDS.hostPrefix.length)) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function readBlacklistFromStorage() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get({ [BLACKLIST_STORAGE_KEY]: [] }, (result) => {
+      const list = Array.isArray(result[BLACKLIST_STORAGE_KEY]) ? result[BLACKLIST_STORAGE_KEY] : [];
+      resolve(list.filter(Boolean));
+    });
+  });
+}
+
+function applyBlacklistSnapshot(list) {
+  blacklist = new Set((list || []).filter(Boolean));
+  rebuildBlacklistMenus();
+  enforceBlacklistAcrossTabs();
+  syncMenuLabelWithActiveTab();
+}
+
+async function persistBlacklist(nextSet) {
+  const values = [...nextSet].filter(Boolean).sort();
+  applyBlacklistSnapshot(values);
+  suppressBlacklistStorageEvent = true;
+  try {
+    await new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [BLACKLIST_STORAGE_KEY]: values }, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        resolve();
+      });
+    });
+  } catch (err) {
+    log.error('blacklist', '写入黑名单失败', err);
+  } finally {
+    suppressBlacklistStorageEvent = false;
+  }
+}
+
+function rebuildBlacklistMenus() {
+  if (!chrome?.contextMenus) return;
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create(
+      {
+        id: BLACKLIST_MENU_IDS.root,
+        title: "黑名单",
+        contexts: ["action"]
+      },
+      () => {
+        chrome.contextMenus.create({
+          parentId: BLACKLIST_MENU_IDS.root,
+          id: BLACKLIST_MENU_IDS.toggleCurrent,
+          title: "切换当前站点",
+          contexts: ["action"],
+          enabled: false
+        });
+        chrome.contextMenus.create({
+          parentId: BLACKLIST_MENU_IDS.root,
+          id: BLACKLIST_MENU_IDS.clearAll,
+          title: "清空黑名单",
+          contexts: ["action"],
+          enabled: blacklist.size > 0
+        });
+        if (!blacklist.size) {
+          chrome.contextMenus.create({
+            parentId: BLACKLIST_MENU_IDS.root,
+            id: BLACKLIST_MENU_IDS.empty,
+            title: "暂无站点",
+            contexts: ["action"],
+            enabled: false
+          });
+        } else {
+          [...blacklist].sort().forEach((host) => {
+            chrome.contextMenus.create({
+              parentId: BLACKLIST_MENU_IDS.root,
+              id: hostMenuId(host),
+              title: `移除 ${host}`,
+              contexts: ["action"]
+            });
+          });
+        }
+        setTimeout(() => syncMenuLabelWithActiveTab(), 0);
+      }
+    );
+  });
+}
+
+function queryActiveTab() {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(Array.isArray(tabs) && tabs.length ? tabs[0] : null);
+    });
+  });
+}
+
+async function syncMenuLabelWithActiveTab(tabOverride = null) {
+  if (!chrome?.contextMenus) return;
+  let tab = tabOverride;
+  if (!tab) {
+    tab = await queryActiveTab();
+  }
+  const host = extractHostname(tab?.url);
+  const blocked = host ? blacklist.has(host) : false;
+  const title = host
+    ? blocked
+      ? `移出黑名单（${host}）`
+      : `加入黑名单（${host}）`
+    : "当前站点不可用";
+  chrome.contextMenus.update(
+    BLACKLIST_MENU_IDS.toggleCurrent,
+    { title, enabled: !!host },
+    () => chrome.runtime.lastError
+  );
+  chrome.contextMenus.update(
+    BLACKLIST_MENU_IDS.clearAll,
+    { enabled: blacklist.size > 0 },
+    () => chrome.runtime.lastError
+  );
+}
+
+async function resolveTabForMenu(tab) {
+  if (tab && tab.url) return tab;
+  return queryActiveTab();
+}
+
+async function toggleHostBlacklist(host, shouldBlock) {
+  if (!host) return;
+  const next = new Set(blacklist);
+  const targetState = typeof shouldBlock === "boolean" ? shouldBlock : !next.has(host);
+  if (targetState) {
+    if (next.has(host)) return;
+    next.add(host);
+  } else {
+    if (!next.has(host)) return;
+    next.delete(host);
+  }
+  await persistBlacklist(next);
+}
+
+async function handleContextMenuClick(info, tab) {
+  if (!info || !info.menuItemId) return;
+  if (info.menuItemId === BLACKLIST_MENU_IDS.toggleCurrent) {
+    const targetTab = await resolveTabForMenu(tab);
+    const host = extractHostname(targetTab?.url);
+    if (!host) {
+      log.warn('blacklist', '无法识别当前站点，无需处理');
+      return;
+    }
+    await toggleHostBlacklist(host);
+  } else if (info.menuItemId === BLACKLIST_MENU_IDS.clearAll) {
+    if (!blacklist.size) return;
+    await persistBlacklist(new Set());
+  } else {
+    const host = decodeHostFromMenuId(String(info.menuItemId));
+    if (host) {
+      await toggleHostBlacklist(host, false);
+    }
+  }
+}
+
+function enforceBlacklistAcrossTabs() {
+  tabPorts.forEach((port, tabId) => {
+    const metadata = tabMetadata.get(tabId) || {};
+    const url = metadata.lastPageUrl || metadata.lastVideoUrl || port.sender?.tab?.url || null;
+    const blocked = isUrlBlacklisted(url);
+    setTabBlocked(tabId, blocked, url);
+  });
+}
+
+function isTabBlocked(tabId) {
+  return tabBlockState.get(tabId) === true;
+}
+
+function setTabBlocked(tabId, blocked, url, { forceNotify = false } = {}) {
+  const prev = tabBlockState.get(tabId) === true;
+  if (!forceNotify && prev === blocked) return;
+  if (blocked) {
+    tabBlockState.set(tabId, true);
+    removeMediaState(tabId);
+    notifyDesktopVideoEnded(tabId);
+  } else {
+    tabBlockState.delete(tabId);
+  }
+  notifyTabBlacklistState(tabId, blocked, url);
+}
+
+function notifyTabBlacklistState(tabId, blocked, url) {
+  const port = tabPorts.get(tabId);
+  if (!port) return;
+  try {
+    port.postMessage({
+      type: "blacklist-state",
+      payload: {
+        blocked: !!blocked,
+        hostname: extractHostname(url)
+      }
+    });
+  } catch (err) {
+    log.error('blacklist', `通知 Tab${tabId} 失败`, err);
+  }
+}
+
+function notifyDesktopVideoEnded(tabId) {
+  bridge.send({
+    tabId,
+    type: "video-ended",
+    payload: {}
+  });
+}
+
+function initBlacklistListeners() {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || suppressBlacklistStorageEvent) return;
+    if (Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
+      const next = Array.isArray(changes[BLACKLIST_STORAGE_KEY]?.newValue)
+        ? changes[BLACKLIST_STORAGE_KEY].newValue
+        : [];
+      applyBlacklistSnapshot(next);
+    }
+  });
+  chrome.tabs.onActivated.addListener(() => {
+    syncMenuLabelWithActiveTab();
+  });
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
+    if (tabInfo?.active && (changeInfo?.url || changeInfo?.status === "complete")) {
+      syncMenuLabelWithActiveTab(tabInfo);
+    }
+  });
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    handleContextMenuClick(info, tab);
+  });
+}
+
+async function initBlacklistFeature() {
+  const stored = await readBlacklistFromStorage();
+  applyBlacklistSnapshot(stored);
+  initBlacklistListeners();
+}
 
 function buildMediaSnapshot() {
   const now = Date.now();
@@ -221,6 +496,7 @@ function isValidMedia(payload) {
 
 function ingestMediaMessage(tabId, message) {
   if (!message || typeof message !== "object") return;
+  if (isTabBlocked(tabId)) return;
   const { type, payload } = message;
   if (!type) return;
 
@@ -246,6 +522,10 @@ function sendToContentScript(tabId, message) {
   const port = tabPorts.get(tabId);
   if (!port) {
     log.warn('msg', `Tab${tabId} 无端口`);
+    return;
+  }
+  if (isTabBlocked(tabId)) {
+    log.debug('msg', `Tab${tabId} 已在黑名单，忽略 ${message.type}`);
     return;
   }
   try {
@@ -288,12 +568,29 @@ function handleContentPort(port) {
     return;
   }
 
-  log.info('conn', `Tab${tabId} 已连接`, { url: port.sender?.tab?.url });
+  const initialUrl = port.sender?.tab?.url || null;
+  log.info('conn', `Tab${tabId} 已连接`, { url: initialUrl });
 
-  tabMetadata.set(tabId, { lastVideoUrl: null });
+  tabMetadata.set(tabId, { lastVideoUrl: null, lastPageUrl: initialUrl });
   tabPorts.set(tabId, port);
+  const initiallyBlocked = isUrlBlacklisted(initialUrl);
+  setTabBlocked(tabId, initiallyBlocked, initialUrl, { forceNotify: true });
 
   port.onMessage.addListener((message) => {
+    const tabInfo = tabMetadata.get(tabId) || {};
+    if (message?.type === "page-url-changed") {
+      const nextUrl = message.payload?.pageUrl || tabInfo.lastPageUrl || null;
+      tabInfo.lastPageUrl = nextUrl;
+      tabMetadata.set(tabId, tabInfo);
+      const blocked = isUrlBlacklisted(nextUrl);
+      setTabBlocked(tabId, blocked, nextUrl);
+      if (blocked) {
+        return;
+      }
+    } else if (isTabBlocked(tabId)) {
+      return;
+    }
+
     // Store and filter media state
     ingestMediaMessage(tabId, message);
     
@@ -325,8 +622,7 @@ function handleContentPort(port) {
     }
 
     if (message.type === "video-context") {
-      const tabInfo = tabMetadata.get(tabId) || {};
-      tabInfo.lastVideoUrl = message.payload.pageUrl;
+      tabInfo.lastVideoUrl = message.payload?.pageUrl || tabInfo.lastVideoUrl || null;
       tabMetadata.set(tabId, tabInfo);
     }
   });
@@ -335,6 +631,7 @@ function handleContentPort(port) {
     log.info('conn', `Tab${tabId} 已断开`);
     tabMetadata.delete(tabId);
     tabPorts.delete(tabId);
+    tabBlockState.delete(tabId);
     removeMediaState(tabId);
     bridge.send({
       tabId,
@@ -353,3 +650,7 @@ function handleDashboardPort(port) {
     dashboardPorts.delete(port);
   });
 }
+
+initBlacklistFeature().catch((err) => {
+  log.error('blacklist', '初始化黑名单失败', err);
+});

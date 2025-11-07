@@ -41,6 +41,35 @@ const log = (() => {
     "ended"
   ];
   let lastPageUrl = location.href;
+  const BLOCKLIST_ALLOWED_MESSAGES = new Set(["page-url-changed"]);
+  let detectionBlocked = false;
+  let blockedHostname = null;
+
+  function syncActiveVideoState() {
+    const candidate = activeVideo || document.querySelector("video");
+    if (candidate) {
+      watchVideo(candidate);
+      setActiveVideo(candidate);
+      handleTimeUpdate(candidate);
+    }
+  }
+
+  function setDetectionBlocked(blocked, hostname) {
+    const normalizedHostname = hostname || null;
+    if (detectionBlocked === blocked && blockedHostname === normalizedHostname) {
+      return;
+    }
+    detectionBlocked = blocked;
+    blockedHostname = normalizedHostname;
+    if (detectionBlocked) {
+      log.info('blacklist', `检测已禁用${normalizedHostname ? `: ${normalizedHostname}` : ""}`);
+      stopTicker();
+      activeVideo = null;
+    } else {
+      log.info('blacklist', '检测已恢复');
+      syncActiveVideoState();
+    }
+  }
 
   function handlePortMessage(message) {
     if (!message || typeof message !== "object") return;
@@ -48,6 +77,8 @@ const log = (() => {
     if (message.type === "control") {
       log.info('ctrl', `接收: ${message.action}`, message.payload);
       applyControl(message.action, message.payload || {});
+    } else if (message.type === "blacklist-state") {
+      setDetectionBlocked(Boolean(message.payload?.blocked), message.payload?.hostname || null);
     }
   }
 
@@ -95,6 +126,10 @@ const log = (() => {
   }
 
   function send(type, payload = {}) {
+    if (detectionBlocked && !BLOCKLIST_ALLOWED_MESSAGES.has(type)) {
+      log.debug('blacklist', `阻止发送: ${type}`);
+      return;
+    }
     const channel = port || connectPort();
     if (!channel) {
       log.warn('msg', `发送失败: ${type} (无连接)`);
@@ -143,6 +178,7 @@ const log = (() => {
   }
 
   function handleTimeUpdate(video) {
+    if (detectionBlocked) return;
     const state = gatherVideoState(video);
     if (state) {
       send("time-update", state);
@@ -150,6 +186,7 @@ const log = (() => {
   }
 
   function ensureTicker() {
+    if (detectionBlocked) return;
     if (ticker) return;
     ticker = setInterval(() => {
       if (activeVideo && !activeVideo.paused) {
@@ -164,6 +201,10 @@ const log = (() => {
   }
 
   function setActiveVideo(video) {
+    if (video && detectionBlocked) {
+      log.debug('blacklist', '忽略激活视频（黑名单生效）');
+      return;
+    }
     activeVideo = video;
     if (video) {
       log.info('video', '激活视频', { src: video.currentSrc || video.src, duration: video.duration });
@@ -177,6 +218,7 @@ const log = (() => {
 
   function watchVideo(video) {
     if (!video || !(video instanceof HTMLVideoElement)) return;
+    if (detectionBlocked) return;
     const root = video.getRootNode?.();
     if (root instanceof ShadowRoot) {
       ensureDocListeners(root);
@@ -194,6 +236,10 @@ const log = (() => {
   }
 
   function applyControl(action, payload) {
+    if (detectionBlocked) {
+      log.warn('ctrl', `忽略命令: ${action} (当前站点在黑名单)`);
+      return;
+    }
     const target = activeVideo || document.querySelector("video");
     if (!target) {
       log.warn('ctrl', `执行失败: ${action} (无视频)`);
@@ -246,6 +292,7 @@ const log = (() => {
   }
 
   function handleDocumentMediaEvent(event) {
+    if (detectionBlocked) return;
     const target = event?.target;
     if (!(target instanceof HTMLVideoElement)) return;
     
