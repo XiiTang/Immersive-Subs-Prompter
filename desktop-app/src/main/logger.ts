@@ -14,20 +14,40 @@ function formatMessage(level: string, prefix: string, message: string): string {
   return `[${getTimestamp()}] [${level}] [${prefix}] ${message}`;
 }
 
+function formatArgs(args: unknown[]): string[] {
+  return args.map(arg => {
+    if (arg instanceof Error) {
+      return `${arg.name}: ${arg.message}${arg.stack ? '\n' + arg.stack : ''}`;
+    }
+    if (typeof arg === 'object') {
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    }
+    return String(arg);
+  });
+}
+
 export const logger = {
   log(prefix: string, message: string, ...rest: unknown[]) {
-    console.log(formatMessage('INFO', prefix, message), ...rest);
+    const formatted = formatArgs(rest);
+    console.log(formatMessage('INFO', prefix, message), ...formatted);
   },
   
   error(prefix: string, message: string, ...rest: unknown[]) {
-    console.error(formatMessage('ERROR', prefix, message), ...rest);
+    const formatted = formatArgs(rest);
+    console.error(formatMessage('ERROR', prefix, message), ...formatted);
   },
   
   warn(prefix: string, message: string, ...rest: unknown[]) {
-    console.warn(formatMessage('WARN', prefix, message), ...rest);
+    const formatted = formatArgs(rest);
+    console.warn(formatMessage('WARN', prefix, message), ...formatted);
   },
   
   info(prefix: string, message: string, ...rest: unknown[]) {
-    console.info(formatMessage('INFO', prefix, message), ...rest);
+    const formatted = formatArgs(rest);
+    console.info(formatMessage('INFO', prefix, message), ...formatted);
   }
 };
