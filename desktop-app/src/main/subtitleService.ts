@@ -255,6 +255,16 @@ export function pickBestTrack(tracks: SubtitleTrack[]): SubtitleTrack {
   );
 }
 
+type RawVttCue = {
+  start: number;
+  end: number;
+  lines: string[];
+};
+
+const VTT_TIMESTAMP_TAG = /<\d{2}:\d{2}:\d{2}\.\d{3}>/;
+const VTT_CLASS_TAG = /<c(?:\.[^>]*)?>/i;
+const YOUTUBE_SHORT_CUE_THRESHOLD = 0.15;
+
 function parseSubtitle(content: string, extension: string): SubtitleCue[] {
   if (extension === "srt") {
     return parseSrt(content);
@@ -263,42 +273,137 @@ function parseSubtitle(content: string, extension: string): SubtitleCue[] {
 }
 
 function parseVtt(content: string): SubtitleCue[] {
-  const lines = content.replace(/\r/g, "").split("\n");
+  const rawCues = readRawVttCues(content);
+  if (!rawCues.length) {
+    return [];
+  }
+
+  if (isYoutubeWordLevelVtt(rawCues)) {
+    return collapseYoutubeWordLevelCues(rawCues);
+  }
+
   const cues: SubtitleCue[] = [];
+  for (const cue of rawCues) {
+    const text = formatCueText(cue.lines);
+    if (!text) continue;
+    cues.push({ start: cue.start, end: cue.end, text });
+  }
+  return cues;
+}
+
+function readRawVttCues(content: string): RawVttCue[] {
+  const lines = content.replace(/\r/g, "").split("\n");
+  const cues: RawVttCue[] = [];
   let i = 0;
 
   while (i < lines.length) {
-    let line = lines[i].trim();
+    const trimmed = lines[i].trim();
 
-    if (!line || line.startsWith("WEBVTT")) {
+    if (!trimmed || trimmed.startsWith("WEBVTT") || trimmed.startsWith("NOTE")) {
       i += 1;
       continue;
     }
 
-    if (line.includes("-->")) {
-      const [startRaw, endRaw] = line.split("-->");
+    if (trimmed.includes("-->")) {
+      const [startRaw, endRaw] = trimmed.split("-->");
       const start = parseTimestamp(startRaw.trim());
       const end = parseTimestamp(endRaw.trim());
-      const textLines: string[] = [];
-
       i += 1;
+
+      const textLines: string[] = [];
       while (i < lines.length && lines[i].trim() !== "") {
-        textLines.push(stripTags(lines[i]));
+        textLines.push(lines[i]);
         i += 1;
       }
 
-      const text = textLines.join("\n").trim();
-      if (!Number.isNaN(start) && !Number.isNaN(end) && text) {
-        cues.push({ start, end, text });
+      if (!Number.isNaN(start) && !Number.isNaN(end)) {
+        cues.push({ start, end, lines: textLines });
       }
-      i += 1;
+
+      while (i < lines.length && lines[i].trim() === "") {
+        i += 1;
+      }
       continue;
-    } else {
-      i += 1;
     }
+
+    i += 1;
   }
 
   return cues;
+}
+
+function isYoutubeWordLevelVtt(cues: RawVttCue[]): boolean {
+  if (cues.length < 10) {
+    return false;
+  }
+
+  const shortIndices: number[] = [];
+  for (let i = 0; i < cues.length; i += 1) {
+    if (cueDuration(cues[i]) <= YOUTUBE_SHORT_CUE_THRESHOLD) {
+      shortIndices.push(i);
+    }
+  }
+
+  if (!shortIndices.length) {
+    return false;
+  }
+
+  const shortRatio = shortIndices.length / cues.length;
+  if (shortRatio < 0.35) {
+    return false;
+  }
+
+  const pairedShortCount = shortIndices.filter((index) => {
+    if (index === 0) return false;
+    return cueDuration(cues[index - 1]) > YOUTUBE_SHORT_CUE_THRESHOLD;
+  }).length;
+
+  if (!pairedShortCount || pairedShortCount / shortIndices.length < 0.85) {
+    return false;
+  }
+
+  const shortSet = new Set(shortIndices);
+  const longCueCount = cues.length - shortIndices.length;
+  if (longCueCount <= 0) {
+    return false;
+  }
+
+  const timestampRich = cues.filter((cue, index) => {
+    if (shortSet.has(index)) {
+      return false;
+    }
+    return cue.lines.some((line) => VTT_TIMESTAMP_TAG.test(line) && VTT_CLASS_TAG.test(line));
+  }).length;
+
+  return timestampRich / longCueCount >= 0.5;
+}
+
+function collapseYoutubeWordLevelCues(rawCues: RawVttCue[]): SubtitleCue[] {
+  const cues: SubtitleCue[] = [];
+  for (let i = 0; i < rawCues.length; i += 1) {
+    const current = rawCues[i];
+    if (cueDuration(current) <= YOUTUBE_SHORT_CUE_THRESHOLD) {
+      continue;
+    }
+
+    const next = rawCues[i + 1];
+    const hasShortPartner = next && cueDuration(next) <= YOUTUBE_SHORT_CUE_THRESHOLD;
+    let text = formatCueText(hasShortPartner ? next!.lines : current.lines);
+    if (!text && hasShortPartner) {
+      text = formatCueText(current.lines);
+    }
+    if (text) {
+      cues.push({ start: current.start, end: current.end, text });
+    }
+    if (hasShortPartner) {
+      i += 1;
+    }
+  }
+  return cues;
+}
+
+function cueDuration(cue: RawVttCue): number {
+  return Math.max(0, cue.end - cue.start);
 }
 
 function parseSrt(content: string): SubtitleCue[] {
@@ -328,6 +433,10 @@ function parseSrt(content: string): SubtitleCue[] {
   }
 
   return cues;
+}
+
+function formatCueText(lines: string[]): string {
+  return lines.map((line) => stripTags(line)).join("\n").trim();
 }
 
 function stripTags(input: string): string {
