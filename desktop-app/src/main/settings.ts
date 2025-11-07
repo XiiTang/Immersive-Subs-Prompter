@@ -2,7 +2,7 @@ import { app } from "electron";
 import fs from "fs";
 import path from "path";
 import { AppSettings, CloseBehavior } from "./types.js";
-import { logger } from "./logger.js";
+import { createLogger } from "./logger.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 
@@ -49,6 +49,7 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
 export class SettingsStore {
   private readonly filePath: string;
   private data: AppSettings = DEFAULT_SETTINGS;
+  private readonly log = createLogger("settings");
 
   constructor() {
     this.filePath = path.join(app.getPath("userData"), "settings.json");
@@ -66,7 +67,7 @@ export class SettingsStore {
       const parsed = JSON.parse(raw);
       this.data = sanitizeSettings(parsed);
     } catch (error) {
-      logger.error("USP", "Failed to read settings:", error);
+      this.log.error("Failed to read settings:", error);
       this.data = DEFAULT_SETTINGS;
     }
   }
@@ -76,7 +77,7 @@ export class SettingsStore {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
       fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), "utf-8");
     } catch (error) {
-      logger.error("USP", "Failed to persist settings:", error);
+      this.log.error("Failed to persist settings:", error);
     }
   }
 

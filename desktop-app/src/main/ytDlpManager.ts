@@ -1,7 +1,7 @@
 import { app } from "electron";
 import { promises as fs } from "fs";
 import path from "path";
-import { logger } from "./logger.js";
+import { createLogger } from "./logger.js";
 
 const RELEASE_API = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
 const LATEST_DOWNLOAD_BASE = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/";
@@ -73,6 +73,7 @@ export class YtDlpManager {
   private binaryPath: string | null = null;
   private ensurePromise: Promise<string> | null = null;
   private releaseInfoPromise: Promise<ReleaseInfo> | null = null;
+  private readonly log = createLogger("yt-dlp");
 
   async getBinaryPath(): Promise<string> {
     if (this.binaryPath && (await this.fileExists(this.binaryPath))) {
@@ -93,7 +94,7 @@ export class YtDlpManager {
     const metadata = await this.readMetadata(storageDir);
 
     try {
-      logger.log("USP", "Checking yt-dlp binary status");
+      this.log.info("Checking yt-dlp binary status");
       
       const releaseInfo = await this.fetchLatestReleaseInfo();
       const releaseVersion = releaseInfo.version;
@@ -105,16 +106,16 @@ export class YtDlpManager {
         !(await this.fileExists(targetPath)) || metadata?.version !== releaseVersion;
 
       if (needsDownload) {
-        logger.log("USP", `Downloading yt-dlp ${releaseVersion}...`);
+        this.log.info(`Downloading yt-dlp ${releaseVersion}...`);
         await this.downloadBinary(downloadUrl, targetPath);
         await this.ensurePermissions(targetPath);
         await this.writeMetadata(storageDir, {
           version: releaseVersion,
           downloadedAt: new Date().toISOString()
         });
-        logger.log("USP", `yt-dlp ${releaseVersion} downloaded successfully`);
+        this.log.info(`yt-dlp ${releaseVersion} downloaded successfully`);
       } else {
-        logger.log("USP", `Using cached yt-dlp ${metadata?.version || 'unknown version'}`);
+        this.log.info(`Using cached yt-dlp ${metadata?.version || "unknown version"}`);
         await this.ensurePermissions(targetPath);
       }
 
@@ -122,13 +123,13 @@ export class YtDlpManager {
       return targetPath;
     } catch (error) {
       if (await this.fileExists(targetPath)) {
-        logger.warn("USP", "Failed to refresh yt-dlp, falling back to cached binary:", error);
+        this.log.warn("Failed to refresh yt-dlp, falling back to cached binary:", error);
         await this.ensurePermissions(targetPath);
         this.binaryPath = targetPath;
         return targetPath;
       }
 
-      logger.log("USP", "Attempting to download yt-dlp from fallback URL");
+      this.log.info("Attempting to download yt-dlp from fallback URL");
       const fallbackUrl = `${LATEST_DOWNLOAD_BASE}${config.assetName}`;
       await this.downloadBinary(fallbackUrl, targetPath);
       await this.ensurePermissions(targetPath);
@@ -136,7 +137,7 @@ export class YtDlpManager {
         version: "latest",
         downloadedAt: new Date().toISOString()
       });
-      logger.log("USP", "yt-dlp downloaded successfully from fallback URL");
+      this.log.info("yt-dlp downloaded successfully from fallback URL");
       this.binaryPath = targetPath;
       return targetPath;
     }
@@ -227,7 +228,7 @@ export class YtDlpManager {
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-        logger.warn("USP", "Failed to read yt-dlp metadata:", error);
+        this.log.warn("Failed to read yt-dlp metadata:", error);
       }
     }
     return null;
@@ -241,7 +242,7 @@ export class YtDlpManager {
         "utf-8"
       );
     } catch (error) {
-      logger.warn("USP", "Failed to persist yt-dlp metadata:", error);
+      this.log.warn("Failed to persist yt-dlp metadata:", error);
     }
   }
 }

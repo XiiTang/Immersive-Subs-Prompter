@@ -24,6 +24,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "iconv-lite": "^0.7.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import path from "path";
 import { DEFAULT_YTDLP_ARGS } from "./settings.js";
 import { AppSettings, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
-import { logger } from "./logger.js";
+import { createLogger } from "./logger.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",
@@ -26,6 +26,7 @@ type SettingsProvider = () => Pick<AppSettings, "ytDlpArgs">;
 export class SubtitleService {
   private cache = new Map<string, SubtitleLoadResult>();
   private inflight = new Map<string, Promise<SubtitleLoadResult>>();
+  private readonly log = createLogger("subtitle-service");
 
   constructor(
     private readonly binaryResolver: BinaryResolver = async () => "yt-dlp",
@@ -63,10 +64,10 @@ export class SubtitleService {
 
     try {
       binaryPath = await this.binaryResolver();
-      logger.log("USP", `Starting yt-dlp for: ${videoUrl}`);
+      this.log.info(`Starting yt-dlp for: ${videoUrl}`);
       
       await runCommand(binaryPath, args, workingDir);
-      logger.log("USP", "yt-dlp command completed successfully");
+      this.log.info("yt-dlp command completed successfully");
       
       const subtitleFiles = (await fs.readdir(workingDir))
         .filter((file) => SUBTITLE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(`.${ext}`)))
@@ -76,7 +77,7 @@ export class SubtitleService {
         throw new Error("未找到字幕文件，请确认该视频是否提供字幕。");
       }
 
-      logger.log("USP", `Found ${subtitleFiles.length} subtitle file(s)`);
+      this.log.info(`Found ${subtitleFiles.length} subtitle file(s)`);
 
       const tracks: SubtitleTrack[] = [];
       for (const filePath of subtitleFiles) {
@@ -100,7 +101,7 @@ export class SubtitleService {
         throw new Error("字幕文件解析失败或为空。");
       }
 
-      logger.log("USP", `Successfully parsed ${tracks.length} subtitle track(s)`);
+      this.log.info(`Successfully parsed ${tracks.length} subtitle track(s)`);
 
       return {
         tracks
@@ -108,14 +109,14 @@ export class SubtitleService {
     } catch (error) {
       const commandLine = binaryPath ? formatCommandLine(binaryPath, args) : "";
       if (error instanceof CommandExecutionError) {
-        logger.error("USP", "yt-dlp command failed", {
+        this.log.error("yt-dlp command failed", {
           command: commandLine,
           exitCode: error.info.exitCode,
           stderr: error.info.stderr,
           stdout: error.info.stdout
         });
       } else {
-        logger.error("USP", "yt-dlp invocation failed", error);
+        this.log.error("yt-dlp invocation failed", error);
       }
       const detailedMessage = formatCommandError(error, commandLine);
       throw new Error(`[yt-dlp] ${detailedMessage}`);

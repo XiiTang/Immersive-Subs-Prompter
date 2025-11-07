@@ -6,7 +6,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { SubtitleService, pickBestTrack } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
-import { logger } from "./logger.js";
+import { createLogger } from "./logger.js";
 import {
   AppSettings,
   DesktopState,
@@ -32,6 +32,7 @@ const socketTabs = new Map<WebSocket, Set<number>>();
 let tray: Tray | null = null;
 let isQuitting = false;
 let settingsStore: SettingsStore | null = null;
+const mainLogger = createLogger("desktop");
 
 const state: DesktopState = {
   connectionCount: 0,
@@ -65,7 +66,7 @@ function applyAutoLaunch(enabled: boolean) {
         path: process.execPath
       });
     } catch (error) {
-      logger.error("USP", "Failed to update login item settings", error);
+      mainLogger.error("Failed to update login item settings", error);
     }
     return;
   }
@@ -90,7 +91,7 @@ function applyAutoLaunch(enabled: boolean) {
         fs.rmSync(desktopFile);
       }
     } catch (error) {
-      logger.error("USP", "Failed to update autostart entry", error);
+      mainLogger.error("Failed to update autostart entry", error);
     }
   }
 }
@@ -225,7 +226,7 @@ function sendPlaybackUpdate(playback: PlaybackState) {
 }
 
 function log(message: string, ...rest: unknown[]) {
-  logger.log("USP", message, ...rest);
+  mainLogger.info(message, ...rest);
 }
 
 function updateConnectionCount(delta: number) {
@@ -394,10 +395,10 @@ function bootstrapWebSocketServer() {
         };
         rememberTabSocket(tabId, socket);
         handleMessage({ tabId, type, payload }).catch((error) => {
-          logger.error("USP", "Failed to handle message", error);
+          mainLogger.error("Failed to handle message", error);
         });
       } catch (error) {
-        logger.error("USP", "Failed to process message", error);
+        mainLogger.error("Failed to process message", error);
       }
     });
 
@@ -408,13 +409,13 @@ function bootstrapWebSocketServer() {
     });
 
     socket.on("error", (error: Error) => {
-      logger.error("USP", "WebSocket error", error);
+      mainLogger.error("WebSocket error", error);
       socket.close();
     });
   });
 
   wss.on("error", (error: Error) => {
-    logger.error("USP", "WebSocket server error", error);
+    mainLogger.error("WebSocket server error", error);
   });
 }
 
