@@ -1,9 +1,17 @@
 const DASHBOARD_PORT = "usp-dashboard";
+const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
 const template = document.getElementById("media-card-template");
+const blacklistPanel = document.getElementById("blacklist-panel");
+const blacklistButton = document.getElementById("blacklist-btn");
+const blacklistBackButton = document.getElementById("blacklist-back");
+const blacklistListEl = document.getElementById("blacklist-list");
+const blacklistEmptyStateEl = document.getElementById("blacklist-empty-state");
+const addBlacklistRuleButton = document.getElementById("add-blacklist-rule");
 
 let port;
+let blacklistRules = [];
 
 function setStatus(text) {
   if (statusEl) {
@@ -57,6 +65,174 @@ function renderEmptyState() {
   empty.className = "empty-state";
   empty.innerHTML = "<strong>No media detected</strong><p>Start playing a video to see the live breakdown here.</p>";
   mediaRoot.replaceChildren(empty);
+}
+
+function normalizeBlacklistRules(input) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input
+    .map((entry, index) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+      const id = typeof entry.id === "string" && entry.id.length ? entry.id : `rule-${Date.now()}-${index}`;
+      const mode =
+        typeof entry.mode === "string" && ["contains", "exact", "regex"].includes(entry.mode)
+          ? entry.mode
+          : "contains";
+      const value = typeof entry.value === "string" ? entry.value : "";
+      return { id, mode, value };
+    })
+    .filter(Boolean);
+}
+
+function fetchBlacklistRules() {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.get([BLACKLIST_STORAGE_KEY], (result) => {
+        if (chrome.runtime?.lastError) {
+          console.error("[USP] Failed to load blacklist", chrome.runtime.lastError);
+          resolve([]);
+          return;
+        }
+        resolve(result?.[BLACKLIST_STORAGE_KEY] ?? []);
+      });
+    } catch (error) {
+      console.error("[USP] Failed to load blacklist", error);
+      resolve([]);
+    }
+  });
+}
+
+function saveBlacklistRules(nextRules) {
+  blacklistRules = nextRules;
+  renderBlacklistRules();
+  chrome.storage.local.set({ [BLACKLIST_STORAGE_KEY]: nextRules }, () => {
+    if (chrome.runtime?.lastError) {
+      console.error("[USP] Failed to persist blacklist", chrome.runtime.lastError);
+    }
+  });
+}
+
+function isRegexValid(pattern) {
+  if (!pattern) {
+    return true;
+  }
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function renderBlacklistRules() {
+  if (!blacklistListEl || !blacklistEmptyStateEl) {
+    return;
+  }
+  blacklistListEl.innerHTML = "";
+  if (!blacklistRules.length) {
+    blacklistEmptyStateEl.hidden = false;
+    blacklistListEl.hidden = true;
+    return;
+  }
+  blacklistEmptyStateEl.hidden = true;
+  blacklistListEl.hidden = false;
+
+  blacklistRules.forEach((rule) => {
+    const item = document.createElement("div");
+    item.className = "blacklist-item";
+    item.dataset.id = rule.id;
+
+    const row = document.createElement("div");
+    row.className = "blacklist-item__row";
+
+    const select = document.createElement("select");
+    select.className = "blacklist-item__select";
+    [
+      { value: "contains", label: "包含" },
+      { value: "exact", label: "完全匹配" },
+      { value: "regex", label: "正则" }
+    ].forEach((optionMeta) => {
+      const option = document.createElement("option");
+      option.value = optionMeta.value;
+      option.textContent = optionMeta.label;
+      select.appendChild(option);
+    });
+    select.value = rule.mode;
+    select.addEventListener("change", () => updateBlacklistRule(rule.id, { mode: select.value }));
+
+    const input = document.createElement("input");
+    input.className = "blacklist-item__input";
+    input.type = "text";
+    input.placeholder = "输入要匹配的网址或关键字";
+    input.value = rule.value;
+    input.addEventListener("input", () => updateBlacklistRule(rule.id, { value: input.value }));
+
+    row.appendChild(select);
+    row.appendChild(input);
+
+    const footer = document.createElement("div");
+    footer.className = "blacklist-item__footer";
+
+    const error = document.createElement("div");
+    error.className = "blacklist-item__error";
+    error.textContent = rule.mode === "regex" && !isRegexValid(rule.value) ? "正则表达式无效" : "";
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "blacklist-item__remove";
+    removeButton.textContent = "删除";
+    removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
+
+    footer.appendChild(error);
+    footer.appendChild(removeButton);
+
+    item.appendChild(row);
+    item.appendChild(footer);
+    blacklistListEl.appendChild(item);
+  });
+}
+
+function updateBlacklistRule(ruleId, partial) {
+  const index = blacklistRules.findIndex((rule) => rule.id === ruleId);
+  if (index === -1) {
+    return;
+  }
+  const current = blacklistRules[index];
+  const next = { ...current, ...partial };
+  if (current.mode === next.mode && current.value === next.value) {
+    return;
+  }
+  const nextRules = [...blacklistRules];
+  nextRules[index] = next;
+  saveBlacklistRules(nextRules);
+}
+
+function removeBlacklistRule(ruleId) {
+  const nextRules = blacklistRules.filter((rule) => rule.id !== ruleId);
+  saveBlacklistRules(nextRules);
+}
+
+function addBlacklistRule() {
+  const id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `rule-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const nextRules = [...blacklistRules, { id, mode: "contains", value: "" }];
+  saveBlacklistRules(nextRules);
+}
+
+function setBlacklistOpen(open) {
+  document.body.classList.toggle("blacklist-open", open);
+  if (blacklistPanel) {
+    blacklistPanel.setAttribute("aria-hidden", String(!open));
+  }
+  if (open) {
+    (addBlacklistRuleButton || blacklistPanel)?.focus();
+  } else {
+    blacklistButton?.focus();
+  }
 }
 
 function renderCards(items) {
@@ -159,4 +335,32 @@ try {
   console.error("[USP] Failed to connect to dashboard port", err);
   setStatus("Unavailable");
   renderEmptyState();
+}
+
+blacklistButton?.addEventListener("click", () => setBlacklistOpen(true));
+blacklistBackButton?.addEventListener("click", () => setBlacklistOpen(false));
+addBlacklistRuleButton?.addEventListener("click", () => addBlacklistRule());
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.classList.contains("blacklist-open")) {
+    setBlacklistOpen(false);
+  }
+});
+
+fetchBlacklistRules().then((raw) => {
+  blacklistRules = normalizeBlacklistRules(raw);
+  renderBlacklistRules();
+});
+
+if (chrome?.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local") {
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
+      return;
+    }
+    blacklistRules = normalizeBlacklistRules(changes[BLACKLIST_STORAGE_KEY].newValue ?? []);
+    renderBlacklistRules();
+  });
 }
