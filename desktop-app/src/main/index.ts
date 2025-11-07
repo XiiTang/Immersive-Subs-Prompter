@@ -106,12 +106,12 @@ function ensureTray() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
-        label: "显示窗口",
+        label: "Show Window",
         click: () => showMainWindow()
       },
       { type: "separator" },
       {
-        label: "退出",
+        label: "Quit",
         click: () => {
           isQuitting = true;
           tray?.destroy();
@@ -200,7 +200,7 @@ function createWindow() {
     }
   });
 
-  // 开发模式下自动打开开发者工具
+  // Auto-open DevTools in development mode
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
@@ -279,20 +279,20 @@ async function handleMessage(message: ExtensionMessage) {
 
       if (!url) {
         state.status = "error";
-        state.error = "无法解析视频链接";
+        state.error = "Unable to parse video URL";
         pushState();
         return;
       }
 
-      // 如果视频 URL 没有改变，说明是同一个视频（例如只是跳转时间戳），不需要重新加载字幕
-      // 即使之前下载失败，也不重复尝试，避免重复触发下载
+      // If video URL hasn't changed, it's the same video (e.g., just seeking), no need to reload subtitles
+      // Don't retry even if previous download failed, to avoid repeated attempts
       if (url === previousVideoUrl && (state.subtitleTracks.length > 0 || state.status === "error")) {
-        // 只更新页面信息，保持字幕或错误状态不变
+        // Only update page info, keep subtitle or error state unchanged
         pushState();
         return;
       }
 
-      // URL 改变了，需要重新加载字幕
+      // URL changed, need to reload subtitles
       state.error = null;
       state.subtitles = null;
       state.subtitleTracks = [];
@@ -315,7 +315,7 @@ async function handleMessage(message: ExtensionMessage) {
             state.subtitles = null;
             state.selectedSubtitleId = null;
             state.status = "error";
-            state.error = "未找到可用字幕";
+            state.error = "No available subtitles found";
           }
           pushState();
         }
@@ -325,7 +325,7 @@ async function handleMessage(message: ExtensionMessage) {
           state.error =
             error && typeof error === "object" && "message" in error
               ? (error as Error).message
-              : "字幕下载失败";
+              : "Subtitle download failed";
           pushState();
         }
       }

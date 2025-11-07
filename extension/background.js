@@ -1,4 +1,4 @@
-// 简化的日志函数
+// Simplified logging function
 const log = (() => {
   const PREFIX = "[USP][bg]";
   const fmt = (cat, msg) => {
@@ -39,21 +39,21 @@ class DesktopBridge {
     clearTimeout(this.retryTimer);
 
     try {
-      log.info('ws', '连接中...', { endpoint: WS_ENDPOINT });
+      log.info('ws', 'Connecting...', { endpoint: WS_ENDPOINT });
       this.socket = new WebSocket(WS_ENDPOINT);
     } catch (err) {
-      log.error('ws', '创建连接失败', err);
+      log.error('ws', 'Failed to create connection', err);
       this.scheduleReconnect();
       return;
     }
 
     this.socket.addEventListener("open", () => {
-      log.info('ws', '已连接');
+      log.info('ws', 'Connected');
       this.flushPending();
     });
 
     this.socket.addEventListener("close", () => {
-      log.warn('ws', '已断开');
+      log.warn('ws', 'Disconnected');
       this.scheduleReconnect();
     });
 
@@ -70,26 +70,26 @@ class DesktopBridge {
         log.debug('ws', `← ${payload.type}`, { source: payload.source });
         this.onDesktopMessage?.(payload);
       } catch (err) {
-        log.error('ws', '解析消息失败', err);
+        log.error('ws', 'Failed to parse message', err);
       }
     });
 
     this.socket.addEventListener("error", (err) => {
-      log.error('ws', 'WebSocket错误', err);
+      log.error('ws', 'WebSocket error', err);
       this.socket.close();
     });
   }
 
   scheduleReconnect() {
     clearTimeout(this.retryTimer);
-    log.info('ws', `重连中... ${RETRY_DELAY_MS}ms`);
+    log.info('ws', `Reconnecting... ${RETRY_DELAY_MS}ms`);
     this.retryTimer = setTimeout(() => this.connect(), RETRY_DELAY_MS);
   }
 
   flushPending() {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
     if (this.pending.length > 0) {
-      log.info('ws', `发送队列: ${this.pending.length} 条消息`);
+      log.info('ws', `Sending queue: ${this.pending.length} messages`);
     }
     while (this.pending.length) {
       this.socket.send(this.pending.shift());
@@ -108,7 +108,7 @@ class DesktopBridge {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
-      log.debug('ws', `队列 +1 (${this.pending.length + 1})`);
+      log.debug('ws', `Queue +1 (${this.pending.length + 1})`);
       this.pending.push(data);
       this.connect();
     }
@@ -210,12 +210,12 @@ function isValidMedia(payload) {
   
   // Must have readyState and duration > MINIMUM_DURATION
   if (!payload.readyState) {
-    log.debug('filter', '过滤: 无 readyState');
+    log.debug('filter', 'Filtered: no readyState');
     return false;
   }
   const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
   if (duration <= MINIMUM_DURATION) {
-    log.debug('filter', `过滤: duration=${duration}s`);
+    log.debug('filter', `Filtered: duration=${duration}s`);
     return false;
   }
   
@@ -233,14 +233,14 @@ function ingestMediaMessage(tabId, message) {
     // Only store valid media in mediaStates (duration > MINIMUM_DURATION)
     const isValid = isValidMedia(payload);
     if (isValid) {
-      log.info('media', `Tab${tabId} 更新: ${type}`, { duration: payload.duration?.toFixed(1) });
+      log.info('media', `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
       setMediaState(tabId, payload || {}, type);
     }
   } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
-    log.info('page', `Tab${tabId} URL变化`, { url: payload.pageUrl });
+    log.info('page', `Tab${tabId} URL changed`, { url: payload.pageUrl });
     setMediaState(tabId, payload || {}, type);
   } else if (type === "video-ended") {
-    log.info('media', `Tab${tabId} 播放结束`);
+    log.info('media', `Tab${tabId} Playback ended`);
     removeMediaState(tabId);
   }
 }
@@ -248,14 +248,14 @@ function ingestMediaMessage(tabId, message) {
 function sendToContentScript(tabId, message) {
   const port = tabPorts.get(tabId);
   if (!port) {
-    log.warn('msg', `Tab${tabId} 无端口`);
+    log.warn('msg', `Tab${tabId} No port`);
     return;
   }
   try {
     log.debug('msg', `Tab${tabId} → ${message.type}`);
     port.postMessage(message);
   } catch (err) {
-    log.error('msg', `Tab${tabId} 发送失败`, err);
+    log.error('msg', `Tab${tabId} Send failed`, err);
   }
 }
 
@@ -263,7 +263,7 @@ function handleDesktopMessage(message) {
   if (!message || typeof message !== "object") return;
   if (message.source !== "usp-desktop") return;
 
-  log.info('ctrl', `Desktop命令: ${message.action}`, { tabId: message.tabId });
+  log.info('ctrl', `Desktop command: ${message.action}`, { tabId: message.tabId });
 
   if (message.type === "control-command" && typeof message.tabId === "number") {
     sendToContentScript(message.tabId, {
@@ -287,11 +287,11 @@ chrome.runtime.onConnect.addListener((port) => {
 function handleContentPort(port) {
   const tabId = port.sender?.tab?.id;
   if (tabId === undefined) {
-    log.warn('conn', '忽略: 无tabId');
+    log.warn('conn', 'Ignored: no tabId');
     return;
   }
 
-  log.info('conn', `Tab${tabId} 已连接`, { url: port.sender?.tab?.url });
+  log.info('conn', `Tab${tabId} Connected`, { url: port.sender?.tab?.url });
 
   tabMetadata.set(tabId, { lastVideoUrl: null });
   tabPorts.set(tabId, port);
@@ -335,7 +335,7 @@ function handleContentPort(port) {
   });
 
   port.onDisconnect.addListener(() => {
-    log.info('conn', `Tab${tabId} 已断开`);
+    log.info('conn', `Tab${tabId} Disconnected`);
     tabMetadata.delete(tabId);
     tabPorts.delete(tabId);
     removeMediaState(tabId);
@@ -348,11 +348,11 @@ function handleContentPort(port) {
 }
 
 function handleDashboardPort(port) {
-  log.info('conn', `Dashboard 已连接 (总数: ${dashboardPorts.size + 1})`);
+  log.info('conn', `Dashboard Connected (total: ${dashboardPorts.size + 1})`);
   dashboardPorts.add(port);
   sendSnapshotToPort(port);
   port.onDisconnect.addListener(() => {
-    log.info('conn', `Dashboard 已断开 (总数: ${dashboardPorts.size - 1})`);
+    log.info('conn', `Dashboard Disconnected (total: ${dashboardPorts.size - 1})`);
     dashboardPorts.delete(port);
   });
 }
@@ -360,7 +360,7 @@ function handleDashboardPort(port) {
 function ensureKeepAliveAlarm() {
   chrome.alarms.get(KEEPALIVE_ALARM_NAME, (existing) => {
     if (chrome.runtime?.lastError) {
-      log.warn('alarm', '查询闹钟失败', chrome.runtime.lastError);
+      log.warn('alarm', 'Failed to query alarm', chrome.runtime.lastError);
     }
     const desired = KEEPALIVE_PERIOD_MINUTES;
     if (!existing || Math.abs((existing.periodInMinutes || 0) - desired) > 0.001) {
@@ -368,7 +368,7 @@ function ensureKeepAliveAlarm() {
         periodInMinutes: desired,
         delayInMinutes: desired
       });
-      log.info('alarm', `${existing ? '更新' : '创建'}保活闹钟`, { intervalSeconds: KEEPALIVE_INTERVAL_SECONDS });
+      log.info('alarm', `${existing ? 'Update' : 'Create'} keepalive alarm`, { intervalSeconds: KEEPALIVE_INTERVAL_SECONDS });
     }
   });
 }

@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   subtitleFontFamily: "",
   subtitleFontSize: 14,
   ytDlpArgs: "",
-  subtitleAutoScrollTimeout: 3 // 默认3秒后恢复自动滚动
+  subtitleAutoScrollTimeout: 3 // Default 3 seconds before restoring auto-scroll
 };
 
 function isCloseBehavior(value: unknown): value is CloseBehavior {

@@ -101,7 +101,7 @@ const log = (() => {
       regexCache.set(pattern, regex);
       return regex;
     } catch (error) {
-      log.warn('blacklist', '无效正则', { pattern });
+      log.warn('blacklist', 'Invalid regex', { pattern });
       regexCache.set(pattern, null);
       return null;
     }
@@ -139,10 +139,10 @@ const log = (() => {
     }
     isPageBlacklisted = blocked;
     if (blocked) {
-      log.info('blacklist', '当前页面命中黑名单，停止检测', { url: location.href });
+      log.info('blacklist', 'Current page is blacklisted, stopping detection', { url: location.href });
       stopMonitoring();
     } else {
-      log.info('blacklist', '当前页面移除黑名单，重新开始检测', { url: location.href });
+      log.info('blacklist', 'Current page removed from blacklist, resuming detection', { url: location.href });
       startMonitoring();
     }
     return blocked;
@@ -168,7 +168,7 @@ const log = (() => {
     const tick = () => {
       if (lastPageUrl !== location.href) {
         lastPageUrl = location.href;
-        log.info('page', 'URL变化', { url: lastPageUrl, title: document.title });
+        log.info('page', 'URL changed', { url: lastPageUrl, title: document.title });
         if (monitoringActive) {
           send("page-url-changed", { pageUrl: lastPageUrl, title: document.title });
         }
@@ -183,7 +183,7 @@ const log = (() => {
     if (!monitoringActive || !message || typeof message !== "object") return;
     log.debug('msg', `← ${message.type}`, message);
     if (message.type === "control") {
-      log.info('ctrl', `接收: ${message.action}`, message.payload);
+      log.info('ctrl', `Received: ${message.action}`, message.payload);
       applyControl(message.action, message.payload || {});
     }
   }
@@ -193,7 +193,7 @@ const log = (() => {
       return;
     }
     if (reconnectTimer) return;
-    log.info('conn', `重连中... ${RECONNECT_DELAY_MS}ms`);
+    log.info('conn', `Reconnecting... ${RECONNECT_DELAY_MS}ms`);
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
       connectPort();
@@ -208,9 +208,9 @@ const log = (() => {
     let nextPort = null;
     try {
       nextPort = chrome.runtime.connect({ name: PORT_NAME });
-      log.info('conn', '已连接', { url: location.href });
+      log.info('conn', 'Connected', { url: location.href });
     } catch (err) {
-      log.error('conn', '连接失败', err);
+      log.error('conn', 'Connection failed', err);
       schedulePortReconnect();
       return null;
     }
@@ -219,7 +219,7 @@ const log = (() => {
     nextPort.onDisconnect.addListener(() => {
       if (port === nextPort) {
         port = null;
-        log.info('conn', '已断开');
+        log.info('conn', 'Disconnected');
       }
       if (monitoringActive) {
         schedulePortReconnect();
@@ -232,7 +232,7 @@ const log = (() => {
       reconnectTimer = null;
     }
     if (activeVideo) {
-      log.info('conn', '重连成功，同步视频状态');
+      log.info('conn', 'Reconnected successfully, syncing video state');
       send("video-context", gatherVideoState(activeVideo));
       handleTimeUpdate(activeVideo);
     }
@@ -245,14 +245,14 @@ const log = (() => {
     }
     const channel = port || connectPort();
     if (!channel) {
-      log.warn('msg', `发送失败: ${type} (无连接)`);
+      log.warn('msg', `Send failed: ${type} (no connection)`);
       return;
     }
     try {
       log.debug('msg', `→ ${type}`, payload);
       channel.postMessage({ type, payload });
     } catch (err) {
-      log.error('msg', `发送失败: ${type}`, err);
+      log.error('msg', `Send failed: ${type}`, err);
       if (port === channel) {
         port = null;
       }
@@ -265,7 +265,7 @@ const log = (() => {
     const site = host.includes("youtube.com") ? "youtube" :
                  host.includes("bilibili.com") ? "bilibili" :
                  host.includes("douyin.com") ? "douyin" : "unknown";
-    log.debug('site', `检测: ${site}`, { hostname: host });
+    log.debug('site', `Detected: ${site}`, { hostname: host });
     return site;
   }
 
@@ -323,11 +323,11 @@ const log = (() => {
     }
     activeVideo = video;
     if (video) {
-      log.info('video', '激活视频', { src: video.currentSrc || video.src, duration: video.duration });
+      log.info('video', 'Video activated', { src: video.currentSrc || video.src, duration: video.duration });
       send("video-context", gatherVideoState(video));
       ensureTicker();
     } else {
-      log.info('video', '视频已清空');
+      log.info('video', 'Video cleared');
       stopTicker();
     }
   }

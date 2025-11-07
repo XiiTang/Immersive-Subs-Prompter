@@ -77,5 +77,5 @@ export interface AppSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
   ytDlpArgs: string;
-  subtitleAutoScrollTimeout: number; // 自动滚动超时时间（秒）
+  subtitleAutoScrollTimeout: number; // Auto-scroll timeout (seconds)
 }

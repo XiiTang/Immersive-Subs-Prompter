@@ -56,17 +56,17 @@ function escapeHtml(input: string): string {
 function formatStatus(state: DesktopState): { text: string; modifier: string } {
   switch (state.status) {
     case "idle":
-      return { text: "等待插件连接...", modifier: "" };
+      return { text: "Waiting for extension connection...", modifier: "" };
     case "awaiting-video":
-      return { text: "请在浏览器打开支持的网站视频", modifier: "" };
+      return { text: "Please open a supported video in your browser", modifier: "" };
     case "loading-subtitles":
-      return { text: "字幕下载中，请稍候...", modifier: "" };
+      return { text: "Downloading subtitles...", modifier: "" };
     case "ready":
-      return { text: "字幕已加载", modifier: "status-banner--ready" };
+      return { text: "Subtitles loaded", modifier: "status-banner--ready" };
     case "error":
-      return { text: state.error ?? "字幕加载失败", modifier: "status-banner--error" };
+      return { text: state.error ?? "Subtitle loading failed", modifier: "status-banner--error" };
     default:
-      return { text: "状态未知", modifier: "" };
+      return { text: "Unknown status", modifier: "" };
   }
 }
 
@@ -145,7 +145,7 @@ function resetAutoScrollTimer() {
   autoScrollTimer = window.setTimeout(() => {
     autoScrollEnabled = true;
     autoScrollTimer = null;
-    // 恢复自动滚动时，立即滚动到当前激活的字幕
+    // When auto-scroll is restored, immediately scroll to the currently active subtitle
     if (activeCueIndex !== null && cueElements[activeCueIndex]) {
       cueElements[activeCueIndex].scrollIntoView({ block: "center", behavior: "smooth" });
     }
@@ -190,9 +190,9 @@ function renderTrackSelector(state: DesktopState) {
 
 function renderState(state: DesktopState) {
   connectionIndicator.textContent =
-    state.connectionCount > 0 ? `已连接 ×${state.connectionCount}` : "未连接";
+    state.connectionCount > 0 ? `Connected ×${state.connectionCount}` : "Disconnected";
 
-  videoTitle.textContent = state.title ?? "等待视频...";
+  videoTitle.textContent = state.title ?? "Waiting for video...";
   videoUrl.textContent = formatUrl(state.videoUrl);
 
   const { text, modifier } = formatStatus(state);
@@ -332,7 +332,7 @@ subtitleList.addEventListener("click", (event) => {
   }
 });
 
-// 监听用户手动滚动字幕列表
+// Listen for user manual scrolling of subtitle list
 subtitleList.addEventListener("wheel", () => {
   resetAutoScrollTimer();
 }, { passive: true });
@@ -353,7 +353,7 @@ async function bootstrap() {
     renderState(initialState);
   } catch (error) {
     console.error("[Renderer] Failed to get initial state:", error);
-    statusBanner.textContent = `无法获取初始状态: ${error instanceof Error ? error.message : String(error)}`;
+    statusBanner.textContent = `Failed to get initial state: ${error instanceof Error ? error.message : String(error)}`;
     statusBanner.className = "status-banner status-banner--error";
   }
 

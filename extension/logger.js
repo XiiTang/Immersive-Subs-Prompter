@@ -1,6 +1,6 @@
 /**
  * Universal Subtitle Plugin - Logger Module
- * 统一的日志管理系统，用于记录视频检测、消息传输等关键信息
+ * Unified logging system for recording video detection, message transmission and other key information
  */
 
 const LOG_PREFIX = "[USP]";
@@ -16,13 +16,13 @@ class Logger {
     this.context = context; // 'content-script', 'background', 'popup'
     this.minLevel = minLevel;
     this.enabledCategories = new Set([
-      'video-detection',      // 视频检测
-      'message-transmission', // 消息传输
-      'desktop-communication',// 与 desktop-app 通信
-      'media-state',          // 媒体状态变化
-      'connection',           // 连接管理
-      'control',              // 控制命令
-      'error'                 // 错误信息
+      'video-detection',      // Video detection
+      'message-transmission', // Message transmission
+      'desktop-communication',// Communication with desktop-app
+      'media-state',          // Media state changes
+      'connection',           // Connection management
+      'control',              // Control commands
+      'error'                 // Error information
     ]);
   }
 
@@ -76,9 +76,9 @@ class Logger {
     this._log(LOG_LEVELS.ERROR, category, message, data);
   }
 
-  // 视频检测专用日志
+  // Video detection specific logs
   videoDetected(video, details) {
-    this.info('video-detection', '检测到视频元素', {
+    this.info('video-detection', 'Video element detected', {
       src: video.currentSrc || video.src || '(no src)',
       readyState: video.readyState,
       duration: video.duration,
@@ -88,7 +88,7 @@ class Logger {
   }
 
   videoActivated(video, reason) {
-    this.info('video-detection', `视频被激活: ${reason}`, {
+    this.info('video-detection', `Video activated: ${reason}`, {
       src: video.currentSrc || video.src,
       currentTime: video.currentTime,
       duration: video.duration
@@ -96,33 +96,33 @@ class Logger {
   }
 
   videoStateChange(eventType, state) {
-    this.debug('media-state', `视频状态变化: ${eventType}`, state);
+    this.debug('media-state', `Video state changed: ${eventType}`, state);
   }
 
-  // 消息传输专用日志
+  // Message transmission specific logs
   messageSent(type, payload, target) {
-    this.debug('message-transmission', `发送消息: ${type} -> ${target}`, payload);
+    this.debug('message-transmission', `Message sent: ${type} -> ${target}`, payload);
   }
 
   messageReceived(type, payload, source) {
-    this.debug('message-transmission', `接收消息: ${type} <- ${source}`, payload);
+    this.debug('message-transmission', `Message received: ${type} <- ${source}`, payload);
   }
 
   messageDeliveryFailed(type, error, target) {
-    this.error('message-transmission', `消息发送失败: ${type} -> ${target}`, error);
+    this.error('message-transmission', `Message delivery failed: ${type} -> ${target}`, error);
   }
 
-  // Desktop 通信专用日志
+  // Desktop communication specific logs
   desktopConnected() {
-    this.info('desktop-communication', '已连接到 desktop-app');
+    this.info('desktop-communication', 'Connected to desktop-app');
   }
 
   desktopDisconnected() {
-    this.warn('desktop-communication', 'desktop-app 连接断开');
+    this.warn('desktop-communication', 'desktop-app connection closed');
   }
 
   desktopMessageSent(data) {
-    this.debug('desktop-communication', '向 desktop-app 发送数据', {
+    this.debug('desktop-communication', 'Sending data to desktop-app', {
       type: data.type,
       tabId: data.tabId,
       payloadKeys: data.payload ? Object.keys(data.payload) : []
@@ -130,51 +130,51 @@ class Logger {
   }
 
   desktopMessageReceived(data) {
-    this.debug('desktop-communication', '从 desktop-app 接收数据', {
+    this.debug('desktop-communication', 'Receiving data from desktop-app', {
       type: data.type,
       source: data.source
     });
   }
 
-  // 连接管理日志
+  // Connection management logs
   portConnected(portName, details) {
-    this.info('connection', `端口已连接: ${portName}`, details);
+    this.info('connection', `Port connected: ${portName}`, details);
   }
 
   portDisconnected(portName, details) {
-    this.info('connection', `端口已断开: ${portName}`, details);
+    this.info('connection', `Port disconnected: ${portName}`, details);
   }
 
   reconnecting(target, delay) {
-    this.info('connection', `正在重连: ${target}`, { delayMs: delay });
+    this.info('connection', `Reconnecting: ${target}`, { delayMs: delay });
   }
 
-  // 控制命令日志
+  // Control command logs
   controlCommandReceived(action, payload) {
-    this.info('control', `接收控制命令: ${action}`, payload);
+    this.info('control', `Control command received: ${action}`, payload);
   }
 
   controlCommandExecuted(action, success, details) {
     if (success) {
-      this.info('control', `控制命令执行成功: ${action}`, details);
+      this.info('control', `Control command executed successfully: ${action}`, details);
     } else {
-      this.warn('control', `控制命令执行失败: ${action}`, details);
+      this.warn('control', `Control command execution failed: ${action}`, details);
     }
   }
 
-  // 媒体过滤日志
+  // Media filtering logs
   mediaFiltered(reason, payload) {
-    this.debug('media-state', `媒体被过滤: ${reason}`, {
+    this.debug('media-state', `Media filtered: ${reason}`, {
       duration: payload?.duration,
       readyState: payload?.readyState
     });
   }
 
   mediaStateUpdated(tabId, eventType, isValid) {
-    this.debug('media-state', `媒体状态更新: Tab ${tabId}, 事件: ${eventType}, 有效: ${isValid}`);
+    this.debug('media-state', `Media state updated: Tab ${tabId}, Event: ${eventType}, Valid: ${isValid}`);
   }
 
-  // 通用错误日志
+  // General error logs
   logError(category, message, error) {
     this.error(category, message, {
       error: error.message || error,
@@ -182,7 +182,7 @@ class Logger {
     });
   }
 
-  // 启用/禁用特定类别
+  // Enable/disable specific categories
   enableCategory(category) {
     this.enabledCategories.add(category);
   }
@@ -191,7 +191,7 @@ class Logger {
     this.enabledCategories.delete(category);
   }
 
-  // 设置日志级别
+  // Set log level
   setLevel(level) {
     if (typeof level === 'string') {
       this.minLevel = LOG_LEVELS[level.toUpperCase()] || LOG_LEVELS.DEBUG;
@@ -201,7 +201,7 @@ class Logger {
   }
 }
 
-// 导出供其他模块使用
+// Export for use by other modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { Logger, LOG_LEVELS };
 }

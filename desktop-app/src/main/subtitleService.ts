@@ -99,7 +99,7 @@ export class SubtitleService {
       }
 
       if (!tracks.length) {
-        throw new Error("字幕文件解析失败或为空。");
+        throw new Error("Failed to parse subtitle files or files are empty.");
       }
 
       this.log.info(`Successfully parsed ${tracks.length} subtitle track(s)`);
@@ -194,8 +194,8 @@ async function runCommand(cmd: string, args: string[], cwd: string): Promise<Com
     child.on("error", (err) => {
       const enoent = (err as NodeJS.ErrnoException).code === "ENOENT";
       const message = enoent
-        ? "未找到 yt-dlp 可执行文件，请先安装 yt-dlp 并确保其在 PATH 中。"
-        : err?.message || "yt-dlp 调用失败。";
+        ? "yt-dlp executable not found. Please install yt-dlp and ensure it's in your PATH."
+        : err?.message || "yt-dlp invocation failed.";
       reject(new CommandExecutionError(message, info));
     });
 
@@ -230,7 +230,7 @@ function detectLanguage(filePath: string): string {
 function formatTrackLabel(filePath: string, language: string): string {
   const parts = [language];
   if (isAutoSubtitle(filePath)) {
-    parts.push("自动");
+    parts.push("Auto");
   }
   return parts.filter(Boolean).join(" · ") || path.basename(filePath);
 }
@@ -404,20 +404,20 @@ function formatCommandError(error: unknown, commandLine: string): string {
   const baseMessage =
     error && typeof error === "object" && "message" in error
       ? (error as Error).message
-      : "未知错误";
+      : "Unknown error";
 
   if (!(error instanceof CommandExecutionError)) {
-    return commandLine ? `${baseMessage}\n命令: ${commandLine}` : baseMessage;
+    return commandLine ? `${baseMessage}\nCommand: ${commandLine}` : baseMessage;
   }
 
   const output = (error.info.stderr || error.info.stdout || "").trim();
   const snippet = output ? trimLines(output, 40) : "";
   const parts = [baseMessage];
   if (commandLine) {
-    parts.push(`命令: ${commandLine}`);
+    parts.push(`Command: ${commandLine}`);
   }
   if (snippet) {
-    parts.push(`输出:\n${snippet}`);
+    parts.push(`Output:\n${snippet}`);
   }
   return parts.join("\n");
 }

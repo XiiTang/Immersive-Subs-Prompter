@@ -1,81 +1,81 @@
 # Universal Subtitle Plugin
 
-一个由浏览器插件与 Electron 桌面端组成的「字幕信使」系统。插件驻留在 YouTube / Bilibili / 抖音等站点，实时采集视频播放信息并经 WebSocket 推送给本地桌面应用；桌面端负责拉取字幕（通过 `yt-dlp`），展示滚动字幕面板，并支持在字幕列表内跳转或控制浏览器播放器。
+A "Subtitle Messenger" system composed of a browser extension and an Electron desktop app. The extension resides on YouTube / Bilibili / Douyin and other sites, collecting video playback information in real-time and pushing it to the local desktop application via WebSocket; the desktop app is responsible for fetching subtitles (via `yt-dlp`), displaying a scrolling subtitle panel, and supporting jumping within the subtitle list or controlling the browser player.
 
-## 目录结构
+## Directory Structure
 
 ```
-extension/     # Chromium MV3 插件源码，负责浏览器端注入与通信
-desktop-app/   # Electron + TypeScript 桌面应用
+extension/     # Chromium MV3 plugin source code, responsible for browser-side injection and communication
+desktop-app/   # Electron + TypeScript desktop application
 ```
 
-## 快速开始
+## Quick Start
 
-### 前置依赖
+### Prerequisites
 
-- Node.js 18+ 与 npm
-- Chrome / Edge / 基于 Chromium 的浏览器用于加载扩展
-- 桌面端首次运行会自动从 GitHub 下载对应平台的 `yt-dlp`，并在后续启动时对比最新 Release 自动更新；如无法联网，可按部署指南预置二进制
+- Node.js 18+ and npm
+- Chrome / Edge / Chromium-based browser for loading extensions
+- The desktop app will automatically download the corresponding platform's `yt-dlp` on first run, and automatically update it on subsequent launches by comparing with the latest Release. If unable to connect to the internet, you can pre-stage the binary according to the deployment guide.
 
-### 启动桌面端
+### Start Desktop App
 
 ```bash
 cd desktop-app
 npm install
-npm run start   # 构建 TypeScript 并启动 Electron
+npm run start   # Build TypeScript and start Electron
 ```
 
-应用会在本地监听 `ws://127.0.0.1:44501`，等待插件连接。
+The app will listen on `ws://127.0.0.1:44501` locally, waiting for the extension to connect.
 
-### 加载浏览器插件
+### Load Browser Extension
 
-1. 打开 `chrome://extensions`
-2. 开启「开发者模式」
-3. 选择「加载已解压的扩展程序」，指向仓库下的 `extension/` 目录
+1. Open `chrome://extensions`
+2. Enable "Developer mode"
+3. Select "Load unpacked", pointing to the `extension/` directory in the repository
 
-随后在 Bilibili / YouTube / 抖音播放任意视频，即可看到桌面端窗口下载字幕并联动高亮。
+Then playing any video on Bilibili / YouTube / Douyin will allow you to see the desktop app window download subtitles and sync highlighting.
 
-## 功能概览
+## Feature Overview
 
-- **实时播放信息**：content script 监听 `<video>` 的时间轴 / 倍速 / URL，并以 300ms 心跳推送给桌面端。
-- **字幕聚合**：Electron 端通过 `yt-dlp` 一次性下载所有可用字幕轨道（含自动字幕），解析为统一的 VTT cue 列表。
-- **轨道切换**：UI 提供下拉选择不同语言/轨道，点击字幕行即可跳转对应时间点。
-- **双向控制**：桌面端可发起播放 / 暂停 / 跳转命令，插件收到后直接操控视频元素。
+- **Real-time Playback Info**: content script monitors video timeline / playback rate / URL, pushing every 300ms to desktop app.
+- **Subtitle Aggregation**: Electron side downloads all available subtitle tracks (including auto-generated) via `yt-dlp`, parsing into a unified VTT cue list.
+- **Track Switching**: UI provides dropdown to select different languages/tracks, clicking subtitle lines jumps to corresponding timestamp.
+- **Bidirectional Control**: Desktop app can initiate play / pause / seek commands, extension receives and directly controls video elements.
 
-## 开发脚本
+## Development Scripts
 
-| 位置 | 命令 | 说明 |
+| Location | Command | Description |
 | ---- | ---- | ---- |
-| `desktop-app` | `npm run start` | 构建 + 启动 Electron（watch-free） |
-| `desktop-app` | `npm run build` | 仅构建 TypeScript 与静态资源到 `dist/` |
-| `desktop-app` | `npm run dist:win/mac/linux` | 使用 electron-builder 产出对应平台安装包（Win 版安装向导可自由选择路径） |
-| `desktop-app` | `npm run dist:all` | 同时打包 Win/Mac/Linux（需在各自平台执行） |
+| `desktop-app` | `npm run start` | Build + start Electron (watch-free) |
+| `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
+| `desktop-app` | `npm run dist:win/mac/linux` | Generate installation package for the corresponding platform using electron-builder (Win version installer allows free path selection) |
+| `desktop-app` | `npm run dist:all` | Package Win/Mac/Linux simultaneously (must run on respective platforms) |
 
-插件部分暂无打包脚本，直接使用源码目录即可。
+The extension part has no build script yet and uses the source directory directly.
 
-## 部署与分发
+## Deployment and Distribution
 
-详细流程（包括扩展打包、Electron 安装包、yt-dlp 随应用分发策略）请参考 [DEPLOYMENT.md](DEPLOYMENT.md)。
+For detailed procedures (including extension packaging, Electron installer, yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## 疑难排查
+## Troubleshooting
 
-- **桌面端提示 `未找到 yt-dlp`**：首次启动未能联网下载，或 GitHub 被阻断。可手动将二进制放入 `desktop-app/resources/yt-dlp/` 并重新打包，或在用户数据目录的 `yt-dlp` 子目录中放置可执行文件。
-- **插件显示未连接**：确保 Electron 已启动且 WebSocket 监听端口未被占用；必要时在 `extension/background.js` 中修改 `WS_ENDPOINT` 与桌面端保持一致。
-- **字幕缺失**：部分视频不提供字幕或 `yt-dlp` 无法获取。可查看桌面端控制台/终端日志了解 `yt-dlp` 输出。
-- **Windows PowerShell 日志乱码**：
-  - **原因**：Windows PowerShell 默认使用 GBK 编码，而应用日志使用 UTF-8 编码，导致中文字符显示为乱码。
-  - **临时解决方案**：在运行应用前，在 PowerShell 中执行以下命令：
+- **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
+- **Extension shows disconnected**: Ensure Electron is running and WebSocket listening port is not occupied. If necessary, modify `WS_ENDPOINT` in `extension/background.js` to match the desktop app.
+- **Missing subtitles**: Some videos don't provide subtitles or `yt-dlp` cannot fetch them. Check the desktop app console/terminal logs for `yt-dlp` output.
+- **Windows PowerShell log garbled text**:
+  - **Cause**: Windows PowerShell defaults to GBK encoding, while the app logs use UTF-8 encoding, causing Chinese characters to display as garbled text.
+  - **Temporary solution**: Before running the app, execute the following commands in PowerShell:
     ```powershell
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     [Console]::InputEncoding = [System.Text.Encoding]::UTF8
     $OutputEncoding = [System.Text.Encoding]::UTF8
     ```
-  - **永久解决方案**：编辑 PowerShell 配置文件，添加上述命令使其自动生效：
-    1. 运行 `notepad $PROFILE` 打开配置文件（如不存在会自动创建）
-    2. 添加上述三行命令
-    3. 保存并重新打开 PowerShell
-  - **推荐**：使用 Windows Terminal 或 VS Code 内置终端，它们默认支持 UTF-8 编码。
+  - **Permanent solution**: Edit your PowerShell profile to add the above commands for automatic effect:
+    1. Run `notepad $PROFILE` to open the profile (auto-created if not exists)
+    2. Add the above three lines
+    3. Save and reopen PowerShell
+  - **Recommended**: Use Windows Terminal or VS Code built-in terminal, they support UTF-8 encoding by default.
 
-## 许可证
+## License
 
-示例仅供内部集成参考，分发前请确认第三方依赖（尤其是 `yt-dlp`）的许可证要求。
+This example is for internal integration reference only. Before distributing, confirm the license requirements of third-party dependencies (especially `yt-dlp`).

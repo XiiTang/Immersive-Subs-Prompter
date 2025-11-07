@@ -155,7 +155,7 @@ export class YtDlpManager {
   private async downloadBinary(url: string, targetPath: string) {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`下载 yt-dlp 失败：${response.status} ${response.statusText}`);
+      throw new Error(`Failed to download yt-dlp: ${response.status} ${response.statusText}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -195,13 +195,13 @@ export class YtDlpManager {
     });
 
     if (!response.ok) {
-      throw new Error(`获取 yt-dlp 版本信息失败：${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch yt-dlp version info: ${response.status} ${response.statusText}`);
     }
 
     const payload = await response.json();
     const version: string | undefined = payload?.tag_name || payload?.name;
     if (!version) {
-      throw new Error("无法解析 yt-dlp 最新版本号。");
+      throw new Error("Unable to parse yt-dlp latest version.");
     }
 
     const assets = new Map<string, string>();

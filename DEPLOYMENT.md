@@ -1,77 +1,77 @@
-# 部署与分发指南
+# Deployment and Distribution Guide
 
-本文档覆盖三部分：浏览器插件打包、Electron 桌面端安装包制作、`yt-dlp` 的跨平台分发策略。
+This document covers three parts: browser extension packaging, Electron desktop app installation package creation, and cross-platform distribution strategy for `yt-dlp`.
 
-## 1. 浏览器插件
+## 1. Browser Extension
 
-### 1.1 构建 / 打包
+### 1.1 Build / Package
 
-插件基于 Manifest V3，无额外打包步骤，可直接压缩源码：
+The extension is based on Manifest V3 with no additional packaging steps, you can directly compress the source:
 
 ```bash
 cd extension
 zip -r ../universal-subtitle-messenger.zip .
 ```
 
-生成的 `universal-subtitle-messenger.zip` 可用于 Chrome Web Store / Edge Add-ons 提交。提交前请确认：
+The generated `universal-subtitle-messenger.zip` can be used for Chrome Web Store / Edge Add-ons submission. Before submission, please ensure:
 
-- `manifest.json` 中的 `name`、`description`、`version`、`icons` 等信息符合发布要求；
-- 所需域名已列入 `host_permissions`；
-- 如需国际化，可补充 `_locales` 目录（MV3 要求）。
+- Information like `name`, `description`, `version`, `icons` in `manifest.json` meets publication requirements;
+- Required domains are listed in `host_permissions`;
+- If internationalization is needed, add `_locales` directory (required by MV3).
 
-### 1.2 内部分发
+### 1.2 Internal Distribution
 
-如只在公司内部使用，可直接共享 `extension/` 目录，让用户手动在 `chrome://extensions` 中「加载已解压的扩展程序」。亦可在企业管理平台中配置 CRX 自动分发。
+If only used within the company, you can directly share the `extension/` directory and let users manually "Load unpacked" in `chrome://extensions`. You can also configure CRX auto-distribution in the enterprise management platform.
 
-## 2. Electron 桌面应用
+## 2. Electron Desktop Application
 
-### 2.1 纯构建（开发 / 内测）
+### 2.1 Pure Build (Development / Beta Testing)
 
 ```bash
 cd desktop-app
 npm install
-npm run build   # 输出 dist/
+npm run build   # Output to dist/
 electron .
 ```
 
-`dist/` 目录包含编译后的主进程、预加载脚本与渲染进程静态资源，可直接随源码运行。
+The `dist/` directory contains compiled main process, preload script, and renderer process static assets, ready to run directly with source code.
 
-### 2.2 正式安装包（推荐 electron-builder）
+### 2.2 Official Installation Package (Recommended: electron-builder)
 
-项目已内置 `electron-builder` 配置与脚本，可直接运行：
+The project already includes `electron-builder` configuration and scripts, just run directly:
 
 ```bash
 cd desktop-app
 npm install
-npm run dist:win    # 或 dist:mac / dist:linux / dist:all
+npm run dist:win    # or dist:mac / dist:linux / dist:all
 ```
 
-构建流程会先执行 `npm run build`，随后将 `dist/` 内容打进安装包（输出到 `desktop-app/release/`）。如需自定义图标、签名、Bundle Identifier，可修改 `package.json` 中的 `build` 字段。
+The build process will first execute `npm run build`, then pack contents from `dist/` into the installation package (output to `desktop-app/release/`). To customize icons, signing, Bundle Identifier, modify the `build` field in `package.json`.
 
-- Windows 默认使用 NSIS 安装向导，已开启 `oneClick: false` 与 `allowToChangeInstallationDirectory: true`，安装过程中用户可以自由选择目录并决定是否创建桌面/开始菜单快捷方式。
+- Windows uses NSIS installer by default with `oneClick: false` and `allowToChangeInstallationDirectory: true` enabled, allowing users to freely choose the installation directory and decide whether to create desktop/start menu shortcuts.
 
-> 若更偏好 `electron-packager` 亦可替换，核心步骤一致：先 `npm run build`，再将 `dist/` 与 `node_modules` 打进特定平台目录。
+> If you prefer `electron-packager`, you can substitute it. The core steps remain the same: first `npm run build`, then pack `dist/` and `node_modules` into the platform-specific directory.
 
-### 2.3 代码签名（可选）
+### 2.3 Code Signing (Optional)
 
-- macOS：需使用 Apple Developer ID，对 `.app` 进行 `codesign` 与 `notarize`。
-- Windows：建议使用 EV/OV 证书对 `.exe` / `.msi` 签名，以避免 SmartScreen 警告。
-- Linux：通常无需签名，可提供 SHA256 校验。
+- macOS: Requires Apple Developer ID to `codesign` and `notarize` the `.app`.
+- Windows: Recommended to sign `.exe` / `.msi` with EV/OV certificates to avoid SmartScreen warnings.
+- Linux: Usually no signing required, you can provide SHA256 checksums.
 
-## 3. `yt-dlp` 的随包策略
+## 3. `yt-dlp` Bundle Strategy
 
-桌面端现在自带自动下载与自更新机制：当字幕服务运行时，会检测用户数据目录下的 `yt-dlp/<platform>` 是否存在可执行文件，并通过 GitHub Release API 获取最新版本号。若本地缺失或版本落后，则自动下载最新二进制并覆盖缓存。更新失败时会在 UI 中提示错误，同时保留旧版本作为回退。
+The desktop app now comes with automatic download and auto-update mechanism: when the subtitle service runs, it checks for the `yt-dlp/<platform>` executable in the user data directory, and fetches the latest version number via GitHub Release API. If missing locally or outdated, it automatically downloads the latest binary and updates the cache. If update fails, an error is shown in the UI while keeping the old version as fallback.
 
-若需要离线安装或内网环境，可将官方二进制预先放入 `desktop-app/resources/yt-dlp/`，electron-builder 会在打包时将其复制进应用 `resources/yt-dlp` 目录，运行时也会优先检测该目录中的文件（优先级：用户数据缓存 > resources/yt-dlp > 系统 PATH）。
+For offline installation or intranet environments, you can pre-place official binaries in `desktop-app/resources/yt-dlp/`, electron-builder will copy them into the app's `resources/yt-dlp` directory during packaging, runtime will also prioritize checking files in that directory (priority: user data cache > resources/yt-dlp > system PATH).
 
-## 4. 发布前检查清单
+## 4. Pre-Release Checklist
 
-| 项 | 检查内容 |
+| Item | Check |
 | --- | --- |
-| 通讯端口 | 插件与桌面端 `WS_ENDPOINT` / `USP_WS_PORT` 是否一致、是否暴露在受信任网络内 |
-| 平台测试 | Windows / macOS / Linux 各跑一遍，验证字幕下载、轨道切换、控制命令是否无误 |
-| 权限提示 | 插件 `host_permissions` 与后台脚本是否最小化，必要时补充隐私说明 |
-| 字幕缓存 | Electron 端的临时字幕目录已在下载结束后删除，避免残留 |
-| `yt-dlp` 版本 | 若随包分发，确认版本与许可证（Unlicense/MIT）信息；必要时在 About 页面展示 |
+| Communication Port | Are `WS_ENDPOINT` / `USP_WS_PORT` between extension and desktop consistent, not exposed on untrusted networks |
+| Platform Testing | Run through Windows / macOS / Linux once, verify subtitle download, track switching, control commands work correctly |
+| Permissions | Are extension `host_permissions` and background scripts minimized, add privacy notice if necessary |
+| Subtitle Cache | Is the temporary subtitle directory on Electron side deleted after download, avoid remnants |
+| `yt-dlp` Version | If bundled for distribution, confirm version and license (Unlicense/MIT) information; show on About page if necessary |
 
-完成上述步骤后，即可将：① 插件 ZIP、② 各平台桌面安装包、③ 对应发行说明一并发布给用户。***
+After completing the above steps, you can release to users: ① Plugin ZIP, ② Installation packages for each platform, ③ Corresponding release notes together.***

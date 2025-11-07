@@ -151,9 +151,9 @@ function renderBlacklistRules() {
     const select = document.createElement("select");
     select.className = "blacklist-item__select";
     [
-      { value: "contains", label: "包含" },
-      { value: "exact", label: "完全匹配" },
-      { value: "regex", label: "正则" }
+      { value: "contains", label: "Contains" },
+      { value: "exact", label: "Exact Match" },
+      { value: "regex", label: "Regex" }
     ].forEach((optionMeta) => {
       const option = document.createElement("option");
       option.value = optionMeta.value;
@@ -166,7 +166,7 @@ function renderBlacklistRules() {
     const input = document.createElement("input");
     input.className = "blacklist-item__input";
     input.type = "text";
-    input.placeholder = "输入要匹配的网址或关键字";
+    input.placeholder = "Enter URL or keywords to match";
     input.value = rule.value;
     input.addEventListener("input", () => updateBlacklistRule(rule.id, { value: input.value }));
 
@@ -178,12 +178,12 @@ function renderBlacklistRules() {
 
     const error = document.createElement("div");
     error.className = "blacklist-item__error";
-    error.textContent = rule.mode === "regex" && !isRegexValid(rule.value) ? "正则表达式无效" : "";
+    error.textContent = rule.mode === "regex" && !isRegexValid(rule.value) ? "Invalid regex" : "";
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "blacklist-item__remove";
-    removeButton.textContent = "删除";
+    removeButton.textContent = "Remove";
     removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
 
     footer.appendChild(error);
