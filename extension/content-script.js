@@ -183,7 +183,6 @@ const log = (() => {
     if (!monitoringActive || !message || typeof message !== "object") return;
     log.debug('msg', `← ${message.type}`, message);
     if (message.type === "control") {
-      log.info('ctrl', `Received: ${message.action}`, message.payload);
       applyControl(message.action, message.payload || {});
     }
   }
@@ -349,22 +348,85 @@ const log = (() => {
     });
   }
 
+  function findBestVideo() {
+    // Try activeVideo first
+    if (activeVideo && activeVideo.isConnected && activeVideo.readyState) {
+      return activeVideo;
+    }
+
+    // Find all video elements in document and shadow roots
+    const allVideos = [];
+    
+    // Search in main document
+    allVideos.push(...document.querySelectorAll("video"));
+    
+    // Search in shadow roots (for web components)
+    function findVideosInShadow(root) {
+      const elements = root.querySelectorAll("*");
+      elements.forEach(el => {
+        if (el.shadowRoot) {
+          allVideos.push(...el.shadowRoot.querySelectorAll("video"));
+          findVideosInShadow(el.shadowRoot);
+        }
+      });
+    }
+    findVideosInShadow(document);
+
+    if (allVideos.length === 0) {
+      return null;
+    }
+
+    // Filter to videos with valid readyState
+    const validVideos = allVideos.filter(v => v.isConnected && v.readyState);
+    if (validVideos.length === 0) {
+      return allVideos[0]; // Return first video even if not ready
+    }
+
+    // Prioritize: playing > has duration > longest duration
+    const playing = validVideos.find(v => !v.paused);
+    if (playing) {
+      return playing;
+    }
+
+    const withDuration = validVideos.filter(v => v.duration && v.duration > 0);
+    if (withDuration.length === 0) {
+      return validVideos[0];
+    }
+
+    // Return video with longest duration
+    return withDuration.reduce((best, current) => {
+      return current.duration > best.duration ? current : best;
+    });
+  }
+
   function applyControl(action, payload) {
     if (!monitoringActive) {
       return;
     }
-    const target = activeVideo || document.querySelector("video");
+    const target = findBestVideo();
     if (!target) {
-      log.warn('ctrl', `执行失败: ${action} (无视频)`);
+      log.warn('ctrl', `执行失败: ${action} (无视频)`, payload);
       return;
     }
+
+    log.info('ctrl', `接收: ${action}`, { 
+      src: target.currentSrc || target.src || '(no src)', 
+      paused: target.paused,
+      readyState: target.readyState,
+      ...payload 
+    });
 
     switch (action) {
       case "seek":
         if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
           const clamped = Math.max(0, Math.min(payload.time, target.duration || payload.time));
           target.currentTime = clamped;
-          handleTimeUpdate(target);
+          // Update activeVideo if this is a valid video
+          if (!activeVideo && target.duration > 10) {
+            setActiveVideo(target);
+          } else {
+            handleTimeUpdate(target);
+          }
           log.info('ctrl', `seek → ${clamped.toFixed(2)}s`);
         } else {
           log.warn('ctrl', `seek 失败: 无效时间`, payload);
