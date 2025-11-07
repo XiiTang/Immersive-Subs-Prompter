@@ -60,8 +60,10 @@ export interface DesktopState {
   error: string | null;
   playback: PlaybackState;
   subtitleTracks: SubtitleTrack[];
-  selectedSubtitleId: string | null;
-  subtitles: SubtitleTrack | null;
+  selectedPrimarySubtitleId: string | null;
+  selectedSecondarySubtitleId: string | null;
+  primarySubtitles: SubtitleTrack | null;
+  secondarySubtitles: SubtitleTrack | null;
 }
 
 export type VideoControlCommand =

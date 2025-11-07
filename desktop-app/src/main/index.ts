@@ -49,8 +49,10 @@ const state: DesktopState = {
     lastUpdate: null
   },
   subtitleTracks: [],
-  selectedSubtitleId: null,
-  subtitles: null
+  selectedPrimarySubtitleId: null,
+  selectedSecondarySubtitleId: null,
+  primarySubtitles: null,
+  secondarySubtitles: null
 };
 
 function getAutostartDesktopEntryPath() {
@@ -235,8 +237,10 @@ function updateConnectionCount(delta: number) {
     state.status = "idle";
     state.activeTabId = null;
     state.subtitleTracks = [];
-    state.selectedSubtitleId = null;
-    state.subtitles = null;
+    state.selectedPrimarySubtitleId = null;
+    state.selectedSecondarySubtitleId = null;
+    state.primarySubtitles = null;
+    state.secondarySubtitles = null;
   } else if (state.status === "idle") {
     state.status = "awaiting-video";
   }
@@ -294,9 +298,11 @@ async function handleMessage(message: ExtensionMessage) {
 
       // URL changed, need to reload subtitles
       state.error = null;
-      state.subtitles = null;
+      state.primarySubtitles = null;
+      state.secondarySubtitles = null;
       state.subtitleTracks = [];
-      state.selectedSubtitleId = null;
+      state.selectedPrimarySubtitleId = null;
+      state.selectedSecondarySubtitleId = null;
       state.status = "loading-subtitles";
       pushState();
 
@@ -307,13 +313,17 @@ async function handleMessage(message: ExtensionMessage) {
           state.subtitleTracks = result.tracks;
           if (result.tracks.length) {
             const preferred = pickBestTrack(result.tracks);
-            state.subtitles = preferred;
-            state.selectedSubtitleId = preferred.id;
+            state.primarySubtitles = preferred;
+            state.selectedPrimarySubtitleId = preferred.id;
+            state.secondarySubtitles = null;
+            state.selectedSecondarySubtitleId = null;
             state.status = "ready";
             state.error = null;
           } else {
-            state.subtitles = null;
-            state.selectedSubtitleId = null;
+            state.primarySubtitles = null;
+            state.secondarySubtitles = null;
+            state.selectedPrimarySubtitleId = null;
+            state.selectedSecondarySubtitleId = null;
             state.status = "error";
             state.error = "No available subtitles found";
           }
@@ -326,6 +336,10 @@ async function handleMessage(message: ExtensionMessage) {
             error && typeof error === "object" && "message" in error
               ? (error as Error).message
               : "Subtitle download failed";
+          state.primarySubtitles = null;
+          state.secondarySubtitles = null;
+          state.selectedPrimarySubtitleId = null;
+          state.selectedSecondarySubtitleId = null;
           pushState();
         }
       }
@@ -353,9 +367,11 @@ async function handleMessage(message: ExtensionMessage) {
     case "video-ended": {
       if (state.activeTabId === message.tabId) {
         state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
-        state.subtitles = null;
+        state.primarySubtitles = null;
+        state.secondarySubtitles = null;
         state.subtitleTracks = [];
-        state.selectedSubtitleId = null;
+        state.selectedPrimarySubtitleId = null;
+        state.selectedSecondarySubtitleId = null;
         state.videoUrl = null;
         pushState();
       }
@@ -437,16 +453,28 @@ function forgetSocket(socket: WebSocket) {
   socketTabs.delete(socket);
 }
 
-function setSubtitleTrack(trackId: string | null) {
-  if (!trackId) {
-    state.selectedSubtitleId = null;
-    state.subtitles = null;
-    pushState();
-    return;
+type TrackSelectionPayload = {
+  trackId: string | null;
+  role?: "primary" | "secondary";
+};
+
+function isTrackSelectionPayload(value: unknown): value is TrackSelectionPayload {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "trackId" in value
+  );
+}
+
+function setSubtitleTrack(trackId: string | null, role: "primary" | "secondary" = "primary") {
+  const track = trackId ? state.subtitleTracks.find((t) => t.id === trackId) || null : null;
+  if (role === "primary") {
+    state.selectedPrimarySubtitleId = track ? track.id : null;
+    state.primarySubtitles = track;
+  } else {
+    state.selectedSecondarySubtitleId = track ? track.id : null;
+    state.secondarySubtitles = track;
   }
-  const track = state.subtitleTracks.find((t) => t.id === trackId) || null;
-  state.selectedSubtitleId = track ? track.id : null;
-  state.subtitles = track;
   pushState();
 }
 
@@ -479,8 +507,13 @@ function sendControlCommand(command: VideoControlCommand): boolean {
 ipcMain.handle("usp:get-state", () => {
   return state;
 });
-ipcMain.handle("usp:select-track", (_event, trackId: string | null) => {
-  setSubtitleTrack(trackId);
+ipcMain.handle("usp:select-track", (_event, payload: TrackSelectionPayload | string | null) => {
+  if (isTrackSelectionPayload(payload)) {
+    const role = payload.role === "secondary" ? "secondary" : "primary";
+    setSubtitleTrack(payload.trackId ?? null, role);
+  } else {
+    setSubtitleTrack((payload as string | null) ?? null, "primary");
+  }
 });
 ipcMain.handle("usp:control", (_event, command) => {
   sendControlCommand(command);

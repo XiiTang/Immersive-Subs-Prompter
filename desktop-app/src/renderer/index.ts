@@ -1,4 +1,10 @@
-import type { AppSettings, DesktopState, PlaybackState, SubtitleCue } from "../main/types.js";
+import type {
+  AppSettings,
+  DesktopState,
+  PlaybackState,
+  SubtitleCue,
+  SubtitleTrack
+} from "../main/types.js";
 
 const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 
@@ -8,7 +14,8 @@ const videoUrl = document.getElementById("video-url") as HTMLElement;
 const statusBanner = document.getElementById("status-banner") as HTMLElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
-const trackSelector = document.getElementById("track-selector") as HTMLSelectElement;
+const primaryTrackSelector = document.getElementById("primary-track-selector") as HTMLSelectElement;
+const secondaryTrackSelector = document.getElementById("secondary-track-selector") as HTMLSelectElement;
 const playButton = document.getElementById("play-btn") as HTMLButtonElement;
 const pauseButton = document.getElementById("pause-btn") as HTMLButtonElement;
 const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSelectElement;
@@ -29,10 +36,17 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
 const DEFAULT_SUBTITLE_FONT_SIZE =
   parseInt(computedStyles.getPropertyValue("--subtitle-font-size"), 10) || 14;
 
+type CombinedCue = {
+  start: number;
+  end: number;
+  primaryText: string;
+  secondaryText: string | null;
+};
+
 let currentPlayback: PlaybackState | null = null;
 let currentSettings: AppSettings | null = null;
 let cueElements: HTMLElement[] = [];
-let cues: SubtitleCue[] = [];
+let combinedCues: CombinedCue[] = [];
 let activeCueIndex: number | null = null;
 let lastTrackSignature = "";
 let isSettingsOpen = false;
@@ -81,13 +95,67 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function renderSubtitles(subtitleCues: SubtitleCue[]) {
+function mergeSubtitleCues(primary: SubtitleCue[], secondary: SubtitleCue[]): CombinedCue[] {
+  if (!primary.length) {
+    return [];
+  }
+
+  if (!secondary.length) {
+    return primary.map((cue) => ({
+      start: cue.start,
+      end: cue.end,
+      primaryText: cue.text,
+      secondaryText: null
+    }));
+  }
+
+  const merged: CombinedCue[] = [];
+  let secondaryIndex = 0;
+
+  for (const primaryCue of primary) {
+    while (secondaryIndex < secondary.length && secondary[secondaryIndex].end < primaryCue.start) {
+      secondaryIndex += 1;
+    }
+
+    let bestMatch: SubtitleCue | null = null;
+    let bestOverlap = -1;
+
+    for (let i = secondaryIndex; i < secondary.length; i += 1) {
+      const candidate = secondary[i];
+      if (candidate.start > primaryCue.end) {
+        break;
+      }
+      const overlap = Math.min(primaryCue.end, candidate.end) - Math.max(primaryCue.start, candidate.start);
+      if (overlap >= 0 && overlap >= bestOverlap) {
+        bestOverlap = overlap;
+        bestMatch = candidate;
+      }
+    }
+
+    merged.push({
+      start: primaryCue.start,
+      end: primaryCue.end,
+      primaryText: primaryCue.text,
+      secondaryText: bestMatch ? bestMatch.text : null
+    });
+  }
+
+  return merged;
+}
+
+function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: SubtitleTrack | null) {
   subtitleList.innerHTML = "";
   cueElements = [];
-  cues = subtitleCues;
+  combinedCues = [];
   activeCueIndex = null;
 
-  subtitleCues.forEach((cue, index) => {
+  if (!primaryTrack) {
+    return;
+  }
+
+  combinedCues = mergeSubtitleCues(primaryTrack.cues, secondaryTrack?.cues ?? []);
+
+  combinedCues.forEach((cue, index) => {
     const item = document.createElement("div");
     item.className = "subtitle-item";
     item.dataset.index = String(index);
@@ -97,7 +165,19 @@ function renderSubtitles(subtitleCues: SubtitleCue[]) {
     time.textContent = `${formatTime(cue.start)} - ${formatTime(cue.end)}`;
 
     const text = document.createElement("div");
-    text.innerHTML = escapeHtml(cue.text).replace(/\n/g, "<br />");
+    text.className = "subtitle-item__text";
+
+    const primaryLine = document.createElement("div");
+    primaryLine.className = "subtitle-item__text-primary";
+    primaryLine.innerHTML = escapeHtml(cue.primaryText).replace(/\n/g, "<br />");
+    text.appendChild(primaryLine);
+
+    if (cue.secondaryText) {
+      const secondaryLine = document.createElement("div");
+      secondaryLine.className = "subtitle-item__text-secondary";
+      secondaryLine.innerHTML = escapeHtml(cue.secondaryText).replace(/\n/g, "<br />");
+      text.appendChild(secondaryLine);
+    }
 
     item.appendChild(time);
     item.appendChild(text);
@@ -107,9 +187,9 @@ function renderSubtitles(subtitleCues: SubtitleCue[]) {
 }
 
 function highlightActiveCue(currentTime: number) {
-  if (!cues.length) return;
+  if (!combinedCues.length) return;
 
-  const newIndex = cues.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
+  const newIndex = combinedCues.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
   if (newIndex === -1) {
     if (activeCueIndex !== null && cueElements[activeCueIndex]) {
       cueElements[activeCueIndex].classList.remove("subtitle-item--active");
@@ -152,40 +232,59 @@ function resetAutoScrollTimer() {
   }, timeoutSeconds * 1000);
 }
 
-function renderTrackSelector(state: DesktopState) {
+function renderTrackSelectors(state: DesktopState) {
   if (!state.subtitleTracks.length) {
     controlPanel.style.display = "none";
-    trackSelector.innerHTML = "";
+    primaryTrackSelector.innerHTML = "";
+    secondaryTrackSelector.innerHTML = "";
     lastTrackSignature = "";
     return;
   }
 
   controlPanel.style.display = "flex";
-  const signature = state.subtitleTracks.map((track) => track.id).join("|");
-  if (signature === lastTrackSignature) {
-    if (state.selectedSubtitleId) {
-      trackSelector.value = state.selectedSubtitleId;
-    } else if (state.subtitleTracks.length) {
-      trackSelector.value = state.subtitleTracks[0].id;
+  const signature = state.subtitleTracks.map((track) => `${track.id}:${track.label}`).join("|");
+  if (signature !== lastTrackSignature) {
+    primaryTrackSelector.innerHTML = "";
+    secondaryTrackSelector.innerHTML = "";
+
+    state.subtitleTracks.forEach((track) => {
+      const option = document.createElement("option");
+      option.value = track.id;
+      option.textContent = track.label || track.language;
+      primaryTrackSelector.appendChild(option);
+    });
+
+    const noneOption = document.createElement("option");
+    noneOption.value = "";
+    noneOption.textContent = "None";
+    secondaryTrackSelector.appendChild(noneOption);
+
+    state.subtitleTracks.forEach((track) => {
+      const option = document.createElement("option");
+      option.value = track.id;
+      option.textContent = track.label || track.language;
+      secondaryTrackSelector.appendChild(option);
+    });
+
+    lastTrackSignature = signature;
+  }
+
+  const fallbackPrimaryId = state.subtitleTracks[0]?.id ?? "";
+  const desiredPrimary = state.selectedPrimarySubtitleId ?? fallbackPrimaryId;
+  if (desiredPrimary) {
+    primaryTrackSelector.value = desiredPrimary;
+    if (primaryTrackSelector.value !== desiredPrimary && fallbackPrimaryId) {
+      primaryTrackSelector.value = fallbackPrimaryId;
     }
-    return;
+  } else {
+    primaryTrackSelector.selectedIndex = -1;
   }
 
-  trackSelector.innerHTML = "";
-  state.subtitleTracks.forEach((track) => {
-    const option = document.createElement("option");
-    option.value = track.id;
-    option.textContent = track.label || track.language;
-    trackSelector.appendChild(option);
-  });
-
-  if (state.selectedSubtitleId) {
-    trackSelector.value = state.selectedSubtitleId;
-  } else if (state.subtitleTracks.length) {
-    trackSelector.value = state.subtitleTracks[0].id;
+  const secondaryValue = state.selectedSecondarySubtitleId ?? "";
+  secondaryTrackSelector.value = secondaryValue;
+  if (secondaryTrackSelector.value !== secondaryValue) {
+    secondaryTrackSelector.value = "";
   }
-
-  lastTrackSignature = signature;
 }
 
 function renderState(state: DesktopState) {
@@ -199,17 +298,17 @@ function renderState(state: DesktopState) {
   statusBanner.textContent = text;
   statusBanner.className = `status-banner ${modifier}`;
 
-  renderTrackSelector(state);
+  renderTrackSelectors(state);
 
-  if (state.subtitles) {
-    renderSubtitles(state.subtitles.cues);
+  if (state.primarySubtitles) {
+    renderSubtitles(state.primarySubtitles, state.secondarySubtitles);
     if (currentPlayback) {
       highlightActiveCue(currentPlayback.currentTime);
     }
   } else {
     subtitleList.innerHTML = "";
     cueElements = [];
-    cues = [];
+    combinedCues = [];
     activeCueIndex = null;
   }
 }
@@ -258,9 +357,14 @@ function updateSettings(partial: Partial<AppSettings>) {
   });
 }
 
-trackSelector.addEventListener("change", () => {
-  const value = trackSelector.value || null;
-  window.usp.selectSubtitleTrack(value);
+primaryTrackSelector.addEventListener("change", () => {
+  const value = primaryTrackSelector.value || null;
+  window.usp.selectSubtitleTrack(value, "primary");
+});
+
+secondaryTrackSelector.addEventListener("change", () => {
+  const value = secondaryTrackSelector.value || null;
+  window.usp.selectSubtitleTrack(value, "secondary");
 });
 
 settingsButton.addEventListener("click", () => {
@@ -326,7 +430,7 @@ subtitleList.addEventListener("click", (event) => {
   if (!target) return;
   const index = Number(target.dataset.index);
   if (Number.isNaN(index)) return;
-  const cue = cues[index];
+  const cue = combinedCues[index];
   if (cue) {
     window.usp.controlVideo({ type: "seek", time: cue.start });
   }

@@ -150,14 +150,29 @@ body {
 
 .control-panel {
   display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 0 16px 8px;
 }
 
+.track-picker-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
 .track-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
+}
+
+.track-picker__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
 }
 
 .track-picker select {
@@ -173,6 +188,7 @@ body {
 .playback-buttons {
   display: flex;
   gap: 8px;
+  align-self: flex-end;
 }
 
 .playback-buttons button {
@@ -372,6 +388,18 @@ body {
   margin-bottom: 4px;
 }
 
+.subtitle-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.subtitle-item__text-secondary {
+  font-size: calc(var(--subtitle-font-size) - 1px);
+  color: #c7d2fe;
+  opacity: 0.85;
+}
+
 .subtitle-item--active {
   background: rgba(250, 204, 21, 0.1);
   border-color: rgba(250, 204, 21, 0.4);
@@ -380,4 +408,9 @@ body {
 
 .subtitle-item--active .subtitle-item__time {
   color: #fde68a;
+}
+
+.subtitle-item--active .subtitle-item__text-secondary {
+  color: #fff9c4;
+  opacity: 1;
 }

@@ -26,9 +26,16 @@
               <p class="video-meta__url" id="video-url"></p>
             </section>
             <section class="control-panel" id="control-panel">
-              <label class="track-picker">
-                <select id="track-selector"></select>
-              </label>
+              <div class="track-picker-group">
+                <label class="track-picker">
+                  <span class="track-picker__label">Primary Subtitle</span>
+                  <select id="primary-track-selector"></select>
+                </label>
+                <label class="track-picker">
+                  <span class="track-picker__label">Secondary Subtitle</span>
+                  <select id="secondary-track-selector"></select>
+                </label>
+              </div>
               <div class="playback-buttons">
                 <button id="play-btn" type="button">Play</button>
                 <button id="pause-btn" type="button">Pause</button>
