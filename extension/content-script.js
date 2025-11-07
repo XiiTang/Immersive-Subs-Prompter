@@ -18,6 +18,7 @@ const log = (() => {
   const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
   const BLACKLIST_MODES = new Set(["contains", "exact", "regex"]);
   const UPDATE_INTERVAL_MS = 300;
+  const PAUSED_PING_INTERVAL_MS = 20000;
   const PORT_NAME = "usp-video-channel";
   const RECONNECT_DELAY_MS = 1000;
 
@@ -25,6 +26,7 @@ const log = (() => {
   let reconnectTimer = null;
   let activeVideo = null;
   let ticker = null;
+  let lastTickerDispatchAt = 0;
   const hooked = new WeakSet();
   const observedDocs = new WeakSet();
   const MEDIA_EVENTS = [
@@ -295,23 +297,36 @@ const log = (() => {
       return;
     }
     const state = gatherVideoState(video);
-    if (state) {
-      send("time-update", state);
+    if (!state) {
+      return;
     }
+    send("time-update", state);
+    lastTickerDispatchAt = Date.now();
   }
 
   function ensureTicker() {
     if (ticker || !monitoringActive) return;
     ticker = setInterval(() => {
-      if (activeVideo && !activeVideo.paused) {
+      if (!activeVideo) {
+        return;
+      }
+      if (!activeVideo.paused) {
+        handleTimeUpdate(activeVideo);
+        return;
+      }
+      const elapsed = Date.now() - lastTickerDispatchAt;
+      if (elapsed >= PAUSED_PING_INTERVAL_MS) {
         handleTimeUpdate(activeVideo);
       }
     }, UPDATE_INTERVAL_MS);
   }
 
   function stopTicker() {
-    clearInterval(ticker);
-    ticker = null;
+    if (ticker) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+    lastTickerDispatchAt = 0;
   }
 
   function setActiveVideo(video) {
@@ -531,5 +546,10 @@ const log = (() => {
   }
 
   chrome.storage.onChanged.addListener(handleStorageChange);
+  ["beforeunload", "unload"].forEach((eventName) => {
+    window.addEventListener(eventName, () => {
+      stopTicker();
+    });
+  });
   bootstrap();
 })();
