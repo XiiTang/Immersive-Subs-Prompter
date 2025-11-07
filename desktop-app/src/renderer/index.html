@@ -87,6 +87,42 @@
               <input type="number" id="subtitle-auto-scroll-timeout" min="1" max="60" step="1" />
               <small class="settings-field__hint">Resume auto-tracking subtitles after manual scroll in specified seconds</small>
             </label>
+            <section class="settings-field priority-editor">
+              <div class="priority-editor__header">
+                <span class="settings-field__label">Primary subtitle priority</span>
+                <small class="priority-editor__hint">Match language/label suffix, drag to reorder</small>
+              </div>
+              <div class="priority-editor__list" id="primary-priority-list"></div>
+              <div class="priority-editor__controls">
+                <input
+                  type="text"
+                  id="primary-priority-input"
+                  placeholder="e.g.: en"
+                  autocomplete="off"
+                />
+                <button type="button" class="text-button priority-editor__add" id="primary-priority-add">
+                  Add
+                </button>
+              </div>
+            </section>
+            <section class="settings-field priority-editor">
+              <div class="priority-editor__header">
+                <span class="settings-field__label">Secondary subtitle priority</span>
+                <small class="priority-editor__hint">Typically your native language suffix</small>
+              </div>
+              <div class="priority-editor__list" id="secondary-priority-list"></div>
+              <div class="priority-editor__controls">
+                <input
+                  type="text"
+                  id="secondary-priority-input"
+                  placeholder="e.g.: zh, zh-Hans"
+                  autocomplete="off"
+                />
+                <button type="button" class="text-button priority-editor__add" id="secondary-priority-add">
+                  Add
+                </button>
+              </div>
+            </section>
             <label class="settings-field">
               <span class="settings-field__label">yt-dlp config</span>
               <textarea

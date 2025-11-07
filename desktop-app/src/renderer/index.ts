@@ -24,6 +24,12 @@ const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputE
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
 const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
+const primaryPriorityList = document.getElementById("primary-priority-list") as HTMLElement;
+const secondaryPriorityList = document.getElementById("secondary-priority-list") as HTMLElement;
+const primaryPriorityInput = document.getElementById("primary-priority-input") as HTMLInputElement;
+const secondaryPriorityInput = document.getElementById("secondary-priority-input") as HTMLInputElement;
+const primaryPriorityAddButton = document.getElementById("primary-priority-add") as HTMLButtonElement;
+const secondaryPriorityAddButton = document.getElementById("secondary-priority-add") as HTMLButtonElement;
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
 const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
@@ -43,6 +49,14 @@ type CombinedCue = {
   secondaryText: string | null;
 };
 
+type PriorityRole = "primary" | "secondary";
+
+type PriorityEditorElements = {
+  list: HTMLElement;
+  input: HTMLInputElement;
+  addButton: HTMLButtonElement;
+};
+
 let currentPlayback: PlaybackState | null = null;
 let currentSettings: AppSettings | null = null;
 let cueElements: HTMLElement[] = [];
@@ -52,6 +66,20 @@ let lastTrackSignature = "";
 let isSettingsOpen = false;
 let autoScrollEnabled = true;
 let autoScrollTimer: number | null = null;
+let activePriorityDrag: { role: PriorityRole; index: number } | null = null;
+
+const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
+  primary: {
+    list: primaryPriorityList,
+    input: primaryPriorityInput,
+    addButton: primaryPriorityAddButton
+  },
+  secondary: {
+    list: secondaryPriorityList,
+    input: secondaryPriorityInput,
+    addButton: secondaryPriorityAddButton
+  }
+};
 
 function formatUrl(url: string | null): string {
   if (!url) return "";
@@ -141,6 +169,191 @@ function mergeSubtitleCues(primary: SubtitleCue[], secondary: SubtitleCue[]): Co
   }
 
   return merged;
+}
+
+function getPriorityValues(role: PriorityRole): string[] {
+  if (!currentSettings) {
+    return [];
+  }
+  return role === "primary"
+    ? currentSettings.primarySubtitlePriority ?? []
+    : currentSettings.secondarySubtitlePriority ?? [];
+}
+
+function requestPriorityUpdate(role: PriorityRole, values: string[]) {
+  if (role === "primary") {
+    updateSettings({ primarySubtitlePriority: values });
+  } else {
+    updateSettings({ secondarySubtitlePriority: values });
+  }
+}
+
+function renderPriorityEditor(role: PriorityRole, values: string[]) {
+  const container = priorityEditors[role].list;
+  container.innerHTML = "";
+
+  if (!values.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "priority-editor__empty";
+    placeholder.textContent = "No priorities";
+    container.appendChild(placeholder);
+    return;
+  }
+
+  values.forEach((value, index) => {
+    const item = document.createElement("div");
+    item.className = "priority-editor__item";
+    item.draggable = true;
+    item.dataset.index = String(index);
+
+    const textNode = document.createElement("span");
+    textNode.className = "priority-editor__item-text";
+    textNode.textContent = value;
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "priority-editor__item-remove";
+    removeButton.setAttribute("aria-label", "Remove priority");
+    removeButton.textContent = "×";
+
+    item.appendChild(textNode);
+    item.appendChild(removeButton);
+    container.appendChild(item);
+  });
+}
+
+function handlePriorityAdd(role: PriorityRole) {
+  const editor = priorityEditors[role];
+  const rawValue = editor.input.value.trim();
+  if (!rawValue) {
+    return;
+  }
+  const normalized = rawValue.toLowerCase();
+  const existing = getPriorityValues(role).map((value) => value.toLowerCase());
+  if (existing.includes(normalized)) {
+    editor.input.value = "";
+    return;
+  }
+  const nextValues = [...getPriorityValues(role), rawValue];
+  requestPriorityUpdate(role, nextValues);
+  editor.input.value = "";
+}
+
+function handlePriorityRemove(role: PriorityRole, index: number) {
+  const values = [...getPriorityValues(role)];
+  if (index < 0 || index >= values.length) {
+    return;
+  }
+  values.splice(index, 1);
+  requestPriorityUpdate(role, values);
+}
+
+function reorderPriorityValue(role: PriorityRole, fromIndex: number, toIndex: number) {
+  const values = [...getPriorityValues(role)];
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= values.length ||
+    toIndex >= values.length
+  ) {
+    return;
+  }
+  const [moved] = values.splice(fromIndex, 1);
+  values.splice(toIndex, 0, moved);
+  requestPriorityUpdate(role, values);
+}
+
+function clearPriorityDragClasses(role: PriorityRole) {
+  priorityEditors[role].list
+    .querySelectorAll(".priority-editor__item--dragover")
+    .forEach((el) => el.classList.remove("priority-editor__item--dragover"));
+}
+
+function setupPriorityEditorInteractions(role: PriorityRole) {
+  const editor = priorityEditors[role];
+
+  editor.addButton.addEventListener("click", () => {
+    handlePriorityAdd(role);
+  });
+
+  editor.input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handlePriorityAdd(role);
+    }
+  });
+
+  editor.list.addEventListener("click", (event) => {
+    const removeButton = (event.target as HTMLElement).closest(".priority-editor__item-remove");
+    if (!removeButton) {
+      return;
+    }
+    const parent = removeButton.closest(".priority-editor__item") as HTMLElement | null;
+    if (!parent) {
+      return;
+    }
+    const index = Number(parent.dataset.index);
+    if (Number.isNaN(index)) {
+      return;
+    }
+    handlePriorityRemove(role, index);
+  });
+
+  editor.list.addEventListener("dragstart", (event) => {
+    const target = (event.target as HTMLElement).closest(".priority-editor__item") as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    const index = Number(target.dataset.index);
+    if (Number.isNaN(index)) {
+      return;
+    }
+    activePriorityDrag = { role, index };
+    event.dataTransfer?.setData("text/plain", String(index));
+    event.dataTransfer?.setDragImage(target, 0, 0);
+  });
+
+  editor.list.addEventListener("dragover", (event) => {
+    if (!activePriorityDrag || activePriorityDrag.role !== role) {
+      return;
+    }
+    const target = (event.target as HTMLElement).closest(".priority-editor__item") as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    clearPriorityDragClasses(role);
+    target.classList.add("priority-editor__item--dragover");
+  });
+
+  editor.list.addEventListener("dragleave", () => {
+    clearPriorityDragClasses(role);
+  });
+
+  editor.list.addEventListener("drop", (event) => {
+    if (!activePriorityDrag || activePriorityDrag.role !== role) {
+      return;
+    }
+    const target = (event.target as HTMLElement).closest(".priority-editor__item") as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    const targetIndex = Number(target.dataset.index);
+    if (Number.isNaN(targetIndex)) {
+      return;
+    }
+    const sourceIndex = activePriorityDrag.index;
+    clearPriorityDragClasses(role);
+    activePriorityDrag = null;
+    reorderPriorityValue(role, sourceIndex, targetIndex);
+  });
+
+  editor.list.addEventListener("dragend", () => {
+    clearPriorityDragClasses(role);
+    activePriorityDrag = null;
+  });
 }
 
 function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: SubtitleTrack | null) {
@@ -348,6 +561,8 @@ function renderSettings(settings: AppSettings) {
   if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
     ytDlpArgsInput.value = settings.ytDlpArgs;
   }
+  renderPriorityEditor("primary", settings.primarySubtitlePriority ?? []);
+  renderPriorityEditor("secondary", settings.secondarySubtitlePriority ?? []);
   applySubtitleStyles(settings);
 }
 
@@ -356,6 +571,9 @@ function updateSettings(partial: Partial<AppSettings>) {
     console.error("[Renderer] Failed to update settings", error);
   });
 }
+
+setupPriorityEditorInteractions("primary");
+setupPriorityEditorInteractions("secondary");
 
 primaryTrackSelector.addEventListener("change", () => {
   const value = primaryTrackSelector.value || null;

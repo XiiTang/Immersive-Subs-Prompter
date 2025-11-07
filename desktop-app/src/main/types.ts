@@ -80,4 +80,6 @@ export interface AppSettings {
   subtitleFontSize: number;
   ytDlpArgs: string;
   subtitleAutoScrollTimeout: number; // Auto-scroll timeout (seconds)
+  primarySubtitlePriority: string[];
+  secondarySubtitlePriority: string[];
 }

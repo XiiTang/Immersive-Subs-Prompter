@@ -12,11 +12,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
   subtitleFontFamily: "",
   subtitleFontSize: 14,
   ytDlpArgs: "",
-  subtitleAutoScrollTimeout: 3 // Default 3 seconds before restoring auto-scroll
+  subtitleAutoScrollTimeout: 3, // Default 3 seconds before restoring auto-scroll
+  primarySubtitlePriority: [],
+  secondarySubtitlePriority: []
 };
 
 function isCloseBehavior(value: unknown): value is CloseBehavior {
   return value === "quit" || value === "tray";
+}
+
+function sanitizePriorityList(value: unknown): string[] {
+  if (!value) {
+    return [];
+  }
+  const items = Array.isArray(value) ? value : [value];
+  return items
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item): item is string => Boolean(item.length));
 }
 
 function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSettings {
@@ -35,6 +47,8 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
     subtitleAutoScrollTimeout = DEFAULT_SETTINGS.subtitleAutoScrollTimeout;
   }
   subtitleAutoScrollTimeout = Math.max(1, Math.round(subtitleAutoScrollTimeout));
+  const primarySubtitlePriority = sanitizePriorityList(source.primarySubtitlePriority);
+  const secondarySubtitlePriority = sanitizePriorityList(source.secondarySubtitlePriority);
 
   return {
     closeBehavior,
@@ -42,7 +56,9 @@ function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSe
     subtitleFontFamily,
     subtitleFontSize,
     ytDlpArgs,
-    subtitleAutoScrollTimeout
+    subtitleAutoScrollTimeout,
+    primarySubtitlePriority,
+    secondarySubtitlePriority
   };
 }
 

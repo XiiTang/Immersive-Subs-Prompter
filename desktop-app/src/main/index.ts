@@ -14,6 +14,7 @@ import {
   ExtensionMessageType,
   ExtensionPayload,
   PlaybackState,
+  SubtitleTrack,
   VideoControlCommand
 } from "./types.js";
 
@@ -161,6 +162,22 @@ function updateAppSettings(partial: Partial<AppSettings>) {
       mainWindow.setSkipTaskbar(true);
     }
   }
+  const primaryPriorityChanged = !areStringArraysEqual(
+    previous.primarySubtitlePriority,
+    appSettings.primarySubtitlePriority
+  );
+  const secondaryPriorityChanged = !areStringArraysEqual(
+    previous.secondarySubtitlePriority,
+    appSettings.secondarySubtitlePriority
+  );
+
+  const shouldReapplyPriorities = (primaryPriorityChanged || secondaryPriorityChanged) && state.subtitleTracks.length > 0;
+
+  if (shouldReapplyPriorities) {
+    applyPreferredTracksFromSettings(state.subtitleTracks);
+    pushState();
+  }
+
   pushSettings();
   return appSettings;
 }
@@ -249,6 +266,77 @@ function updateConnectionCount(delta: number) {
 
 const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
 
+function createTrackSignature(track: SubtitleTrack): string {
+  return `${track.language}|${track.label}|${track.sourceFile}`.toLowerCase();
+}
+
+function normalizePriorityEntries(entries: string[]): string[] {
+  return entries.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
+}
+
+function pickTrackByPriority(
+  tracks: SubtitleTrack[],
+  priorities: string[],
+  excludeIds: Set<string> = new Set()
+): SubtitleTrack | null {
+  if (!tracks.length || !priorities.length) {
+    return null;
+  }
+  const normalized = normalizePriorityEntries(priorities);
+  if (!normalized.length) {
+    return null;
+  }
+  for (const priority of normalized) {
+    const matched = tracks.find((track) => {
+      if (excludeIds.has(track.id)) {
+        return false;
+      }
+      return createTrackSignature(track).includes(priority);
+    });
+    if (matched) {
+      return matched;
+    }
+  }
+  return null;
+}
+
+function applyPreferredTracksFromSettings(tracks: SubtitleTrack[]) {
+  if (!tracks.length) {
+    state.primarySubtitles = null;
+    state.secondarySubtitles = null;
+    state.selectedPrimarySubtitleId = null;
+    state.selectedSecondarySubtitleId = null;
+    return;
+  }
+
+  let primary = pickTrackByPriority(tracks, appSettings.primarySubtitlePriority);
+  if (!primary) {
+    primary = pickBestTrack(tracks);
+  }
+
+  state.primarySubtitles = primary ?? null;
+  state.selectedPrimarySubtitleId = primary?.id ?? null;
+
+  const exclude = new Set<string>();
+  if (primary) {
+    exclude.add(primary.id);
+  }
+
+  const secondary = pickTrackByPriority(tracks, appSettings.secondarySubtitlePriority, exclude);
+  state.secondarySubtitles = secondary ?? null;
+  state.selectedSecondarySubtitleId = secondary?.id ?? null;
+}
+
+function areStringArraysEqual(a: string[], b: string[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((value, index) => value === b[index]);
+}
+
 function resolveVideoUrl(payload: ExtensionPayload): string | null {
   const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
   const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
@@ -312,11 +400,7 @@ async function handleMessage(message: ExtensionMessage) {
         if (requestId === subtitleRequestToken) {
           state.subtitleTracks = result.tracks;
           if (result.tracks.length) {
-            const preferred = pickBestTrack(result.tracks);
-            state.primarySubtitles = preferred;
-            state.selectedPrimarySubtitleId = preferred.id;
-            state.secondarySubtitles = null;
-            state.selectedSecondarySubtitleId = null;
+            applyPreferredTracksFromSettings(result.tracks);
             state.status = "ready";
             state.error = null;
           } else {
