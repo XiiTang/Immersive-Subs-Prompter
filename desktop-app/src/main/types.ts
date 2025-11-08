@@ -57,6 +57,7 @@ export interface DesktopState {
   videoUrl: string | null;
   title: string | null;
   site: string | null;
+  activeSource: SubtitleSource | null;
   status: "idle" | "awaiting-video" | "loading-subtitles" | "ready" | "error";
   error: string | null;
   playback: PlaybackState;
@@ -71,7 +72,10 @@ export interface DesktopState {
   appliedRuleName: string | null;
   appliedRulePattern: string | null;
   appliedRuleMatchType: UrlMatchType | null;
+  jellyfin: JellyfinPanelState;
 }
+
+export type SubtitleSource = "extension" | "jellyfin";
 
 export type VideoControlCommand =
   | { type: "seek"; time: number }
@@ -87,6 +91,13 @@ export type UrlMatchType = "contains" | "exact" | "regex";
 export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
+}
+
+export interface JellyfinSettings {
+  enabled: boolean;
+  serverUrl: string;
+  apiKey: string;
+  webSocketPath: string;
 }
 
 export interface ProfileSettings {
@@ -120,4 +131,56 @@ export interface AppSettings {
   profiles: ProfileDefinition[];
   defaultProfileId: string;
   rules: ProfileRule[];
+  jellyfin: JellyfinSettings;
+}
+
+export interface JellyfinSubtitleStream {
+  index: number;
+  codec: string | null;
+  language: string | null;
+  displayTitle: string | null;
+  isDefault: boolean;
+  isForced: boolean;
+  isText: boolean;
+}
+
+export interface JellyfinSessionSummary {
+  id: string;
+  deviceName: string | null;
+  client: string | null;
+  userName: string | null;
+  nowPlayingItemId: string | null;
+  nowPlayingItemName: string | null;
+  mediaSourceId: string | null;
+  runTimeTicks: number | null;
+  positionTicks: number | null;
+  isPaused: boolean;
+  playbackRate: number | null;
+  subtitleStreams: JellyfinSubtitleStream[];
+}
+
+export interface JellyfinPanelState {
+  connected: boolean;
+  sessions: JellyfinSessionSummary[];
+  selectedSessionId: string | null;
+  lastUpdated: number | null;
+}
+
+export interface JellyfinStatusPayload {
+  connected: boolean;
+}
+
+export interface JellyfinSubtitlesPayload {
+  sessionId: string | null;
+  itemName: string | null;
+  tracks: SubtitleTrack[];
+}
+
+export interface JellyfinPlaybackPayload {
+  sessionId: string | null;
+  itemName: string | null;
+  positionMs: number | null;
+  runTimeMs: number | null;
+  playbackRate: number;
+  isPaused: boolean;
 }

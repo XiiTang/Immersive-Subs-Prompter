@@ -1,6 +1,8 @@
 import type {
   AppSettings,
   DesktopState,
+  JellyfinSessionSummary,
+  JellyfinSettings,
   PlaybackState,
   ProfileDefinition,
   ProfileRule,
@@ -19,6 +21,8 @@ const activeProfileLabel = document.getElementById("active-profile-label") as HT
 const statusBanner = document.getElementById("status-banner") as HTMLElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
+const jellyfinStatusIndicator = document.getElementById("jellyfin-status") as HTMLElement | null;
+const jellyfinSessionSelector = document.getElementById("jellyfin-session-selector") as HTMLSelectElement | null;
 const primaryTrackSelector = document.getElementById("primary-track-selector") as HTMLSelectElement;
 const secondaryTrackSelector = document.getElementById("secondary-track-selector") as HTMLSelectElement;
 const playButton = document.getElementById("play-btn") as HTMLButtonElement;
@@ -31,6 +35,10 @@ const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-sc
 const subtitleScrollPositionInput = document.getElementById("subtitle-scroll-position") as HTMLInputElement;
 const subtitleScrollPositionValue = document.getElementById("subtitle-scroll-position-value") as HTMLElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
+const jellyfinEnabledToggle = document.getElementById("jellyfin-enabled") as HTMLInputElement | null;
+const jellyfinServerInput = document.getElementById("jellyfin-server-url") as HTMLInputElement | null;
+const jellyfinApiKeyInput = document.getElementById("jellyfin-api-key") as HTMLInputElement | null;
+const jellyfinWsPathInput = document.getElementById("jellyfin-ws-path") as HTMLInputElement | null;
 const primaryPriorityList = document.getElementById("primary-priority-list") as HTMLElement;
 const secondaryPriorityList = document.getElementById("secondary-priority-list") as HTMLElement;
 const primaryPriorityInput = document.getElementById("primary-priority-input") as HTMLInputElement;
@@ -174,6 +182,18 @@ function syncPlaybackProfileSettings() {
   const profile = getPlaybackProfile();
   playbackProfileSettings = profile?.settings ?? null;
   applySubtitleStyles(playbackProfileSettings);
+}
+
+function updateJellyfinSettings(patch: Partial<JellyfinSettings>) {
+  if (!currentSettings) {
+    return;
+  }
+  updateSettings({
+    jellyfin: {
+      ...currentSettings.jellyfin,
+      ...patch
+    }
+  });
 }
 
 function commitProfiles(nextProfiles: ProfileDefinition[]) {
@@ -961,7 +981,7 @@ function resetAutoScrollTimer() {
 
 function renderTrackSelectors(state: DesktopState) {
   if (!state.subtitleTracks.length) {
-    controlPanel.style.display = "none";
+    controlPanel.style.display = "flex";
     primaryTrackSelector.innerHTML = "";
     secondaryTrackSelector.innerHTML = "";
     lastTrackSignature = "";
@@ -1014,14 +1034,55 @@ function renderTrackSelectors(state: DesktopState) {
   }
 }
 
+function formatJellyfinSessionLabel(session: JellyfinSessionSummary): string {
+  const title = session.nowPlayingItemName ?? "Idle";
+  const user = session.userName ?? "Unknown user";
+  const device = session.deviceName ?? session.client ?? "Unknown device";
+  return `${title} · ${user} · ${device}`;
+}
+
+function renderJellyfinControls(state: DesktopState) {
+  if (!jellyfinStatusIndicator || !jellyfinSessionSelector) {
+    return;
+  }
+  const sessionCount = state.jellyfin.sessions.length;
+  jellyfinStatusIndicator.textContent = state.jellyfin.connected
+    ? `Jellyfin: Connected (${sessionCount} session${sessionCount === 1 ? "" : "s"})`
+    : "Jellyfin: Disconnected";
+
+  const previousLength = jellyfinSessionSelector.options.length - 1;
+  const needsRebuild =
+    previousLength !== sessionCount || jellyfinSessionSelector.dataset.signature !== String(sessionCount);
+  if (needsRebuild) {
+    jellyfinSessionSelector.innerHTML = "";
+    const browserOption = document.createElement("option");
+    browserOption.value = "";
+    browserOption.textContent = "Browser (active tab)";
+    jellyfinSessionSelector.appendChild(browserOption);
+    state.jellyfin.sessions.forEach((session) => {
+      const option = document.createElement("option");
+      option.value = session.id;
+      option.textContent = formatJellyfinSessionLabel(session);
+      jellyfinSessionSelector.appendChild(option);
+    });
+    jellyfinSessionSelector.dataset.signature = String(sessionCount);
+  }
+  const desiredValue = state.jellyfin.selectedSessionId ?? "";
+  jellyfinSessionSelector.value = desiredValue;
+  if (jellyfinSessionSelector.value !== desiredValue) {
+    jellyfinSessionSelector.value = "";
+  }
+}
+
 function renderState(state: DesktopState) {
   currentStateSnapshot = state;
   if (currentSettings) {
     syncPlaybackProfileSettings();
   }
 
-  connectionIndicator.textContent =
-    state.connectionCount > 0 ? `Connected ×${state.connectionCount}` : "Disconnected";
+  const browserStatus = state.connectionCount > 0 ? `Browser: ${state.connectionCount}` : "Browser: disconnected";
+  const jellyfinStatus = state.jellyfin.connected ? "Jellyfin: connected" : "Jellyfin: disconnected";
+  connectionIndicator.textContent = `${browserStatus} · ${jellyfinStatus}`;
 
   videoTitle.textContent = state.title ?? "Waiting for video...";
   videoUrl.textContent = formatUrl(state.videoUrl);
@@ -1043,6 +1104,7 @@ function renderState(state: DesktopState) {
   statusBanner.className = `status-banner ${modifier}`;
 
   renderTrackSelectors(state);
+  renderJellyfinControls(state);
 
   if (state.primarySubtitles) {
     renderSubtitles(state.primarySubtitles, state.secondarySubtitles);
@@ -1086,6 +1148,21 @@ function renderSettings(settings: AppSettings) {
   ensureEditingProfile();
   closeBehaviorSelect.value = settings.global.closeBehavior;
   autostartToggle.checked = settings.global.autoLaunch;
+  if (jellyfinEnabledToggle) {
+    jellyfinEnabledToggle.checked = settings.jellyfin.enabled;
+  }
+  if (jellyfinServerInput) {
+    jellyfinServerInput.value = settings.jellyfin.serverUrl ?? "";
+    jellyfinServerInput.disabled = !settings.jellyfin.enabled;
+  }
+  if (jellyfinApiKeyInput) {
+    jellyfinApiKeyInput.value = settings.jellyfin.apiKey ?? "";
+    jellyfinApiKeyInput.disabled = !settings.jellyfin.enabled;
+  }
+  if (jellyfinWsPathInput) {
+    jellyfinWsPathInput.value = settings.jellyfin.webSocketPath ?? "";
+    jellyfinWsPathInput.disabled = !settings.jellyfin.enabled;
+  }
   renderProfileList(settings);
   renderProfileEditor();
   updateRuleProfileOptions();
@@ -1133,6 +1210,37 @@ secondaryTrackSelector.addEventListener("change", () => {
   const value = secondaryTrackSelector.value || null;
   window.usp.selectSubtitleTrack(value, "secondary");
 });
+
+if (jellyfinSessionSelector) {
+  jellyfinSessionSelector.addEventListener("change", () => {
+    const value = jellyfinSessionSelector.value;
+    window.usp.selectJellyfinSession(value || null);
+  });
+}
+
+if (jellyfinEnabledToggle) {
+  jellyfinEnabledToggle.addEventListener("change", () => {
+    updateJellyfinSettings({ enabled: jellyfinEnabledToggle.checked });
+  });
+}
+
+if (jellyfinServerInput) {
+  jellyfinServerInput.addEventListener("change", () => {
+    updateJellyfinSettings({ serverUrl: jellyfinServerInput.value.trim() });
+  });
+}
+
+if (jellyfinApiKeyInput) {
+  jellyfinApiKeyInput.addEventListener("change", () => {
+    updateJellyfinSettings({ apiKey: jellyfinApiKeyInput.value.trim() });
+  });
+}
+
+if (jellyfinWsPathInput) {
+  jellyfinWsPathInput.addEventListener("change", () => {
+    updateJellyfinSettings({ webSocketPath: jellyfinWsPathInput.value.trim() });
+  });
+}
 
 settingsButton.addEventListener("click", () => {
   setSettingsOpen(true);

@@ -4,19 +4,25 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import { SubtitleService, pickBestTrack } from "./subtitleService.js";
+import { JellyfinSubtitleService } from "./jellyfinSubtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { createLogger } from "./logger.js";
+import { normalizeServerUrl, ticksToMilliseconds } from "./jellyfinUtils.js";
 import {
   AppSettings,
   DesktopState,
   ExtensionMessage,
   ExtensionMessageType,
   ExtensionPayload,
+  JellyfinPlaybackPayload,
+  JellyfinSessionSummary,
+  JellyfinSubtitlesPayload,
   PlaybackState,
   ProfileDefinition,
   ProfileRule,
   ProfileSettings,
+  SubtitleSource,
   SubtitleTrack,
   VideoControlCommand
 } from "./types.js";
@@ -26,6 +32,7 @@ const ytDlpManager = new YtDlpManager();
 let appSettings: AppSettings = DEFAULT_SETTINGS;
 let activeProfileId = DEFAULT_SETTINGS.defaultProfileId;
 const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => getActiveProfileSettings());
+const jellyfinService = new JellyfinSubtitleService(() => appSettings.jellyfin);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
@@ -50,6 +57,7 @@ const state: DesktopState = {
   videoUrl: null,
   title: null,
   site: null,
+  activeSource: null,
   status: "idle",
   error: null,
   playback: {
@@ -67,7 +75,13 @@ const state: DesktopState = {
   appliedRuleId: null,
   appliedRuleName: null,
   appliedRulePattern: null,
-  appliedRuleMatchType: null
+  appliedRuleMatchType: null,
+  jellyfin: {
+    connected: false,
+    sessions: [],
+    selectedSessionId: null,
+    lastUpdated: null
+  }
 };
 
 function getProfileById(settings: AppSettings, profileId: string | null | undefined): ProfileDefinition | null {
@@ -304,6 +318,7 @@ function updateAppSettings(partial: Partial<AppSettings>) {
   }
 
   pushSettings();
+  jellyfinService.refresh();
   return appSettings;
 }
 
@@ -375,16 +390,12 @@ function log(message: string, ...rest: unknown[]) {
 
 function updateConnectionCount(delta: number) {
   state.connectionCount = Math.max(0, state.connectionCount + delta);
-  if (state.connectionCount === 0) {
+  if (state.connectionCount === 0 && state.activeSource !== "jellyfin") {
     state.status = "idle";
     state.activeTabId = null;
-    state.subtitleTracks = [];
-    state.selectedPrimarySubtitleId = null;
-    state.selectedSecondarySubtitleId = null;
-    state.primarySubtitles = null;
-    state.secondarySubtitles = null;
+    resetSubtitleState();
     applyProfileSelection(getDefaultProfile(), null);
-  } else if (state.status === "idle") {
+  } else if (state.connectionCount > 0 && state.status === "idle" && state.activeSource !== "jellyfin") {
     state.status = "awaiting-video";
   }
   pushState();
@@ -455,6 +466,176 @@ function applyPreferredTracksFromSettings(
   state.secondarySubtitles = secondary ?? null;
   state.selectedSecondarySubtitleId = secondary?.id ?? null;
 }
+
+function resetSubtitleState() {
+  state.subtitleTracks = [];
+  state.selectedPrimarySubtitleId = null;
+  state.selectedSecondarySubtitleId = null;
+  state.primarySubtitles = null;
+  state.secondarySubtitles = null;
+}
+
+function getJellyfinBaseUrl(): string | null {
+  const base = normalizeServerUrl(appSettings.jellyfin.serverUrl ?? "");
+  return base.length ? base : null;
+}
+
+function buildJellyfinItemUrl(session: JellyfinSessionSummary | null): string | null {
+  if (!session?.nowPlayingItemId) {
+    return null;
+  }
+  const base = getJellyfinBaseUrl();
+  if (!base) {
+    return `jellyfin://${session.nowPlayingItemId}`;
+  }
+  return `${base}/Items/${session.nowPlayingItemId}`;
+}
+
+function buildJellyfinPageUrl(session: JellyfinSessionSummary | null): string | null {
+  if (!session?.nowPlayingItemId) {
+    return getJellyfinBaseUrl();
+  }
+  const base = getJellyfinBaseUrl();
+  if (!base) {
+    return null;
+  }
+  return `${base}/web/index.html#!/details?id=${session.nowPlayingItemId}`;
+}
+
+function selectJellyfinSession(sessionId: string | null) {
+  if (!appSettings.jellyfin.enabled) {
+    state.jellyfin.selectedSessionId = null;
+    state.activeSource = state.connectionCount > 0 ? "extension" : null;
+    resetSubtitleState();
+    pushState();
+    return;
+  }
+
+  if (!sessionId) {
+    state.jellyfin.selectedSessionId = null;
+    state.activeSource = state.connectionCount > 0 ? "extension" : null;
+    jellyfinService.setActiveSession(null);
+    if (state.activeSource !== "extension") {
+      state.title = null;
+      state.pageUrl = null;
+      state.videoUrl = null;
+      state.site = null;
+      state.status = state.connectionCount > 0 ? state.status : "idle";
+      resetSubtitleState();
+    }
+    pushState();
+    return;
+  }
+
+  const session = state.jellyfin.sessions.find((item) => item.id === sessionId) ?? null;
+  state.jellyfin.selectedSessionId = sessionId;
+  state.activeSource = "jellyfin";
+  state.site = "jellyfin";
+  state.title = session?.nowPlayingItemName ?? "Jellyfin Session";
+  state.pageUrl = buildJellyfinPageUrl(session);
+  state.videoUrl = buildJellyfinItemUrl(session) ?? getJellyfinBaseUrl();
+  const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl();
+  const selection = selectProfileForUrl(jellyfinUrl);
+  applyProfileSelection(selection.profile, selection.rule);
+  state.status = "loading-subtitles";
+  state.error = null;
+  resetSubtitleState();
+  if (session) {
+    const currentTimeSeconds = (ticksToMilliseconds(session.positionTicks) ?? 0) / 1000;
+    state.playback = {
+      currentTime: currentTimeSeconds,
+      playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
+      lastUpdate: Date.now()
+    };
+  }
+  pushState();
+  jellyfinService.setActiveSession(sessionId);
+}
+
+function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
+  state.jellyfin.sessions = sessions;
+  state.jellyfin.lastUpdated = Date.now();
+  if (state.jellyfin.selectedSessionId) {
+    const selected = sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
+    if (!selected) {
+      state.jellyfin.selectedSessionId = null;
+      if (state.activeSource === "jellyfin") {
+        state.activeSource = state.connectionCount > 0 ? "extension" : null;
+        state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
+        state.title = null;
+        state.pageUrl = null;
+        state.videoUrl = null;
+        state.site = null;
+        resetSubtitleState();
+        jellyfinService.setActiveSession(null);
+      }
+    } else if (state.activeSource === "jellyfin") {
+      state.title = selected.nowPlayingItemName ?? state.title;
+      state.pageUrl = buildJellyfinPageUrl(selected);
+      state.videoUrl = buildJellyfinItemUrl(selected) ?? state.videoUrl;
+    }
+  }
+  pushState();
+}
+
+function handleJellyfinStatusUpdate(connected: boolean) {
+  state.jellyfin.connected = connected;
+  if (!connected) {
+    state.jellyfin.sessions = [];
+    if (state.activeSource === "jellyfin") {
+      selectJellyfinSession(null);
+    } else {
+      pushState();
+    }
+    return;
+  }
+  pushState();
+}
+
+function handleJellyfinSubtitlesUpdate(payload: JellyfinSubtitlesPayload) {
+  if (state.activeSource !== "jellyfin" || !payload.sessionId) {
+    return;
+  }
+  if (payload.sessionId !== state.jellyfin.selectedSessionId) {
+    return;
+  }
+  state.subtitleTracks = payload.tracks;
+  if (payload.tracks.length) {
+    applyPreferredTracksFromSettings(payload.tracks);
+    state.status = "ready";
+    state.error = null;
+  } else {
+    resetSubtitleState();
+    state.status = "error";
+    state.error = "No Jellyfin subtitles available for this session";
+  }
+  pushState();
+}
+
+function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
+  if (state.activeSource !== "jellyfin") {
+    return;
+  }
+  if (!payload.sessionId || payload.sessionId !== state.jellyfin.selectedSessionId) {
+    return;
+  }
+  const currentTime = (payload.positionMs ?? 0) / 1000;
+  const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
+  state.playback = {
+    currentTime,
+    playbackRate,
+    lastUpdate: Date.now()
+  };
+  sendPlaybackUpdate(state.playback);
+}
+
+jellyfinService.on("status", ({ connected }) => handleJellyfinStatusUpdate(connected));
+jellyfinService.on("sessions", (sessions) => handleJellyfinSessionsUpdate(sessions));
+jellyfinService.on("subtitles", (payload) => handleJellyfinSubtitlesUpdate(payload));
+jellyfinService.on("playback", (payload) => handleJellyfinPlaybackUpdate(payload));
+jellyfinService.on("error", (error) => {
+  mainLogger.error("Jellyfin service error", error);
+});
 
 function areStringArraysEqual(a: string[], b: string[]): boolean {
   if (a === b) {
@@ -532,6 +713,13 @@ function resolveVideoUrl(payload: ExtensionPayload): string | null {
 async function handleMessage(message: ExtensionMessage) {
   switch (message.type) {
     case "video-context": {
+      if (state.activeSource !== "extension") {
+        state.activeSource = "extension";
+        if (state.jellyfin.selectedSessionId) {
+          state.jellyfin.selectedSessionId = null;
+          jellyfinService.setActiveSession(null);
+        }
+      }
       state.activeTabId = message.tabId;
       state.pageUrl = message.payload.pageUrl ?? null;
       state.site = message.payload.site ?? null;
@@ -618,6 +806,9 @@ async function handleMessage(message: ExtensionMessage) {
       if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
         return;
       }
+      if (state.activeSource === "jellyfin") {
+        return;
+      }
 
       const currentTime = message.payload.currentTime ?? state.playback.currentTime;
       const playbackRate = message.payload.playbackRate ?? state.playback.playbackRate;
@@ -633,7 +824,7 @@ async function handleMessage(message: ExtensionMessage) {
 
     case "loop-cleared": {
       // Forward loop-cleared event to renderer to update UI
-      if (state.activeTabId === message.tabId && mainWindow) {
+      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId && mainWindow) {
         mainWindow.webContents.send("usp:loop-cleared");
         mainLogger.info("Loop cleared by user interaction");
       }
@@ -641,7 +832,7 @@ async function handleMessage(message: ExtensionMessage) {
     }
 
     case "video-ended": {
-      if (state.activeTabId === message.tabId) {
+      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId) {
         state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
         state.primarySubtitles = null;
         state.secondarySubtitles = null;
@@ -656,7 +847,7 @@ async function handleMessage(message: ExtensionMessage) {
     }
 
     case "page-url-changed": {
-      if (state.activeTabId === message.tabId) {
+      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId) {
         state.pageUrl = message.payload.pageUrl ?? state.pageUrl;
         state.title = message.payload.title ?? state.title;
         pushState();
@@ -801,6 +992,9 @@ ipcMain.handle("usp:get-settings", () => appSettings);
 ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
   return updateAppSettings(payload);
 });
+ipcMain.handle("usp:jellyfin/select-session", (_event, sessionId: string | null) => {
+  selectJellyfinSession(sessionId);
+});
 
 app.whenReady().then(() => {
   settingsStore = new SettingsStore();
@@ -810,6 +1004,7 @@ app.whenReady().then(() => {
   applyAutoLaunch(appSettings.global.autoLaunch);
   ensureTray();
   bootstrapWebSocketServer();
+  jellyfinService.start();
   createWindow();
 
   app.on("activate", () => {

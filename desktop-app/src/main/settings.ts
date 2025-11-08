@@ -6,6 +6,7 @@ import {
   AppSettings,
   CloseBehavior,
   GlobalSettings,
+  JellyfinSettings,
   ProfileDefinition,
   ProfileRule,
   ProfileSettings,
@@ -34,11 +35,19 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   secondarySubtitlePriority: []
 };
 
+export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
+  enabled: false,
+  serverUrl: "",
+  apiKey: "",
+  webSocketPath: "/socket"
+};
+
 const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
   global: { ...DEFAULT_GLOBAL_SETTINGS },
   profiles: [createDefaultProfile()],
   defaultProfileId: DEFAULT_PROFILE_ID,
-  rules: []
+  rules: [],
+  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS }
 });
 
 export const DEFAULT_SETTINGS: AppSettings = DEFAULT_SETTINGS_FACTORY();
@@ -194,6 +203,28 @@ function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallbackProf
   return rules;
 }
 
+function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | undefined): JellyfinSettings {
+  const source = input ?? {};
+  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
+  const serverUrl =
+    typeof source.serverUrl === "string" ? source.serverUrl.trim() : DEFAULT_JELLYFIN_SETTINGS.serverUrl;
+  const apiKey = typeof source.apiKey === "string" ? source.apiKey.trim() : DEFAULT_JELLYFIN_SETTINGS.apiKey;
+  let webSocketPath =
+    typeof source.webSocketPath === "string" ? source.webSocketPath.trim() : DEFAULT_JELLYFIN_SETTINGS.webSocketPath;
+  if (!webSocketPath.length) {
+    webSocketPath = DEFAULT_JELLYFIN_SETTINGS.webSocketPath;
+  }
+  if (!webSocketPath.startsWith("/")) {
+    webSocketPath = `/${webSocketPath}`;
+  }
+  return {
+    enabled,
+    serverUrl,
+    apiKey,
+    webSocketPath
+  };
+}
+
 type LegacySettingsShape = Partial<ProfileSettings> &
   Partial<GlobalSettings> & {
     closeBehavior?: CloseBehavior;
@@ -205,7 +236,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
   }
 
   const looksModern =
-    "global" in input || "profiles" in input || "rules" in input || "defaultProfileId" in input;
+    "global" in input || "profiles" in input || "rules" in input || "defaultProfileId" in input || "jellyfin" in input;
 
   if (looksModern) {
     const raw = input as Partial<AppSettings>;
@@ -219,11 +250,13 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       ? requestedDefaultId
       : profiles[0].id;
     const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
+    const jellyfin = sanitizeJellyfinSettings(raw.jellyfin);
     return {
       global,
       profiles,
       defaultProfileId,
-      rules
+      rules,
+      jellyfin
     };
   }
 
@@ -236,7 +269,8 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     global,
     profiles: [profile],
     defaultProfileId: profile.id,
-    rules: []
+    rules: [],
+    jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS }
   };
 }
 
@@ -245,7 +279,8 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     global: base.global,
     profiles: base.profiles,
     defaultProfileId: base.defaultProfileId,
-    rules: base.rules
+    rules: base.rules,
+    jellyfin: base.jellyfin
   };
 
   if (patch.global) {
@@ -259,6 +294,12 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
   }
   if (typeof patch.defaultProfileId === "string") {
     next.defaultProfileId = patch.defaultProfileId;
+  }
+  if (patch.jellyfin) {
+    next.jellyfin = {
+      ...next.jellyfin,
+      ...patch.jellyfin
+    };
   }
 
   return next;

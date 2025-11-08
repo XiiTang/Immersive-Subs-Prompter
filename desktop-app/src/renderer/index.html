@@ -26,7 +26,38 @@
               <p class="video-meta__profile" id="active-profile-label">Profile: Default Profile</p>
               <p class="video-meta__url" id="video-url"></p>
             </section>
+            <section class="settings-section">
+              <h3 class="settings-section__title">Jellyfin Integration</h3>
+              <div class="settings-field settings-field--inline">
+                <span class="settings-field__label">Enable Jellyfin</span>
+                <label class="toggle">
+                  <input type="checkbox" id="jellyfin-enabled" />
+                  <span class="toggle__text">Enable</span>
+                </label>
+              </div>
+              <label class="settings-field">
+                <span class="settings-field__label">Server URL</span>
+                <input type="text" id="jellyfin-server-url" placeholder="https://your-jellyfin-server" autocomplete="off" />
+              </label>
+              <label class="settings-field">
+                <span class="settings-field__label">API Key</span>
+                <input type="text" id="jellyfin-api-key" autocomplete="off" />
+              </label>
+              <label class="settings-field">
+                <span class="settings-field__label">WebSocket Path</span>
+                <input type="text" id="jellyfin-ws-path" placeholder="/socket" autocomplete="off" />
+              </label>
+            </section>
             <section class="control-panel" id="control-panel">
+              <div class="jellyfin-panel">
+                <div class="jellyfin-panel__status" id="jellyfin-status">Jellyfin: Disconnected</div>
+                <label class="track-picker">
+                  <span class="track-picker__label">Jellyfin Session</span>
+                  <select id="jellyfin-session-selector">
+                    <option value="">Browser (active tab)</option>
+                  </select>
+                </label>
+              </div>
               <label class="track-picker">
                 <span class="track-picker__label">Primary Subtitle</span>
                 <select id="primary-track-selector"></select>
