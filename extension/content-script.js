@@ -300,12 +300,16 @@ const log = (() => {
       return;
     }
     
-    // Check loop condition
+    // Check loop condition and handle time reporting
+    let reportTime = null;
     if (isLooping && loopStart !== null && loopEnd !== null && video) {
       const currentTime = video.currentTime;
       if (currentTime >= loopEnd) {
+        // About to loop back - report the middle time of the loop range
+        const middleTime = (loopStart + loopEnd) / 2;
+        reportTime = middleTime;
         video.currentTime = loopStart;
-        log.info('loop', `Loop back: ${loopEnd.toFixed(2)}s → ${loopStart.toFixed(2)}s`);
+        log.info('loop', `Loop back: ${currentTime.toFixed(2)}s → ${loopStart.toFixed(2)}s (report ${middleTime.toFixed(2)}s)`);
       }
     }
     
@@ -313,6 +317,12 @@ const log = (() => {
     if (!state) {
       return;
     }
+    
+    // Override currentTime if we're looping back
+    if (reportTime !== null) {
+      state.currentTime = reportTime;
+    }
+    
     send("time-update", state);
   }
 
