@@ -706,6 +706,8 @@ function sendControlCommand(command: VideoControlCommand): boolean {
   let payload: Record<string, unknown> | undefined;
   if (command.type === "seek") {
     payload = { time: command.time };
+  } else if (command.type === "loop") {
+    payload = { start: command.start, end: command.end };
   }
 
   socket.send(

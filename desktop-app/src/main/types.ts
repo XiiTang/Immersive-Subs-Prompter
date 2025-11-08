@@ -75,7 +75,9 @@ export interface DesktopState {
 export type VideoControlCommand =
   | { type: "seek"; time: number }
   | { type: "pause" }
-  | { type: "play" };
+  | { type: "play" }
+  | { type: "loop"; start: number; end: number }
+  | { type: "stopLoop" };
 
 export type CloseBehavior = "quit" | "tray";
 

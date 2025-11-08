@@ -47,6 +47,11 @@ const log = (() => {
   let prototypesHooked = false;
   let urlMonitorTimer = null;
   const regexCache = new Map();
+  
+  // Loop control variables
+  let loopStart = null;
+  let loopEnd = null;
+  let isLooping = false;
 
   function normalizeBlacklistRules(input) {
     if (!Array.isArray(input)) {
@@ -294,6 +299,16 @@ const log = (() => {
     if (!monitoringActive) {
       return;
     }
+    
+    // Check loop condition
+    if (isLooping && loopStart !== null && loopEnd !== null && video) {
+      const currentTime = video.currentTime;
+      if (currentTime >= loopEnd) {
+        video.currentTime = loopStart;
+        log.info('loop', `Loop back: ${loopEnd.toFixed(2)}s → ${loopStart.toFixed(2)}s`);
+      }
+    }
+    
     const state = gatherVideoState(video);
     if (!state) {
       return;
@@ -369,6 +384,24 @@ const log = (() => {
         } else {
           log.warn('ctrl', `seek failed: invalid time`, payload);
         }
+        break;
+      case "loop":
+        if (typeof payload.start === "number" && typeof payload.end === "number" && 
+            Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
+          loopStart = payload.start;
+          loopEnd = payload.end;
+          isLooping = true;
+          target.currentTime = loopStart;
+          log.info('ctrl', `Loop enabled: ${loopStart.toFixed(2)}s - ${loopEnd.toFixed(2)}s`);
+        } else {
+          log.warn('ctrl', `loop failed: invalid times`, payload);
+        }
+        break;
+      case "stopLoop":
+        isLooping = false;
+        loopStart = null;
+        loopEnd = null;
+        log.info('ctrl', 'Loop disabled');
         break;
       case "pause":
         target.pause();

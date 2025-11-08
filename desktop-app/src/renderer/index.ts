@@ -107,6 +107,7 @@ let editingProfileId: string | null = null;
 let editingRuleId: string | null = null;
 let playbackProfileSettings: ProfileSettings | null = null;
 let ruleFormInitialized = false;
+let loopingCueIndex: number | null = null;
 
 const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
   primary: {
@@ -837,6 +838,7 @@ function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: Sub
   cueElements = [];
   combinedCues = [];
   activeCueIndex = null;
+  loopingCueIndex = null;
 
   if (!primaryTrack) {
     return;
@@ -849,9 +851,29 @@ function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: Sub
     item.className = "subtitle-item";
     item.dataset.index = String(index);
 
+    const timeContainer = document.createElement("div");
+    timeContainer.className = "subtitle-item__time";
+
     const time = document.createElement("span");
-    time.className = "subtitle-item__time";
     time.textContent = `${formatTime(cue.start)} - ${formatTime(cue.end)}`;
+
+    const playButton = document.createElement("button");
+    playButton.className = "subtitle-item__play-btn";
+    playButton.type = "button";
+    playButton.setAttribute("aria-label", "Play from this subtitle");
+    playButton.innerHTML = "&#9654;"; // Unicode triangle play icon
+    playButton.dataset.index = String(index);
+
+    const loopButton = document.createElement("button");
+    loopButton.className = "subtitle-item__loop-btn";
+    loopButton.type = "button";
+    loopButton.setAttribute("aria-label", "Loop this subtitle");
+    loopButton.innerHTML = "&#8635;"; // Unicode loop/repeat icon
+    loopButton.dataset.index = String(index);
+
+    timeContainer.appendChild(time);
+    timeContainer.appendChild(playButton);
+    timeContainer.appendChild(loopButton);
 
     const text = document.createElement("div");
     text.className = "subtitle-item__text";
@@ -868,7 +890,7 @@ function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: Sub
       text.appendChild(secondaryLine);
     }
 
-    item.appendChild(time);
+    item.appendChild(timeContainer);
     item.appendChild(text);
     subtitleList.appendChild(item);
     cueElements.push(item);
@@ -1274,13 +1296,57 @@ playButton.addEventListener("click", () => {
 });
 
 subtitleList.addEventListener("click", (event) => {
-  const target = (event.target as HTMLElement).closest(".subtitle-item") as HTMLElement | null;
-  if (!target) return;
-  const index = Number(target.dataset.index);
-  if (Number.isNaN(index)) return;
-  const cue = combinedCues[index];
-  if (cue) {
-    window.usp.controlVideo({ type: "seek", time: cue.start });
+  const target = event.target as HTMLElement;
+  
+  // Check if the clicked element is the play button
+  if (target.classList.contains("subtitle-item__play-btn")) {
+    const index = Number(target.dataset.index);
+    if (Number.isNaN(index)) return;
+    const cue = combinedCues[index];
+    if (cue) {
+      window.usp.controlVideo({ type: "seek", time: cue.start });
+    }
+  }
+  
+  // Check if the clicked element is the loop button
+  if (target.classList.contains("subtitle-item__loop-btn")) {
+    const index = Number(target.dataset.index);
+    if (Number.isNaN(index)) return;
+    
+    // Toggle loop mode
+    if (loopingCueIndex === index) {
+      // Disable loop
+      loopingCueIndex = null;
+      // Remove active class from all loop buttons
+      document.querySelectorAll(".subtitle-item__loop-btn--active").forEach((btn) => {
+        btn.classList.remove("subtitle-item__loop-btn--active");
+      });
+      // Send stop loop command to extension
+      window.usp.controlVideo({ type: "stopLoop" });
+    } else {
+      // Enable loop for this cue
+      const prevLoopIndex = loopingCueIndex;
+      loopingCueIndex = index;
+      
+      // Remove active class from previous loop button
+      if (prevLoopIndex !== null) {
+        const prevButton = document.querySelector(
+          `.subtitle-item__loop-btn[data-index="${prevLoopIndex}"]`
+        );
+        if (prevButton) {
+          prevButton.classList.remove("subtitle-item__loop-btn--active");
+        }
+      }
+      
+      // Add active class to current loop button
+      target.classList.add("subtitle-item__loop-btn--active");
+      
+      // Send loop command to extension with start and end times
+      const cue = combinedCues[index];
+      if (cue) {
+        window.usp.controlVideo({ type: "loop", start: cue.start, end: cue.end });
+      }
+    }
   }
 });
 
