@@ -684,6 +684,7 @@ body {
   gap: 6px;
   min-height: 0;
   scroll-behavior: smooth;
+  user-select: text;
 }
 
 .subtitle-list::-webkit-scrollbar {
@@ -716,6 +717,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  user-select: text;
 }
 
 .subtitle-item__time {

@@ -466,6 +466,49 @@ function areStringArraysEqual(a: string[], b: string[]): boolean {
   return a.every((value, index) => value === b[index]);
 }
 
+/**
+ * Normalize URL by removing tracking parameters to avoid duplicate downloads
+ * Removes common tracking parameters like spm_id_from, vd_source, utm_*, etc.
+ */
+function normalizeUrl(url: string | null): string | null {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const urlObj = new URL(url);
+    const trackingParams = [
+      'spm_id_from',
+      'vd_source',
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_content',
+      'utm_term',
+      'from',
+      'source',
+      'share_source',
+      'share_medium',
+      'share_plat',
+      'share_session_id',
+      'share_tag',
+      'timestamp'
+    ];
+
+    // Remove tracking parameters
+    trackingParams.forEach(param => {
+      urlObj.searchParams.delete(param);
+    });
+
+    // Return normalized URL
+    return urlObj.toString();
+  } catch (error) {
+    // If URL parsing fails, return original URL
+    mainLogger.warn(`Failed to normalize URL: ${url}`, error);
+    return url;
+  }
+}
+
 function resolveVideoUrl(payload: ExtensionPayload): string | null {
   const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
   const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
@@ -495,11 +538,7 @@ async function handleMessage(message: ExtensionMessage) {
       state.title = message.payload.title ?? null;
 
       const url = resolveVideoUrl(message.payload);
-      const previousVideoUrl = state.videoUrl;
-      state.videoUrl = url;
-      const selection = selectProfileForUrl(url);
-      applyProfileSelection(selection.profile, selection.rule);
-
+      
       if (!url) {
         state.status = "error";
         state.error = "Unable to parse video URL";
@@ -507,10 +546,23 @@ async function handleMessage(message: ExtensionMessage) {
         return;
       }
 
-      // If video URL hasn't changed, it's the same video (e.g., just seeking), no need to reload subtitles
+      // Normalize URL to remove tracking parameters
+      // This ensures consistent behavior regardless of tracking params
+      const normalizedUrl = normalizeUrl(url);
+      const previousVideoUrl = state.videoUrl;
+      
+      // Store normalized URL for consistency
+      state.videoUrl = normalizedUrl;
+      
+      // Select profile based on normalized URL
+      const selection = selectProfileForUrl(normalizedUrl);
+      applyProfileSelection(selection.profile, selection.rule);
+
+      // If video URL hasn't changed (already normalized), it's the same video (e.g., just seeking), no need to reload subtitles
       // Don't retry even if previous download failed, to avoid repeated attempts
-      if (url === previousVideoUrl && (state.subtitleTracks.length > 0 || state.status === "error")) {
+      if (normalizedUrl === previousVideoUrl && (state.subtitleTracks.length > 0 || state.status === "error")) {
         // Only update page info, keep subtitle or error state unchanged
+        mainLogger.info(`Same video detected (normalized URL matches), skipping subtitle reload: ${normalizedUrl}`);
         pushState();
         return;
       }
