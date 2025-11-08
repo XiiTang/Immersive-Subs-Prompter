@@ -64,6 +64,7 @@ export class JellyfinSubtitleService {
   private activeSessionId: string | null = null;
   private subtitleRequestToken = 0;
   private lastSubtitleItemKey: string | null = null;
+  private lastActiveSessionItemId: string | null = null;
   private readonly identity = createJellyfinIdentity();
   private settings: JellyfinSettings;
 
@@ -104,6 +105,7 @@ export class JellyfinSubtitleService {
 
     this.activeSessionId = sessionId;
     this.lastSubtitleItemKey = null;
+    this.lastActiveSessionItemId = null;
 
     if (!sessionId) {
       this.emit("subtitles", { sessionId: null, itemName: null, tracks: [] });
@@ -121,7 +123,21 @@ export class JellyfinSubtitleService {
     const summary = this.sessions.get(sessionId);
     if (summary) {
       this.emitPlayback(summary);
-      void this.loadSubtitlesForSession(summary, true);
+      // Only try to load subtitles if there's actually a playing item
+      if (summary.nowPlayingItemId) {
+        void this.loadSubtitlesForSession(summary, true);
+      } else {
+        this.log.info("Selected session has no playing item, skipping subtitle load", {
+          sessionId: summary.id,
+          deviceName: summary.deviceName,
+          client: summary.client
+        });
+        this.emit("subtitles", {
+          sessionId: summary.id,
+          itemName: null,
+          tracks: []
+        });
+      }
     }
   }
 
@@ -281,10 +297,41 @@ export class JellyfinSubtitleService {
     }
     const nextSessions = new Map<string, JellyfinSessionSummary>();
     for (const record of data as RawSessionRecord[]) {
+      // Debug log to see raw session data
+      this.log.debug("Processing session record", {
+        sessionId: (record as any)?.Id,
+        deviceId: (record as any)?.DeviceId,
+        client: (record as any)?.Client,
+        hasNowPlayingItem: Boolean((record as any)?.NowPlayingItem),
+        nowPlayingItemId: (record as any)?.NowPlayingItem?.Id,
+        hasPlayState: Boolean((record as any)?.PlayState),
+        mediaSourceId: (record as any)?.PlayState?.MediaSourceId
+      });
+      
+      // Skip our own session - we don't want to monitor ourselves
+      const deviceId = (record as any)?.DeviceId;
+      if (typeof deviceId === "string" && deviceId === this.identity.deviceId) {
+        this.log.debug("Skipping own session", {
+          sessionId: (record as any)?.Id,
+          deviceId,
+          client: (record as any)?.Client
+        });
+        continue;
+      }
+      
       const summary = this.toSessionSummary(record);
       if (!summary) {
         continue;
       }
+      
+      // Debug log to see processed summary
+      this.log.debug("Processed session summary", {
+        sessionId: summary.id,
+        itemId: summary.nowPlayingItemId,
+        mediaSourceId: summary.mediaSourceId,
+        subtitleStreamsCount: summary.subtitleStreams.length
+      });
+      
       nextSessions.set(summary.id, summary);
     }
     this.sessions = nextSessions;
@@ -295,8 +342,40 @@ export class JellyfinSubtitleService {
       const summary = this.sessions.get(this.activeSessionId);
       if (summary) {
         this.emitPlayback(summary);
-        void this.loadSubtitlesForSession(summary);
+        
+        const currentItemId = summary.nowPlayingItemId;
+        const itemIdChanged = this.lastActiveSessionItemId !== currentItemId;
+        
+        // Update tracked item ID
+        this.lastActiveSessionItemId = currentItemId;
+        
+        // Only try to load subtitles if there's actually a playing item
+        if (currentItemId) {
+          // Load subtitles if item changed from null to a value, or if force refresh
+          if (itemIdChanged && this.lastActiveSessionItemId !== null) {
+            this.log.info("Active session now has playing item, loading subtitles", {
+              sessionId: summary.id,
+              itemId: currentItemId,
+              itemName: summary.nowPlayingItemName
+            });
+          }
+          void this.loadSubtitlesForSession(summary);
+        } else {
+          if (itemIdChanged) {
+            this.log.info("Active session has no playing item", {
+              sessionId: summary.id,
+              deviceName: summary.deviceName,
+              client: summary.client
+            });
+          }
+          this.emit("subtitles", {
+            sessionId: summary.id,
+            itemName: null,
+            tracks: []
+          });
+        }
       } else {
+        this.lastActiveSessionItemId = null;
         this.emit("playback", {
           sessionId: null,
           itemName: null,
@@ -321,21 +400,18 @@ export class JellyfinSubtitleService {
     const playState: Record<string, unknown> = (record as any).PlayState ?? {};
     const nowPlayingItem: Record<string, unknown> | null = (record as any).NowPlayingItem ?? null;
     const mediaSources = (nowPlayingItem?.MediaSources as RawSessionRecord[] | undefined) ?? [];
-    const preferredSourceId =
-      (typeof playState?.MediaSourceId === "string" ? playState.MediaSourceId : null) ??
-      (mediaSources[0]?.Id as string | undefined) ??
-      null;
-    const mediaSource =
-      mediaSources.find((source) => source?.Id === preferredSourceId) ??
-      mediaSources[0] ??
-      null;
+    
+    // Extract mediaSourceId directly from PlayState first, then fallback to MediaSources
+    const mediaSourceIdFromPlayState = typeof playState?.MediaSourceId === "string" ? playState.MediaSourceId : null;
+    const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
+    const resolvedMediaSourceId = mediaSourceIdFromPlayState ?? mediaSourceIdFromSources;
+    
+    // Find the matching media source
+    const mediaSource = resolvedMediaSourceId
+      ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
+      : mediaSources[0] ?? null;
+    
     const subtitleStreams = this.extractSubtitleStreams(mediaSource, nowPlayingItem);
-    const resolvedMediaSourceId =
-      typeof preferredSourceId === "string"
-        ? preferredSourceId
-        : typeof mediaSource?.Id === "string"
-          ? mediaSource.Id
-          : null;
 
     return {
       id,
@@ -416,11 +492,9 @@ export class JellyfinSubtitleService {
 
   private async loadSubtitlesForSession(summary: JellyfinSessionSummary, force = false) {
     if (!this.settings.serverUrl || !this.settings.apiKey) {
-      this.log.warn("Skipping Jellyfin subtitles due to missing identifiers", {
+      this.log.warn("Skipping Jellyfin subtitles due to missing server configuration", {
         serverUrl: this.settings.serverUrl,
-        hasApiKey: Boolean(this.settings.apiKey),
-        mediaSourceId: summary.mediaSourceId,
-        itemId: summary.nowPlayingItemId
+        hasApiKey: Boolean(this.settings.apiKey)
       });
       this.emit("subtitles", {
         sessionId: summary.id,
@@ -432,15 +506,40 @@ export class JellyfinSubtitleService {
 
     let workingSummary = summary;
     if ((!summary.mediaSourceId || !summary.subtitleStreams.length) && summary.nowPlayingItemId) {
+      this.log.info("Attempting to refresh subtitle metadata from Jellyfin API", {
+        sessionId: summary.id,
+        itemId: summary.nowPlayingItemId,
+        currentMediaSourceId: summary.mediaSourceId,
+        currentSubtitleCount: summary.subtitleStreams.length
+      });
       const refreshed = await this.refreshSubtitleMetadata(summary);
       if (refreshed) {
         workingSummary = refreshed;
         this.sessions.set(summary.id, refreshed);
+        this.log.info("Successfully refreshed subtitle metadata", {
+          sessionId: summary.id,
+          mediaSourceId: refreshed.mediaSourceId,
+          subtitleCount: refreshed.subtitleStreams.length
+        });
       }
     }
 
-    if (!workingSummary.mediaSourceId || !workingSummary.nowPlayingItemId) {
-      this.log.warn("Skipping Jellyfin subtitles due to missing identifiers", {
+    if (!workingSummary.nowPlayingItemId) {
+      this.log.warn("Skipping Jellyfin subtitles due to missing item ID", {
+        serverUrl: this.settings.serverUrl,
+        hasApiKey: Boolean(this.settings.apiKey),
+        sessionId: workingSummary.id
+      });
+      this.emit("subtitles", {
+        sessionId: summary.id,
+        itemName: workingSummary.nowPlayingItemName ?? null,
+        tracks: []
+      });
+      return;
+    }
+
+    if (!workingSummary.mediaSourceId) {
+      this.log.warn("Skipping Jellyfin subtitles due to missing media source ID", {
         serverUrl: this.settings.serverUrl,
         hasApiKey: Boolean(this.settings.apiKey),
         mediaSourceId: workingSummary.mediaSourceId,
@@ -569,20 +668,23 @@ export class JellyfinSubtitleService {
       }
       const item = await response.json();
       const mediaSources = Array.isArray(item?.MediaSources) ? (item.MediaSources as RawSessionRecord[]) : [];
-      const preferredId = summary.mediaSourceId ?? (mediaSources[0]?.Id as string | undefined) ?? null;
-      const mediaSource =
-        mediaSources.find((source) => source?.Id === preferredId) ??
-        mediaSources[0] ??
-        null;
+      
+      // Use mediaSourceId from summary first, then fallback to first source
+      const mediaSourceIdFromSummary = summary.mediaSourceId;
+      const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
+      const resolvedMediaSourceId = mediaSourceIdFromSummary ?? mediaSourceIdFromSources;
+      
+      // Find matching media source
+      const mediaSource = resolvedMediaSourceId
+        ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
+        : mediaSources[0] ?? null;
+      
       const subtitleStreams = this.extractSubtitleStreams(mediaSource, item);
-      const mediaSourceId =
-        typeof (summary.mediaSourceId ?? mediaSource?.Id) === "string"
-          ? (summary.mediaSourceId ?? (mediaSource?.Id as string))
-          : null;
       const itemName = typeof item?.Name === "string" ? item.Name : null;
+      
       return {
         subtitleStreams,
-        mediaSourceId,
+        mediaSourceId: resolvedMediaSourceId,
         itemName
       };
     } catch (error) {
