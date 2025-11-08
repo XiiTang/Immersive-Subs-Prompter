@@ -156,15 +156,10 @@ body {
 
 .control-panel {
   display: none;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
   padding: 0 16px 8px;
-}
-
-.track-picker-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
 }
 
 .track-picker {
@@ -172,6 +167,7 @@ body {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  min-width: 150px;
 }
 
 .track-picker__label {
@@ -194,7 +190,7 @@ body {
 .playback-buttons {
   display: flex;
   gap: 8px;
-  align-self: flex-end;
+  flex-shrink: 0;
 }
 
 .playback-buttons button {
