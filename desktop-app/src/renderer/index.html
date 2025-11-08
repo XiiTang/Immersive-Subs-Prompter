@@ -23,6 +23,7 @@
           <section class="video-info-section">
             <section class="video-meta" id="video-meta">
               <p class="video-meta__title" id="video-title">Waiting for video...</p>
+              <p class="video-meta__profile" id="active-profile-label">情景配置：默认配置</p>
               <p class="video-meta__url" id="video-url"></p>
             </section>
             <section class="control-panel" id="control-panel">
@@ -55,92 +56,158 @@
             <div class="settings-panel__title">Settings</div>
           </div>
           <div class="settings-panel__content">
-            <label class="settings-field">
-              <span class="settings-field__label">Close behavior</span>
-              <select id="close-behavior">
-                <option value="tray">Minimize to tray on close</option>
-                <option value="quit">Exit directly on close</option>
-              </select>
-            </label>
-            <div class="settings-field settings-field--inline">
-              <span class="settings-field__label">Auto-start on boot</span>
-              <label class="toggle">
-                <input type="checkbox" id="autostart-toggle" />
-                <span class="toggle__text">Enable</span>
+            <section class="settings-section">
+              <h3 class="settings-section__title">全局设置</h3>
+              <label class="settings-field">
+                <span class="settings-field__label">关闭行为</span>
+                <select id="close-behavior">
+                  <option value="tray">关闭时最小化到托盘</option>
+                  <option value="quit">直接退出程序</option>
+                </select>
               </label>
-            </div>
-            <label class="settings-field">
-              <span class="settings-field__label">Subtitle font</span>
-              <input
-                type="text"
-                id="subtitle-font"
-                placeholder="e.g.: LXGW WenKai, sans-serif"
-                autocomplete="off"
-              />
-            </label>
-            <label class="settings-field">
-              <span class="settings-field__label">Subtitle font size</span>
-              <input type="number" id="subtitle-font-size" min="10" max="48" step="1" />
-            </label>
-            <label class="settings-field">
-              <span class="settings-field__label">Auto-scroll recovery time (seconds)</span>
-              <input type="number" id="subtitle-auto-scroll-timeout" min="1" max="60" step="1" />
-              <small class="settings-field__hint">Resume auto-tracking subtitles after manual scroll in specified seconds</small>
-            </label>
-            <label class="settings-field">
-              <div class="settings-field__label-row">
-                <span class="settings-field__label">Subtitle scroll position</span>
-                <span class="settings-field__value" id="subtitle-scroll-position-value">33%</span>
-              </div>
-              <input type="range" id="subtitle-scroll-position" min="0" max="100" step="1" class="slider" />
-              <small class="settings-field__hint">Adjust where active subtitle appears in panel (0%=top, 50%=center, 100%=bottom)</small>
-            </label>
-            <section class="settings-field priority-editor">
-              <div class="priority-editor__header">
-                <span class="settings-field__label">Primary subtitle priority</span>
-                <small class="priority-editor__hint">Match language/label suffix, drag to reorder</small>
-              </div>
-              <div class="priority-editor__list" id="primary-priority-list"></div>
-              <div class="priority-editor__controls">
-                <input
-                  type="text"
-                  id="primary-priority-input"
-                  placeholder="e.g.: en"
-                  autocomplete="off"
-                />
-                <button type="button" class="text-button priority-editor__add" id="primary-priority-add">
-                  Add
-                </button>
+              <div class="settings-field settings-field--inline">
+                <span class="settings-field__label">开机自启</span>
+                <label class="toggle">
+                  <input type="checkbox" id="autostart-toggle" />
+                  <span class="toggle__text">启用</span>
+                </label>
               </div>
             </section>
-            <section class="settings-field priority-editor">
-              <div class="priority-editor__header">
-                <span class="settings-field__label">Secondary subtitle priority</span>
-                <small class="priority-editor__hint">Typically your native language suffix</small>
-              </div>
-              <div class="priority-editor__list" id="secondary-priority-list"></div>
-              <div class="priority-editor__controls">
-                <input
-                  type="text"
-                  id="secondary-priority-input"
-                  placeholder="e.g.: zh, zh-Hans"
-                  autocomplete="off"
-                />
-                <button type="button" class="text-button priority-editor__add" id="secondary-priority-add">
-                  Add
-                </button>
+
+            <section class="settings-section">
+              <h3 class="settings-section__title">情景配置</h3>
+              <div class="profile-settings">
+                <div class="profile-settings__sidebar">
+                  <div class="profile-settings__actions">
+                    <span class="settings-field__label">配置列表</span>
+                    <div class="profile-settings__buttons">
+                      <button type="button" class="text-button" id="profile-add">新增</button>
+                      <button type="button" class="text-button" id="profile-duplicate">复制</button>
+                      <button type="button" class="text-button" id="profile-delete">删除</button>
+                    </div>
+                  </div>
+                  <div class="profile-list" id="profile-list"></div>
+                  <button type="button" class="text-button profile-settings__default" id="profile-set-default">
+                    设为默认
+                  </button>
+                </div>
+                <div class="profile-settings__editor">
+                  <label class="settings-field">
+                    <span class="settings-field__label">配置名称</span>
+                    <input type="text" id="profile-name" autocomplete="off" />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">字幕字体</span>
+                    <input
+                      type="text"
+                      id="subtitle-font"
+                      placeholder="例如：LXGW WenKai, sans-serif"
+                      autocomplete="off"
+                    />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">字幕字号</span>
+                    <input type="number" id="subtitle-font-size" min="10" max="48" step="1" />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">自动滚动恢复时间（秒）</span>
+                    <input type="number" id="subtitle-auto-scroll-timeout" min="1" max="60" step="1" />
+                    <small class="settings-field__hint">手动滚动后，多久恢复自动跟随字幕</small>
+                  </label>
+                  <label class="settings-field">
+                    <div class="settings-field__label-row">
+                      <span class="settings-field__label">字幕滚动定位</span>
+                      <span class="settings-field__value" id="subtitle-scroll-position-value">33%</span>
+                    </div>
+                    <input type="range" id="subtitle-scroll-position" min="0" max="100" step="1" class="slider" />
+                    <small class="settings-field__hint">激活字幕在面板中的位置（0%=顶部, 50%=居中, 100%=底部）</small>
+                  </label>
+                  <section class="settings-field priority-editor">
+                    <div class="priority-editor__header">
+                      <span class="settings-field__label">主字幕优先级</span>
+                      <small class="priority-editor__hint">匹配语言/标签关键字，拖动可排序</small>
+                    </div>
+                    <div class="priority-editor__list" id="primary-priority-list"></div>
+                    <div class="priority-editor__controls">
+                      <input
+                        type="text"
+                        id="primary-priority-input"
+                        placeholder="例如：en"
+                        autocomplete="off"
+                      />
+                      <button type="button" class="text-button priority-editor__add" id="primary-priority-add">
+                        添加
+                      </button>
+                    </div>
+                  </section>
+                  <section class="settings-field priority-editor">
+                    <div class="priority-editor__header">
+                      <span class="settings-field__label">副字幕优先级</span>
+                      <small class="priority-editor__hint">通常可填写母语关键字</small>
+                    </div>
+                    <div class="priority-editor__list" id="secondary-priority-list"></div>
+                    <div class="priority-editor__controls">
+                      <input
+                        type="text"
+                        id="secondary-priority-input"
+                        placeholder="例如：zh, zh-Hans"
+                        autocomplete="off"
+                      />
+                      <button type="button" class="text-button priority-editor__add" id="secondary-priority-add">
+                        添加
+                      </button>
+                    </div>
+                  </section>
+                  <label class="settings-field">
+                    <span class="settings-field__label">yt-dlp 参数</span>
+                    <textarea
+                      id="yt-dlp-args"
+                      rows="3"
+                      spellcheck="false"
+                      placeholder="--skip-download --write-subs --all-subs --cookies-from-browser firefox"
+                    ></textarea>
+                    <small class="settings-field__hint">留空则使用默认参数</small>
+                  </label>
+                </div>
               </div>
             </section>
-            <label class="settings-field">
-              <span class="settings-field__label">yt-dlp config</span>
-              <textarea
-                id="yt-dlp-args"
-                rows="3"
-                spellcheck="false"
-                placeholder="--skip-download --write-subs --all-subs --cookies-from-browser firefox"
-              ></textarea>
-              <small class="settings-field__hint">Leave empty to use default config</small>
-            </label>
+
+            <section class="settings-section">
+              <h3 class="settings-section__title">URL 规则</h3>
+              <div class="rule-list" id="rule-list"></div>
+              <div class="rule-form">
+                <div class="rule-form__header">
+                  <span class="settings-field__label" id="rule-form-title">新增规则</span>
+                  <button type="button" class="text-button is-hidden" id="rule-cancel">退出编辑</button>
+                </div>
+                <label class="settings-field">
+                  <span class="settings-field__label">规则名称</span>
+                  <input type="text" id="rule-name" placeholder="可选，如：YouTube 影视" autocomplete="off" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-field__label">匹配模式</span>
+                  <select id="rule-match-type">
+                    <option value="contains">包含</option>
+                    <option value="exact">完全匹配</option>
+                    <option value="regex">正则表达式</option>
+                  </select>
+                </label>
+                <label class="settings-field">
+                  <span class="settings-field__label">匹配内容</span>
+                  <input
+                    type="text"
+                    id="rule-pattern"
+                    placeholder="例如：youtube.com/@channel"
+                    autocomplete="off"
+                  />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-field__label">应用配置</span>
+                  <select id="rule-profile"></select>
+                </label>
+                <button type="button" class="text-button rule-form__submit" id="rule-save">添加规则</button>
+              </div>
+            </section>
           </div>
         </section>
       </div>

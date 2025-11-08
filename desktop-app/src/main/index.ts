@@ -14,6 +14,9 @@ import {
   ExtensionMessageType,
   ExtensionPayload,
   PlaybackState,
+  ProfileDefinition,
+  ProfileRule,
+  ProfileSettings,
   SubtitleTrack,
   VideoControlCommand
 } from "./types.js";
@@ -21,7 +24,8 @@ import {
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 const ytDlpManager = new YtDlpManager();
 let appSettings: AppSettings = DEFAULT_SETTINGS;
-const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => appSettings);
+let activeProfileId = DEFAULT_SETTINGS.defaultProfileId;
+const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => getActiveProfileSettings());
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
@@ -34,6 +38,10 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let settingsStore: SettingsStore | null = null;
 const mainLogger = createLogger("desktop");
+
+const initialProfile =
+  DEFAULT_SETTINGS.profiles.find((profile) => profile.id === DEFAULT_SETTINGS.defaultProfileId) ??
+  DEFAULT_SETTINGS.profiles[0];
 
 const state: DesktopState = {
   connectionCount: 0,
@@ -53,8 +61,111 @@ const state: DesktopState = {
   selectedPrimarySubtitleId: null,
   selectedSecondarySubtitleId: null,
   primarySubtitles: null,
-  secondarySubtitles: null
+  secondarySubtitles: null,
+  appliedProfileId: initialProfile?.id ?? null,
+  appliedProfileName: initialProfile?.name ?? null,
+  appliedRuleId: null,
+  appliedRuleName: null,
+  appliedRulePattern: null,
+  appliedRuleMatchType: null
 };
+
+function getProfileById(settings: AppSettings, profileId: string | null | undefined): ProfileDefinition | null {
+  if (!profileId) {
+    return null;
+  }
+  return settings.profiles.find((profile) => profile.id === profileId) ?? null;
+}
+
+function getDefaultProfile(settings: AppSettings = appSettings): ProfileDefinition {
+  return (
+    settings.profiles.find((profile) => profile.id === settings.defaultProfileId) ??
+    settings.profiles[0] ??
+    DEFAULT_SETTINGS.profiles[0]
+  );
+}
+
+function getProfileSettingsFrom(settings: AppSettings, profileId: string | null | undefined): ProfileSettings {
+  const profile = getProfileById(settings, profileId) ?? getDefaultProfile(settings);
+  return profile.settings;
+}
+
+function getActiveProfileSettings(): ProfileSettings {
+  return getProfileSettingsFrom(appSettings, activeProfileId);
+}
+
+function ensureActiveProfile(): ProfileDefinition {
+  const existing = getProfileById(appSettings, activeProfileId);
+  if (existing) {
+    return existing;
+  }
+  const fallback = getDefaultProfile();
+  activeProfileId = fallback.id;
+  return fallback;
+}
+
+function matchesRule(url: string, rule: ProfileRule): boolean {
+  if (!rule.isEnabled) {
+    return false;
+  }
+  const source = url ?? "";
+  switch (rule.matchType) {
+    case "exact":
+      return source.toLowerCase() === rule.pattern.toLowerCase();
+    case "regex":
+      try {
+        const regex = new RegExp(rule.pattern);
+        return regex.test(source);
+      } catch {
+        return false;
+      }
+    case "contains":
+    default:
+      return source.toLowerCase().includes(rule.pattern.toLowerCase());
+  }
+}
+
+function selectProfileForUrl(url: string | null): { profile: ProfileDefinition; rule: ProfileRule | null } {
+  if (url) {
+    for (const rule of appSettings.rules) {
+      if (!rule.isEnabled) {
+        continue;
+      }
+      if (matchesRule(url, rule)) {
+        const profile = getProfileById(appSettings, rule.profileId) ?? getDefaultProfile();
+        return { profile, rule };
+      }
+    }
+  }
+  return { profile: getDefaultProfile(), rule: null };
+}
+
+function applyProfileSelection(profile: ProfileDefinition, rule: ProfileRule | null): boolean {
+  const ruleId = rule?.id ?? null;
+  const ruleName = rule?.name ?? null;
+  const rulePattern = rule?.pattern ?? null;
+  const ruleType = rule?.matchType ?? null;
+  const changed =
+    state.appliedProfileId !== profile.id ||
+    state.appliedProfileName !== profile.name ||
+    state.appliedRuleId !== ruleId ||
+    state.appliedRuleName !== ruleName ||
+    state.appliedRulePattern !== rulePattern ||
+    state.appliedRuleMatchType !== ruleType;
+  activeProfileId = profile.id;
+  state.appliedProfileId = profile.id;
+  state.appliedProfileName = profile.name;
+  state.appliedRuleId = ruleId;
+  state.appliedRuleName = ruleName;
+  state.appliedRulePattern = rulePattern;
+  state.appliedRuleMatchType = ruleType;
+  return changed;
+}
+
+function reapplyActiveProfileForCurrentVideo(): boolean {
+  const selection = selectProfileForUrl(state.videoUrl);
+  return applyProfileSelection(selection.profile, selection.rule);
+}
 
 function getAutostartDesktopEntryPath() {
   const configDir = path.join(app.getPath("home"), ".config", "autostart");
@@ -151,30 +262,44 @@ function updateAppSettings(partial: Partial<AppSettings>) {
     return appSettings;
   }
   const previous = appSettings;
+  const previousGlobal = previous.global;
+  const previousProfileSettings = getProfileSettingsFrom(previous, activeProfileId);
+  const hadTracks = state.subtitleTracks.length > 0;
+
   appSettings = settingsStore.update(partial);
-  if (previous.autoLaunch !== appSettings.autoLaunch) {
-    applyAutoLaunch(appSettings.autoLaunch);
+  ensureActiveProfile();
+
+  if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
+    applyAutoLaunch(appSettings.global.autoLaunch);
   }
-  if (previous.closeBehavior !== appSettings.closeBehavior && mainWindow) {
-    if (appSettings.closeBehavior === "quit") {
+
+  if (previousGlobal.closeBehavior !== appSettings.global.closeBehavior && mainWindow) {
+    if (appSettings.global.closeBehavior === "quit") {
       mainWindow.setSkipTaskbar(false);
     } else if (!mainWindow.isVisible()) {
       mainWindow.setSkipTaskbar(true);
     }
   }
+
+  const activeProfileChanged = reapplyActiveProfileForCurrentVideo();
+  const nextProfileSettings = getActiveProfileSettings();
   const primaryPriorityChanged = !areStringArraysEqual(
-    previous.primarySubtitlePriority,
-    appSettings.primarySubtitlePriority
+    previousProfileSettings.primarySubtitlePriority,
+    nextProfileSettings.primarySubtitlePriority
   );
   const secondaryPriorityChanged = !areStringArraysEqual(
-    previous.secondarySubtitlePriority,
-    appSettings.secondarySubtitlePriority
+    previousProfileSettings.secondarySubtitlePriority,
+    nextProfileSettings.secondarySubtitlePriority
   );
 
-  const shouldReapplyPriorities = (primaryPriorityChanged || secondaryPriorityChanged) && state.subtitleTracks.length > 0;
+  let shouldPushState = activeProfileChanged;
 
-  if (shouldReapplyPriorities) {
+  if (hadTracks && (primaryPriorityChanged || secondaryPriorityChanged || activeProfileChanged)) {
     applyPreferredTracksFromSettings(state.subtitleTracks);
+    shouldPushState = true;
+  }
+
+  if (shouldPushState) {
     pushState();
   }
 
@@ -202,7 +327,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 
   mainWindow.on("close", (event) => {
-    if (!isQuitting && appSettings.closeBehavior === "tray") {
+    if (!isQuitting && appSettings.global.closeBehavior === "tray") {
       event.preventDefault();
       mainWindow?.hide();
       mainWindow?.setSkipTaskbar(true);
@@ -214,7 +339,7 @@ function createWindow() {
   });
 
   mainWindow.on("hide", () => {
-    if (appSettings.closeBehavior === "tray") {
+    if (appSettings.global.closeBehavior === "tray") {
       mainWindow?.setSkipTaskbar(true);
     }
   });
@@ -258,6 +383,7 @@ function updateConnectionCount(delta: number) {
     state.selectedSecondarySubtitleId = null;
     state.primarySubtitles = null;
     state.secondarySubtitles = null;
+    applyProfileSelection(getDefaultProfile(), null);
   } else if (state.status === "idle") {
     state.status = "awaiting-video";
   }
@@ -300,7 +426,10 @@ function pickTrackByPriority(
   return null;
 }
 
-function applyPreferredTracksFromSettings(tracks: SubtitleTrack[]) {
+function applyPreferredTracksFromSettings(
+  tracks: SubtitleTrack[],
+  profileSettings: ProfileSettings = getActiveProfileSettings()
+) {
   if (!tracks.length) {
     state.primarySubtitles = null;
     state.secondarySubtitles = null;
@@ -309,7 +438,7 @@ function applyPreferredTracksFromSettings(tracks: SubtitleTrack[]) {
     return;
   }
 
-  let primary = pickTrackByPriority(tracks, appSettings.primarySubtitlePriority);
+  let primary = pickTrackByPriority(tracks, profileSettings.primarySubtitlePriority);
   if (!primary) {
     primary = pickBestTrack(tracks);
   }
@@ -322,7 +451,7 @@ function applyPreferredTracksFromSettings(tracks: SubtitleTrack[]) {
     exclude.add(primary.id);
   }
 
-  const secondary = pickTrackByPriority(tracks, appSettings.secondarySubtitlePriority, exclude);
+  const secondary = pickTrackByPriority(tracks, profileSettings.secondarySubtitlePriority, exclude);
   state.secondarySubtitles = secondary ?? null;
   state.selectedSecondarySubtitleId = secondary?.id ?? null;
 }
@@ -368,6 +497,8 @@ async function handleMessage(message: ExtensionMessage) {
       const url = resolveVideoUrl(message.payload);
       const previousVideoUrl = state.videoUrl;
       state.videoUrl = url;
+      const selection = selectProfileForUrl(url);
+      applyProfileSelection(selection.profile, selection.rule);
 
       if (!url) {
         state.status = "error";
@@ -457,6 +588,7 @@ async function handleMessage(message: ExtensionMessage) {
         state.selectedPrimarySubtitleId = null;
         state.selectedSecondarySubtitleId = null;
         state.videoUrl = null;
+        applyProfileSelection(getDefaultProfile(), null);
         pushState();
       }
       break;
@@ -610,7 +742,9 @@ ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) =>
 app.whenReady().then(() => {
   settingsStore = new SettingsStore();
   appSettings = settingsStore.get();
-  applyAutoLaunch(appSettings.autoLaunch);
+  activeProfileId = appSettings.defaultProfileId;
+  applyProfileSelection(getDefaultProfile(), null);
+  applyAutoLaunch(appSettings.global.autoLaunch);
   ensureTray();
   bootstrapWebSocketServer();
   createWindow();

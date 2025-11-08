@@ -64,6 +64,12 @@ export interface DesktopState {
   selectedSecondarySubtitleId: string | null;
   primarySubtitles: SubtitleTrack | null;
   secondarySubtitles: SubtitleTrack | null;
+  appliedProfileId: string | null;
+  appliedProfileName: string | null;
+  appliedRuleId: string | null;
+  appliedRuleName: string | null;
+  appliedRulePattern: string | null;
+  appliedRuleMatchType: UrlMatchType | null;
 }
 
 export type VideoControlCommand =
@@ -73,14 +79,42 @@ export type VideoControlCommand =
 
 export type CloseBehavior = "quit" | "tray";
 
-export interface AppSettings {
+export type UrlMatchType = "contains" | "exact" | "regex";
+
+export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
+}
+
+export interface ProfileSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
   ytDlpArgs: string;
-  subtitleAutoScrollTimeout: number; // Auto-scroll timeout (seconds)
-  subtitleScrollPosition: number; // Subtitle scroll position (0-100, where 0=top, 50=center, 100=bottom)
+  subtitleAutoScrollTimeout: number;
+  subtitleScrollPosition: number;
   primarySubtitlePriority: string[];
   secondarySubtitlePriority: string[];
+}
+
+export interface ProfileDefinition {
+  id: string;
+  name: string;
+  description?: string | null;
+  settings: ProfileSettings;
+}
+
+export interface ProfileRule {
+  id: string;
+  name: string;
+  pattern: string;
+  matchType: UrlMatchType;
+  profileId: string;
+  isEnabled: boolean;
+}
+
+export interface AppSettings {
+  global: GlobalSettings;
+  profiles: ProfileDefinition[];
+  defaultProfileId: string;
+  rules: ProfileRule[];
 }

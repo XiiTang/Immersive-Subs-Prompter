@@ -4,8 +4,8 @@ import { promises as fs } from "fs";
 import iconv from "iconv-lite";
 import { tmpdir } from "os";
 import path from "path";
-import { DEFAULT_YTDLP_ARGS } from "./settings.js";
-import { AppSettings, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
+import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings.js";
+import { ProfileSettings, SubtitleCue, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
 
 const LANGUAGE_PRIORITY = [
@@ -22,7 +22,7 @@ const LANGUAGE_PRIORITY = [
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
 
 type BinaryResolver = () => Promise<string>;
-type SettingsProvider = () => Pick<AppSettings, "ytDlpArgs">;
+type SettingsProvider = () => Pick<ProfileSettings, "ytDlpArgs">;
 
 export class SubtitleService {
   private cache = new Map<string, SubtitleLoadResult>();
@@ -31,7 +31,7 @@ export class SubtitleService {
 
   constructor(
     private readonly binaryResolver: BinaryResolver = async () => "yt-dlp",
-    private readonly settingsProvider: SettingsProvider = () => ({ ytDlpArgs: DEFAULT_YTDLP_ARGS })
+    private readonly settingsProvider: SettingsProvider = () => DEFAULT_PROFILE_SETTINGS
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
@@ -127,7 +127,7 @@ export class SubtitleService {
   }
 
   private buildArgs(videoUrl: string, baseOutput: string): string[] {
-    const settings = this.settingsProvider ? this.settingsProvider() : { ytDlpArgs: DEFAULT_YTDLP_ARGS };
+    const settings = this.settingsProvider ? this.settingsProvider() : DEFAULT_PROFILE_SETTINGS;
     const customLine = settings?.ytDlpArgs?.trim() || DEFAULT_YTDLP_ARGS;
     const customArgs = splitArgs(customLine);
     return [
