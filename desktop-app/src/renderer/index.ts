@@ -72,9 +72,9 @@ const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   secondarySubtitlePriority: []
 };
 const MATCH_TYPE_LABELS: Record<UrlMatchType, string> = {
-  contains: "包含",
-  exact: "完全匹配",
-  regex: "正则"
+  contains: "Contains",
+  exact: "Exact Match",
+  regex: "Regex"
 };
 
 type CombinedCue = {
@@ -346,7 +346,7 @@ function renderProfileList(settings: AppSettings) {
   if (!settings.profiles.length) {
     const empty = document.createElement("div");
     empty.className = "profile-list__empty";
-    empty.textContent = "暂无配置";
+    empty.textContent = "No profiles";
     profileListElement.appendChild(empty);
     return;
   }
@@ -367,7 +367,7 @@ function renderProfileList(settings: AppSettings) {
     if (profile.id === settings.defaultProfileId) {
       const badge = document.createElement("span");
       badge.className = "profile-list__badge";
-      badge.textContent = "默认";
+      badge.textContent = "Default";
       button.appendChild(badge);
     }
 
@@ -414,7 +414,7 @@ function handleProfileAdd() {
   }
   const newProfile: ProfileDefinition = {
     id: createId("profile"),
-    name: `情景配置 ${currentSettings.profiles.length + 1}`,
+    name: `Profile ${currentSettings.profiles.length + 1}`,
     description: null,
     settings: cloneProfileSettings(DEFAULT_PROFILE_TEMPLATE)
   };
@@ -429,7 +429,7 @@ function handleProfileDuplicate() {
   }
   const copy: ProfileDefinition = {
     id: createId("profile"),
-    name: `${profile.name} 副本`,
+    name: `${profile.name} Copy`,
     description: profile.description ?? null,
     settings: cloneProfileSettings(profile.settings)
   };
@@ -443,15 +443,15 @@ function handleProfileDelete() {
     return;
   }
   if (profile.id === currentSettings.defaultProfileId) {
-    window.alert("默认配置无法删除，请先切换默认配置。");
+    window.alert("Cannot delete the default profile. Please change the default profile first.");
     return;
   }
   if (currentSettings.profiles.length <= 1) {
-    window.alert("至少保留一个配置。");
+    window.alert("At least one profile must remain.");
     return;
   }
   if (currentSettings.rules.some((rule) => rule.profileId === profile.id)) {
-    window.alert("此配置仍被规则引用，请先修改或删除相关规则。");
+    window.alert("This profile is still referenced by rules. Please modify or delete the related rules first.");
     return;
   }
   const profiles = currentSettings.profiles.filter((item) => item.id !== profile.id);
@@ -474,7 +474,7 @@ function getProfileDisplayName(profileId: string): string {
   if (!currentSettings) {
     return profileId;
   }
-  return currentSettings.profiles.find((profile) => profile.id === profileId)?.name ?? "未知配置";
+  return currentSettings.profiles.find((profile) => profile.id === profileId)?.name ?? "Unknown Profile";
 }
 
 function createRuleActionButton(label: string, handler: () => void, disabled = false): HTMLButtonElement {
@@ -497,7 +497,7 @@ function renderRuleList() {
   if (!settings.rules.length) {
     const empty = document.createElement("div");
     empty.className = "rule-list__empty";
-    empty.textContent = "暂无规则";
+    empty.textContent = "No rules";
     ruleListElement.appendChild(empty);
     return;
   }
@@ -528,17 +528,17 @@ function renderRuleList() {
 
     const target = document.createElement("div");
     target.className = "rule-item__profile";
-    target.textContent = `套用配置：${getProfileDisplayName(rule.profileId)}`;
+    target.textContent = `Apply Profile: ${getProfileDisplayName(rule.profileId)}`;
     item.appendChild(target);
 
     const actions = document.createElement("div");
     actions.className = "rule-item__actions";
-    const toggleButton = createRuleActionButton(rule.isEnabled ? "禁用" : "启用", () => handleRuleToggle(rule.id));
-    const editButton = createRuleActionButton("编辑", () => handleRuleEdit(rule.id));
-    const deleteButton = createRuleActionButton("删除", () => handleRuleDelete(rule.id));
-    const upButton = createRuleActionButton("上移", () => handleRuleMove(rule.id, -1), index === 0);
+    const toggleButton = createRuleActionButton(rule.isEnabled ? "Disable" : "Enable", () => handleRuleToggle(rule.id));
+    const editButton = createRuleActionButton("Edit", () => handleRuleEdit(rule.id));
+    const deleteButton = createRuleActionButton("Delete", () => handleRuleDelete(rule.id));
+    const upButton = createRuleActionButton("Move Up", () => handleRuleMove(rule.id, -1), index === 0);
     const downButton = createRuleActionButton(
-      "下移",
+      "Move Down",
       () => handleRuleMove(rule.id, +1),
       index === settings.rules.length - 1
     );
@@ -574,8 +574,8 @@ function updateRuleProfileOptions() {
 function resetRuleForm() {
   editingRuleId = null;
   ruleFormInitialized = true;
-  ruleFormTitle.textContent = "新增规则";
-  ruleSaveButton.textContent = "添加规则";
+  ruleFormTitle.textContent = "Add Rule";
+  ruleSaveButton.textContent = "Add Rule";
   ruleCancelButton.classList.add("is-hidden");
   ruleNameInput.value = "";
   rulePatternInput.value = "";
@@ -588,8 +588,8 @@ function resetRuleForm() {
 
 function populateRuleForm(rule: ProfileRule) {
   editingRuleId = rule.id;
-  ruleFormTitle.textContent = "编辑规则";
-  ruleSaveButton.textContent = "保存规则";
+  ruleFormTitle.textContent = "Edit Rule";
+  ruleSaveButton.textContent = "Save Rule";
   ruleCancelButton.classList.remove("is-hidden");
   ruleNameInput.value = rule.name;
   rulePatternInput.value = rule.pattern;
@@ -911,7 +911,7 @@ function scrollToActiveSubtitle(element: HTMLElement) {
   const containerHeight = container.clientHeight;
   const elementHeight = element.offsetHeight;
   
-  // 使用当前生效配置中的位置百分比 (0-100)
+  // Use the position percentage from the currently active configuration (0-100)
   const positionPercent = (playbackProfileSettings?.subtitleScrollPosition ?? DEFAULT_PROFILE_TEMPLATE.subtitleScrollPosition) / 100;
   const targetScroll = elementTop - containerHeight * positionPercent + elementHeight / 2;
   
@@ -1005,14 +1005,14 @@ function renderState(state: DesktopState) {
   videoUrl.textContent = formatUrl(state.videoUrl);
 
   if (activeProfileLabel) {
-    const profileName = state.appliedProfileName ?? "默认配置";
+    const profileName = state.appliedProfileName ?? "Default Profile";
     if (state.appliedRulePattern) {
       const matchLabel = state.appliedRuleMatchType
         ? MATCH_TYPE_LABELS[state.appliedRuleMatchType] ?? state.appliedRuleMatchType
-        : "规则";
-      activeProfileLabel.textContent = `情景配置：${profileName}（${matchLabel}：${state.appliedRulePattern}）`;
+        : "Rule";
+      activeProfileLabel.textContent = `Profile: ${profileName} (${matchLabel}: ${state.appliedRulePattern})`;
     } else {
-      activeProfileLabel.textContent = `情景配置：${profileName}`;
+      activeProfileLabel.textContent = `Profile: ${profileName}`;
     }
   }
 

@@ -15,7 +15,7 @@ import { createLogger } from "./logger.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
-const DEFAULT_PROFILE_NAME = "默认配置";
+const DEFAULT_PROFILE_NAME = "Default Profile";
 
 const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
 
@@ -140,7 +140,7 @@ function sanitizeProfiles(input: unknown): ProfileDefinition[] {
     }
     const source = raw as Partial<ProfileDefinition>;
     const id = ensureUniqueId(source.id, used, "profile");
-    const name = typeof source.name === "string" && source.name.trim().length ? source.name.trim() : "未命名配置";
+    const name = typeof source.name === "string" && source.name.trim().length ? source.name.trim() : "Unnamed Profile";
     const description =
       typeof source.description === "string" && source.description.trim().length ? source.description.trim() : null;
     const settings = sanitizeProfileSettings(source.settings);

@@ -342,7 +342,7 @@ const log = (() => {
     }
     if (hooked.has(video)) return;
     hooked.add(video);
-    log.info('video', '检测到视频', { 
+    log.info('video', 'Video detected', { 
       src: video.currentSrc || video.src || '(no src)',
       duration: video.duration,
       readyState: video.readyState
@@ -355,7 +355,7 @@ const log = (() => {
     }
     const target = activeVideo || document.querySelector("video");
     if (!target) {
-      log.warn('ctrl', `执行失败: ${action} (无视频)`);
+      log.warn('ctrl', `Failed to execute: ${action} (no video)`);
       return;
     }
 
@@ -367,7 +367,7 @@ const log = (() => {
           handleTimeUpdate(target);
           log.info('ctrl', `seek → ${clamped.toFixed(2)}s`);
         } else {
-          log.warn('ctrl', `seek 失败: 无效时间`, payload);
+          log.warn('ctrl', `seek failed: invalid time`, payload);
         }
         break;
       case "pause":
@@ -376,13 +376,13 @@ const log = (() => {
         break;
       case "play":
         target.play().catch((err) => {
-          log.error('ctrl', 'play 失败', err);
+          log.error('ctrl', 'play failed', err);
         }).then(() => {
           log.info('ctrl', 'play');
         });
         break;
       default:
-        log.warn('ctrl', `未知命令: ${action}`);
+        log.warn('ctrl', `Unknown command: ${action}`);
         break;
     }
   }
@@ -444,7 +444,7 @@ const log = (() => {
         break;
       case "ended":
         if (activeVideo === target) {
-          log.info('video', '播放结束');
+          log.info('video', 'Playback ended');
           send("video-ended", { pageUrl: location.href });
           setActiveVideo(null);
         }
@@ -509,7 +509,7 @@ const log = (() => {
       try {
         port.disconnect();
       } catch (err) {
-        log.warn('conn', '断开端口失败', err);
+        log.warn('conn', 'Failed to disconnect port', err);
       }
       port = null;
     }
@@ -526,7 +526,7 @@ const log = (() => {
     regexCache.clear();
     isPageBlacklisted = isUrlBlacklisted(location.href);
     if (isPageBlacklisted) {
-      log.info('blacklist', '当前页面在黑名单中，跳过检测', { url: location.href });
+      log.info('blacklist', 'Current page is blacklisted, skipping detection', { url: location.href });
     } else {
       startMonitoring();
     }
