@@ -186,7 +186,11 @@ function formatCueText(lines: string[]): string {
 }
 
 function stripTags(input: string): string {
-  return input.replace(/<\/?[^>]+>/g, "");
+  // Remove HTML tags: <tag>, </tag>, <tag attr="value">
+  let cleaned = input.replace(/<\/?[^>]+>/g, "");
+  // Remove ASS/SSA style tags: {\tag}, {\tag value}, {\fn微软雅黑}, etc.
+  cleaned = cleaned.replace(/\{\\[^}]*\}/g, "");
+  return cleaned;
 }
 
 export function parseTimestamp(value: string): number {
