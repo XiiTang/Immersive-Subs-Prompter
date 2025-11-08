@@ -54,7 +54,7 @@ const log = (() => {
   let loopStart = null;
   let loopEnd = null;
   let isLooping = false;
-  let userInteracted = false; // Track user interactions
+  let programmaticSeek = false; // Track if seek is triggered by program, not user
   
   // Helper function to clear loop state and notify desktop-app
   function clearLoopState() {
@@ -323,6 +323,7 @@ const log = (() => {
         // About to loop back - report the middle time of the loop range
         const middleTime = (loopStart + loopEnd) / 2;
         reportTime = middleTime;
+        programmaticSeek = true; // Mark this as programmatic seek
         video.currentTime = loopStart;
         log.info('loop', `Loop back: ${currentTime.toFixed(2)}s → ${loopStart.toFixed(2)}s (report ${middleTime.toFixed(2)}s)`);
       }
@@ -405,9 +406,16 @@ const log = (() => {
         clearLoopState();
         if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
           const clamped = Math.max(0, Math.min(payload.time, target.duration || payload.time));
+          const wasPaused = target.paused;
           target.currentTime = clamped;
+          // Auto-play if video was paused
+          if (wasPaused) {
+            target.play().catch((err) => {
+              log.error('ctrl', 'Auto-play after seek failed', err);
+            });
+          }
           handleTimeUpdate(target);
-          log.info('ctrl', `seek → ${clamped.toFixed(2)}s`);
+          log.info('ctrl', `seek → ${clamped.toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
         } else {
           log.warn('ctrl', `seek failed: invalid time`, payload);
         }
@@ -418,8 +426,16 @@ const log = (() => {
           loopStart = payload.start;
           loopEnd = payload.end;
           isLooping = true;
+          programmaticSeek = true; // Mark this as programmatic seek
+          const wasPaused = target.paused;
           target.currentTime = loopStart;
-          log.info('ctrl', `Loop enabled: ${loopStart.toFixed(2)}s - ${loopEnd.toFixed(2)}s`);
+          // Auto-play if video was paused
+          if (wasPaused) {
+            target.play().catch((err) => {
+              log.error('ctrl', 'Auto-play after loop enabled failed', err);
+            });
+          }
+          log.info('ctrl', `Loop enabled: ${loopStart.toFixed(2)}s - ${loopEnd.toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
         } else {
           log.warn('ctrl', `loop failed: invalid times`, payload);
         }
@@ -473,11 +489,6 @@ const log = (() => {
     switch (event.type) {
       case "play":
       case "playing":
-        // Clear loop when user manually plays
-        if (userInteracted) {
-          clearLoopState();
-          userInteracted = false;
-        }
         setActiveVideo(target);
         handleTimeUpdate(target);
         break;
@@ -502,10 +513,15 @@ const log = (() => {
         }
         break;
       case "seeking":
-        // Clear loop when user seeks manually
-        if (target === activeVideo) {
+        // Only clear loop if this is a user-triggered seek, not programmatic
+        if (target === activeVideo && !programmaticSeek) {
           clearLoopState();
         }
+        programmaticSeek = false; // Reset flag
+        break;
+      case "seeked":
+        // Reset flag when seek completes
+        programmaticSeek = false;
         break;
       case "durationchange":
       case "volumechange":
