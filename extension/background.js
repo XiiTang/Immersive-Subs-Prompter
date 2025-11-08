@@ -283,6 +283,14 @@ function ingestMediaMessage(tabId, frameId, message) {
         typeof frameId === "number" ? { ...(payload || {}), frameId } : payload || {};
       setMediaState(tabId, patch, type);
     }
+  } else if (type === "loop-cleared") {
+    // Forward loop-cleared message to desktop-app
+    log.info('loop', `Tab${tabId} Loop cleared by user interaction`);
+    desktopBridge?.send({
+      source: "usp-extension",
+      type: "loop-cleared",
+      tabId
+    });
   } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
     log.info('page', `Tab${tabId} URL changed`, { url: payload.pageUrl });
     setMediaState(tabId, payload || {}, type);

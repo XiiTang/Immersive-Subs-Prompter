@@ -13,6 +13,7 @@ const api = {
   getInitialState: (): Promise<any> => ipcRenderer.invoke("usp:get-state"),
   onStateChange: (listener: Listener<any>) => subscribe("usp:state", listener),
   onPlayback: (listener: Listener<any>) => subscribe("usp:time", listener),
+  onLoopCleared: (listener: Listener<void>) => subscribe("usp:loop-cleared", listener),
   selectSubtitleTrack: (trackId: string | null, role: "primary" | "secondary" = "primary") =>
     ipcRenderer.invoke("usp:select-track", { trackId, role }),
   controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command),

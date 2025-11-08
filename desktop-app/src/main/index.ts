@@ -579,6 +579,15 @@ async function handleMessage(message: ExtensionMessage) {
       break;
     }
 
+    case "loop-cleared": {
+      // Forward loop-cleared event to renderer to update UI
+      if (state.activeTabId === message.tabId && mainWindow) {
+        mainWindow.webContents.send("usp:loop-cleared");
+        mainLogger.info("Loop cleared by user interaction");
+      }
+      break;
+    }
+
     case "video-ended": {
       if (state.activeTabId === message.tabId) {
         state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";

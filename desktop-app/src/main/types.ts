@@ -22,7 +22,8 @@ export type ExtensionMessageType =
   | "time-update"
   | "playback-rate"
   | "video-ended"
-  | "page-url-changed";
+  | "page-url-changed"
+  | "loop-cleared";
 
 export interface ExtensionMessage {
   tabId: number;

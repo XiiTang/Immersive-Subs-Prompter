@@ -1394,6 +1394,20 @@ async function bootstrap() {
   window.usp.onSettingsChange((settings) => {
     renderSettings(settings);
   });
+
+  window.usp.onLoopCleared(() => {
+    // Clear loop state in UI when extension clears it due to user interaction
+    if (loopingCueIndex !== null) {
+      const loopButton = document.querySelector(
+        `.subtitle-item__loop-btn[data-index="${loopingCueIndex}"]`
+      );
+      if (loopButton) {
+        loopButton.classList.remove("subtitle-item__loop-btn--active");
+      }
+      loopingCueIndex = null;
+      console.log("[Renderer] Loop cleared by user interaction");
+    }
+  });
 }
 
 bootstrap();

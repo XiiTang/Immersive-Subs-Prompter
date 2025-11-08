@@ -31,6 +31,8 @@ const log = (() => {
     "play",
     "playing",
     "pause",
+    "seeking",
+    "seeked",
     "loadedmetadata",
     "loadeddata",
     "ratechange",
@@ -52,6 +54,19 @@ const log = (() => {
   let loopStart = null;
   let loopEnd = null;
   let isLooping = false;
+  let userInteracted = false; // Track user interactions
+  
+  // Helper function to clear loop state and notify desktop-app
+  function clearLoopState() {
+    if (isLooping) {
+      isLooping = false;
+      loopStart = null;
+      loopEnd = null;
+      log.info('loop', 'Loop cleared');
+      // Notify desktop-app to update UI
+      send("loop-cleared", {});
+    }
+  }
 
   function normalizeBlacklistRules(input) {
     if (!Array.isArray(input)) {
@@ -386,6 +401,8 @@ const log = (() => {
 
     switch (action) {
       case "seek":
+        // Clear loop state when seeking manually
+        clearLoopState();
         if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
           const clamped = Math.max(0, Math.min(payload.time, target.duration || payload.time));
           target.currentTime = clamped;
@@ -408,16 +425,17 @@ const log = (() => {
         }
         break;
       case "stopLoop":
-        isLooping = false;
-        loopStart = null;
-        loopEnd = null;
-        log.info('ctrl', 'Loop disabled');
+        clearLoopState();
         break;
       case "pause":
+        // Clear loop state when pausing
+        clearLoopState();
         target.pause();
         log.info('ctrl', 'pause');
         break;
       case "play":
+        // Clear loop state when playing
+        clearLoopState();
         target.play().catch((err) => {
           log.error('ctrl', 'play failed', err);
         }).then(() => {
@@ -455,6 +473,11 @@ const log = (() => {
     switch (event.type) {
       case "play":
       case "playing":
+        // Clear loop when user manually plays
+        if (userInteracted) {
+          clearLoopState();
+          userInteracted = false;
+        }
         setActiveVideo(target);
         handleTimeUpdate(target);
         break;
@@ -472,6 +495,18 @@ const log = (() => {
         handleTimeUpdate(target);
         break;
       case "pause":
+        // Clear loop when user manually pauses
+        if (target === activeVideo) {
+          clearLoopState();
+          handleTimeUpdate(target);
+        }
+        break;
+      case "seeking":
+        // Clear loop when user seeks manually
+        if (target === activeVideo) {
+          clearLoopState();
+        }
+        break;
       case "durationchange":
       case "volumechange":
       case "enterpictureinpicture":
@@ -487,6 +522,7 @@ const log = (() => {
         break;
       case "ended":
         if (activeVideo === target) {
+          clearLoopState();
           log.info('video', 'Playback ended');
           send("video-ended", { pageUrl: location.href });
           setActiveVideo(null);
