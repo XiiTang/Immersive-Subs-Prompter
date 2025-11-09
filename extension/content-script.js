@@ -299,8 +299,8 @@ const log = (() => {
       videoHeight: Number.isFinite(video.videoHeight) ? video.videoHeight : null,
       pictureInPicture: document.pictureInPictureElement === video,
       playbackRate: video.playbackRate,
-      currentTime: video.currentTime,
-      duration: Number.isFinite(video.duration) ? video.duration : null,
+      currentTime: video.currentTime * 1000, // Convert seconds to milliseconds
+      duration: Number.isFinite(video.duration) ? video.duration * 1000 : null, // Convert seconds to milliseconds
       paused: video.paused,
       muted: video.muted,
       volume: video.volume,
@@ -322,7 +322,7 @@ const log = (() => {
       if (currentTime >= loopEnd) {
         // About to loop back - report the middle time of the loop range
         const middleTime = (loopStart + loopEnd) / 2;
-        reportTime = middleTime;
+        reportTime = middleTime * 1000; // Convert to milliseconds
         programmaticSeek = true; // Mark this as programmatic seek
         video.currentTime = loopStart;
         log.info('loop', `Loop back: ${currentTime.toFixed(2)}s → ${loopStart.toFixed(2)}s (report ${middleTime.toFixed(2)}s)`);
@@ -405,7 +405,8 @@ const log = (() => {
         // Clear loop state when seeking manually
         clearLoopState();
         if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
-          const clamped = Math.max(0, Math.min(payload.time, target.duration || payload.time));
+          const timeInSeconds = payload.time / 1000; // Convert milliseconds to seconds
+          const clamped = Math.max(0, Math.min(timeInSeconds, target.duration || timeInSeconds));
           const wasPaused = target.paused;
           target.currentTime = clamped;
           // Auto-play if video was paused
@@ -423,8 +424,8 @@ const log = (() => {
       case "loop":
         if (typeof payload.start === "number" && typeof payload.end === "number" && 
             Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
-          loopStart = payload.start;
-          loopEnd = payload.end;
+          loopStart = payload.start / 1000; // Convert milliseconds to seconds
+          loopEnd = payload.end / 1000; // Convert milliseconds to seconds
           isLooping = true;
           programmaticSeek = true; // Mark this as programmatic seek
           const wasPaused = target.paused;

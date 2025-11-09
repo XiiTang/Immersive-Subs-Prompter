@@ -1,6 +1,6 @@
 export interface SubtitleCue {
-  start: number;
-  end: number;
+  start: number; // milliseconds
+  end: number; // milliseconds
   text: string;
 }
 
@@ -9,8 +9,8 @@ export interface ExtensionPayload {
   site?: string;
   videoSrc?: string | null;
   playbackRate?: number;
-  currentTime?: number;
-  duration?: number | null;
+  currentTime?: number; // milliseconds
+  duration?: number | null; // milliseconds
   paused?: boolean;
   title?: string;
   muted?: boolean;
@@ -45,9 +45,9 @@ export interface SubtitleLoadResult {
 }
 
 export interface PlaybackState {
-  currentTime: number;
+  currentTime: number; // milliseconds
   playbackRate: number;
-  lastUpdate: number | null;
+  lastUpdate: number | null; // timestamp in milliseconds
 }
 
 export interface DesktopState {
@@ -78,10 +78,10 @@ export interface DesktopState {
 export type SubtitleSource = "extension" | "jellyfin";
 
 export type VideoControlCommand =
-  | { type: "seek"; time: number }
+  | { type: "seek"; time: number } // milliseconds
   | { type: "pause" }
   | { type: "play" }
-  | { type: "loop"; start: number; end: number }
+  | { type: "loop"; start: number; end: number } // milliseconds
   | { type: "stopLoop" };
 
 export type CloseBehavior = "quit" | "tray";
@@ -170,7 +170,7 @@ export interface JellyfinPanelState {
   connected: boolean;
   sessions: JellyfinSessionSummary[];
   selectedSessionId: string | null;
-  lastUpdated: number | null;
+  lastUpdated: number | null; // timestamp in milliseconds
 }
 
 export interface JellyfinStatusPayload {

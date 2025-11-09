@@ -22,7 +22,8 @@ function setStatus(text) {
 function formatTime(value) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "--:--";
   const sign = value < 0 ? "-" : "";
-  let secs = Math.abs(value);
+  // Convert milliseconds to seconds
+  let secs = Math.abs(value / 1000);
   const hours = Math.floor(secs / 3600);
   const minutes = Math.floor((secs % 3600) / 60);
   const seconds = Math.floor(secs % 60);

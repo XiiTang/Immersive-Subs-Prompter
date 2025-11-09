@@ -549,9 +549,9 @@ function selectJellyfinSession(sessionId: string | null) {
   state.error = null;
   resetSubtitleState();
   if (session) {
-    const currentTimeSeconds = (ticksToMilliseconds(session.positionTicks) ?? 0) / 1000;
+    const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
     state.playback = {
-      currentTime: currentTimeSeconds,
+      currentTime: currentTimeMilliseconds,
       playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
       lastUpdate: Date.now()
     };
@@ -627,7 +627,7 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
   if (!payload.sessionId || payload.sessionId !== state.jellyfin.selectedSessionId) {
     return;
   }
-  const currentTime = (payload.positionMs ?? 0) / 1000;
+  const currentTime = payload.positionMs ?? 0;
   const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
   state.playback = {
     currentTime,

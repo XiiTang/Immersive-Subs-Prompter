@@ -8,7 +8,7 @@ type RawVttCue = {
 
 const VTT_TIMESTAMP_TAG = /<\d{2}:\d{2}:\d{2}\.\d{3}>/;
 const VTT_CLASS_TAG = /<c(?:\.[^>]*)?>/i;
-const YOUTUBE_SHORT_CUE_THRESHOLD = 0.15;
+const YOUTUBE_SHORT_CUE_THRESHOLD = 150; // milliseconds (was 0.15 seconds)
 
 export function parseSubtitle(content: string, extension: string): SubtitleCue[] {
   if (extension === "srt") {
@@ -202,5 +202,6 @@ export function parseTimestamp(value: string): number {
   const hours = match[1] ? Number(match[1]) : 0;
   const minutes = Number(match[2]);
   const seconds = Number(match[3]);
-  return hours * 3600 + minutes * 60 + seconds;
+  // Convert to milliseconds
+  return (hours * 3600 + minutes * 60 + seconds) * 1000;
 }

@@ -318,8 +318,8 @@ function formatStatus(state: DesktopState): { text: string; modifier: string } {
   }
 }
 
-function formatTime(seconds: number): string {
-  const totalSeconds = Math.max(0, Math.floor(seconds ?? 0));
+function formatTime(milliseconds: number): string {
+  const totalSeconds = Math.max(0, Math.floor((milliseconds ?? 0) / 1000));
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;

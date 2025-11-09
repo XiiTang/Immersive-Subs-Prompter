@@ -17,8 +17,8 @@ const WS_ENDPOINT = "ws://127.0.0.1:44501";
 const RETRY_DELAY_MS = 2000;
 const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
-// Minimum duration to consider a video as valid media (mirrors GlobalSpeed's MINIMUM_DURATION)
-const MINIMUM_DURATION = 10;
+// Minimum duration to consider a video as valid media (in milliseconds, was 10 seconds)
+const MINIMUM_DURATION = 10000;
 const KEEPALIVE_ALARM_NAME = "usp-keepalive";
 const KEEPALIVE_INTERVAL_SECONDS = 25;
 const KEEPALIVE_PERIOD_MINUTES = KEEPALIVE_INTERVAL_SECONDS / 60;
