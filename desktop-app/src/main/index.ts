@@ -41,6 +41,8 @@ let mainWindow: BrowserWindow | null = null;
 let subtitleRequestToken = 0;
 const tabSockets = new Map<number, WebSocket>();
 const socketTabs = new Map<WebSocket, Set<number>>();
+// Track which Jellyfin itemId each tab is currently playing
+const tabJellyfinItems = new Map<number, string>();
 let tray: Tray | null = null;
 let isQuitting = false;
 let settingsStore: SettingsStore | null = null;
@@ -572,6 +574,14 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
   state.jellyfin.sessions = sessions;
   state.jellyfin.lastUpdated = Date.now();
   
+  mainLogger.debug(`[JELLYFIN-SESSIONS] Update received`, {
+    sessionsCount: sessions.length,
+    activeTabId: state.activeTabId,
+    activeTabItemId: state.activeTabId ? tabJellyfinItems.get(state.activeTabId) : null,
+    currentSelectedSession: state.jellyfin.selectedSessionId,
+    sessions: sessions.map(s => ({ id: s.id, itemId: s.nowPlayingItemId, isPaused: s.isPaused }))
+  });
+  
   // Handle pending Jellyfin item ID (race condition resolution)
   if (state.pendingJellyfinItemId && state.activeSource === "jellyfin") {
     const matchingSession = sessions.find(
@@ -579,7 +589,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
     );
     
     if (matchingSession && matchingSession.id !== state.jellyfin.selectedSessionId) {
-      mainLogger.info(`Found matching session for pending itemId ${state.pendingJellyfinItemId}: ${matchingSession.id}`);
+      mainLogger.info(`[JELLYFIN-SESSIONS] Found matching session for pending itemId ${state.pendingJellyfinItemId}: ${matchingSession.id}`);
       state.jellyfin.selectedSessionId = matchingSession.id;
       jellyfinService.setActiveSession(matchingSession.id);
       state.pendingJellyfinItemId = null; // Clear pending after matching
@@ -594,7 +604,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       
       // Auto-select first available session if in Jellyfin mode
       if (state.activeSource === "jellyfin" && sessions.length > 0) {
-        mainLogger.info("Previously selected session disappeared, auto-selecting first session");
+        mainLogger.info("[JELLYFIN-SESSIONS] Previously selected session disappeared, auto-selecting first session");
         state.jellyfin.selectedSessionId = sessions[0].id;
         jellyfinService.setActiveSession(sessions[0].id);
       } else if (state.activeSource === "jellyfin") {
@@ -609,15 +619,52 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
         jellyfinService.setActiveSession(null);
       }
     } else if (state.activeSource === "jellyfin") {
+      // Check if the session's itemId matches the active tab's itemId
+      const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) : null;
+      const sessionItemId = selected.nowPlayingItemId;
+      
+      if (activeTabItemId && sessionItemId && activeTabItemId !== sessionItemId) {
+        // WebSocket session switched to a different video than what the active tab is playing
+        // This happens when you have multiple tabs with different Jellyfin videos
+        mainLogger.warn(`[JELLYFIN-SESSIONS] Session itemId mismatch detected!`, {
+          activeTabId: state.activeTabId,
+          activeTabItemId,
+          sessionItemId,
+          sessionId: selected.id,
+          ignoring: true
+        });
+        
+        // Don't update state with this session's info - it's for a different tab
+        // Keep current state but still update the sessions list
+        pushState();
+        return;
+      }
+      
       state.title = selected.nowPlayingItemName ?? state.title;
       state.pageUrl = buildJellyfinPageUrl(selected);
       state.videoUrl = buildJellyfinItemUrl(selected) ?? state.videoUrl;
     }
   } else if (state.activeSource === "jellyfin" && sessions.length > 0) {
     // No session selected but in Jellyfin mode, auto-select first session
-    mainLogger.info("Auto-selecting first available session");
-    state.jellyfin.selectedSessionId = sessions[0].id;
-    jellyfinService.setActiveSession(sessions[0].id);
+    // But only if it matches the active tab's itemId (if we have one)
+    const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) : null;
+    
+    let sessionToSelect = sessions[0];
+    if (activeTabItemId) {
+      // Try to find a session matching the active tab's itemId
+      const matchingSession = sessions.find(s => s.nowPlayingItemId === activeTabItemId);
+      if (matchingSession) {
+        sessionToSelect = matchingSession;
+        mainLogger.info(`[JELLYFIN-SESSIONS] Auto-selecting session matching active tab itemId ${activeTabItemId}`);
+      } else {
+        mainLogger.warn(`[JELLYFIN-SESSIONS] No session found matching active tab itemId ${activeTabItemId}, selecting first session`);
+      }
+    } else {
+      mainLogger.info("[JELLYFIN-SESSIONS] Auto-selecting first available session (no active tab itemId)");
+    }
+    
+    state.jellyfin.selectedSessionId = sessionToSelect.id;
+    jellyfinService.setActiveSession(sessionToSelect.id);
   }
   
   pushState();
@@ -816,7 +863,6 @@ async function handleMessage(message: ExtensionMessage) {
       
       if (isJellyfin) {
         // ===== JELLYFIN MODE (Method B with Method A timestamps) =====
-        mainLogger.info(`Detected Jellyfin URL, switching to hybrid mode: ${url}`);
         
         // Extract Jellyfin item ID from URL
         try {
@@ -828,6 +874,9 @@ async function handleMessage(message: ExtensionMessage) {
             state.activeSource = "jellyfin";
             state.videoUrl = url;
             state.site = "jellyfin";
+            
+            // Track this tab's itemId
+            tabJellyfinItems.set(message.tabId, itemId);
             
             // Select profile for this URL
             const selection = selectProfileForUrl(url);
@@ -841,7 +890,6 @@ async function handleMessage(message: ExtensionMessage) {
             
             if (currentItemId === itemId && state.subtitleTracks.length > 0) {
               // Same Jellyfin video - just update playback from extension, keep subtitles
-              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), keeping subtitles`);
               pushState();
               return;
             }
@@ -852,7 +900,6 @@ async function handleMessage(message: ExtensionMessage) {
             );
             
             if (matchingSession) {
-              mainLogger.info(`Auto-switching to Jellyfin session for item ${itemId}: ${matchingSession.id}`);
               state.jellyfin.selectedSessionId = matchingSession.id;
               jellyfinService.setActiveSession(matchingSession.id);
               state.status = "loading-subtitles";
@@ -865,7 +912,6 @@ async function handleMessage(message: ExtensionMessage) {
               state.secondarySubtitles = null;
             } else {
               // No matching session yet - save itemId and wait for WebSocket update
-              mainLogger.info(`No matching Jellyfin session found for item ${itemId}, waiting for WebSocket`);
               state.pendingJellyfinItemId = itemId;
               state.status = "loading-subtitles";
               
@@ -878,8 +924,6 @@ async function handleMessage(message: ExtensionMessage) {
           } else {
             // No item ID in URL - this is likely play/pause event on same video
             // Keep current state and just update source/site if needed
-            mainLogger.info(`Jellyfin URL without itemId, maintaining current state`);
-            
             if (state.activeSource !== "jellyfin") {
               state.activeSource = "jellyfin";
             }
@@ -1102,7 +1146,12 @@ function rememberTabSocket(tabId: number, socket: WebSocket) {
 function forgetSocket(socket: WebSocket) {
   const tabs = socketTabs.get(socket);
   if (!tabs) return;
-  tabs.forEach((tabId) => tabSockets.delete(tabId));
+  tabs.forEach((tabId) => {
+    tabSockets.delete(tabId);
+    // Clean up Jellyfin item tracking for this tab
+    tabJellyfinItems.delete(tabId);
+    mainLogger.debug(`[CLEANUP] Removed tab ${tabId} from tracking`);
+  });
   socketTabs.delete(socket);
 }
 
