@@ -6,6 +6,7 @@ import {
   AppSettings,
   CloseBehavior,
   GlobalSettings,
+  JellyfinConfig,
   JellyfinSettings,
   ProfileDefinition,
   ProfileRule,
@@ -37,9 +38,8 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
 
 export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
   enabled: false,
-  serverUrl: "",
-  apiKey: "",
-  webSocketPath: "/socket"
+  configs: [],
+  activeConfigId: null
 };
 
 const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
@@ -203,25 +203,68 @@ function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallbackProf
   return rules;
 }
 
-function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | undefined): JellyfinSettings {
-  const source = input ?? {};
-  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
-  const serverUrl =
-    typeof source.serverUrl === "string" ? source.serverUrl.trim() : DEFAULT_JELLYFIN_SETTINGS.serverUrl;
-  const apiKey = typeof source.apiKey === "string" ? source.apiKey.trim() : DEFAULT_JELLYFIN_SETTINGS.apiKey;
-  let webSocketPath =
-    typeof source.webSocketPath === "string" ? source.webSocketPath.trim() : DEFAULT_JELLYFIN_SETTINGS.webSocketPath;
+function sanitizeJellyfinConfig(input: Partial<JellyfinConfig> | null | undefined, fallbackId?: string): JellyfinConfig {
+  const id = typeof input?.id === "string" && input.id.trim() ? input.id.trim() : (fallbackId || randomUUID());
+  const name = typeof input?.name === "string" ? input.name.trim() : "Jellyfin Server";
+  const serverUrl = typeof input?.serverUrl === "string" ? input.serverUrl.trim() : "";
+  const apiKey = typeof input?.apiKey === "string" ? input.apiKey.trim() : "";
+  let webSocketPath = typeof input?.webSocketPath === "string" ? input.webSocketPath.trim() : "/socket";
+  
   if (!webSocketPath.length) {
-    webSocketPath = DEFAULT_JELLYFIN_SETTINGS.webSocketPath;
+    webSocketPath = "/socket";
   }
   if (!webSocketPath.startsWith("/")) {
     webSocketPath = `/${webSocketPath}`;
   }
+  
   return {
-    enabled,
+    id,
+    name,
     serverUrl,
     apiKey,
     webSocketPath
+  };
+}
+
+function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | undefined): JellyfinSettings {
+  const source = input ?? {};
+  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
+  
+  let configs: JellyfinConfig[] = [];
+  
+  // Migration: check if old format exists (serverUrl, apiKey, webSocketPath directly in settings)
+  const hasOldFormat = 'serverUrl' in source || 'apiKey' in source || 'webSocketPath' in source;
+  
+  if (hasOldFormat) {
+    // Convert old single config to new format
+    const oldServerUrl = typeof (source as any).serverUrl === "string" ? (source as any).serverUrl.trim() : "";
+    const oldApiKey = typeof (source as any).apiKey === "string" ? (source as any).apiKey.trim() : "";
+    const oldWebSocketPath = typeof (source as any).webSocketPath === "string" ? (source as any).webSocketPath.trim() : "/socket";
+    
+    if (oldServerUrl || oldApiKey) {
+      configs.push(sanitizeJellyfinConfig({
+        id: 'jellyfin-config-migrated',
+        name: 'Jellyfin Server',
+        serverUrl: oldServerUrl,
+        apiKey: oldApiKey,
+        webSocketPath: oldWebSocketPath
+      }));
+    }
+  } else if (Array.isArray(source.configs)) {
+    configs = source.configs.map((config, index) => 
+      sanitizeJellyfinConfig(config, `jellyfin-config-${index}`)
+    );
+  }
+  
+  const activeConfigId = 
+    typeof source.activeConfigId === "string" && source.activeConfigId.trim() 
+      ? source.activeConfigId.trim() 
+      : (configs.length > 0 ? configs[0].id : null);
+  
+  return {
+    enabled,
+    configs,
+    activeConfigId
   };
 }
 

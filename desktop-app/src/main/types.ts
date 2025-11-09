@@ -93,11 +93,18 @@ export interface GlobalSettings {
   autoLaunch: boolean;
 }
 
-export interface JellyfinSettings {
-  enabled: boolean;
+export interface JellyfinConfig {
+  id: string;
+  name: string;
   serverUrl: string;
   apiKey: string;
   webSocketPath: string;
+}
+
+export interface JellyfinSettings {
+  enabled: boolean;
+  configs: JellyfinConfig[];
+  activeConfigId: string | null;
 }
 
 export interface ProfileSettings {

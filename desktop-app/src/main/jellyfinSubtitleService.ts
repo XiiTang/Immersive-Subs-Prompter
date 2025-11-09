@@ -16,6 +16,7 @@ import {
   JellyfinPlaybackPayload,
   JellyfinSessionSummary,
   JellyfinSettings,
+  JellyfinConfig,
   JellyfinStatusPayload,
   JellyfinSubtitlesPayload,
   JellyfinSubtitleStream,
@@ -70,6 +71,13 @@ export class JellyfinSubtitleService {
 
   constructor(private readonly settingsProvider: SettingsProvider) {
     this.settings = this.settingsProvider();
+  }
+
+  private getActiveConfig(): JellyfinConfig | null {
+    if (!this.settings.activeConfigId) {
+      return null;
+    }
+    return this.settings.configs.find(c => c.id === this.settings.activeConfigId) ?? null;
   }
 
   on<K extends JellyfinEventName>(event: K, listener: JellyfinListener<K>) {
@@ -170,20 +178,22 @@ export class JellyfinSubtitleService {
     if (this.socket || this.reconnectTimer) {
       return;
     }
-    if (!this.settings.serverUrl || !this.settings.apiKey) {
+    
+    const activeConfig = this.getActiveConfig();
+    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey) {
       this.log.warn("Jellyfin server URL or API key missing, skipping connection");
       return;
     }
 
     try {
-      const wsUrl = new URL(buildWebSocketUrl(this.settings));
-      wsUrl.searchParams.set("api_key", this.settings.apiKey);
+      const wsUrl = new URL(buildWebSocketUrl(activeConfig));
+      wsUrl.searchParams.set("api_key", activeConfig.apiKey);
       wsUrl.searchParams.set("deviceId", this.identity.deviceId);
       wsUrl.searchParams.set("client", this.identity.clientName);
       wsUrl.searchParams.set("deviceName", this.identity.deviceName);
       wsUrl.searchParams.set("version", this.identity.version);
       const headers = {
-        ...createAuthHeaders(this.settings.apiKey, this.identity)
+        ...createAuthHeaders(activeConfig.apiKey, this.identity)
       };
       this.log.info(`Connecting to Jellyfin WebSocket ${wsUrl.toString()}`);
       this.socket = new WebSocket(wsUrl.toString(), { headers });
@@ -491,10 +501,11 @@ export class JellyfinSubtitleService {
   }
 
   private async loadSubtitlesForSession(summary: JellyfinSessionSummary, force = false) {
-    if (!this.settings.serverUrl || !this.settings.apiKey) {
+    const activeConfig = this.getActiveConfig();
+    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey) {
       this.log.warn("Skipping Jellyfin subtitles due to missing server configuration", {
-        serverUrl: this.settings.serverUrl,
-        hasApiKey: Boolean(this.settings.apiKey)
+        serverUrl: activeConfig?.serverUrl,
+        hasApiKey: Boolean(activeConfig?.apiKey)
       });
       this.emit("subtitles", {
         sessionId: summary.id,
@@ -526,8 +537,8 @@ export class JellyfinSubtitleService {
 
     if (!workingSummary.nowPlayingItemId) {
       this.log.warn("Skipping Jellyfin subtitles due to missing item ID", {
-        serverUrl: this.settings.serverUrl,
-        hasApiKey: Boolean(this.settings.apiKey),
+        serverUrl: activeConfig.serverUrl,
+        hasApiKey: Boolean(activeConfig.apiKey),
         sessionId: workingSummary.id
       });
       this.emit("subtitles", {
@@ -540,8 +551,8 @@ export class JellyfinSubtitleService {
 
     if (!workingSummary.mediaSourceId) {
       this.log.warn("Skipping Jellyfin subtitles due to missing media source ID", {
-        serverUrl: this.settings.serverUrl,
-        hasApiKey: Boolean(this.settings.apiKey),
+        serverUrl: activeConfig.serverUrl,
+        hasApiKey: Boolean(activeConfig.apiKey),
         mediaSourceId: workingSummary.mediaSourceId,
         itemId: workingSummary.nowPlayingItemId
       });
@@ -583,14 +594,14 @@ export class JellyfinSubtitleService {
     for (const stream of workingSummary.subtitleStreams) {
       try {
         const extension = this.getPreferredExtension(stream);
-        const url = buildSubtitleUrl(this.settings, workingSummary, stream, extension);
+        const url = buildSubtitleUrl(activeConfig, workingSummary, stream, extension);
         this.log.info(
           `Downloading Jellyfin subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
         );
         const response = await fetch(url, {
           headers: {
             Accept: "text/vtt, application/octet-stream",
-            ...createAuthHeaders(this.settings.apiKey, this.identity)
+            ...createAuthHeaders(activeConfig.apiKey, this.identity)
           }
         });
         if (!response.ok) {
@@ -650,17 +661,18 @@ export class JellyfinSubtitleService {
   }
 
   private async fetchNowPlayingMetadata(summary: JellyfinSessionSummary) {
-    if (!this.settings.serverUrl || !this.settings.apiKey || !summary.nowPlayingItemId) {
+    const activeConfig = this.getActiveConfig();
+    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
       return null;
     }
     try {
-      const normalized = normalizeServerUrl(this.settings.serverUrl);
+      const normalized = normalizeServerUrl(activeConfig.serverUrl);
       const url = new URL(`${normalized}/Items/${summary.nowPlayingItemId}`);
-      url.searchParams.set("api_key", this.settings.apiKey);
+      url.searchParams.set("api_key", activeConfig.apiKey);
       const response = await fetch(url.toString(), {
         headers: {
           Accept: "application/json",
-          ...createAuthHeaders(this.settings.apiKey, this.identity)
+          ...createAuthHeaders(activeConfig.apiKey, this.identity)
         }
       });
       if (!response.ok) {

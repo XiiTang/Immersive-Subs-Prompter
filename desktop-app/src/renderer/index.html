@@ -26,28 +26,6 @@
               <p class="video-meta__profile" id="active-profile-label">Profile: Default Profile</p>
               <p class="video-meta__url" id="video-url"></p>
             </section>
-            <section class="settings-section">
-              <h3 class="settings-section__title">Jellyfin Integration</h3>
-              <div class="settings-field settings-field--inline">
-                <span class="settings-field__label">Enable Jellyfin</span>
-                <label class="toggle">
-                  <input type="checkbox" id="jellyfin-enabled" />
-                  <span class="toggle__text">Enable</span>
-                </label>
-              </div>
-              <label class="settings-field">
-                <span class="settings-field__label">Server URL</span>
-                <input type="text" id="jellyfin-server-url" placeholder="https://your-jellyfin-server" autocomplete="off" />
-              </label>
-              <label class="settings-field">
-                <span class="settings-field__label">API Key</span>
-                <input type="text" id="jellyfin-api-key" autocomplete="off" />
-              </label>
-              <label class="settings-field">
-                <span class="settings-field__label">WebSocket Path</span>
-                <input type="text" id="jellyfin-ws-path" placeholder="/socket" autocomplete="off" />
-              </label>
-            </section>
             <section class="control-panel" id="control-panel">
               <div class="jellyfin-panel">
                 <div class="jellyfin-panel__status" id="jellyfin-status">Jellyfin: Disconnected</div>
@@ -100,6 +78,50 @@
                   <input type="checkbox" id="autostart-toggle" />
                   <span class="toggle__text">Enable</span>
                 </label>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <h3 class="settings-section__title">Jellyfin Integration</h3>
+              <div class="settings-field settings-field--inline">
+                <span class="settings-field__label">Enable Jellyfin</span>
+                <label class="toggle">
+                  <input type="checkbox" id="jellyfin-enabled" />
+                  <span class="toggle__text">Enable</span>
+                </label>
+              </div>
+              <div class="jellyfin-config-manager">
+                <div class="jellyfin-config-manager__sidebar">
+                  <div class="jellyfin-config-manager__actions">
+                    <span class="settings-field__label">Server List</span>
+                    <div class="jellyfin-config-manager__buttons">
+                      <button type="button" class="text-button" id="jellyfin-config-add">Add</button>
+                      <button type="button" class="text-button" id="jellyfin-config-delete">Delete</button>
+                    </div>
+                  </div>
+                  <div class="jellyfin-config-list" id="jellyfin-config-list"></div>
+                  <button type="button" class="text-button jellyfin-config-manager__activate" id="jellyfin-config-activate">
+                    Set as Active
+                  </button>
+                </div>
+                <div class="jellyfin-config-manager__editor">
+                  <label class="settings-field">
+                    <span class="settings-field__label">Server Name</span>
+                    <input type="text" id="jellyfin-config-name" placeholder="e.g.: Home Server" autocomplete="off" />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">Server URL</span>
+                    <input type="text" id="jellyfin-server-url" placeholder="https://your-jellyfin-server" autocomplete="off" />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">API Key</span>
+                    <input type="text" id="jellyfin-api-key" autocomplete="off" />
+                  </label>
+                  <label class="settings-field">
+                    <span class="settings-field__label">WebSocket Path</span>
+                    <input type="text" id="jellyfin-ws-path" placeholder="/socket" autocomplete="off" />
+                  </label>
+                </div>
               </div>
             </section>
 

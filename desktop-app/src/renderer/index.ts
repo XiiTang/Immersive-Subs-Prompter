@@ -1,6 +1,7 @@
 import type {
   AppSettings,
   DesktopState,
+  JellyfinConfig,
   JellyfinSessionSummary,
   JellyfinSettings,
   PlaybackState,
@@ -36,6 +37,11 @@ const subtitleScrollPositionInput = document.getElementById("subtitle-scroll-pos
 const subtitleScrollPositionValue = document.getElementById("subtitle-scroll-position-value") as HTMLElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const jellyfinEnabledToggle = document.getElementById("jellyfin-enabled") as HTMLInputElement | null;
+const jellyfinConfigListElement = document.getElementById("jellyfin-config-list") as HTMLElement;
+const jellyfinConfigAddButton = document.getElementById("jellyfin-config-add") as HTMLButtonElement;
+const jellyfinConfigDeleteButton = document.getElementById("jellyfin-config-delete") as HTMLButtonElement;
+const jellyfinConfigActivateButton = document.getElementById("jellyfin-config-activate") as HTMLButtonElement;
+const jellyfinConfigNameInput = document.getElementById("jellyfin-config-name") as HTMLInputElement | null;
 const jellyfinServerInput = document.getElementById("jellyfin-server-url") as HTMLInputElement | null;
 const jellyfinApiKeyInput = document.getElementById("jellyfin-api-key") as HTMLInputElement | null;
 const jellyfinWsPathInput = document.getElementById("jellyfin-ws-path") as HTMLInputElement | null;
@@ -113,6 +119,7 @@ let autoScrollTimer: number | null = null;
 let activePriorityDrag: { role: PriorityRole; index: number } | null = null;
 let editingProfileId: string | null = null;
 let editingRuleId: string | null = null;
+let editingJellyfinConfigId: string | null = null;
 let playbackProfileSettings: ProfileSettings | null = null;
 let ruleFormInitialized = false;
 let loopingCueIndex: number | null = null;
@@ -194,6 +201,66 @@ function updateJellyfinSettings(patch: Partial<JellyfinSettings>) {
       ...patch
     }
   });
+}
+
+function getJellyfinConfigById(configId: string): JellyfinConfig | null {
+  if (!currentSettings) {
+    return null;
+  }
+  return currentSettings.jellyfin.configs.find((config) => config.id === configId) ?? null;
+}
+
+function getActiveJellyfinConfig(): JellyfinConfig | null {
+  if (!currentSettings || !currentSettings.jellyfin.activeConfigId) {
+    return null;
+  }
+  return getJellyfinConfigById(currentSettings.jellyfin.activeConfigId);
+}
+
+function ensureEditingJellyfinConfig(): JellyfinConfig | null {
+  if (!currentSettings) {
+    return null;
+  }
+  if (!editingJellyfinConfigId) {
+    const configs = currentSettings.jellyfin.configs;
+    if (configs.length > 0) {
+      editingJellyfinConfigId = configs[0].id;
+      return configs[0];
+    }
+    return null;
+  }
+  const config = getJellyfinConfigById(editingJellyfinConfigId);
+  if (config) {
+    return config;
+  }
+  const configs = currentSettings.jellyfin.configs;
+  if (configs.length > 0) {
+    editingJellyfinConfigId = configs[0].id;
+    return configs[0];
+  }
+  editingJellyfinConfigId = null;
+  return null;
+}
+
+function commitJellyfinConfigs(nextConfigs: JellyfinConfig[]) {
+  updateJellyfinSettings({ configs: nextConfigs });
+}
+
+function updateJellyfinConfig(configId: string, mutator: (config: JellyfinConfig) => JellyfinConfig) {
+  if (!currentSettings) {
+    return;
+  }
+  const configs = currentSettings.jellyfin.configs.map((config) =>
+    config.id === configId ? mutator(config) : config
+  );
+  commitJellyfinConfigs(configs);
+}
+
+function updateEditingJellyfinConfig(mutator: (config: JellyfinConfig) => JellyfinConfig) {
+  if (!editingJellyfinConfigId) {
+    return;
+  }
+  updateJellyfinConfig(editingJellyfinConfigId, mutator);
 }
 
 function commitProfiles(nextProfiles: ProfileDefinition[]) {
@@ -427,6 +494,134 @@ function renderProfileEditor() {
   const isDefault = currentSettings.defaultProfileId === profile.id;
   profileDeleteButton.disabled = isDefault || currentSettings.profiles.length <= 1;
   profileSetDefaultButton.disabled = isDefault;
+}
+
+function renderJellyfinConfigList(settings: AppSettings) {
+  jellyfinConfigListElement.innerHTML = "";
+  const configs = settings.jellyfin.configs;
+  
+  if (configs.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "jellyfin-config-list__empty";
+    empty.textContent = "No servers configured";
+    jellyfinConfigListElement.appendChild(empty);
+    return;
+  }
+  
+  for (const config of configs) {
+    const button = document.createElement("button");
+    button.className = "jellyfin-config-list__item";
+    button.type = "button";
+    
+    if (config.id === editingJellyfinConfigId) {
+      button.classList.add("is-selected");
+    }
+    if (config.id === settings.jellyfin.activeConfigId) {
+      button.classList.add("is-active");
+    }
+    
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "jellyfin-config-list__name";
+    nameSpan.textContent = config.name;
+    button.appendChild(nameSpan);
+    
+    if (config.id === settings.jellyfin.activeConfigId) {
+      const badge = document.createElement("span");
+      badge.className = "jellyfin-config-list__badge";
+      badge.textContent = "Active";
+      button.appendChild(badge);
+    }
+    
+    button.addEventListener("click", () => {
+      editingJellyfinConfigId = config.id;
+      renderJellyfinConfigList(settings);
+      renderJellyfinConfigEditor();
+    });
+    
+    jellyfinConfigListElement.appendChild(button);
+  }
+}
+
+function renderJellyfinConfigEditor() {
+  if (!currentSettings) {
+    return;
+  }
+  const config = ensureEditingJellyfinConfig();
+  if (!config) {
+    if (jellyfinConfigNameInput) jellyfinConfigNameInput.value = "";
+    if (jellyfinServerInput) jellyfinServerInput.value = "";
+    if (jellyfinApiKeyInput) jellyfinApiKeyInput.value = "";
+    if (jellyfinWsPathInput) jellyfinWsPathInput.value = "";
+    jellyfinConfigDeleteButton.disabled = true;
+    jellyfinConfigActivateButton.disabled = true;
+    return;
+  }
+  
+  if (jellyfinConfigNameInput) {
+    jellyfinConfigNameInput.value = config.name;
+  }
+  if (jellyfinServerInput) {
+    jellyfinServerInput.value = config.serverUrl;
+  }
+  if (jellyfinApiKeyInput) {
+    jellyfinApiKeyInput.value = config.apiKey;
+  }
+  if (jellyfinWsPathInput) {
+    jellyfinWsPathInput.value = config.webSocketPath;
+  }
+  
+  jellyfinConfigDeleteButton.disabled = false;
+  const isActive = currentSettings.jellyfin.activeConfigId === config.id;
+  jellyfinConfigActivateButton.disabled = isActive;
+}
+
+function handleJellyfinConfigAdd() {
+  if (!currentSettings) {
+    return;
+  }
+  const newConfig: JellyfinConfig = {
+    id: createId("jellyfin-config"),
+    name: `Server ${currentSettings.jellyfin.configs.length + 1}`,
+    serverUrl: "",
+    apiKey: "",
+    webSocketPath: "/socket"
+  };
+  editingJellyfinConfigId = newConfig.id;
+  const newConfigs = [...currentSettings.jellyfin.configs, newConfig];
+  updateJellyfinSettings({ 
+    configs: newConfigs,
+    activeConfigId: currentSettings.jellyfin.activeConfigId || newConfig.id
+  });
+}
+
+function handleJellyfinConfigDelete() {
+  const config = ensureEditingJellyfinConfig();
+  if (!config || !currentSettings) {
+    return;
+  }
+  
+  if (currentSettings.jellyfin.configs.length <= 1 && currentSettings.jellyfin.enabled) {
+    window.alert("Cannot delete the last server while Jellyfin is enabled. Disable Jellyfin first or add another server.");
+    return;
+  }
+  
+  const nextConfigs = currentSettings.jellyfin.configs.filter((item) => item.id !== config.id);
+  const wasActive = currentSettings.jellyfin.activeConfigId === config.id;
+  const nextActiveId = wasActive && nextConfigs.length > 0 ? nextConfigs[0].id : currentSettings.jellyfin.activeConfigId;
+  
+  editingJellyfinConfigId = nextConfigs.length > 0 ? nextConfigs[0].id : null;
+  updateJellyfinSettings({
+    configs: nextConfigs,
+    activeConfigId: nextActiveId
+  });
+}
+
+function handleJellyfinConfigActivate() {
+  const config = ensureEditingJellyfinConfig();
+  if (!config || !currentSettings) {
+    return;
+  }
+  updateJellyfinSettings({ activeConfigId: config.id });
 }
 
 function handleProfileAdd() {
@@ -1146,23 +1341,14 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
 function renderSettings(settings: AppSettings) {
   currentSettings = settings;
   ensureEditingProfile();
+  ensureEditingJellyfinConfig();
   closeBehaviorSelect.value = settings.global.closeBehavior;
   autostartToggle.checked = settings.global.autoLaunch;
   if (jellyfinEnabledToggle) {
     jellyfinEnabledToggle.checked = settings.jellyfin.enabled;
   }
-  if (jellyfinServerInput) {
-    jellyfinServerInput.value = settings.jellyfin.serverUrl ?? "";
-    jellyfinServerInput.disabled = !settings.jellyfin.enabled;
-  }
-  if (jellyfinApiKeyInput) {
-    jellyfinApiKeyInput.value = settings.jellyfin.apiKey ?? "";
-    jellyfinApiKeyInput.disabled = !settings.jellyfin.enabled;
-  }
-  if (jellyfinWsPathInput) {
-    jellyfinWsPathInput.value = settings.jellyfin.webSocketPath ?? "";
-    jellyfinWsPathInput.disabled = !settings.jellyfin.enabled;
-  }
+  renderJellyfinConfigList(settings);
+  renderJellyfinConfigEditor();
   renderProfileList(settings);
   renderProfileEditor();
   updateRuleProfileOptions();
@@ -1224,21 +1410,75 @@ if (jellyfinEnabledToggle) {
   });
 }
 
+jellyfinConfigAddButton.addEventListener("click", handleJellyfinConfigAdd);
+jellyfinConfigDeleteButton.addEventListener("click", handleJellyfinConfigDelete);
+jellyfinConfigActivateButton.addEventListener("click", handleJellyfinConfigActivate);
+
+if (jellyfinConfigNameInput) {
+  jellyfinConfigNameInput.addEventListener("change", () => {
+    const config = ensureEditingJellyfinConfig();
+    if (!config) {
+      return;
+    }
+    const nextValue = jellyfinConfigNameInput.value.trim();
+    if (nextValue === config.name) {
+      return;
+    }
+    updateEditingJellyfinConfig((cfg) => ({
+      ...cfg,
+      name: nextValue || "Jellyfin Server"
+    }));
+  });
+}
+
 if (jellyfinServerInput) {
   jellyfinServerInput.addEventListener("change", () => {
-    updateJellyfinSettings({ serverUrl: jellyfinServerInput.value.trim() });
+    const config = ensureEditingJellyfinConfig();
+    if (!config) {
+      return;
+    }
+    const nextValue = jellyfinServerInput.value.trim();
+    if (nextValue === config.serverUrl) {
+      return;
+    }
+    updateEditingJellyfinConfig((cfg) => ({
+      ...cfg,
+      serverUrl: nextValue
+    }));
   });
 }
 
 if (jellyfinApiKeyInput) {
   jellyfinApiKeyInput.addEventListener("change", () => {
-    updateJellyfinSettings({ apiKey: jellyfinApiKeyInput.value.trim() });
+    const config = ensureEditingJellyfinConfig();
+    if (!config) {
+      return;
+    }
+    const nextValue = jellyfinApiKeyInput.value.trim();
+    if (nextValue === config.apiKey) {
+      return;
+    }
+    updateEditingJellyfinConfig((cfg) => ({
+      ...cfg,
+      apiKey: nextValue
+    }));
   });
 }
 
 if (jellyfinWsPathInput) {
   jellyfinWsPathInput.addEventListener("change", () => {
-    updateJellyfinSettings({ webSocketPath: jellyfinWsPathInput.value.trim() });
+    const config = ensureEditingJellyfinConfig();
+    if (!config) {
+      return;
+    }
+    const nextValue = jellyfinWsPathInput.value.trim();
+    if (nextValue === config.webSocketPath) {
+      return;
+    }
+    updateEditingJellyfinConfig((cfg) => ({
+      ...cfg,
+      webSocketPath: nextValue
+    }));
   });
 }
 

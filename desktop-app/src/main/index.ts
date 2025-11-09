@@ -476,7 +476,15 @@ function resetSubtitleState() {
 }
 
 function getJellyfinBaseUrl(): string | null {
-  const base = normalizeServerUrl(appSettings.jellyfin.serverUrl ?? "");
+  const activeConfigId = appSettings.jellyfin.activeConfigId;
+  if (!activeConfigId) {
+    return null;
+  }
+  const activeConfig = appSettings.jellyfin.configs.find(c => c.id === activeConfigId);
+  if (!activeConfig) {
+    return null;
+  }
+  const base = normalizeServerUrl(activeConfig.serverUrl ?? "");
   return base.length ? base : null;
 }
 
@@ -690,16 +698,51 @@ function normalizeUrl(url: string | null): string | null {
   }
 }
 
+function isJellyfinServerUrl(url: string): boolean {
+  if (!appSettings.jellyfin.enabled || !appSettings.jellyfin.configs.length) {
+    return false;
+  }
+  
+  try {
+    const urlObj = new URL(url);
+    const urlOrigin = `${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`;
+    
+    return appSettings.jellyfin.configs.some(config => {
+      if (!config.serverUrl) return false;
+      try {
+        const serverUrl = new URL(normalizeServerUrl(config.serverUrl));
+        const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
+        return urlOrigin === serverOrigin;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
 function resolveVideoUrl(payload: ExtensionPayload): string | null {
   const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
   const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
   const site = payload.site;
+
+  // Check if the URL is from a Jellyfin server - if so, don't use yt-dlp
+  if (pageUrl && isJellyfinServerUrl(pageUrl)) {
+    mainLogger.info(`Ignoring Jellyfin web interface URL: ${pageUrl}`);
+    return null;
+  }
 
   if (pageUrl && /^https?:\/\//i.test(pageUrl) && site && PAGE_URL_SITES.has(site)) {
     return pageUrl;
   }
 
   if (videoSrc && /^https?:\/\//i.test(videoSrc)) {
+    // Also check videoSrc
+    if (isJellyfinServerUrl(videoSrc)) {
+      mainLogger.info(`Ignoring Jellyfin video URL: ${videoSrc}`);
+      return null;
+    }
     return videoSrc;
   }
 

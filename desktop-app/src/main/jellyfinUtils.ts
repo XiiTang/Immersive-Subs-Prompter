@@ -1,4 +1,4 @@
-import { JellyfinSessionSummary, JellyfinSettings, JellyfinSubtitleStream } from "./types.js";
+import { JellyfinSessionSummary, JellyfinSettings, JellyfinConfig, JellyfinSubtitleStream } from "./types.js";
 
 const TICKS_PER_MILLISECOND = 10_000;
 const DEFAULT_WS_PATH = "/socket";
@@ -41,14 +41,14 @@ export function resolveWebSocketPath(path?: string | null): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-export function buildWebSocketUrl(settings: JellyfinSettings): string {
-  if (!settings.serverUrl) {
+export function buildWebSocketUrl(config: JellyfinConfig): string {
+  if (!config.serverUrl) {
     throw new Error("Missing Jellyfin server URL");
   }
-  const normalized = normalizeServerUrl(settings.serverUrl);
-  const url = new URL(normalized || settings.serverUrl);
+  const normalized = normalizeServerUrl(config.serverUrl);
+  const url = new URL(normalized || config.serverUrl);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = resolveWebSocketPath(settings.webSocketPath);
+  url.pathname = resolveWebSocketPath(config.webSocketPath);
   return url.toString();
 }
 
@@ -76,26 +76,26 @@ export function pickSubtitleExtension(stream: JellyfinSubtitleStream): string {
 }
 
 export function buildSubtitleUrl(
-  settings: JellyfinSettings,
+  config: JellyfinConfig,
   session: JellyfinSessionSummary,
   stream: JellyfinSubtitleStream,
   extensionOverride?: string
 ): string {
-  if (!settings.serverUrl) {
+  if (!config.serverUrl) {
     throw new Error("Missing Jellyfin server URL");
   }
-  if (!settings.apiKey) {
+  if (!config.apiKey) {
     throw new Error("Missing Jellyfin API key");
   }
   if (!session.nowPlayingItemId || !session.mediaSourceId) {
     throw new Error("Session is missing media identifiers");
   }
   const extension = extensionOverride ?? pickSubtitleExtension(stream);
-  const normalized = normalizeServerUrl(settings.serverUrl);
+  const normalized = normalizeServerUrl(config.serverUrl);
   const url = new URL(
     `${normalized}/Videos/${session.nowPlayingItemId}/${session.mediaSourceId}/Subtitles/${stream.index}/Stream.${extension}`
   );
-  url.searchParams.set("api_key", settings.apiKey);
+  url.searchParams.set("api_key", config.apiKey);
   return url.toString();
 }
 
