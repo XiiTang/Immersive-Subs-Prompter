@@ -675,12 +675,10 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
   
   if (hasRecentExtensionUpdate) {
     // Extension is providing timestamps, use those instead of WebSocket
-    mainLogger.debug("Skipping WebSocket playback update, using extension timestamps");
     return;
   }
   
   // Fallback to WebSocket timestamps when extension is not available
-  mainLogger.debug("Using WebSocket playback update as fallback");
   const currentTime = payload.positionMs ?? 0;
   const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
   state.playback = {
@@ -819,13 +817,6 @@ async function handleMessage(message: ExtensionMessage) {
       if (isJellyfin) {
         // ===== JELLYFIN MODE (Method B with Method A timestamps) =====
         mainLogger.info(`Detected Jellyfin URL, switching to hybrid mode: ${url}`);
-        state.activeSource = "jellyfin";
-        state.videoUrl = url;
-        state.site = "jellyfin";
-        
-        // Select profile for this URL
-        const selection = selectProfileForUrl(url);
-        applyProfileSelection(selection.profile, selection.rule);
         
         // Extract Jellyfin item ID from URL
         try {
@@ -833,6 +824,15 @@ async function handleMessage(message: ExtensionMessage) {
           const itemId = urlObj.searchParams.get("mediaSourceId");
           
           if (itemId && appSettings.jellyfin.enabled) {
+            // URL contains item ID - process new video logic
+            state.activeSource = "jellyfin";
+            state.videoUrl = url;
+            state.site = "jellyfin";
+            
+            // Select profile for this URL
+            const selection = selectProfileForUrl(url);
+            applyProfileSelection(selection.profile, selection.rule);
+            
             // Check if same video is already playing
             const currentSession = state.jellyfin.selectedSessionId
               ? state.jellyfin.sessions.find(s => s.id === state.jellyfin.selectedSessionId)
@@ -857,28 +857,50 @@ async function handleMessage(message: ExtensionMessage) {
               jellyfinService.setActiveSession(matchingSession.id);
               state.status = "loading-subtitles";
               state.pendingJellyfinItemId = itemId;
+              
+              // Only clear subtitles when switching to a NEW video
+              state.selectedPrimarySubtitleId = null;
+              state.selectedSecondarySubtitleId = null;
+              state.primarySubtitles = null;
+              state.secondarySubtitles = null;
             } else {
               // No matching session yet - save itemId and wait for WebSocket update
               mainLogger.info(`No matching Jellyfin session found for item ${itemId}, waiting for WebSocket`);
               state.pendingJellyfinItemId = itemId;
               state.status = "loading-subtitles";
+              
+              // Clear subtitles when waiting for new session
+              state.selectedPrimarySubtitleId = null;
+              state.selectedSecondarySubtitleId = null;
+              state.primarySubtitles = null;
+              state.secondarySubtitles = null;
             }
           } else {
-            state.status = "ready";
-            state.error = null;
-            state.subtitleTracks = [];
+            // No item ID in URL - this is likely play/pause event on same video
+            // Keep current state and just update source/site if needed
+            mainLogger.info(`Jellyfin URL without itemId, maintaining current state`);
+            
+            if (state.activeSource !== "jellyfin") {
+              state.activeSource = "jellyfin";
+            }
+            if (state.site !== "jellyfin") {
+              state.site = "jellyfin";
+            }
+            if (state.videoUrl !== url) {
+              state.videoUrl = url;
+            }
+            
+            // Update profile if URL changed
+            const selection = selectProfileForUrl(url);
+            applyProfileSelection(selection.profile, selection.rule);
+            
+            // DON'T clear subtitles - keep existing state
           }
         } catch (error) {
           mainLogger.error("Failed to parse Jellyfin URL", error);
-          state.status = "ready";
-          state.error = null;
-          state.subtitleTracks = [];
+          // On error, keep current state
         }
         
-        state.selectedPrimarySubtitleId = null;
-        state.selectedSecondarySubtitleId = null;
-        state.primarySubtitles = null;
-        state.secondarySubtitles = null;
         pushState();
         return;
       }
