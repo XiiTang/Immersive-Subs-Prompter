@@ -17,7 +17,6 @@ const api = {
   selectSubtitleTrack: (trackId: string | null, role: "primary" | "secondary" = "primary") =>
     ipcRenderer.invoke("usp:select-track", { trackId, role }),
   controlVideo: (command: any) => ipcRenderer.invoke("usp:control", command),
-  selectJellyfinSession: (sessionId: string | null) => ipcRenderer.invoke("usp:jellyfin/select-session", sessionId),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("usp:get-settings"),
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),

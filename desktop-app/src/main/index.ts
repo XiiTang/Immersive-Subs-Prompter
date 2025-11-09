@@ -76,6 +76,7 @@ const state: DesktopState = {
   appliedRuleName: null,
   appliedRulePattern: null,
   appliedRuleMatchType: null,
+  pendingJellyfinItemId: null,
   jellyfin: {
     connected: false,
     sessions: [],
@@ -571,6 +572,20 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
   state.jellyfin.sessions = sessions;
   state.jellyfin.lastUpdated = Date.now();
   
+  // Handle pending Jellyfin item ID (race condition resolution)
+  if (state.pendingJellyfinItemId && state.activeSource === "jellyfin") {
+    const matchingSession = sessions.find(
+      session => session.nowPlayingItemId === state.pendingJellyfinItemId
+    );
+    
+    if (matchingSession && matchingSession.id !== state.jellyfin.selectedSessionId) {
+      mainLogger.info(`Found matching session for pending itemId ${state.pendingJellyfinItemId}: ${matchingSession.id}`);
+      state.jellyfin.selectedSessionId = matchingSession.id;
+      jellyfinService.setActiveSession(matchingSession.id);
+      state.pendingJellyfinItemId = null; // Clear pending after matching
+    }
+  }
+  
   if (state.jellyfin.selectedSessionId) {
     const selected = sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
     if (!selected) {
@@ -798,56 +813,55 @@ async function handleMessage(message: ExtensionMessage) {
         return;
       }
 
-      // Unified Jellyfin detection: Check if this is a Jellyfin URL
+      // ===== TOP-LEVEL ROUTING: Detect Jellyfin URL =====
       const isJellyfin = isJellyfinServerUrl(url);
       
       if (isJellyfin) {
-        // === Jellyfin Mode ===
-        mainLogger.info(`Detected Jellyfin URL from extension: ${url}`);
+        // ===== JELLYFIN MODE (Method B with Method A timestamps) =====
+        mainLogger.info(`Detected Jellyfin URL, switching to hybrid mode: ${url}`);
         state.activeSource = "jellyfin";
         state.videoUrl = url;
         state.site = "jellyfin";
+        
+        // Select profile for this URL
         const selection = selectProfileForUrl(url);
         applyProfileSelection(selection.profile, selection.rule);
         
-        // Extract item ID from URL and try to find matching Jellyfin session
+        // Extract Jellyfin item ID from URL
         try {
           const urlObj = new URL(url);
           const itemId = urlObj.searchParams.get("mediaSourceId");
           
           if (itemId && appSettings.jellyfin.enabled) {
-            // Check if this is the same video as currently playing
-            // For Jellyfin, use itemId instead of URL to determine if it's the same video
+            // Check if same video is already playing
             const currentSession = state.jellyfin.selectedSessionId
               ? state.jellyfin.sessions.find(s => s.id === state.jellyfin.selectedSessionId)
               : null;
             const currentItemId = currentSession?.nowPlayingItemId;
             
             if (currentItemId === itemId && state.subtitleTracks.length > 0) {
-              // Same Jellyfin video, just URL changed (e.g., due to loop button, deviceId change, etc.)
-              // Don't reload subtitles, but update playback state from extension
-              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), keeping subtitles, updating playback`);
+              // Same Jellyfin video - just update playback from extension, keep subtitles
+              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), keeping subtitles`);
               pushState();
               return;
             }
             
-            // Find session with matching item ID
+            // New video - find matching Jellyfin session
             const matchingSession = state.jellyfin.sessions.find(
               session => session.nowPlayingItemId === itemId
             );
             
             if (matchingSession) {
-              mainLogger.info(`Found matching Jellyfin session for item ${itemId}: ${matchingSession.id}`);
-              // Set the session to load subtitles via JellyfinService
-              // Extension will provide timestamps, WebSocket provides subtitles
+              mainLogger.info(`Auto-switching to Jellyfin session for item ${itemId}: ${matchingSession.id}`);
               state.jellyfin.selectedSessionId = matchingSession.id;
               jellyfinService.setActiveSession(matchingSession.id);
               state.status = "loading-subtitles";
+              state.pendingJellyfinItemId = itemId;
             } else {
-              mainLogger.warn(`No matching Jellyfin session found for item ${itemId}`);
-              state.status = "ready";
-              state.error = null;
-              state.subtitleTracks = [];
+              // No matching session yet - save itemId and wait for WebSocket update
+              mainLogger.info(`No matching Jellyfin session found for item ${itemId}, waiting for WebSocket`);
+              state.pendingJellyfinItemId = itemId;
+              state.status = "loading-subtitles";
             }
           } else {
             state.status = "ready";
@@ -869,18 +883,21 @@ async function handleMessage(message: ExtensionMessage) {
         return;
       }
 
-      // === Non-Jellyfin Mode (yt-dlp) ===
-      // Clear any Jellyfin session selection when switching to non-Jellyfin source
+      // ===== EXTENSION MODE (Method A only - yt-dlp) =====
+      mainLogger.info(`Non-Jellyfin URL detected, switching to extension mode: ${url}`);
+      
+      // Force disconnect from Jellyfin when not on Jellyfin URL
       if (state.activeSource !== "extension") {
         state.activeSource = "extension";
         if (state.jellyfin.selectedSessionId) {
+          mainLogger.info("Disconnecting from Jellyfin session (non-Jellyfin URL)");
           state.jellyfin.selectedSessionId = null;
           jellyfinService.setActiveSession(null);
         }
+        state.pendingJellyfinItemId = null;
       }
 
       // Normalize URL to remove tracking parameters
-      // This ensures consistent behavior regardless of tracking params
       const normalizedUrl = normalizeUrl(url);
       const previousVideoUrl = state.videoUrl;
       
@@ -891,10 +908,8 @@ async function handleMessage(message: ExtensionMessage) {
       const selection = selectProfileForUrl(normalizedUrl);
       applyProfileSelection(selection.profile, selection.rule);
 
-      // If video URL hasn't changed (already normalized), it's the same video (e.g., just seeking), no need to reload subtitles
-      // Don't retry even if previous download failed, to avoid repeated attempts
+      // If video URL hasn't changed, it's the same video - no need to reload subtitles
       if (normalizedUrl === previousVideoUrl && (state.subtitleTracks.length > 0 || state.status === "error")) {
-        // Only update page info, keep subtitle or error state unchanged
         mainLogger.info(`Same video detected (normalized URL matches), skipping subtitle reload: ${normalizedUrl}`);
         pushState();
         return;
@@ -1139,9 +1154,6 @@ ipcMain.handle("usp:control", (_event, command) => {
 ipcMain.handle("usp:get-settings", () => appSettings);
 ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
   return updateAppSettings(payload);
-});
-ipcMain.handle("usp:jellyfin/select-session", (_event, sessionId: string | null) => {
-  selectJellyfinSession(sessionId);
 });
 
 app.whenReady().then(() => {

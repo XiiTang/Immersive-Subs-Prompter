@@ -72,6 +72,7 @@ export interface DesktopState {
   appliedRuleName: string | null;
   appliedRulePattern: string | null;
   appliedRuleMatchType: UrlMatchType | null;
+  pendingJellyfinItemId: string | null; // Used to prevent race conditions when switching between Jellyfin and extension
   jellyfin: JellyfinPanelState;
 }
 

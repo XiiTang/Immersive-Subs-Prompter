@@ -23,11 +23,6 @@ const statusBanner = document.getElementById("status-banner") as HTMLElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
 
-// Jellyfin controls - now in settings panel
-const jellyfinSessionSelector = document.getElementById("jellyfin-session-selector") as HTMLSelectElement | null;
-const jellyfinStatusIndicator = document.getElementById("jellyfin-status-indicator") as HTMLElement | null;
-const jellyfinStatusText = document.getElementById("jellyfin-status-text") as HTMLElement | null;
-
 const primaryTrackSelector = document.getElementById("primary-track-selector") as HTMLSelectElement;
 const secondaryTrackSelector = document.getElementById("secondary-track-selector") as HTMLSelectElement;
 const playButton = document.getElementById("play-btn") as HTMLButtonElement;
@@ -1234,62 +1229,6 @@ function renderTrackSelectors(state: DesktopState) {
   }
 }
 
-function formatJellyfinSessionLabel(session: JellyfinSessionSummary): string {
-  const title = session.nowPlayingItemName ?? "Idle";
-  const user = session.userName ?? "Unknown user";
-  const device = session.deviceName ?? session.client ?? "Unknown device";
-  return `${title} · ${user} · ${device}`;
-}
-
-/**
- * Render Jellyfin session controls in settings panel
- * Updated to use new settings panel location
- */
-function renderJellyfinControls(state: DesktopState) {
-  // Update session selector dropdown
-  if (jellyfinSessionSelector) {
-    const sessionCount = state.jellyfin.sessions.length;
-    const previousLength = jellyfinSessionSelector.options.length - 1;
-    const needsRebuild =
-      previousLength !== sessionCount || jellyfinSessionSelector.dataset.signature !== String(sessionCount);
-    
-    if (needsRebuild) {
-      jellyfinSessionSelector.innerHTML = "";
-      const browserOption = document.createElement("option");
-      browserOption.value = "";
-      browserOption.textContent = "Browser (active tab)";
-      jellyfinSessionSelector.appendChild(browserOption);
-      
-      state.jellyfin.sessions.forEach((session) => {
-        const option = document.createElement("option");
-        option.value = session.id;
-        option.textContent = formatJellyfinSessionLabel(session);
-        jellyfinSessionSelector.appendChild(option);
-      });
-      jellyfinSessionSelector.dataset.signature = String(sessionCount);
-    }
-    
-    const desiredValue = state.jellyfin.selectedSessionId ?? "";
-    jellyfinSessionSelector.value = desiredValue;
-    if (jellyfinSessionSelector.value !== desiredValue) {
-      jellyfinSessionSelector.value = "";
-    }
-  }
-
-  // Update status indicator
-  if (jellyfinStatusIndicator && jellyfinStatusText) {
-    const sessionCount = state.jellyfin.sessions.length;
-    
-    if (state.jellyfin.connected) {
-      jellyfinStatusIndicator.style.color = "#10b981"; // green
-      jellyfinStatusText.textContent = `Connected (${sessionCount} session${sessionCount === 1 ? "" : "s"})`;
-    } else {
-      jellyfinStatusIndicator.style.color = "#6b7280"; // gray
-      jellyfinStatusText.textContent = "Disconnected";
-    }
-  }
-}
-
 function renderState(state: DesktopState) {
   currentStateSnapshot = state;
   if (currentSettings) {
@@ -1320,7 +1259,6 @@ function renderState(state: DesktopState) {
   statusBanner.className = `status-banner ${modifier}`;
 
   renderTrackSelectors(state);
-  renderJellyfinControls(state);
 
   if (state.primarySubtitles) {
     renderSubtitles(state.primarySubtitles, state.secondarySubtitles);
@@ -1417,13 +1355,6 @@ secondaryTrackSelector.addEventListener("change", () => {
   const value = secondaryTrackSelector.value || null;
   window.usp.selectSubtitleTrack(value, "secondary");
 });
-
-if (jellyfinSessionSelector) {
-  jellyfinSessionSelector.addEventListener("change", () => {
-    const value = jellyfinSessionSelector.value;
-    window.usp.selectJellyfinSession(value || null);
-  });
-}
 
 if (jellyfinEnabledToggle) {
   jellyfinEnabledToggle.addEventListener("change", () => {
