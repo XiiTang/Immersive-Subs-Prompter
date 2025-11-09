@@ -50,9 +50,9 @@ const log = (() => {
   let urlMonitorTimer = null;
   const regexCache = new Map();
   
-  // Loop control variables
-  let loopStart = null;
-  let loopEnd = null;
+  // Loop control variables (stored in milliseconds for precision)
+  let loopStartMs = null;
+  let loopEndMs = null;
   let isLooping = false;
   let programmaticSeek = false; // Track if seek is triggered by program, not user
   
@@ -60,8 +60,8 @@ const log = (() => {
   function clearLoopState() {
     if (isLooping) {
       isLooping = false;
-      loopStart = null;
-      loopEnd = null;
+      loopStartMs = null;
+      loopEndMs = null;
       log.info('loop', 'Loop cleared');
       // Notify desktop-app to update UI
       send("loop-cleared", {});
@@ -317,15 +317,19 @@ const log = (() => {
     
     // Check loop condition and handle time reporting
     let reportTime = null;
-    if (isLooping && loopStart !== null && loopEnd !== null && video) {
-      const currentTime = video.currentTime;
-      if (currentTime >= loopEnd) {
-        // About to loop back - report the middle time of the loop range
-        const middleTime = (loopStart + loopEnd) / 2;
-        reportTime = middleTime * 1000; // Convert to milliseconds
-        programmaticSeek = true; // Mark this as programmatic seek
-        video.currentTime = loopStart;
-        log.info('loop', `Loop back: ${currentTime.toFixed(2)}s → ${loopStart.toFixed(2)}s (report ${middleTime.toFixed(2)}s)`);
+    if (isLooping && loopStartMs !== null && loopEndMs !== null && video) {
+      const currentTimeMs = video.currentTime * 1000;
+      const middleTimeMs = (loopStartMs + loopEndMs) / 2;
+      
+      // Check if we should loop back
+      if (currentTimeMs >= loopEndMs) {
+        reportTime = middleTimeMs;
+        programmaticSeek = true;
+        video.currentTime = loopStartMs / 1000;
+      } 
+      // If current time is within the loop range, always report middle time to keep subtitle stable
+      else if (currentTimeMs >= loopStartMs && currentTimeMs <= loopEndMs) {
+        reportTime = middleTimeMs;
       }
     }
     
@@ -334,7 +338,7 @@ const log = (() => {
       return;
     }
     
-    // Override currentTime if we're looping back
+    // Override currentTime if we're looping
     if (reportTime !== null) {
       state.currentTime = reportTime;
     }
@@ -416,7 +420,7 @@ const log = (() => {
             });
           }
           handleTimeUpdate(target);
-          log.info('ctrl', `seek → ${clamped.toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
+          log.info('ctrl', `seek → ${clamped.toFixed(3)}s${wasPaused ? ' (auto-play)' : ''}`);
         } else {
           log.warn('ctrl', `seek failed: invalid time`, payload);
         }
@@ -424,19 +428,18 @@ const log = (() => {
       case "loop":
         if (typeof payload.start === "number" && typeof payload.end === "number" && 
             Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
-          loopStart = payload.start / 1000; // Convert milliseconds to seconds
-          loopEnd = payload.end / 1000; // Convert milliseconds to seconds
+          loopStartMs = payload.start;
+          loopEndMs = payload.end;
           isLooping = true;
-          programmaticSeek = true; // Mark this as programmatic seek
+          programmaticSeek = true;
           const wasPaused = target.paused;
-          target.currentTime = loopStart;
-          // Auto-play if video was paused
+          target.currentTime = loopStartMs / 1000;
           if (wasPaused) {
             target.play().catch((err) => {
               log.error('ctrl', 'Auto-play after loop enabled failed', err);
             });
           }
-          log.info('ctrl', `Loop enabled: ${loopStart.toFixed(2)}s - ${loopEnd.toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
+          log.info('ctrl', `Loop enabled: ${(loopStartMs / 1000).toFixed(2)}s - ${(loopEndMs / 1000).toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
         } else {
           log.warn('ctrl', `loop failed: invalid times`, payload);
         }

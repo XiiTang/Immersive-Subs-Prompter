@@ -1116,6 +1116,7 @@ function highlightActiveCue(currentTime: number) {
   if (!combinedCues.length) return;
 
   const newIndex = combinedCues.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
+  
   if (newIndex === -1) {
     if (activeCueIndex !== null && cueElements[activeCueIndex]) {
       cueElements[activeCueIndex].classList.remove("subtitle-item--active");
@@ -1744,7 +1745,6 @@ async function bootstrap() {
   });
 
   window.usp.onLoopCleared(() => {
-    // Clear loop state in UI when extension clears it due to user interaction
     if (loopingCueIndex !== null) {
       const loopButton = document.querySelector(
         `.subtitle-item__loop-btn[data-index="${loopingCueIndex}"]`
@@ -1753,7 +1753,6 @@ async function bootstrap() {
         loopButton.classList.remove("subtitle-item__loop-btn--active");
       }
       loopingCueIndex = null;
-      console.log("[Renderer] Loop cleared by user interaction");
     }
   });
 }
