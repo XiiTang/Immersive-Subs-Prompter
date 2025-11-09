@@ -537,7 +537,33 @@ function selectJellyfinSession(sessionId: string | null) {
 
   const session = state.jellyfin.sessions.find((item) => item.id === sessionId) ?? null;
   state.jellyfin.selectedSessionId = sessionId;
-  state.activeSource = "jellyfin";
+  
+  // Check if extension is already active on Jellyfin
+  const isExtensionOnJellyfin = state.activeSource === "extension" && 
+                                 state.site === "jellyfin" && 
+                                 state.videoUrl && 
+                                 isJellyfinServerUrl(state.videoUrl);
+  
+  if (isExtensionOnJellyfin) {
+    // Extension is already active on Jellyfin - prioritize extension timestamps
+    // JellyfinService will only load subtitles, not manage playback
+    mainLogger.info(`Extension already active on Jellyfin, using extension timestamps for session: ${sessionId}`);
+    state.activeSource = "extension";
+    // Keep existing playback state from extension
+    // Don't override with WebSocket data
+  } else {
+    // Extension not on Jellyfin - use WebSocket for both timestamps and subtitles
+    state.activeSource = "jellyfin";
+    if (session) {
+      const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
+      state.playback = {
+        currentTime: currentTimeMilliseconds,
+        playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
+        lastUpdate: Date.now()
+      };
+    }
+  }
+  
   state.site = "jellyfin";
   state.title = session?.nowPlayingItemName ?? "Jellyfin Session";
   state.pageUrl = buildJellyfinPageUrl(session);
@@ -548,14 +574,7 @@ function selectJellyfinSession(sessionId: string | null) {
   state.status = "loading-subtitles";
   state.error = null;
   resetSubtitleState();
-  if (session) {
-    const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
-    state.playback = {
-      currentTime: currentTimeMilliseconds,
-      playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
-      lastUpdate: Date.now()
-    };
-  }
+  
   pushState();
   jellyfinService.setActiveSession(sessionId);
 }
@@ -601,7 +620,13 @@ function handleJellyfinStatusUpdate(connected: boolean) {
 }
 
 function handleJellyfinSubtitlesUpdate(payload: JellyfinSubtitlesPayload) {
-  if (state.activeSource !== "jellyfin" || !payload.sessionId) {
+  // Accept subtitles from JellyfinService if:
+  // 1. activeSource is "jellyfin" (traditional WebSocket mode), OR
+  // 2. activeSource is "extension" and site is "jellyfin" (extension on Jellyfin with WebSocket subtitles)
+  const isJellyfinActive = state.activeSource === "jellyfin" || 
+                           (state.activeSource === "extension" && state.site === "jellyfin");
+  
+  if (!isJellyfinActive || !payload.sessionId) {
     return;
   }
   if (payload.sessionId !== state.jellyfin.selectedSessionId) {
@@ -727,22 +752,11 @@ function resolveVideoUrl(payload: ExtensionPayload): string | null {
   const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
   const site = payload.site;
 
-  // Check if the URL is from a Jellyfin server - if so, don't use yt-dlp
-  if (pageUrl && isJellyfinServerUrl(pageUrl)) {
-    mainLogger.info(`Ignoring Jellyfin web interface URL: ${pageUrl}`);
-    return null;
-  }
-
   if (pageUrl && /^https?:\/\//i.test(pageUrl) && site && PAGE_URL_SITES.has(site)) {
     return pageUrl;
   }
 
   if (videoSrc && /^https?:\/\//i.test(videoSrc)) {
-    // Also check videoSrc
-    if (isJellyfinServerUrl(videoSrc)) {
-      mainLogger.info(`Ignoring Jellyfin video URL: ${videoSrc}`);
-      return null;
-    }
     return videoSrc;
   }
 
@@ -773,6 +787,76 @@ async function handleMessage(message: ExtensionMessage) {
       if (!url) {
         state.status = "error";
         state.error = "Unable to parse video URL";
+        pushState();
+        return;
+      }
+
+      // Check if this is a Jellyfin URL - skip yt-dlp but keep extension as active source
+      const isJellyfin = isJellyfinServerUrl(url);
+      if (isJellyfin) {
+        mainLogger.info(`Detected Jellyfin URL from extension: ${url}`);
+        // Let extension handle playback and timestamps for Jellyfin
+        // Don't process with yt-dlp
+        state.videoUrl = url;
+        state.site = "jellyfin";
+        const selection = selectProfileForUrl(url);
+        applyProfileSelection(selection.profile, selection.rule);
+        
+        // Extract item ID from URL and try to find matching Jellyfin session
+        try {
+          const urlObj = new URL(url);
+          const itemId = urlObj.searchParams.get("mediaSourceId");
+          
+          if (itemId && appSettings.jellyfin.enabled) {
+            // Check if this is the same video as currently playing
+            // For Jellyfin, use itemId instead of URL to determine if it's the same video
+            const currentSession = state.jellyfin.selectedSessionId
+              ? state.jellyfin.sessions.find(s => s.id === state.jellyfin.selectedSessionId)
+              : null;
+            const currentItemId = currentSession?.nowPlayingItemId;
+            
+            if (currentItemId === itemId && state.subtitleTracks.length > 0) {
+              // Same Jellyfin video, just URL changed (e.g., due to loop button, deviceId change, etc.)
+              // Don't reload subtitles
+              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), skipping subtitle reload`);
+              pushState();
+              return;
+            }
+            
+            // Find session with matching item ID
+            const matchingSession = state.jellyfin.sessions.find(
+              session => session.nowPlayingItemId === itemId
+            );
+            
+            if (matchingSession) {
+              mainLogger.info(`Found matching Jellyfin session for item ${itemId}: ${matchingSession.id}`);
+              // Set the session to load subtitles via JellyfinService
+              state.jellyfin.selectedSessionId = matchingSession.id;
+              jellyfinService.setActiveSession(matchingSession.id);
+              // Status will be updated when subtitles are loaded
+              state.status = "loading-subtitles";
+            } else {
+              mainLogger.warn(`No matching Jellyfin session found for item ${itemId}`);
+              state.status = "ready";
+              state.error = null;
+              state.subtitleTracks = [];
+            }
+          } else {
+            state.status = "ready";
+            state.error = null;
+            state.subtitleTracks = [];
+          }
+        } catch (error) {
+          mainLogger.error("Failed to parse Jellyfin URL", error);
+          state.status = "ready";
+          state.error = null;
+          state.subtitleTracks = [];
+        }
+        
+        state.selectedPrimarySubtitleId = null;
+        state.selectedSecondarySubtitleId = null;
+        state.primarySubtitles = null;
+        state.secondarySubtitles = null;
         pushState();
         return;
       }
