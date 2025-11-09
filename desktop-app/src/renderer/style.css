@@ -162,21 +162,6 @@ body {
   padding: 0 16px 8px;
 }
 
-.jellyfin-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.jellyfin-panel__status {
-  font-size: 11px;
-  color: #a5f3fc;
-}
-
 .track-picker {
   display: flex;
   flex-direction: column;
@@ -425,6 +410,58 @@ body {
 .settings-field__hint {
   font-size: 11px;
   color: #9ca3af;
+}
+
+/* Jellyfin Session Panel in Settings */
+.jellyfin-session-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.jellyfin-session-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+.jellyfin-session-status__indicator {
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.jellyfin-session-status__text {
+  font-weight: 500;
+}
+
+.settings-field__select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: #e5e5e5;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.settings-field__select:hover {
+  border-color: rgba(103, 232, 249, 0.4);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.settings-field__select:focus {
+  outline: none;
+  border-color: rgba(103, 232, 249, 0.6);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .settings-section {

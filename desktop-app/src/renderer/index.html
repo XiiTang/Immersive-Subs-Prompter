@@ -27,15 +27,6 @@
               <p class="video-meta__url" id="video-url"></p>
             </section>
             <section class="control-panel" id="control-panel">
-              <div class="jellyfin-panel">
-                <div class="jellyfin-panel__status" id="jellyfin-status">Jellyfin: Disconnected</div>
-                <label class="track-picker">
-                  <span class="track-picker__label">Jellyfin Session</span>
-                  <select id="jellyfin-session-selector">
-                    <option value="">Browser (active tab)</option>
-                  </select>
-                </label>
-              </div>
               <label class="track-picker">
                 <span class="track-picker__label">Primary Subtitle</span>
                 <select id="primary-track-selector"></select>
@@ -90,6 +81,24 @@
                   <span class="toggle__text">Enable</span>
                 </label>
               </div>
+              
+              <!-- Jellyfin Session Picker (moved from main view) -->
+              <div class="jellyfin-session-panel" id="jellyfin-session-panel">
+                <label class="settings-field">
+                  <span class="settings-field__label">Active Session</span>
+                  <select id="jellyfin-session-selector" class="settings-field__select">
+                    <option value="">Browser (active tab)</option>
+                  </select>
+                  <small class="settings-field__hint" id="jellyfin-session-hint">
+                    Select which device's playback to track for subtitles
+                  </small>
+                </label>
+                <div class="jellyfin-session-status" id="jellyfin-session-status">
+                  <span class="jellyfin-session-status__indicator" id="jellyfin-status-indicator">●</span>
+                  <span class="jellyfin-session-status__text" id="jellyfin-status-text">Disconnected</span>
+                </div>
+              </div>
+              
               <div class="jellyfin-config-manager">
                 <div class="jellyfin-config-manager__sidebar">
                   <div class="jellyfin-config-manager__actions">
