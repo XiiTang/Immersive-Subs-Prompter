@@ -8,12 +8,7 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://*.youtube.com/*",
-    "https://*.bilibili.com/*",
-    "https://*.douyin.com/*",
-    "https://www.bilibili.com/*",
-    "https://www.youtube.com/*",
-    "https://www.douyin.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
@@ -22,12 +17,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.youtube.com/*",
-        "https://*.bilibili.com/*",
-        "https://*.douyin.com/*",
-        "https://www.bilibili.com/*",
-        "https://www.youtube.com/*",
-        "https://www.douyin.com/*"
+        "<all_urls>"
       ],
       "js": [
         "content-script.js"

@@ -549,6 +549,70 @@ const log = (() => {
     }
   }
 
+  // Helper function to get Shadow DOM (including closed ones)
+  function getShadowRoot(element) {
+    if (!element) return null;
+    // Try to get shadow root via Chrome API for closed shadow roots
+    if (typeof chrome !== 'undefined' && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
+      try {
+        return chrome.dom.openOrClosedShadowRoot(element);
+      } catch (err) {
+        // Fallback to normal shadowRoot
+      }
+    }
+    return element.shadowRoot;
+  }
+
+  // Recursively scan for Shadow DOMs
+  function scanForShadowRoots(root = document.body) {
+    if (!root) return;
+    
+    const elements = root.querySelectorAll('*');
+    elements.forEach(element => {
+      const shadowRoot = getShadowRoot(element);
+      if (shadowRoot && !observedDocs.has(shadowRoot)) {
+        log.info('shadow', 'Found Shadow DOM', { host: element.tagName });
+        ensureDocListeners(shadowRoot);
+        // Recursively scan inside shadow root
+        scanForShadowRoots(shadowRoot);
+      }
+    });
+  }
+
+  // Set up MutationObserver to detect dynamically added elements
+  function setupDOMMutationObserver() {
+    const observer = new MutationObserver((mutations) => {
+      if (!monitoringActive) return;
+      
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if added node has shadow root
+            const shadowRoot = getShadowRoot(node);
+            if (shadowRoot && !observedDocs.has(shadowRoot)) {
+              log.info('shadow', 'New Shadow DOM detected via mutation', { host: node.tagName });
+              ensureDocListeners(shadowRoot);
+              scanForShadowRoots(shadowRoot);
+            }
+            // Also scan descendants of added node
+            if (node.querySelectorAll) {
+              scanForShadowRoots(node);
+            }
+          }
+        });
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+
+    return observer;
+  }
+
+  let domObserver = null;
+
   function ensurePrototypeHooks() {
     if (prototypesHooked) {
       return;
@@ -572,7 +636,10 @@ const log = (() => {
     if (typeof originalAttachShadow === "function") {
       Element.prototype.attachShadow = function (...args) {
         const shadowRoot = originalAttachShadow.apply(this, args);
+        log.info('shadow', 'attachShadow called', { host: this.tagName, mode: args[0]?.mode });
         ensureDocListeners(shadowRoot);
+        // Scan for nested shadow roots
+        scanForShadowRoots(shadowRoot);
         return shadowRoot;
       };
       Element.prototype.attachShadow.toString = () => originalAttachShadow.toString();
@@ -587,6 +654,13 @@ const log = (() => {
     ensurePrototypeHooks();
     connectPort();
     ensureDocListeners(document);
+    
+    // Scan for existing Shadow DOMs that may have been created before script injection
+    log.info('shadow', 'Scanning for existing Shadow DOMs...');
+    scanForShadowRoots();
+    
+    // Set up mutation observer to detect new shadow roots
+    domObserver = setupDOMMutationObserver();
   }
 
   function stopMonitoring() {
@@ -596,6 +670,13 @@ const log = (() => {
     monitoringActive = false;
     stopTicker();
     activeVideo = null;
+    
+    // Disconnect mutation observer
+    if (domObserver) {
+      domObserver.disconnect();
+      domObserver = null;
+    }
+    
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
