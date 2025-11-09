@@ -75,6 +75,35 @@ export function pickSubtitleExtension(stream: JellyfinSubtitleStream): string {
   return CODEC_EXTENSION_MAP[key] ?? key.split(/[^a-z0-9]/i).pop()?.toLowerCase() ?? "vtt";
 }
 
+/**
+ * Intelligently guess subtitle format from stream metadata
+ * Migrated from jellyfin-desktop-client for better format detection
+ * 
+ * @param stream - The Jellyfin subtitle stream
+ * @returns 'srt' or 'vtt' format identifier
+ */
+export function guessSubtitleFormatFromStream(stream: JellyfinSubtitleStream): 'srt' | 'vtt' {
+  const normalizedTitle = (stream.displayTitle ?? '').toLowerCase();
+  const normalizedCodec = (stream.codec ?? '').toLowerCase();
+
+  // Check display title first (more explicit)
+  if (normalizedTitle.includes('vtt') || normalizedTitle.includes('webvtt')) {
+    return 'vtt';
+  }
+  
+  // Check codec
+  if (normalizedCodec.includes('vtt') || normalizedCodec.includes('webvtt')) {
+    return 'vtt';
+  }
+  
+  if (normalizedCodec.includes('srt') || normalizedCodec.includes('subrip')) {
+    return 'srt';
+  }
+
+  // Default to SRT for most subtitle formats
+  return 'srt';
+}
+
 export function buildSubtitleUrl(
   config: JellyfinConfig,
   session: JellyfinSessionSummary,

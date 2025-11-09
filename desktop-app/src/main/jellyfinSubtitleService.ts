@@ -10,7 +10,8 @@ import {
   createAuthHeaders,
   JellyfinIdentity,
   normalizeServerUrl,
-  ticksToMilliseconds
+  ticksToMilliseconds,
+  guessSubtitleFormatFromStream
 } from "./jellyfinUtils.js";
 import {
   JellyfinPlaybackPayload,
@@ -515,61 +516,45 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    let workingSummary = summary;
-    if ((!summary.mediaSourceId || !summary.subtitleStreams.length) && summary.nowPlayingItemId) {
-      this.log.info("Attempting to refresh subtitle metadata from Jellyfin API", {
-        sessionId: summary.id,
-        itemId: summary.nowPlayingItemId,
-        currentMediaSourceId: summary.mediaSourceId,
-        currentSubtitleCount: summary.subtitleStreams.length
-      });
-      const refreshed = await this.refreshSubtitleMetadata(summary);
-      if (refreshed) {
-        workingSummary = refreshed;
-        this.sessions.set(summary.id, refreshed);
-        this.log.info("Successfully refreshed subtitle metadata", {
-          sessionId: summary.id,
-          mediaSourceId: refreshed.mediaSourceId,
-          subtitleCount: refreshed.subtitleStreams.length
-        });
-      }
-    }
-
-    if (!workingSummary.nowPlayingItemId) {
+    if (!summary.nowPlayingItemId) {
       this.log.warn("Skipping Jellyfin subtitles due to missing item ID", {
-        serverUrl: activeConfig.serverUrl,
-        hasApiKey: Boolean(activeConfig.apiKey),
-        sessionId: workingSummary.id
+        sessionId: summary.id
       });
       this.emit("subtitles", {
         sessionId: summary.id,
-        itemName: workingSummary.nowPlayingItemName ?? null,
+        itemName: summary.nowPlayingItemName ?? null,
         tracks: []
       });
       return;
     }
 
+    // Enhanced metadata resolution with recursive retry (migrated from jellyfin-desktop-client)
+    const resolvedStreams = await this.resolveSubtitleStreams(summary, activeConfig, true);
+    
+    if (!resolvedStreams.streams.length) {
+      this.log.info(
+        `No subtitle streams available for Jellyfin session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
+      );
+      this.emit("subtitles", {
+        sessionId: summary.id,
+        itemName: summary.nowPlayingItemName ?? null,
+        tracks: []
+      });
+      return;
+    }
+
+    const workingSummary: JellyfinSessionSummary = {
+      ...summary,
+      mediaSourceId: resolvedStreams.mediaSourceId ?? summary.mediaSourceId,
+      subtitleStreams: resolvedStreams.streams
+    };
+
     if (!workingSummary.mediaSourceId) {
       this.log.warn("Skipping Jellyfin subtitles due to missing media source ID", {
-        serverUrl: activeConfig.serverUrl,
-        hasApiKey: Boolean(activeConfig.apiKey),
-        mediaSourceId: workingSummary.mediaSourceId,
         itemId: workingSummary.nowPlayingItemId
       });
       this.emit("subtitles", {
         sessionId: summary.id,
-        itemName: workingSummary.nowPlayingItemName ?? null,
-        tracks: []
-      });
-      return;
-    }
-
-    if (!workingSummary.subtitleStreams.length) {
-      this.log.info(
-        `No subtitle streams exposed by Jellyfin session ${workingSummary.id} (${workingSummary.nowPlayingItemName ?? "unknown"})`
-      );
-      this.emit("subtitles", {
-        sessionId: workingSummary.id,
         itemName: workingSummary.nowPlayingItemName ?? null,
         tracks: []
       });
@@ -600,7 +585,7 @@ export class JellyfinSubtitleService {
         );
         const response = await fetch(url, {
           headers: {
-            Accept: "text/vtt, application/octet-stream",
+            Accept: "text/vtt, text/plain, application/octet-stream",
             ...createAuthHeaders(activeConfig.apiKey, this.identity)
           }
         });
@@ -641,6 +626,70 @@ export class JellyfinSubtitleService {
     });
   }
 
+  /**
+   * Resolve subtitle streams with recursive retry mechanism
+   * Migrated from jellyfin-desktop-client for robust metadata fetching
+   * 
+   * @param summary - Current session summary
+   * @param config - Active Jellyfin configuration
+   * @param allowRefresh - Whether to allow API refresh on missing data
+   * @returns Object containing resolved streams and mediaSourceId
+   */
+  private async resolveSubtitleStreams(
+    summary: JellyfinSessionSummary,
+    config: JellyfinConfig,
+    allowRefresh: boolean
+  ): Promise<{ streams: JellyfinSubtitleStream[]; mediaSourceId: string | null }> {
+    // 1. First, try to use streams from session
+    if (summary.subtitleStreams.length > 0 && summary.mediaSourceId) {
+      this.log.debug("Using subtitle streams from session", {
+        sessionId: summary.id,
+        streamCount: summary.subtitleStreams.length,
+        mediaSourceId: summary.mediaSourceId
+      });
+      return {
+        streams: summary.subtitleStreams,
+        mediaSourceId: summary.mediaSourceId
+      };
+    }
+
+    // 2. If streams are missing and refresh is allowed, fetch from API
+    if (allowRefresh && summary.nowPlayingItemId) {
+      this.log.info("Subtitle metadata missing from session, fetching from Jellyfin API", {
+        sessionId: summary.id,
+        itemId: summary.nowPlayingItemId,
+        hasMediaSourceId: Boolean(summary.mediaSourceId),
+        currentStreamCount: summary.subtitleStreams.length
+      });
+
+      const metadata = await this.fetchNowPlayingMetadata(summary, config);
+      if (metadata && (metadata.subtitleStreams.length > 0 || metadata.mediaSourceId)) {
+        this.log.info("Successfully fetched subtitle metadata from API", {
+          sessionId: summary.id,
+          streamCount: metadata.subtitleStreams.length,
+          mediaSourceId: metadata.mediaSourceId
+        });
+        
+        // Recursively call with allowRefresh=false to avoid infinite loop
+        return this.resolveSubtitleStreams(
+          {
+            ...summary,
+            subtitleStreams: metadata.subtitleStreams,
+            mediaSourceId: metadata.mediaSourceId ?? summary.mediaSourceId
+          },
+          config,
+          false // Prevent infinite recursion
+        );
+      }
+    }
+
+    // 3. Fallback: return what we have (may be empty)
+    return {
+      streams: summary.subtitleStreams,
+      mediaSourceId: summary.mediaSourceId
+    };
+  }
+
   private async refreshSubtitleMetadata(summary: JellyfinSessionSummary): Promise<JellyfinSessionSummary | null> {
     const metadata = await this.fetchNowPlayingMetadata(summary);
     if (!metadata) {
@@ -660,8 +709,8 @@ export class JellyfinSubtitleService {
     };
   }
 
-  private async fetchNowPlayingMetadata(summary: JellyfinSessionSummary) {
-    const activeConfig = this.getActiveConfig();
+  private async fetchNowPlayingMetadata(summary: JellyfinSessionSummary, config?: JellyfinConfig) {
+    const activeConfig = config ?? this.getActiveConfig();
     if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
       return null;
     }
@@ -709,12 +758,12 @@ export class JellyfinSubtitleService {
     }
   }
 
+  /**
+   * Get preferred subtitle extension with intelligent format detection
+   * Enhanced version using guessSubtitleFormatFromStream from jellyfin-desktop-client
+   */
   private getPreferredExtension(stream: JellyfinSubtitleStream): string {
-    const codec = stream.codec?.toLowerCase() ?? "";
-    if (codec.includes("srt") || codec.includes("subrip")) {
-      return "srt";
-    }
-    return "vtt";
+    return guessSubtitleFormatFromStream(stream);
   }
 
   private formatTrackLabel(stream: JellyfinSubtitleStream): string {

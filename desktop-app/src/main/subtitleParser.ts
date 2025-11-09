@@ -10,11 +10,32 @@ const VTT_TIMESTAMP_TAG = /<\d{2}:\d{2}:\d{2}\.\d{3}>/;
 const VTT_CLASS_TAG = /<c(?:\.[^>]*)?>/i;
 const YOUTUBE_SHORT_CUE_THRESHOLD = 150; // milliseconds (was 0.15 seconds)
 
+/**
+ * Enhanced sanitization for subtitle text - removes HTML tags and entities
+ * Migrated from jellyfin-desktop-client for better compatibility
+ */
+function sanitizeCueText(text: string): string {
+  return text
+    .replace(/<\/?[bi]>/gi, '')      // Remove <b>, <i>, </b>, </i>
+    .replace(/<\/?u>/gi, '')         // Remove <u>, </u>
+    .replace(/<\/?font[^>]*>/gi, '') // Remove <font> tags with attributes
+    .replace(/&nbsp;/gi, ' ')        // HTML entity: non-breaking space
+    .replace(/&lt;/gi, '<')          // HTML entity: less than
+    .replace(/&gt;/gi, '>')          // HTML entity: greater than
+    .replace(/&amp;/gi, '&')         // HTML entity: ampersand
+    .replace(/&quot;/gi, '"')        // HTML entity: quote
+    .replace(/&apos;/gi, "'")        // HTML entity: apostrophe
+    .trim();
+}
+
 export function parseSubtitle(content: string, extension: string): SubtitleCue[] {
+  // Remove BOM (Byte Order Mark) if present - common in UTF-8 files
+  const normalized = content.replace(/\ufeff/g, '');
+  
   if (extension === "srt") {
-    return parseSrt(content);
+    return parseSrt(normalized);
   }
-  return parseVtt(content);
+  return parseVtt(normalized);
 }
 
 function parseVtt(content: string): SubtitleCue[] {
@@ -172,7 +193,8 @@ function parseSrt(content: string): SubtitleCue[] {
 
     const start = parseTimestamp(match[1].trim());
     const end = parseTimestamp(match[2].trim());
-    const text = lines.slice(cursor + 1).map(stripTags).join("\n").trim();
+    // Apply enhanced sanitization to text content
+    const text = sanitizeCueText(lines.slice(cursor + 1).map(stripTags).join("\n"));
     if (!Number.isNaN(start) && !Number.isNaN(end) && text) {
       cues.push({ start, end, text });
     }
@@ -182,7 +204,8 @@ function parseSrt(content: string): SubtitleCue[] {
 }
 
 function formatCueText(lines: string[]): string {
-  return lines.map((line) => stripTags(line)).join("\n").trim();
+  // Apply sanitization to VTT cue text as well
+  return sanitizeCueText(lines.map((line) => stripTags(line)).join("\n"));
 }
 
 function stripTags(input: string): string {

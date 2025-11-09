@@ -538,36 +538,24 @@ function selectJellyfinSession(sessionId: string | null) {
   const session = state.jellyfin.sessions.find((item) => item.id === sessionId) ?? null;
   state.jellyfin.selectedSessionId = sessionId;
   
-  // Check if extension is already active on Jellyfin
-  const isExtensionOnJellyfin = state.activeSource === "extension" && 
-                                 state.site === "jellyfin" && 
-                                 state.videoUrl && 
-                                 isJellyfinServerUrl(state.videoUrl);
-  
-  if (isExtensionOnJellyfin) {
-    // Extension is already active on Jellyfin - prioritize extension timestamps
-    // JellyfinService will only load subtitles, not manage playback
-    mainLogger.info(`Extension already active on Jellyfin, using extension timestamps for session: ${sessionId}`);
-    state.activeSource = "extension";
-    // Keep existing playback state from extension
-    // Don't override with WebSocket data
-  } else {
-    // Extension not on Jellyfin - use WebSocket for both timestamps and subtitles
-    state.activeSource = "jellyfin";
-    if (session) {
-      const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
-      state.playback = {
-        currentTime: currentTimeMilliseconds,
-        playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
-        lastUpdate: Date.now()
-      };
-    }
-  }
-  
+  // Unified Jellyfin mode: always use "jellyfin" as activeSource
+  // Extension will provide timestamps if available, otherwise fallback to WebSocket
+  state.activeSource = "jellyfin";
   state.site = "jellyfin";
   state.title = session?.nowPlayingItemName ?? "Jellyfin Session";
   state.pageUrl = buildJellyfinPageUrl(session);
   state.videoUrl = buildJellyfinItemUrl(session) ?? getJellyfinBaseUrl();
+  
+  // Initialize playback state from WebSocket (will be overridden by extension if available)
+  if (session) {
+    const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
+    state.playback = {
+      currentTime: currentTimeMilliseconds,
+      playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
+      lastUpdate: Date.now()
+    };
+  }
+  
   const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl();
   const selection = selectProfileForUrl(jellyfinUrl);
   applyProfileSelection(selection.profile, selection.rule);
@@ -582,11 +570,20 @@ function selectJellyfinSession(sessionId: string | null) {
 function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
   state.jellyfin.sessions = sessions;
   state.jellyfin.lastUpdated = Date.now();
+  
   if (state.jellyfin.selectedSessionId) {
     const selected = sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
     if (!selected) {
+      // Previously selected session is gone
       state.jellyfin.selectedSessionId = null;
-      if (state.activeSource === "jellyfin") {
+      
+      // Auto-select first available session if in Jellyfin mode
+      if (state.activeSource === "jellyfin" && sessions.length > 0) {
+        mainLogger.info("Previously selected session disappeared, auto-selecting first session");
+        state.jellyfin.selectedSessionId = sessions[0].id;
+        jellyfinService.setActiveSession(sessions[0].id);
+      } else if (state.activeSource === "jellyfin") {
+        // No sessions available, fallback to extension if available
         state.activeSource = state.connectionCount > 0 ? "extension" : null;
         state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
         state.title = null;
@@ -601,7 +598,13 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       state.pageUrl = buildJellyfinPageUrl(selected);
       state.videoUrl = buildJellyfinItemUrl(selected) ?? state.videoUrl;
     }
+  } else if (state.activeSource === "jellyfin" && sessions.length > 0) {
+    // No session selected but in Jellyfin mode, auto-select first session
+    mainLogger.info("Auto-selecting first available session");
+    state.jellyfin.selectedSessionId = sessions[0].id;
+    jellyfinService.setActiveSession(sessions[0].id);
   }
+  
   pushState();
 }
 
@@ -620,13 +623,8 @@ function handleJellyfinStatusUpdate(connected: boolean) {
 }
 
 function handleJellyfinSubtitlesUpdate(payload: JellyfinSubtitlesPayload) {
-  // Accept subtitles from JellyfinService if:
-  // 1. activeSource is "jellyfin" (traditional WebSocket mode), OR
-  // 2. activeSource is "extension" and site is "jellyfin" (extension on Jellyfin with WebSocket subtitles)
-  const isJellyfinActive = state.activeSource === "jellyfin" || 
-                           (state.activeSource === "extension" && state.site === "jellyfin");
-  
-  if (!isJellyfinActive || !payload.sessionId) {
+  // Accept subtitles from JellyfinService only when Jellyfin mode is active
+  if (state.activeSource !== "jellyfin" || !payload.sessionId) {
     return;
   }
   if (payload.sessionId !== state.jellyfin.selectedSessionId) {
@@ -646,12 +644,28 @@ function handleJellyfinSubtitlesUpdate(payload: JellyfinSubtitlesPayload) {
 }
 
 function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
+  // Only use WebSocket playback updates when in Jellyfin mode
   if (state.activeSource !== "jellyfin") {
     return;
   }
   if (!payload.sessionId || payload.sessionId !== state.jellyfin.selectedSessionId) {
     return;
   }
+  
+  // Check if we're receiving extension timestamps
+  // If extension is active (lastUpdate is recent), skip WebSocket timestamps
+  const now = Date.now();
+  const timeSinceLastExtensionUpdate = state.playback.lastUpdate ? now - state.playback.lastUpdate : Infinity;
+  const hasRecentExtensionUpdate = timeSinceLastExtensionUpdate < 5000; // 5 seconds threshold
+  
+  if (hasRecentExtensionUpdate) {
+    // Extension is providing timestamps, use those instead of WebSocket
+    mainLogger.debug("Skipping WebSocket playback update, using extension timestamps");
+    return;
+  }
+  
+  // Fallback to WebSocket timestamps when extension is not available
+  mainLogger.debug("Using WebSocket playback update as fallback");
   const currentTime = payload.positionMs ?? 0;
   const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
   state.playback = {
@@ -770,13 +784,6 @@ function resolveVideoUrl(payload: ExtensionPayload): string | null {
 async function handleMessage(message: ExtensionMessage) {
   switch (message.type) {
     case "video-context": {
-      if (state.activeSource !== "extension") {
-        state.activeSource = "extension";
-        if (state.jellyfin.selectedSessionId) {
-          state.jellyfin.selectedSessionId = null;
-          jellyfinService.setActiveSession(null);
-        }
-      }
       state.activeTabId = message.tabId;
       state.pageUrl = message.payload.pageUrl ?? null;
       state.site = message.payload.site ?? null;
@@ -791,12 +798,13 @@ async function handleMessage(message: ExtensionMessage) {
         return;
       }
 
-      // Check if this is a Jellyfin URL - skip yt-dlp but keep extension as active source
+      // Unified Jellyfin detection: Check if this is a Jellyfin URL
       const isJellyfin = isJellyfinServerUrl(url);
+      
       if (isJellyfin) {
+        // === Jellyfin Mode ===
         mainLogger.info(`Detected Jellyfin URL from extension: ${url}`);
-        // Let extension handle playback and timestamps for Jellyfin
-        // Don't process with yt-dlp
+        state.activeSource = "jellyfin";
         state.videoUrl = url;
         state.site = "jellyfin";
         const selection = selectProfileForUrl(url);
@@ -817,8 +825,8 @@ async function handleMessage(message: ExtensionMessage) {
             
             if (currentItemId === itemId && state.subtitleTracks.length > 0) {
               // Same Jellyfin video, just URL changed (e.g., due to loop button, deviceId change, etc.)
-              // Don't reload subtitles
-              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), skipping subtitle reload`);
+              // Don't reload subtitles, but update playback state from extension
+              mainLogger.info(`Same Jellyfin video detected (itemId: ${itemId}), keeping subtitles, updating playback`);
               pushState();
               return;
             }
@@ -831,9 +839,9 @@ async function handleMessage(message: ExtensionMessage) {
             if (matchingSession) {
               mainLogger.info(`Found matching Jellyfin session for item ${itemId}: ${matchingSession.id}`);
               // Set the session to load subtitles via JellyfinService
+              // Extension will provide timestamps, WebSocket provides subtitles
               state.jellyfin.selectedSessionId = matchingSession.id;
               jellyfinService.setActiveSession(matchingSession.id);
-              // Status will be updated when subtitles are loaded
               state.status = "loading-subtitles";
             } else {
               mainLogger.warn(`No matching Jellyfin session found for item ${itemId}`);
@@ -859,6 +867,16 @@ async function handleMessage(message: ExtensionMessage) {
         state.secondarySubtitles = null;
         pushState();
         return;
+      }
+
+      // === Non-Jellyfin Mode (yt-dlp) ===
+      // Clear any Jellyfin session selection when switching to non-Jellyfin source
+      if (state.activeSource !== "extension") {
+        state.activeSource = "extension";
+        if (state.jellyfin.selectedSessionId) {
+          state.jellyfin.selectedSessionId = null;
+          jellyfinService.setActiveSession(null);
+        }
       }
 
       // Normalize URL to remove tracking parameters
@@ -933,13 +951,12 @@ async function handleMessage(message: ExtensionMessage) {
       if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
         return;
       }
-      if (state.activeSource === "jellyfin") {
-        return;
-      }
 
       const currentTime = message.payload.currentTime ?? state.playback.currentTime;
       const playbackRate = message.payload.playbackRate ?? state.playback.playbackRate;
 
+      // Update playback state from extension
+      // This works for both "extension" (yt-dlp) and "jellyfin" (WebSocket subtitles with extension timestamps)
       state.playback = {
         currentTime,
         playbackRate,
@@ -951,7 +968,7 @@ async function handleMessage(message: ExtensionMessage) {
 
     case "loop-cleared": {
       // Forward loop-cleared event to renderer to update UI
-      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId && mainWindow) {
+      if (state.activeTabId === message.tabId && mainWindow) {
         mainWindow.webContents.send("usp:loop-cleared");
         mainLogger.info("Loop cleared by user interaction");
       }
@@ -959,22 +976,26 @@ async function handleMessage(message: ExtensionMessage) {
     }
 
     case "video-ended": {
-      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId) {
-        state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
-        state.primarySubtitles = null;
-        state.secondarySubtitles = null;
-        state.subtitleTracks = [];
-        state.selectedPrimarySubtitleId = null;
-        state.selectedSecondarySubtitleId = null;
-        state.videoUrl = null;
-        applyProfileSelection(getDefaultProfile(), null);
+      if (state.activeTabId === message.tabId) {
+        // Only handle video-ended for non-Jellyfin sources
+        // Jellyfin sessions are managed separately
+        if (state.activeSource !== "jellyfin") {
+          state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
+          state.primarySubtitles = null;
+          state.secondarySubtitles = null;
+          state.subtitleTracks = [];
+          state.selectedPrimarySubtitleId = null;
+          state.selectedSecondarySubtitleId = null;
+          state.videoUrl = null;
+          applyProfileSelection(getDefaultProfile(), null);
+        }
         pushState();
       }
       break;
     }
 
     case "page-url-changed": {
-      if (state.activeSource !== "jellyfin" && state.activeTabId === message.tabId) {
+      if (state.activeTabId === message.tabId) {
         state.pageUrl = message.payload.pageUrl ?? state.pageUrl;
         state.title = message.payload.title ?? state.title;
         pushState();
