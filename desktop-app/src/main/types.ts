@@ -92,6 +92,7 @@ export type UrlMatchType = "contains" | "exact" | "regex";
 export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
+  toggleWindowShortcut: string;
 }
 
 export interface JellyfinConfig {

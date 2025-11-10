@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut } from "electron";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -271,6 +271,49 @@ function showMainWindow() {
   createWindow();
 }
 
+function toggleMainWindow() {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  
+  if (mainWindow.isVisible()) {
+    mainWindow.hide();
+  } else {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
+
+function registerGlobalShortcut() {
+  // Unregister all existing shortcuts first
+  globalShortcut.unregisterAll();
+  
+  const shortcut = appSettings.global.toggleWindowShortcut;
+  if (!shortcut || !shortcut.trim()) {
+    mainLogger.warn("No global shortcut configured");
+    return;
+  }
+  
+  try {
+    const success = globalShortcut.register(shortcut, () => {
+      mainLogger.info(`Global shortcut triggered: ${shortcut}`);
+      toggleMainWindow();
+    });
+    
+    if (success) {
+      mainLogger.info(`Global shortcut registered: ${shortcut}`);
+    } else {
+      mainLogger.error(`Failed to register global shortcut: ${shortcut}`);
+    }
+  } catch (error) {
+    mainLogger.error(`Error registering global shortcut: ${shortcut}`, error);
+  }
+}
+
 function pushSettings() {
   if (!mainWindow) return;
   mainWindow.webContents.send("usp:settings", appSettings);
@@ -290,6 +333,10 @@ function updateAppSettings(partial: Partial<AppSettings>) {
 
   if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
     applyAutoLaunch(appSettings.global.autoLaunch);
+  }
+
+  if (previousGlobal.toggleWindowShortcut !== appSettings.global.toggleWindowShortcut) {
+    registerGlobalShortcut();
   }
 
   if (previousGlobal.closeBehavior !== appSettings.global.closeBehavior && mainWindow) {
@@ -1265,6 +1312,7 @@ app.whenReady().then(() => {
   activeProfileId = appSettings.defaultProfileId;
   applyProfileSelection(getDefaultProfile(), null);
   applyAutoLaunch(appSettings.global.autoLaunch);
+  registerGlobalShortcut();
   ensureTray();
   bootstrapWebSocketServer();
   jellyfinService.start();
@@ -1277,6 +1325,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  globalShortcut.unregisterAll();
   cacheManager.stop();
   if (tray) {
     tray.destroy();

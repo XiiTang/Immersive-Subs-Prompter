@@ -24,7 +24,8 @@ const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
 
 const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   closeBehavior: "tray",
-  autoLaunch: false
+  autoLaunch: false,
+  toggleWindowShortcut: "CommandOrControl+Shift+S"
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -126,9 +127,13 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
   const source = input ?? {};
   const closeBehavior = isCloseBehavior(source.closeBehavior) ? source.closeBehavior : DEFAULT_GLOBAL_SETTINGS.closeBehavior;
   const autoLaunch = typeof source.autoLaunch === "boolean" ? source.autoLaunch : DEFAULT_GLOBAL_SETTINGS.autoLaunch;
+  const toggleWindowShortcut = typeof source.toggleWindowShortcut === "string" && source.toggleWindowShortcut.trim().length 
+    ? source.toggleWindowShortcut.trim() 
+    : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
   return {
     closeBehavior,
-    autoLaunch
+    autoLaunch,
+    toggleWindowShortcut
   };
 }
 

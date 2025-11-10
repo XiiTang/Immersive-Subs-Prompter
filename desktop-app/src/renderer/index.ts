@@ -29,6 +29,7 @@ const playButton = document.getElementById("play-btn") as HTMLButtonElement;
 const pauseButton = document.getElementById("pause-btn") as HTMLButtonElement;
 const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSelectElement;
 const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
+const toggleWindowShortcutInput = document.getElementById("toggle-window-shortcut") as HTMLInputElement;
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
 const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
@@ -1312,6 +1313,7 @@ function renderSettings(settings: AppSettings) {
   ensureEditingJellyfinConfig();
   closeBehaviorSelect.value = settings.global.closeBehavior;
   autostartToggle.checked = settings.global.autoLaunch;
+  toggleWindowShortcutInput.value = settings.global.toggleWindowShortcut || "";
   if (jellyfinEnabledToggle) {
     jellyfinEnabledToggle.checked = settings.jellyfin.enabled;
   }
@@ -1482,6 +1484,35 @@ autostartToggle.addEventListener("change", () => {
     global: {
       ...currentSettings.global,
       autoLaunch: nextValue
+    }
+  });
+});
+
+toggleWindowShortcutInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    const nextValue = toggleWindowShortcutInput.value.trim();
+    if (!currentSettings || currentSettings.global.toggleWindowShortcut === nextValue) {
+      return;
+    }
+    updateSettings({
+      global: {
+        ...currentSettings.global,
+        toggleWindowShortcut: nextValue
+      }
+    });
+  }
+});
+
+toggleWindowShortcutInput.addEventListener("blur", () => {
+  const nextValue = toggleWindowShortcutInput.value.trim();
+  if (!currentSettings || currentSettings.global.toggleWindowShortcut === nextValue) {
+    return;
+  }
+  updateSettings({
+    global: {
+      ...currentSettings.global,
+      toggleWindowShortcut: nextValue
     }
   });
 });
