@@ -20,7 +20,11 @@ const api = {
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("usp:get-settings"),
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),
-  onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener)
+  onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
+  getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
+    ipcRenderer.invoke("usp:cache-stats"),
+  clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),
+  cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup")
 };
 
 contextBridge.exposeInMainWorld("usp", api);

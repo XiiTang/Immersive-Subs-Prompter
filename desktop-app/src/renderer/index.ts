@@ -68,6 +68,15 @@ const ruleProfileSelect = document.getElementById("rule-profile") as HTMLSelectE
 const ruleFormTitle = document.getElementById("rule-form-title") as HTMLElement;
 const ruleSaveButton = document.getElementById("rule-save") as HTMLButtonElement;
 const ruleCancelButton = document.getElementById("rule-cancel") as HTMLButtonElement;
+const cacheEnabledCheckbox = document.getElementById("cache-enabled") as HTMLInputElement;
+const cachePathInput = document.getElementById("cache-path") as HTMLInputElement;
+const cacheRetentionDaysInput = document.getElementById("cache-retention-days") as HTMLInputElement;
+const cacheTotalEntriesElement = document.getElementById("cache-total-entries") as HTMLElement;
+const cacheTotalSizeElement = document.getElementById("cache-total-size") as HTMLElement;
+const cacheOldestEntryElement = document.getElementById("cache-oldest-entry") as HTMLElement;
+const cacheRefreshStatsButton = document.getElementById("cache-refresh-stats") as HTMLButtonElement;
+const cacheCleanupButton = document.getElementById("cache-cleanup") as HTMLButtonElement;
+const cacheClearButton = document.getElementById("cache-clear") as HTMLButtonElement;
 const rootElement = document.documentElement;
 const computedStyles = window.getComputedStyle(rootElement);
 const DEFAULT_SUBTITLE_FONT_FAMILY =
@@ -1306,6 +1315,12 @@ function renderSettings(settings: AppSettings) {
   if (jellyfinEnabledToggle) {
     jellyfinEnabledToggle.checked = settings.jellyfin.enabled;
   }
+  
+  // Render cache settings
+  cacheEnabledCheckbox.checked = settings.cache.enabled;
+  cachePathInput.value = settings.cache.path;
+  cacheRetentionDaysInput.value = String(settings.cache.retentionDays);
+  
   renderJellyfinConfigList(settings);
   renderJellyfinConfigEditor();
   renderProfileList(settings);
@@ -1335,6 +1350,9 @@ function renderSettings(settings: AppSettings) {
   }
 
   syncPlaybackProfileSettings();
+  
+  // Load cache stats
+  refreshCacheStats();
 }
 
 function updateSettings(partial: Partial<AppSettings>) {
@@ -1709,3 +1727,99 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// Cache management functions
+async function refreshCacheStats() {
+  try {
+    const stats = await window.usp.getCacheStats();
+    cacheTotalEntriesElement.textContent = String(stats.totalEntries);
+    cacheTotalSizeElement.textContent = formatBytes(stats.totalSize);
+    cacheOldestEntryElement.textContent = stats.oldestEntry 
+      ? new Date(stats.oldestEntry).toLocaleDateString()
+      : '-';
+  } catch (error) {
+    console.error('[Renderer] Failed to get cache stats:', error);
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Cache settings event listeners
+cacheEnabledCheckbox.addEventListener("change", () => {
+  updateSettings({
+    cache: {
+      ...currentSettings?.cache,
+      enabled: cacheEnabledCheckbox.checked
+    } as any
+  });
+});
+
+cachePathInput.addEventListener("change", () => {
+  const path = cachePathInput.value.trim();
+  updateSettings({
+    cache: {
+      ...currentSettings?.cache,
+      path
+    } as any
+  });
+});
+
+cacheRetentionDaysInput.addEventListener("change", () => {
+  const days = parseInt(cacheRetentionDaysInput.value, 10);
+  if (isNaN(days) || days < 1 || days > 365) {
+    cacheRetentionDaysInput.value = String(currentSettings?.cache.retentionDays || 7);
+    return;
+  }
+  updateSettings({
+    cache: {
+      ...currentSettings?.cache,
+      retentionDays: days
+    } as any
+  });
+});
+
+cacheRefreshStatsButton.addEventListener("click", () => {
+  refreshCacheStats();
+});
+
+cacheCleanupButton.addEventListener("click", async () => {
+  try {
+    cacheCleanupButton.disabled = true;
+    cacheCleanupButton.textContent = "Cleaning up...";
+    const result = await window.usp.cleanupCache();
+    alert(`Cleanup completed! Removed ${result.removedCount} expired entries.`);
+    await refreshCacheStats();
+  } catch (error) {
+    console.error('[Renderer] Failed to cleanup cache:', error);
+    alert(`Failed to cleanup cache: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    cacheCleanupButton.disabled = false;
+    cacheCleanupButton.textContent = "Clean Up Expired";
+  }
+});
+
+cacheClearButton.addEventListener("click", async () => {
+  if (!confirm("Are you sure you want to clear all cached subtitles? This cannot be undone.")) {
+    return;
+  }
+  try {
+    cacheClearButton.disabled = true;
+    cacheClearButton.textContent = "Clearing...";
+    await window.usp.clearCache();
+    alert("Cache cleared successfully!");
+    await refreshCacheStats();
+  } catch (error) {
+    console.error('[Renderer] Failed to clear cache:', error);
+    alert(`Failed to clear cache: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    cacheClearButton.disabled = false;
+    cacheClearButton.textContent = "Clear All Cache";
+  }
+});
+

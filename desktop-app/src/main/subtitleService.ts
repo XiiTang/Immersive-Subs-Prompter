@@ -8,6 +8,7 @@ import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
+import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 
 const LANGUAGE_PRIORITY = [
   "zh-Hans",
@@ -26,19 +27,23 @@ type BinaryResolver = () => Promise<string>;
 type SettingsProvider = () => Pick<ProfileSettings, "ytDlpArgs">;
 
 export class SubtitleService {
-  private cache = new Map<string, SubtitleLoadResult>();
   private inflight = new Map<string, Promise<SubtitleLoadResult>>();
   private readonly log = createLogger("subtitle-service");
 
   constructor(
     private readonly binaryResolver: BinaryResolver = async () => "yt-dlp",
-    private readonly settingsProvider: SettingsProvider = () => DEFAULT_PROFILE_SETTINGS
+    private readonly settingsProvider: SettingsProvider = () => DEFAULT_PROFILE_SETTINGS,
+    private readonly cacheManager?: SubtitleCacheManager
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
-    const cached = this.cache.get(videoUrl);
-    if (cached) {
-      return cached;
+    // Check cache first
+    if (this.cacheManager) {
+      const cached = await this.cacheManager.get(videoUrl, "ytdlp");
+      if (cached) {
+        this.log.debug("Cache hit for:", videoUrl);
+        return cached;
+      }
     }
 
     const inProgress = this.inflight.get(videoUrl);
@@ -51,7 +56,10 @@ export class SubtitleService {
 
     try {
       const result = await job;
-      this.cache.set(videoUrl, result);
+      // Save to cache
+      if (this.cacheManager) {
+        await this.cacheManager.set(videoUrl, "ytdlp", result);
+      }
       return result;
     } finally {
       this.inflight.delete(videoUrl);

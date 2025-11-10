@@ -7,6 +7,7 @@ import { SubtitleService, pickBestTrack } from "./subtitleService.js";
 import { JellyfinSubtitleService } from "./jellyfinSubtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
+import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import { normalizeServerUrl, ticksToMilliseconds } from "./jellyfinUtils.js";
 import {
@@ -31,8 +32,9 @@ const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 const ytDlpManager = new YtDlpManager();
 let appSettings: AppSettings = DEFAULT_SETTINGS;
 let activeProfileId = DEFAULT_SETTINGS.defaultProfileId;
-const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => getActiveProfileSettings());
-const jellyfinService = new JellyfinSubtitleService(() => appSettings.jellyfin);
+const cacheManager = new SubtitleCacheManager(() => appSettings.cache);
+const subtitleService = new SubtitleService(() => ytDlpManager.getBinaryPath(), () => getActiveProfileSettings(), cacheManager);
+const jellyfinService = new JellyfinSubtitleService(() => appSettings.jellyfin, cacheManager);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
@@ -1227,6 +1229,36 @@ ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) =>
   return updateAppSettings(payload);
 });
 
+// Cache management IPC handlers
+ipcMain.handle("usp:cache-stats", async () => {
+  try {
+    return await cacheManager.getStats();
+  } catch (error) {
+    mainLogger.error("Failed to get cache stats", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("usp:cache-clear", async () => {
+  try {
+    await cacheManager.clear();
+    return { success: true };
+  } catch (error) {
+    mainLogger.error("Failed to clear cache", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("usp:cache-cleanup", async () => {
+  try {
+    const removedCount = await cacheManager.cleanup();
+    return { success: true, removedCount };
+  } catch (error) {
+    mainLogger.error("Failed to cleanup cache", error);
+    throw error;
+  }
+});
+
 app.whenReady().then(() => {
   settingsStore = new SettingsStore();
   appSettings = settingsStore.get();
@@ -1245,6 +1277,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  cacheManager.stop();
   if (tray) {
     tray.destroy();
     tray = null;

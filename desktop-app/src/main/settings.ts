@@ -11,6 +11,7 @@ import {
   ProfileDefinition,
   ProfileRule,
   ProfileSettings,
+  SubtitleCacheSettings,
   UrlMatchType
 } from "./types.js";
 import { createLogger } from "./logger.js";
@@ -42,12 +43,19 @@ export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
   activeConfigId: null
 };
 
+export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
+  enabled: true,
+  path: path.join(app.getPath("userData"), "subtitle-cache"),
+  retentionDays: 7
+};
+
 const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
   global: { ...DEFAULT_GLOBAL_SETTINGS },
   profiles: [createDefaultProfile()],
   defaultProfileId: DEFAULT_PROFILE_ID,
   rules: [],
-  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS }
+  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS },
+  cache: { ...DEFAULT_CACHE_SETTINGS }
 });
 
 export const DEFAULT_SETTINGS: AppSettings = DEFAULT_SETTINGS_FACTORY();
@@ -268,6 +276,24 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
   };
 }
 
+function sanitizeCacheSettings(input: Partial<SubtitleCacheSettings> | null | undefined): SubtitleCacheSettings {
+  const source = input ?? {};
+  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_CACHE_SETTINGS.enabled;
+  const path = typeof source.path === "string" && source.path.trim() ? source.path.trim() : DEFAULT_CACHE_SETTINGS.path;
+  
+  let retentionDays = Number(source.retentionDays);
+  if (!Number.isFinite(retentionDays) || retentionDays < 1) {
+    retentionDays = DEFAULT_CACHE_SETTINGS.retentionDays;
+  }
+  retentionDays = Math.min(365, Math.max(1, Math.round(retentionDays)));
+  
+  return {
+    enabled,
+    path,
+    retentionDays
+  };
+}
+
 type LegacySettingsShape = Partial<ProfileSettings> &
   Partial<GlobalSettings> & {
     closeBehavior?: CloseBehavior;
@@ -279,7 +305,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
   }
 
   const looksModern =
-    "global" in input || "profiles" in input || "rules" in input || "defaultProfileId" in input || "jellyfin" in input;
+    "global" in input || "profiles" in input || "rules" in input || "defaultProfileId" in input || "jellyfin" in input || "cache" in input;
 
   if (looksModern) {
     const raw = input as Partial<AppSettings>;
@@ -294,12 +320,14 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       : profiles[0].id;
     const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
     const jellyfin = sanitizeJellyfinSettings(raw.jellyfin);
+    const cache = sanitizeCacheSettings(raw.cache);
     return {
       global,
       profiles,
       defaultProfileId,
       rules,
-      jellyfin
+      jellyfin,
+      cache
     };
   }
 
@@ -313,7 +341,8 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     profiles: [profile],
     defaultProfileId: profile.id,
     rules: [],
-    jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS }
+    jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS },
+    cache: { ...DEFAULT_CACHE_SETTINGS }
   };
 }
 
@@ -323,7 +352,8 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     profiles: base.profiles,
     defaultProfileId: base.defaultProfileId,
     rules: base.rules,
-    jellyfin: base.jellyfin
+    jellyfin: base.jellyfin,
+    cache: base.cache
   };
 
   if (patch.global) {
@@ -342,6 +372,12 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     next.jellyfin = {
       ...next.jellyfin,
       ...patch.jellyfin
+    };
+  }
+  if (patch.cache) {
+    next.cache = {
+      ...next.cache,
+      ...patch.cache
     };
   }
 

@@ -216,6 +216,46 @@
             </section>
 
             <section class="settings-section">
+              <h3 class="settings-section__title">Subtitle Cache</h3>
+              <div class="settings-field settings-field--inline">
+                <span class="settings-field__label">Enable Cache</span>
+                <label class="toggle">
+                  <input type="checkbox" id="cache-enabled" />
+                  <span class="toggle__text">Enable</span>
+                </label>
+              </div>
+              <label class="settings-field">
+                <span class="settings-field__label">Cache Path</span>
+                <input type="text" id="cache-path" placeholder="Default: user data folder" autocomplete="off" />
+                <small class="settings-field__hint">Leave blank to use default location</small>
+              </label>
+              <label class="settings-field">
+                <span class="settings-field__label">Retention Days</span>
+                <input type="number" id="cache-retention-days" min="1" max="365" />
+                <small class="settings-field__hint">Number of days to keep cached subtitles (1-365)</small>
+              </label>
+              <div class="cache-stats" id="cache-stats">
+                <div class="cache-stats__item">
+                  <span class="cache-stats__label">Total Entries:</span>
+                  <span class="cache-stats__value" id="cache-total-entries">0</span>
+                </div>
+                <div class="cache-stats__item">
+                  <span class="cache-stats__label">Total Size:</span>
+                  <span class="cache-stats__value" id="cache-total-size">0 KB</span>
+                </div>
+                <div class="cache-stats__item">
+                  <span class="cache-stats__label">Oldest Entry:</span>
+                  <span class="cache-stats__value" id="cache-oldest-entry">-</span>
+                </div>
+              </div>
+              <div class="cache-actions">
+                <button type="button" class="text-button" id="cache-refresh-stats">Refresh Stats</button>
+                <button type="button" class="text-button" id="cache-cleanup">Clean Up Expired</button>
+                <button type="button" class="text-button text-button--danger" id="cache-clear">Clear All Cache</button>
+              </div>
+            </section>
+
+            <section class="settings-section">
               <h3 class="settings-section__title">URL Rules</h3>
               <div class="rule-list" id="rule-list"></div>
               <div class="rule-form">

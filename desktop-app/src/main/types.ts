@@ -108,6 +108,12 @@ export interface JellyfinSettings {
   activeConfigId: string | null;
 }
 
+export interface SubtitleCacheSettings {
+  enabled: boolean;
+  path: string;
+  retentionDays: number;
+}
+
 export interface ProfileSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
@@ -140,6 +146,7 @@ export interface AppSettings {
   defaultProfileId: string;
   rules: ProfileRule[];
   jellyfin: JellyfinSettings;
+  cache: SubtitleCacheSettings;
 }
 
 export interface JellyfinSubtitleStream {
