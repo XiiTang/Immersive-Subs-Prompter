@@ -68,6 +68,8 @@ export class JellyfinSubtitleService {
   private subtitleRequestToken = 0;
   private lastSubtitleItemKey: string | null = null;
   private lastActiveSessionItemId: string | null = null;
+  // Track position for each itemId separately to detect real activity
+  private itemPositionHistory = new Map<string, number>();
   private readonly identity = createJellyfinIdentity();
   private settings: JellyfinSettings;
 
@@ -119,6 +121,7 @@ export class JellyfinSubtitleService {
     this.activeSessionId = sessionId;
     this.lastSubtitleItemKey = null;
     this.lastActiveSessionItemId = null;
+    this.itemPositionHistory.clear();
 
     if (!sessionId) {
       this.emit("subtitles", { sessionId: null, itemName: null, tracks: [] });
@@ -312,25 +315,9 @@ export class JellyfinSubtitleService {
     }
     const nextSessions = new Map<string, JellyfinSessionSummary>();
     for (const record of data as RawSessionRecord[]) {
-      // Debug log to see raw session data
-      this.log.debug("Processing session record", {
-        sessionId: (record as any)?.Id,
-        deviceId: (record as any)?.DeviceId,
-        client: (record as any)?.Client,
-        hasNowPlayingItem: Boolean((record as any)?.NowPlayingItem),
-        nowPlayingItemId: (record as any)?.NowPlayingItem?.Id,
-        hasPlayState: Boolean((record as any)?.PlayState),
-        mediaSourceId: (record as any)?.PlayState?.MediaSourceId
-      });
-      
       // Skip our own session - we don't want to monitor ourselves
       const deviceId = (record as any)?.DeviceId;
       if (typeof deviceId === "string" && deviceId === this.identity.deviceId) {
-        this.log.debug("Skipping own session", {
-          sessionId: (record as any)?.Id,
-          deviceId,
-          client: (record as any)?.Client
-        });
         continue;
       }
       
@@ -338,14 +325,6 @@ export class JellyfinSubtitleService {
       if (!summary) {
         continue;
       }
-      
-      // Debug log to see processed summary
-      this.log.debug("Processed session summary", {
-        sessionId: summary.id,
-        itemId: summary.nowPlayingItemId,
-        mediaSourceId: summary.mediaSourceId,
-        subtitleStreamsCount: summary.subtitleStreams.length
-      });
       
       nextSessions.set(summary.id, summary);
     }
@@ -356,33 +335,63 @@ export class JellyfinSubtitleService {
     if (this.activeSessionId) {
       const summary = this.sessions.get(this.activeSessionId);
       if (summary) {
-        this.emitPlayback(summary);
+        const reportedItemId = summary.nowPlayingItemId;
+        const reportedPositionTicks = summary.positionTicks;
         
-        const currentItemId = summary.nowPlayingItemId;
-        const itemIdChanged = this.lastActiveSessionItemId !== currentItemId;
+        // Determine if we should switch to the reported itemId
+        let shouldSwitchItem = false;
         
-        // Update tracked item ID
-        this.lastActiveSessionItemId = currentItemId;
-        
-        // Only try to load subtitles if there's actually a playing item
-        if (currentItemId) {
-          // Load subtitles if item changed from null to a value, or if force refresh
-          if (itemIdChanged && this.lastActiveSessionItemId !== null) {
-            this.log.info("Active session now has playing item, loading subtitles", {
-              sessionId: summary.id,
-              itemId: currentItemId,
-              itemName: summary.nowPlayingItemName
-            });
+        if (!this.lastActiveSessionItemId) {
+          // No previous item, accept the reported one
+          shouldSwitchItem = true;
+        } else if (reportedItemId === this.lastActiveSessionItemId) {
+          // Same item, no switch needed, just update position
+          shouldSwitchItem = false;
+          if (reportedItemId && reportedPositionTicks !== null) {
+            this.itemPositionHistory.set(reportedItemId, reportedPositionTicks);
           }
-          void this.loadSubtitlesForSession(summary);
+        } else if (!reportedItemId) {
+          // No item being reported
+          shouldSwitchItem = false;
         } else {
-          if (itemIdChanged) {
-            this.log.info("Active session has no playing item", {
-              sessionId: summary.id,
-              deviceName: summary.deviceName,
-              client: summary.client
-            });
+          // Different itemId reported - check if it's actually active
+          const lastKnownPosition = this.itemPositionHistory.get(reportedItemId) ?? null;
+          const positionChanged = lastKnownPosition !== null && 
+                                   reportedPositionTicks !== null &&
+                                   reportedPositionTicks !== lastKnownPosition;
+          
+          const isPlaying = !summary.isPaused;
+          
+          // Only switch if the new item shows signs of activity:
+          // 1. Position has changed from its own last known position (indicates playback progress or user seeking)
+          // 2. OR the item is actively playing
+          if (positionChanged || isPlaying) {
+            shouldSwitchItem = true;
           }
+        }
+        
+        // Use the sticky itemId for playback emission
+        const effectiveItemId = shouldSwitchItem ? reportedItemId : this.lastActiveSessionItemId;
+        
+        // Update tracking if we switched
+        if (shouldSwitchItem && reportedItemId) {
+          this.lastActiveSessionItemId = reportedItemId;
+          if (reportedPositionTicks !== null) {
+            this.itemPositionHistory.set(reportedItemId, reportedPositionTicks);
+          }
+        }
+        
+        // Emit playback using the effective (sticky) itemId
+        // Only emit if the reported item matches our effective item
+        if (reportedItemId === effectiveItemId) {
+          // This is the active item, emit its playback state
+          this.emitPlayback(summary);
+        }
+        
+        // Only try to load subtitles if there's actually a playing item and we switched
+        if (effectiveItemId && shouldSwitchItem) {
+          void this.loadSubtitlesForSession(summary);
+        } else if (!effectiveItemId) {
           this.emit("subtitles", {
             sessionId: summary.id,
             itemName: null,
@@ -391,6 +400,7 @@ export class JellyfinSubtitleService {
         }
       } else {
         this.lastActiveSessionItemId = null;
+        this.itemPositionHistory.clear();
         this.emit("playback", {
           sessionId: null,
           itemName: null,
@@ -572,6 +582,7 @@ export class JellyfinSubtitleService {
       );
       return;
     }
+    
     this.lastSubtitleItemKey = subtitleKey;
 
     const currentToken = ++this.subtitleRequestToken;
