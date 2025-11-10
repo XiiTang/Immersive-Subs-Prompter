@@ -190,7 +190,7 @@ export class YtDlpManager {
   private async requestLatestReleaseInfo(): Promise<ReleaseInfo> {
     const response = await fetch(RELEASE_API, {
       headers: {
-        "User-Agent": "UniversalSubtitle/0.1"
+        "User-Agent": "ImmersiveSubsPrompter/0.1"
       }
     });
 

@@ -188,7 +188,7 @@ function reapplyActiveProfileForCurrentVideo(): boolean {
 
 function getAutostartDesktopEntryPath() {
   const configDir = path.join(app.getPath("home"), ".config", "autostart");
-  return path.join(configDir, "universal-subtitle.desktop");
+  return path.join(configDir, "immersive-subs-prompter.desktop");
 }
 
 function applyAutoLaunch(enabled: boolean) {
@@ -214,7 +214,7 @@ function applyAutoLaunch(enabled: boolean) {
           "[Desktop Entry]",
           "Type=Application",
           "Version=1.0",
-          "Name=Universal Subtitle",
+          "Name=Immersive Subs Prompter",
           `Exec="${execPath}"`,
           "Terminal=false",
           "X-GNOME-Autostart-enabled=true"
@@ -235,7 +235,7 @@ function ensureTray() {
   }
   const icon = nativeImage.createFromDataURL(TRAY_ICON_DATA_URL);
   tray = new Tray(icon);
-  tray.setToolTip("Universal Subtitle");
+  tray.setToolTip("Immersive Subs Prompter");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
