@@ -762,19 +762,21 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
   if (!payload.sessionId || payload.sessionId !== state.jellyfin.selectedSessionId) {
     return;
   }
-  
-  // Check if we're receiving extension timestamps
-  // If extension is active (lastUpdate is recent), skip WebSocket timestamps
-  const now = Date.now();
-  const timeSinceLastExtensionUpdate = state.playback.lastUpdate ? now - state.playback.lastUpdate : Infinity;
-  const hasRecentExtensionUpdate = timeSinceLastExtensionUpdate < 5000; // 5 seconds threshold
-  
-  if (hasRecentExtensionUpdate) {
-    // Extension is providing timestamps, use those instead of WebSocket
+
+  const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) ?? null : null;
+  const selectedSession = state.jellyfin.sessions.find(
+    (session) => session.id === payload.sessionId
+  ) ?? null;
+  const sessionItemId = selectedSession?.nowPlayingItemId ?? null;
+  const extensionControlsSession =
+    Boolean(activeTabItemId && sessionItemId && activeTabItemId === sessionItemId);
+
+  if (extensionControlsSession) {
+    // Browser extension controls the same Jellyfin item, trust its timestamps
     return;
   }
-  
-  // Fallback to WebSocket timestamps when extension is not available
+
+  // Fallback to WebSocket timestamps when extension is not driving this item
   const currentTime = payload.positionMs ?? 0;
   const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
   state.playback = {
@@ -1083,7 +1085,8 @@ async function handleMessage(message: ExtensionMessage) {
       }
 
       const currentTime = message.payload.currentTime ?? state.playback.currentTime;
-      const playbackRate = message.payload.playbackRate ?? state.playback.playbackRate;
+      const rawPlaybackRate = message.payload.playbackRate ?? state.playback.playbackRate;
+      const playbackRate = message.payload.paused ? 0 : rawPlaybackRate;
 
       // Update playback state from extension
       // This works for both "extension" (yt-dlp) and "jellyfin" (WebSocket subtitles with extension timestamps)

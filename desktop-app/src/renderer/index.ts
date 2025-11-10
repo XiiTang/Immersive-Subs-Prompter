@@ -116,7 +116,8 @@ type PriorityEditorElements = {
   addButton: HTMLButtonElement;
 };
 
-let currentPlayback: PlaybackState | null = null;
+let lastKnownPlaybackState: PlaybackState | null = null;
+let playbackPredictionFrame: number | null = null;
 let currentSettings: AppSettings | null = null;
 let currentStateSnapshot: DesktopState | null = null;
 let cueElements: HTMLElement[] = [];
@@ -146,6 +147,33 @@ const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
     addButton: secondaryPriorityAddButton
   }
 };
+
+function getPredictedPlaybackTime(now = Date.now()): number | null {
+  if (!lastKnownPlaybackState) {
+    return null;
+  }
+  const { currentTime, playbackRate, lastUpdate } = lastKnownPlaybackState;
+  if (typeof lastUpdate !== "number") {
+    return currentTime;
+  }
+  return currentTime + playbackRate * (now - lastUpdate);
+}
+
+function ensurePlaybackPredictionLoop() {
+  if (playbackPredictionFrame !== null) {
+    return;
+  }
+  const step = () => {
+    if (lastKnownPlaybackState) {
+      const predictedTime = getPredictedPlaybackTime();
+      if (predictedTime !== null) {
+        highlightActiveCue(predictedTime);
+      }
+    }
+    playbackPredictionFrame = window.requestAnimationFrame(step);
+  };
+  playbackPredictionFrame = window.requestAnimationFrame(step);
+}
 
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -1273,8 +1301,9 @@ function renderState(state: DesktopState) {
 
   if (state.primarySubtitles) {
     renderSubtitles(state.primarySubtitles, state.secondarySubtitles);
-    if (currentPlayback) {
-      highlightActiveCue(currentPlayback.currentTime);
+    const predictedTime = getPredictedPlaybackTime();
+    if (predictedTime !== null) {
+      highlightActiveCue(predictedTime);
     }
   } else {
     subtitleList.innerHTML = "";
@@ -1737,8 +1766,8 @@ async function bootstrap() {
   });
 
   window.usp.onPlayback((payload) => {
-    currentPlayback = payload;
-    highlightActiveCue(payload.currentTime);
+    lastKnownPlaybackState = payload;
+    ensurePlaybackPredictionLoop();
   });
 
   window.usp.onSettingsChange((settings) => {
@@ -1863,4 +1892,3 @@ cacheClearButton.addEventListener("click", async () => {
     cacheClearButton.textContent = "Clear All Cache";
   }
 });
-

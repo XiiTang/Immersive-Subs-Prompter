@@ -17,14 +17,15 @@ const log = (() => {
 (function () {
   const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
   const BLACKLIST_MODES = new Set(["contains", "exact", "regex"]);
-  const UPDATE_INTERVAL_MS = 300;
+  const DRIFT_CHECK_INTERVAL_MS = 250;
+  const DRIFT_THRESHOLD_MS = 200;
   const PORT_NAME = "usp-video-channel";
   const RECONNECT_DELAY_MS = 1000;
 
   let port = null;
   let reconnectTimer = null;
   let activeVideo = null;
-  let ticker = null;
+  let driftMonitorTimer = null;
   const hooked = new WeakSet();
   const observedDocs = new WeakSet();
   const MEDIA_EVENTS = [
@@ -49,6 +50,7 @@ const log = (() => {
   let prototypesHooked = false;
   let urlMonitorTimer = null;
   const regexCache = new Map();
+  let lastReportedPlayback = null;
   
   // Loop control variables (stored in milliseconds for precision)
   let loopStartMs = null;
@@ -65,6 +67,65 @@ const log = (() => {
       log.info('loop', 'Loop cleared');
       // Notify desktop-app to update UI
       send("loop-cleared", {});
+    }
+  }
+
+  function resetPlaybackPrediction() {
+    lastReportedPlayback = null;
+  }
+
+  function recordPlaybackSample(state) {
+    if (!state) {
+      return;
+    }
+    const playbackRate = Number.isFinite(state.playbackRate) ? state.playbackRate : 1;
+    const effectiveRate = state.paused ? 0 : playbackRate;
+    lastReportedPlayback = {
+      currentTime: state.currentTime,
+      playbackRate: effectiveRate,
+      reportedAt: state.updatedAt
+    };
+  }
+
+  function predictPlaybackTime(now = Date.now()) {
+    if (!lastReportedPlayback) {
+      return null;
+    }
+    const elapsed = now - lastReportedPlayback.reportedAt;
+    return lastReportedPlayback.currentTime + elapsed * lastReportedPlayback.playbackRate;
+  }
+
+  function ensureDriftMonitor() {
+    if (driftMonitorTimer || !monitoringActive) {
+      return;
+    }
+    const tick = () => {
+      if (!monitoringActive || !activeVideo) {
+        driftMonitorTimer = null;
+        return;
+      }
+      if (lastReportedPlayback) {
+        const predicted = predictPlaybackTime();
+        if (predicted !== null) {
+          const actual = activeVideo.currentTime * 1000;
+          if (Math.abs(predicted - actual) > DRIFT_THRESHOLD_MS) {
+            log.debug('drift', 'Playback drift detected', {
+              predicted: Math.round(predicted),
+              actual: Math.round(actual)
+            });
+            handleTimeUpdate(activeVideo);
+          }
+        }
+      }
+      driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
+    };
+    driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
+  }
+
+  function stopDriftMonitor() {
+    if (driftMonitorTimer) {
+      clearTimeout(driftMonitorTimer);
+      driftMonitorTimer = null;
     }
   }
 
@@ -344,36 +405,27 @@ const log = (() => {
     }
     
     send("time-update", state);
-  }
-
-  function ensureTicker() {
-    if (ticker || !monitoringActive) return;
-    ticker = setInterval(() => {
-      if (activeVideo && !activeVideo.paused) {
-        handleTimeUpdate(activeVideo);
-      }
-    }, UPDATE_INTERVAL_MS);
-  }
-
-  function stopTicker() {
-    if (ticker) {
-      clearInterval(ticker);
-      ticker = null;
-    }
+    recordPlaybackSample(state);
   }
 
   function setActiveVideo(video) {
     if (!monitoringActive) {
       return;
     }
-    activeVideo = video;
+    const nextVideo = video ?? null;
+    const switchedVideo = activeVideo !== nextVideo;
+    activeVideo = nextVideo;
     if (video) {
       log.info('video', 'Video activated', { src: video.currentSrc || video.src, duration: video.duration });
       send("video-context", gatherVideoState(video));
-      ensureTicker();
+      if (switchedVideo) {
+        resetPlaybackPrediction();
+      }
+      ensureDriftMonitor();
     } else {
       log.info('video', 'Video cleared');
-      stopTicker();
+      stopDriftMonitor();
+      resetPlaybackPrediction();
     }
   }
 
@@ -526,6 +578,9 @@ const log = (() => {
       case "seeked":
         // Reset flag when seek completes
         programmaticSeek = false;
+        if (target === activeVideo) {
+          handleTimeUpdate(target);
+        }
         break;
       case "durationchange":
       case "volumechange":
@@ -537,7 +592,7 @@ const log = (() => {
         break;
       case "ratechange":
         if (activeVideo === target) {
-          send("playback-rate", gatherVideoState(target));
+          handleTimeUpdate(target);
         }
         break;
       case "ended":
@@ -672,7 +727,8 @@ const log = (() => {
       return;
     }
     monitoringActive = false;
-    stopTicker();
+    stopDriftMonitor();
+    resetPlaybackPrediction();
     activeVideo = null;
     
     // Disconnect mutation observer
@@ -716,7 +772,7 @@ const log = (() => {
   chrome.storage.onChanged.addListener(handleStorageChange);
   ["beforeunload", "unload"].forEach((eventName) => {
     window.addEventListener(eventName, () => {
-      stopTicker();
+      stopDriftMonitor();
     });
   });
   bootstrap();
