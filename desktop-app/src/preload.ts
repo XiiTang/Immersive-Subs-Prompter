@@ -24,7 +24,8 @@ const api = {
   getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
     ipcRenderer.invoke("usp:cache-stats"),
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),
-  cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup")
+  cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup"),
+  openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder")
 };
 
 contextBridge.exposeInMainWorld("usp", api);

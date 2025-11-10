@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut, shell } from "electron";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -1302,6 +1302,18 @@ ipcMain.handle("usp:cache-cleanup", async () => {
     return { success: true, removedCount };
   } catch (error) {
     mainLogger.error("Failed to cleanup cache", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("usp:cache-open-folder", async () => {
+  try {
+    const cachePath = cacheManager.getCachePath();
+    // Ensure the directory exists before opening
+    await fs.promises.mkdir(cachePath, { recursive: true });
+    await shell.openPath(cachePath);
+  } catch (error) {
+    mainLogger.error("Failed to open cache folder", error);
     throw error;
   }
 });

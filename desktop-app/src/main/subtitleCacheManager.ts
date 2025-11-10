@@ -236,6 +236,14 @@ export class SubtitleCacheManager {
   }
 
   /**
+   * Get the cache directory path
+   */
+  getCachePath(): string {
+    const settings = this.settingsProvider();
+    return settings.path || DEFAULT_CACHE_DIR;
+  }
+
+  /**
    * Start periodic cleanup task
    */
   private startPeriodicCleanup() {

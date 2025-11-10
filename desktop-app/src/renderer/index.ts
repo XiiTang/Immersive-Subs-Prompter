@@ -75,6 +75,7 @@ const cacheRetentionDaysInput = document.getElementById("cache-retention-days") 
 const cacheTotalEntriesElement = document.getElementById("cache-total-entries") as HTMLElement;
 const cacheTotalSizeElement = document.getElementById("cache-total-size") as HTMLElement;
 const cacheOldestEntryElement = document.getElementById("cache-oldest-entry") as HTMLElement;
+const cacheOpenFolderButton = document.getElementById("cache-open-folder") as HTMLButtonElement;
 const cacheRefreshStatsButton = document.getElementById("cache-refresh-stats") as HTMLButtonElement;
 const cacheCleanupButton = document.getElementById("cache-cleanup") as HTMLButtonElement;
 const cacheClearButton = document.getElementById("cache-clear") as HTMLButtonElement;
@@ -1817,6 +1818,15 @@ cacheRetentionDaysInput.addEventListener("change", () => {
 
 cacheRefreshStatsButton.addEventListener("click", () => {
   refreshCacheStats();
+});
+
+cacheOpenFolderButton.addEventListener("click", async () => {
+  try {
+    await window.usp.openCacheFolder();
+  } catch (error) {
+    console.error('[Renderer] Failed to open cache folder:', error);
+    alert(`Failed to open cache folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
 });
 
 cacheCleanupButton.addEventListener("click", async () => {
