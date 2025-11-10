@@ -10,10 +10,10 @@ The extension is based on Manifest V3 with no additional packaging steps, you ca
 
 ```bash
 cd extension
-zip -r ../universal-subtitle-messenger.zip .
+zip -r ../immersive-subs-prompter.zip .
 ```
 
-The generated `universal-subtitle-messenger.zip` can be used for Chrome Web Store / Edge Add-ons submission. Before submission, please ensure:
+The generated `immersive-subs-prompter.zip` can be used for Chrome Web Store / Edge Add-ons submission. Before submission, please ensure:
 
 - Information like `name`, `description`, `version`, `icons` in `manifest.json` meets publication requirements;
 - Required domains are listed in `host_permissions`;

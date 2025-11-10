@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Universal Subtitle Messenger",
+  "name": "Immersive Subs Prompter",
   "version": "0.1.0",
-  "description": "Injects into major video sites, captures playback info, and relays it to the Universal Subtitle desktop app.",
+  "description": "Injects into major video sites, captures playback info, and relays it to the Immersive Subs Prompter desktop app.",
   "permissions": [
     "storage",
     "alarms"
@@ -27,7 +27,7 @@
     }
   ],
   "action": {
-    "default_title": "Universal Subtitle Messenger",
+    "default_title": "Immersive Subs Prompter",
     "default_popup": "popup.html"
   }
 }

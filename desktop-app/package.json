@@ -1,5 +1,5 @@
 {
-  "name": "universal-subtitle-desktop",
+  "name": "immersive-subs-prompter-desktop",
   "version": "0.1.0",
   "description": "Electron subtitle companion that syncs with the browser extension via WebSocket.",
   "main": "dist/main/index.js",
@@ -37,8 +37,8 @@
     "typescript": "^5.4.5"
   },
   "build": {
-    "appId": "com.example.universalsubtitle",
-    "productName": "Universal Subtitle",
+    "appId": "com.example.immersivesubsprompter",
+    "productName": "Immersive Subs Prompter",
     "directories": {
       "output": "release"
     },

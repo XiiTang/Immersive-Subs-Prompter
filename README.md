@@ -1,4 +1,4 @@
-# Universal Subtitle Plugin
+# Immersive Subs Prompter
 
 A "Subtitle Messenger" system composed of a browser extension and an Electron desktop app. The extension resides on YouTube / Bilibili / Douyin and other sites, collecting video playback information in real-time and pushing it to the local desktop application via WebSocket; the desktop app is responsible for fetching subtitles (via `yt-dlp`), displaying a scrolling subtitle panel, and supporting jumping within the subtitle list or controlling the browser player.
 

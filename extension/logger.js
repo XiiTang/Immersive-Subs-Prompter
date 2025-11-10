@@ -1,5 +1,5 @@
 /**
- * Universal Subtitle Plugin - Logger Module
+ * Immersive Subs Prompter - Logger Module
  * Unified logging system for recording video detection, message transmission and other key information
  */
 
