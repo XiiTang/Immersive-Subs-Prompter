@@ -23,7 +23,8 @@ export type ExtensionMessageType =
   | "playback-rate"
   | "video-ended"
   | "page-url-changed"
-  | "loop-cleared";
+  | "loop-cleared"
+  | "loop-started";
 
 export interface ExtensionMessage {
   tabId: number;
@@ -48,6 +49,8 @@ export interface PlaybackState {
   currentTime: number; // milliseconds
   playbackRate: number;
   lastUpdate: number | null; // timestamp in milliseconds
+  isLooping: boolean; // whether currently in loop mode
+  loopCueIndex: number | null; // index of the cue being looped
 }
 
 export interface DesktopState {
@@ -82,7 +85,7 @@ export type VideoControlCommand =
   | { type: "seek"; time: number } // milliseconds
   | { type: "pause" }
   | { type: "play" }
-  | { type: "loop"; start: number; end: number } // milliseconds
+  | { type: "loop"; start: number; end: number; cueIndex: number } // milliseconds, cueIndex for UI
   | { type: "stopLoop" };
 
 export type CloseBehavior = "quit" | "tray";

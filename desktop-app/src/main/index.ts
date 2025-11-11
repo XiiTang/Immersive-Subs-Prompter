@@ -67,7 +67,9 @@ const state: DesktopState = {
   playback: {
     currentTime: 0,
     playbackRate: 1,
-    lastUpdate: null
+    lastUpdate: null,
+    isLooping: false,
+    loopCueIndex: null
   },
   subtitleTracks: [],
   selectedPrimarySubtitleId: null,
@@ -604,7 +606,9 @@ function selectJellyfinSession(sessionId: string | null) {
     state.playback = {
       currentTime: currentTimeMilliseconds,
       playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
+      isLooping: false,
+      loopCueIndex: null
     };
   }
   
@@ -782,7 +786,9 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
   state.playback = {
     currentTime,
     playbackRate,
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
+    isLooping: state.playback.isLooping, // Preserve loop state
+    loopCueIndex: state.playback.loopCueIndex // Preserve loop cue index
   };
   sendPlaybackUpdate(state.playback);
 }
@@ -1088,13 +1094,25 @@ async function handleMessage(message: ExtensionMessage) {
       const rawPlaybackRate = message.payload.playbackRate ?? state.playback.playbackRate;
       const playbackRate = message.payload.paused ? 0 : rawPlaybackRate;
 
-      // Update playback state from extension
-      // This works for both "extension" (yt-dlp) and "jellyfin" (WebSocket subtitles with extension timestamps)
+      // Update playback state from extension - use actual time
       state.playback = {
         currentTime,
         playbackRate,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
+        isLooping: state.playback.isLooping, // Preserve loop state
+        loopCueIndex: state.playback.loopCueIndex // Preserve loop cue index
       };
+      sendPlaybackUpdate(state.playback);
+      break;
+    }
+
+    case "loop-started": {
+      // Extension notifies that loop has started
+      if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
+        return;
+      }
+      
+      state.playback.isLooping = true;
       sendPlaybackUpdate(state.playback);
       break;
     }
@@ -1102,8 +1120,12 @@ async function handleMessage(message: ExtensionMessage) {
     case "loop-cleared": {
       // Forward loop-cleared event to renderer to update UI
       if (state.activeTabId === message.tabId && mainWindow) {
+        // Clear loop state
+        state.playback.isLooping = false;
+        state.playback.loopCueIndex = null;
+        
         mainWindow.webContents.send("usp:loop-cleared");
-        mainLogger.info("Loop cleared by user interaction");
+        sendPlaybackUpdate(state.playback);
       }
       break;
     }
@@ -1234,10 +1256,15 @@ function setSubtitleTrack(trackId: string | null, role: "primary" | "secondary" 
 
 function sendControlCommand(command: VideoControlCommand): boolean {
   if (state.activeTabId === null) {
+    mainLogger.warn("Cannot send control command: no active tab");
     return false;
   }
   const socket = tabSockets.get(state.activeTabId);
   if (!socket || socket.readyState !== WebSocket.OPEN) {
+    mainLogger.warn("Cannot send control command: socket not ready", { 
+      hasSocket: !!socket, 
+      readyState: socket?.readyState 
+    });
     return false;
   }
 
@@ -1245,7 +1272,13 @@ function sendControlCommand(command: VideoControlCommand): boolean {
   if (command.type === "seek") {
     payload = { time: command.time };
   } else if (command.type === "loop") {
+    // Set loopCueIndex and isLooping immediately when loop command is sent
+    state.playback.loopCueIndex = command.cueIndex;
+    state.playback.isLooping = true;
     payload = { start: command.start, end: command.end };
+    
+    // Immediately send playback update so renderer locks the highlight
+    sendPlaybackUpdate(state.playback);
   }
 
   socket.send(

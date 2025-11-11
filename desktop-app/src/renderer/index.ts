@@ -153,6 +153,7 @@ function getPredictedPlaybackTime(now = Date.now()): number | null {
     return null;
   }
   const { currentTime, playbackRate, lastUpdate } = lastKnownPlaybackState;
+  
   if (typeof lastUpdate !== "number") {
     return currentTime;
   }
@@ -1153,6 +1154,30 @@ function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: Sub
 function highlightActiveCue(currentTime: number) {
   if (!combinedCues.length) return;
 
+  // In loop mode, lock highlight to the looped cue index
+  if (lastKnownPlaybackState?.isLooping && lastKnownPlaybackState.loopCueIndex !== null) {
+    const lockedIndex = lastKnownPlaybackState.loopCueIndex;
+    
+    if (activeCueIndex !== lockedIndex) {
+      // Remove highlight from current active cue
+      if (activeCueIndex !== null && cueElements[activeCueIndex]) {
+        cueElements[activeCueIndex].classList.remove("subtitle-item--active");
+      }
+      
+      // Highlight the locked cue
+      const element = cueElements[lockedIndex];
+      if (element) {
+        element.classList.add("subtitle-item--active");
+        if (autoScrollEnabled) {
+          scrollToActiveSubtitle(element);
+        }
+        activeCueIndex = lockedIndex;
+      }
+    }
+    return; // Skip time-based matching in loop mode
+  }
+
+  // Normal mode: find cue by time
   const newIndex = combinedCues.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
   
   if (newIndex === -1) {
@@ -1195,6 +1220,19 @@ function scrollToActiveSubtitle(element: HTMLElement) {
     top: targetScroll,
     behavior: "smooth"
   });
+}
+
+function clearLoopUI() {
+  if (loopingCueIndex !== null) {
+    // Remove active class from loop button
+    const loopButton = document.querySelector(
+      `.subtitle-item__loop-btn[data-index="${loopingCueIndex}"]`
+    );
+    if (loopButton) {
+      loopButton.classList.remove("subtitle-item__loop-btn--active");
+    }
+    loopingCueIndex = null;
+  }
 }
 
 function resetAutoScrollTimer() {
@@ -1270,6 +1308,10 @@ function renderTrackSelectors(state: DesktopState) {
 
 function renderState(state: DesktopState) {
   currentStateSnapshot = state;
+  
+  // Update playback state to ensure highlight uses latest data
+  lastKnownPlaybackState = state.playback;
+  
   if (currentSettings) {
     syncPlaybackProfileSettings();
   }
@@ -1667,10 +1709,18 @@ ruleSaveButton.addEventListener("click", () => handleRuleSave());
 ruleCancelButton.addEventListener("click", () => resetRuleForm());
 
 pauseButton.addEventListener("click", () => {
+  // Pause should clear loop
+  if (loopingCueIndex !== null) {
+    clearLoopUI();
+  }
   window.usp.controlVideo({ type: "pause" });
 });
 
 playButton.addEventListener("click", () => {
+  // Play should clear loop
+  if (loopingCueIndex !== null) {
+    clearLoopUI();
+  }
   window.usp.controlVideo({ type: "play" });
 });
 
@@ -1683,6 +1733,11 @@ subtitleList.addEventListener("click", (event) => {
     if (Number.isNaN(index)) return;
     const cue = combinedCues[index];
     if (cue) {
+      // Seeking should clear loop (unless clicking the looped cue's play button)
+      if (loopingCueIndex !== null && loopingCueIndex !== index) {
+        clearLoopUI();
+        window.usp.controlVideo({ type: "stopLoop" });
+      }
       window.usp.controlVideo({ type: "seek", time: cue.start });
     }
   }
@@ -1695,35 +1750,41 @@ subtitleList.addEventListener("click", (event) => {
     // Toggle loop mode
     if (loopingCueIndex === index) {
       // Disable loop
-      loopingCueIndex = null;
-      // Remove active class from all loop buttons
-      document.querySelectorAll(".subtitle-item__loop-btn--active").forEach((btn) => {
-        btn.classList.remove("subtitle-item__loop-btn--active");
-      });
+      clearLoopUI();
       // Send stop loop command to extension
       window.usp.controlVideo({ type: "stopLoop" });
     } else {
-      // Enable loop for this cue
-      const prevLoopIndex = loopingCueIndex;
-      loopingCueIndex = index;
-      
-      // Remove active class from previous loop button
-      if (prevLoopIndex !== null) {
-        const prevButton = document.querySelector(
-          `.subtitle-item__loop-btn[data-index="${prevLoopIndex}"]`
-        );
-        if (prevButton) {
-          prevButton.classList.remove("subtitle-item__loop-btn--active");
-        }
+      // If already looping another cue, clear it first and send stopLoop
+      if (loopingCueIndex !== null) {
+        clearLoopUI();
+        window.usp.controlVideo({ type: "stopLoop" });
       }
+      
+      // Enable loop for this cue
+      loopingCueIndex = index;
       
       // Add active class to current loop button
       target.classList.add("subtitle-item__loop-btn--active");
       
-      // Send loop command to extension with start and end times
+      // Immediately highlight this cue (before loop starts)
+      if (activeCueIndex !== index) {
+        if (activeCueIndex !== null && cueElements[activeCueIndex]) {
+          cueElements[activeCueIndex].classList.remove("subtitle-item--active");
+        }
+        const element = cueElements[index];
+        if (element) {
+          element.classList.add("subtitle-item--active");
+          if (autoScrollEnabled) {
+            scrollToActiveSubtitle(element);
+          }
+          activeCueIndex = index;
+        }
+      }
+      
+      // Send loop command to extension with start, end times, and cueIndex
       const cue = combinedCues[index];
       if (cue) {
-        window.usp.controlVideo({ type: "loop", start: cue.start, end: cue.end });
+        window.usp.controlVideo({ type: "loop", start: cue.start, end: cue.end, cueIndex: index });
       }
     }
   }
@@ -1766,7 +1827,17 @@ async function bootstrap() {
   });
 
   window.usp.onPlayback((payload) => {
+    const wasLooping = lastKnownPlaybackState?.isLooping ?? false;
     lastKnownPlaybackState = payload;
+    
+    // If loop state changed, immediately re-highlight
+    if (wasLooping !== payload.isLooping) {
+      const predictedTime = getPredictedPlaybackTime();
+      if (predictedTime !== null) {
+        highlightActiveCue(predictedTime);
+      }
+    }
+    
     ensurePlaybackPredictionLoop();
   });
 
@@ -1775,15 +1846,7 @@ async function bootstrap() {
   });
 
   window.usp.onLoopCleared(() => {
-    if (loopingCueIndex !== null) {
-      const loopButton = document.querySelector(
-        `.subtitle-item__loop-btn[data-index="${loopingCueIndex}"]`
-      );
-      if (loopButton) {
-        loopButton.classList.remove("subtitle-item__loop-btn--active");
-      }
-      loopingCueIndex = null;
-    }
+    clearLoopUI();
   });
 }
 

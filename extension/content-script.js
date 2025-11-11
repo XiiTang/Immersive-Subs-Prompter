@@ -57,6 +57,7 @@ const log = (() => {
   let loopEndMs = null;
   let isLooping = false;
   let programmaticSeek = false; // Track if seek is triggered by program, not user
+  let loopCheckTimer = null; // Timer for checking loop condition
   
   // Helper function to clear loop state and notify desktop-app
   function clearLoopState() {
@@ -64,10 +65,42 @@ const log = (() => {
       isLooping = false;
       loopStartMs = null;
       loopEndMs = null;
-      log.info('loop', 'Loop cleared');
+      if (loopCheckTimer) {
+        clearInterval(loopCheckTimer);
+        loopCheckTimer = null;
+      }
+      
       // Notify desktop-app to update UI
       send("loop-cleared", {});
+    } else {
+      log.debug('loop', 'clearLoopState called but not looping');
     }
+  }
+  
+  // Start loop check timer
+  function startLoopCheck() {
+    if (loopCheckTimer) {
+      clearInterval(loopCheckTimer);
+    }
+    
+    loopCheckTimer = setInterval(() => {
+      if (!isLooping || !activeVideo || loopStartMs === null || loopEndMs === null) {
+        if (loopCheckTimer) {
+          clearInterval(loopCheckTimer);
+          loopCheckTimer = null;
+        }
+        return;
+      }
+      
+      const currentTimeMs = activeVideo.currentTime * 1000;
+      
+      // Check if we've exceeded the loop end point
+      if (currentTimeMs >= loopEndMs) {
+        // Seek back to loop start
+        programmaticSeek = true;
+        activeVideo.currentTime = loopStartMs / 1000;
+      }
+    }, 100); // Check every 100ms for responsive looping
   }
 
   function resetPlaybackPrediction() {
@@ -104,6 +137,7 @@ const log = (() => {
         driftMonitorTimer = null;
         return;
       }
+      
       if (lastReportedPlayback) {
         const predicted = predictPlaybackTime();
         if (predicted !== null) {
@@ -264,7 +298,6 @@ const log = (() => {
     if (!monitoringActive || !message || typeof message !== "object") return;
     log.debug('msg', `← ${message.type}`, message);
     if (message.type === "control") {
-      log.info('ctrl', `Received: ${message.action}`, message.payload);
       applyControl(message.action, message.payload || {});
     }
   }
@@ -376,32 +409,9 @@ const log = (() => {
       return;
     }
     
-    // Check loop condition and handle time reporting
-    let reportTime = null;
-    if (isLooping && loopStartMs !== null && loopEndMs !== null && video) {
-      const currentTimeMs = video.currentTime * 1000;
-      const middleTimeMs = (loopStartMs + loopEndMs) / 2;
-      
-      // Check if we should loop back
-      if (currentTimeMs >= loopEndMs) {
-        reportTime = middleTimeMs;
-        programmaticSeek = true;
-        video.currentTime = loopStartMs / 1000;
-      } 
-      // If current time is within the loop range, always report middle time to keep subtitle stable
-      else if (currentTimeMs >= loopStartMs && currentTimeMs <= loopEndMs) {
-        reportTime = middleTimeMs;
-      }
-    }
-    
     const state = gatherVideoState(video);
     if (!state) {
       return;
-    }
-    
-    // Override currentTime if we're looping
-    if (reportTime !== null) {
-      state.currentTime = reportTime;
     }
     
     send("time-update", state);
@@ -472,7 +482,6 @@ const log = (() => {
             });
           }
           handleTimeUpdate(target);
-          log.info('ctrl', `seek → ${clamped.toFixed(3)}s${wasPaused ? ' (auto-play)' : ''}`);
         } else {
           log.warn('ctrl', `seek failed: invalid time`, payload);
         }
@@ -491,9 +500,16 @@ const log = (() => {
               log.error('ctrl', 'Auto-play after loop enabled failed', err);
             });
           }
-          log.info('ctrl', `Loop enabled: ${(loopStartMs / 1000).toFixed(2)}s - ${(loopEndMs / 1000).toFixed(2)}s${wasPaused ? ' (auto-play)' : ''}`);
+          
+          // Start loop check timer
+          startLoopCheck();
+          
+          // Notify desktop that loop started
+          send("loop-started", {});
         } else {
           log.warn('ctrl', `loop failed: invalid times`, payload);
+          // Notify desktop that loop failed
+          send("loop-cleared", {});
         }
         break;
       case "stopLoop":
@@ -503,15 +519,12 @@ const log = (() => {
         // Clear loop state when pausing
         clearLoopState();
         target.pause();
-        log.info('ctrl', 'pause');
         break;
       case "play":
         // Clear loop state when playing
         clearLoopState();
         target.play().catch((err) => {
           log.error('ctrl', 'play failed', err);
-        }).then(() => {
-          log.info('ctrl', 'play');
         });
         break;
       default:
