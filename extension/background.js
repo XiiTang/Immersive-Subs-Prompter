@@ -13,106 +13,130 @@ const log = (() => {
   };
 })();
 
-const WS_ENDPOINT = "ws://127.0.0.1:44501";
-const RETRY_DELAY_MS = 2000;
 const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
+const OFFSCREEN_PORT = "usp-offscreen-bridge";
+const OFFSCREEN_URL = chrome.runtime.getURL("offscreen.html");
 // Minimum duration to consider a video as valid media (in milliseconds, was 10 seconds)
 const MINIMUM_DURATION = 10000;
 const KEEPALIVE_ALARM_NAME = "usp-keepalive";
 const KEEPALIVE_INTERVAL_SECONDS = 25;
 const KEEPALIVE_PERIOD_MINUTES = KEEPALIVE_INTERVAL_SECONDS / 60;
 
-class DesktopBridge {
-  constructor(onDesktopMessage) {
-    this.socket = null;
-    this.retryTimer = null;
-    this.pending = [];
-    this.onDesktopMessage = onDesktopMessage;
-    this.connect();
+let offscreenPort = null;
+const pendingDesktopMessages = [];
+let creatingOffscreenDocument = false;
+
+async function ensureOffscreenDocument() {
+  if (creatingOffscreenDocument) {
+    return;
   }
-
-  connect() {
-    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
-    clearTimeout(this.retryTimer);
-
-    try {
-      log.info('ws', 'Connecting...', { endpoint: WS_ENDPOINT });
-      this.socket = new WebSocket(WS_ENDPOINT);
-    } catch (err) {
-      log.error('ws', 'Failed to create connection', err);
-      this.scheduleReconnect();
-      return;
-    }
-
-    this.socket.addEventListener("open", () => {
-      log.info('ws', 'Connected');
-      this.flushPending();
-    });
-
-    this.socket.addEventListener("close", () => {
-      log.warn('ws', 'Disconnected');
-      this.scheduleReconnect();
-    });
-
-    this.socket.addEventListener("message", (event) => {
+  if (!chrome.offscreen?.createDocument) {
+    log.warn("offscreen", "API unavailable, cannot stabilize desktop bridge");
+    return;
+  }
+  creatingOffscreenDocument = true;
+  try {
+    let existing = [];
+    if (chrome.runtime?.getContexts) {
       try {
-        const raw =
-          typeof event.data === "string"
-            ? event.data
-            : event.data
-            ? new TextDecoder().decode(event.data)
-            : "";
-        if (!raw) return;
-        const payload = JSON.parse(raw);
-        log.debug('ws', `← ${payload.type}`, { source: payload.source });
-        this.onDesktopMessage?.(payload);
-      } catch (err) {
-        log.error('ws', 'Failed to parse message', err);
+        existing = await chrome.runtime.getContexts({
+          contextTypes: ["OFFSCREEN_DOCUMENT"],
+          documentUrls: [OFFSCREEN_URL]
+        });
+      } catch {
+        existing = [];
       }
-    });
-
-    this.socket.addEventListener("error", (err) => {
-      log.error('ws', 'WebSocket error', err);
-      this.socket.close();
-    });
-  }
-
-  scheduleReconnect() {
-    clearTimeout(this.retryTimer);
-    log.info('ws', `Reconnecting... ${RETRY_DELAY_MS}ms`);
-    this.retryTimer = setTimeout(() => this.connect(), RETRY_DELAY_MS);
-  }
-
-  flushPending() {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-    if (this.pending.length > 0) {
-      log.info('ws', `Sending queue: ${this.pending.length} messages`);
     }
-    while (this.pending.length) {
-      this.socket.send(this.pending.shift());
+    if (existing?.length) {
+      return;
     }
-  }
-
-  send(payload) {
-    const data = JSON.stringify({
-      source: "usp-extension",
-      ...payload,
-      sentAt: Date.now()
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: [chrome.offscreen?.Reason?.IFRAME_SCRIPTING ?? "IFRAME_SCRIPTING"],
+      justification: "Keep desktop bridge WebSocket alive when no video tabs are active"
     });
+    log.info("offscreen", "Created offscreen bridge document");
+  } catch (error) {
+    log.error("offscreen", "Failed to create offscreen document", error);
+  } finally {
+    creatingOffscreenDocument = false;
+  }
+}
 
-    log.debug('ws', `→ ${payload.type}`, { tabId: payload.tabId });
-
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(data);
-    } else {
-      log.debug('ws', `Queue +1 (${this.pending.length + 1})`);
-      this.pending.push(data);
-      this.connect();
+function flushPendingDesktopMessages() {
+  if (!offscreenPort || !pendingDesktopMessages.length) {
+    return;
+  }
+  while (pendingDesktopMessages.length) {
+    const payload = pendingDesktopMessages.shift();
+    try {
+      offscreenPort.postMessage({ type: "to-desktop", payload });
+    } catch (error) {
+      log.error("bridge", "Failed to flush pending payload, re-queueing", error);
+      pendingDesktopMessages.unshift(payload);
+      offscreenPort = null;
+      ensureOffscreenDocument();
+      return;
     }
   }
+}
+
+function sendToDesktop(payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+  if (!offscreenPort) {
+    pendingDesktopMessages.push(payload);
+    ensureOffscreenDocument();
+    return;
+  }
+  try {
+    offscreenPort.postMessage({ type: "to-desktop", payload });
+  } catch (error) {
+    log.error("bridge", "Failed to reach offscreen bridge, queueing payload", error);
+    pendingDesktopMessages.push(payload);
+    offscreenPort = null;
+    ensureOffscreenDocument();
+  }
+}
+
+function requestBridgeConnect() {
+  if (!offscreenPort) {
+    ensureOffscreenDocument();
+    return;
+  }
+  try {
+    offscreenPort.postMessage({ type: "bridge-connect" });
+  } catch (error) {
+    log.error("bridge", "Failed to send connect command", error);
+    offscreenPort = null;
+    ensureOffscreenDocument();
+  }
+}
+
+function attachOffscreenPort(port) {
+  log.info("bridge", "Offscreen bridge connected");
+  offscreenPort = port;
+  port.onMessage.addListener((message) => {
+    if (!message || typeof message !== "object") {
+      return;
+    }
+    if (message.type === "from-desktop" && message.payload) {
+      handleDesktopMessage(message.payload);
+    } else if (message.type === "bridge-ready") {
+      log.debug("bridge", "Offscreen bridge ready");
+      flushPendingDesktopMessages();
+    } else if (message.type === "offscreen-keepalive") {
+      log.debug("bridge", "Keepalive pulse", message);
+    }
+  });
+  port.onDisconnect.addListener(() => {
+    log.warn("bridge", "Offscreen bridge disconnected");
+    offscreenPort = null;
+    ensureOffscreenDocument();
+  });
+  flushPendingDesktopMessages();
 }
 
 const tabMetadata = new Map();
@@ -286,7 +310,7 @@ function ingestMediaMessage(tabId, frameId, message) {
   } else if (type === "loop-started") {
     // Forward loop-started message to desktop-app
     log.info('loop', `Tab${tabId} Loop started`);
-    bridge.send({
+    sendToDesktop({
       source: "usp-extension",
       type: "loop-started",
       tabId,
@@ -295,7 +319,7 @@ function ingestMediaMessage(tabId, frameId, message) {
   } else if (type === "loop-cleared") {
     // Forward loop-cleared message to desktop-app
     log.info('loop', `Tab${tabId} Loop cleared by user interaction`);
-    bridge.send({
+    sendToDesktop({
       source: "usp-extension",
       type: "loop-cleared",
       tabId,
@@ -340,10 +364,10 @@ function handleDesktopMessage(message) {
   }
 }
 
-const bridge = new DesktopBridge(handleDesktopMessage);
-
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === CONTENT_PORT) {
+  if (port.name === OFFSCREEN_PORT) {
+    attachOffscreenPort(port);
+  } else if (port.name === CONTENT_PORT) {
     handleContentPort(port);
   } else if (port.name === DASHBOARD_PORT) {
     handleDashboardPort(port);
@@ -371,13 +395,13 @@ function handleContentPort(port) {
     
     // Forward to desktop-app with consistent data format
     if (message.type === "video-ended") {
-      bridge.send({
+      sendToDesktop({
         tabId,
         type: "video-ended",
         payload: {}
       });
     } else if (message.type === "page-url-changed") {
-      bridge.send({
+      sendToDesktop({
         tabId,
         type: "page-url-changed",
         payload: message.payload
@@ -389,7 +413,7 @@ function handleContentPort(port) {
         dur: mediaInfo.duration?.toFixed(1),
         time: mediaInfo.currentTime?.toFixed(1)
       });
-      bridge.send({
+      sendToDesktop({
         tabId,
         type: message.type,
         payload: mediaInfo
@@ -420,7 +444,7 @@ function handleContentPort(port) {
     }
 
     if (stateRemoved) {
-      bridge.send({
+      sendToDesktop({
         tabId,
         type: "video-ended",
         payload: {}
@@ -460,9 +484,16 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     return;
   }
   log.debug('alarm', 'keepalive tick', { scheduledTime: alarm.scheduledTime });
-  bridge.connect();
+  requestBridgeConnect();
 });
 
 ensureKeepAliveAlarm();
-chrome.runtime.onInstalled.addListener(ensureKeepAliveAlarm);
-chrome.runtime.onStartup.addListener(ensureKeepAliveAlarm);
+ensureOffscreenDocument();
+chrome.runtime.onInstalled.addListener(() => {
+  ensureKeepAliveAlarm();
+  ensureOffscreenDocument();
+});
+chrome.runtime.onStartup.addListener(() => {
+  ensureKeepAliveAlarm();
+  ensureOffscreenDocument();
+});

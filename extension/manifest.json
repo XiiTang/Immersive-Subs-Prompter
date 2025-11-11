@@ -5,7 +5,8 @@
   "description": "Injects into major video sites, captures playback info, and relays it to the Immersive Subs Prompter desktop app.",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"
