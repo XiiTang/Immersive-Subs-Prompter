@@ -414,7 +414,6 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    this.log.info(`Jellyfin WS message: ${type}`);
     if (type === "Sessions") {
       this.processSessions(payload.Data);
     } else if (type === "ForceKeepAlive") {
@@ -454,6 +453,7 @@ export class JellyfinSubtitleService {
     if (!Array.isArray(data)) {
       return;
     }
+    
     const nextSessions = new Map<string, JellyfinSessionSummary>();
     for (const record of data as RawSessionRecord[]) {
       // Skip our own session - we don't want to monitor ourselves
@@ -646,12 +646,13 @@ export class JellyfinSubtitleService {
   }
 
   private emitPlayback(summary: JellyfinSessionSummary) {
+    const positionMs = ticksToMilliseconds(summary.positionTicks);
     this.emit("playback", {
       sessionId: summary.id,
       itemName: summary.nowPlayingItemName ?? null,
       isPaused: summary.isPaused,
       playbackRate: summary.playbackRate || 1,
-      positionMs: ticksToMilliseconds(summary.positionTicks),
+      positionMs,
       runTimeMs: ticksToMilliseconds(summary.runTimeTicks)
     });
   }
