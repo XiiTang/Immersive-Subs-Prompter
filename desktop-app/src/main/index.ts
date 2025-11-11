@@ -44,8 +44,15 @@ let mainWindow: BrowserWindow | null = null;
 let subtitleRequestToken = 0;
 const tabSockets = new Map<number, WebSocket>();
 const socketTabs = new Map<WebSocket, Set<number>>();
-// Track which Jellyfin itemId each tab is currently playing
-const tabJellyfinItems = new Map<number, string>();
+
+type TabJellyfinContext = {
+  itemId: string | null;
+  sessionId: string | null;
+  serverConfigId: string | null;
+};
+
+// Track Jellyfin metadata per tab to support multi-server toggling
+const tabJellyfinContexts = new Map<number, TabJellyfinContext>();
 let tray: Tray | null = null;
 let isQuitting = false;
 let settingsStore: SettingsStore | null = null;
@@ -91,6 +98,34 @@ const state: DesktopState = {
     lastUpdated: null
   }
 };
+
+function getTabJellyfinContext(tabId: number | null): TabJellyfinContext | null {
+  if (tabId === null) {
+    return null;
+  }
+  return tabJellyfinContexts.get(tabId) ?? null;
+}
+
+function updateTabJellyfinContext(
+  tabId: number,
+  updates: Partial<TabJellyfinContext>
+): TabJellyfinContext {
+  const previous = tabJellyfinContexts.get(tabId) ?? {
+    itemId: null,
+    sessionId: null,
+    serverConfigId: null
+  };
+  const next: TabJellyfinContext = {
+    ...previous,
+    ...updates
+  };
+  tabJellyfinContexts.set(tabId, next);
+  return next;
+}
+
+function clearTabJellyfinContext(tabId: number) {
+  tabJellyfinContexts.delete(tabId);
+}
 
 function getProfileById(settings: AppSettings, profileId: string | null | undefined): ProfileDefinition | null {
   if (!profileId) {
@@ -688,6 +723,34 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
   });
   state.jellyfin.sessions = sessions;
   state.jellyfin.lastUpdated = Date.now();
+
+  for (const [tabId, context] of tabJellyfinContexts.entries()) {
+    const sessionById =
+      context.sessionId && sessions.find((session) => session.id === context.sessionId);
+    if (sessionById) {
+      updateTabJellyfinContext(tabId, {
+        sessionId: sessionById.id,
+        serverConfigId: sessionById.serverConfigId,
+        itemId: sessionById.nowPlayingItemId ?? context.itemId
+      });
+      continue;
+    }
+    if (!context.itemId) {
+      continue;
+    }
+    const matchingByItem = sessions.find(
+      (session) =>
+        session.nowPlayingItemId === context.itemId &&
+        (!context.serverConfigId || session.serverConfigId === context.serverConfigId)
+    );
+    if (matchingByItem) {
+      updateTabJellyfinContext(tabId, {
+        sessionId: matchingByItem.id,
+        serverConfigId: matchingByItem.serverConfigId,
+        itemId: matchingByItem.nowPlayingItemId ?? context.itemId
+      });
+    }
+  }
   
   // Handle pending Jellyfin item ID (race condition resolution)
   if (state.pendingJellyfinItemId && state.activeSource === "jellyfin") {
@@ -695,16 +758,25 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       (session) => session.nowPlayingItemId === state.pendingJellyfinItemId
     );
 
-    if (matchingSession && matchingSession.id !== state.jellyfin.selectedSessionId) {
-      mainLogger.debug("Matching Jellyfin session found for pending item", {
-        pendingItemId: state.pendingJellyfinItemId,
-        sessionId: matchingSession.id,
-        serverConfigId: matchingSession.serverConfigId,
-        serverName: matchingSession.serverName
-      });
-      state.jellyfin.selectedSessionId = matchingSession.id;
-      jellyfinService.setActiveSession(matchingSession.id);
-      state.pendingJellyfinItemId = null; // Clear pending after matching
+    if (matchingSession) {
+      if (matchingSession.id !== state.jellyfin.selectedSessionId) {
+        mainLogger.debug("Matching Jellyfin session found for pending item", {
+          pendingItemId: state.pendingJellyfinItemId,
+          sessionId: matchingSession.id,
+          serverConfigId: matchingSession.serverConfigId,
+          serverName: matchingSession.serverName
+        });
+        state.jellyfin.selectedSessionId = matchingSession.id;
+        jellyfinService.setActiveSession(matchingSession.id);
+      }
+      if (state.activeTabId !== null) {
+        updateTabJellyfinContext(state.activeTabId, {
+          sessionId: matchingSession.id,
+          serverConfigId: matchingSession.serverConfigId,
+          ...(matchingSession.nowPlayingItemId ? { itemId: matchingSession.nowPlayingItemId } : {})
+        });
+      }
+      state.pendingJellyfinItemId = null;
     }
   }
 
@@ -740,14 +812,16 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
         jellyfinService.setActiveSession(null);
       }
     } else if (state.activeSource === "jellyfin") {
-      // Check if the session's itemId matches the active tab's itemId
-      const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) : null;
+      const activeTabContext = getTabJellyfinContext(state.activeTabId);
+      const activeTabItemId = activeTabContext?.itemId ?? null;
       const sessionItemId = selected.nowPlayingItemId;
       
-      // If we have an active tab but no recorded itemId (Blob URL scenario),
-      // record it now from the selected session
-      if (state.activeTabId && !activeTabItemId && sessionItemId) {
-        tabJellyfinItems.set(state.activeTabId, sessionItemId);
+      if (state.activeTabId) {
+        updateTabJellyfinContext(state.activeTabId, {
+          sessionId: selected.id,
+          serverConfigId: selected.serverConfigId,
+          ...(sessionItemId ? { itemId: sessionItemId } : {})
+        });
       }
       
       if (activeTabItemId && sessionItemId && activeTabItemId !== sessionItemId) {
@@ -764,25 +838,41 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       state.videoUrl = buildJellyfinItemUrl(selected) ?? state.videoUrl;
     }
   } else if (state.activeSource === "jellyfin" && sessions.length > 0) {
-    // No session selected but in Jellyfin mode, auto-select first session
-    // But only if it matches the active tab's itemId (if we have one)
-    const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) : null;
+    const activeTabContext = getTabJellyfinContext(state.activeTabId);
+    const activeTabItemId = activeTabContext?.itemId ?? null;
+    const activeTabSessionId = activeTabContext?.sessionId ?? null;
+    const activeServerId = activeTabContext?.serverConfigId ?? null;
     
     let sessionToSelect = sessions[0];
-    if (activeTabItemId) {
-      // Try to find a session matching the active tab's itemId
-      const matchingSession = sessions.find(s => s.nowPlayingItemId === activeTabItemId);
+    if (activeTabSessionId) {
+      const matchingBySession = sessions.find((session) => session.id === activeTabSessionId);
+      if (matchingBySession) {
+        sessionToSelect = matchingBySession;
+      }
+    } else if (activeTabItemId) {
+      const matchingSession = sessions.find(
+        (session) =>
+          session.nowPlayingItemId === activeTabItemId &&
+          (!activeServerId || session.serverConfigId === activeServerId)
+      );
       if (matchingSession) {
         sessionToSelect = matchingSession;
       }
-    } else {
-      // If we have an active tab but no itemId (e.g., Blob URL scenario),
-      // record the itemId from the selected session
-      if (state.activeTabId && sessionToSelect.nowPlayingItemId) {
-        tabJellyfinItems.set(state.activeTabId, sessionToSelect.nowPlayingItemId);
+    } else if (activeServerId) {
+      const matchingByServer = sessions.find((session) => session.serverConfigId === activeServerId);
+      if (matchingByServer) {
+        sessionToSelect = matchingByServer;
       }
     }
     
+    if (state.activeTabId) {
+      updateTabJellyfinContext(state.activeTabId, {
+        sessionId: sessionToSelect.id,
+        serverConfigId: sessionToSelect.serverConfigId,
+        ...(sessionToSelect.nowPlayingItemId ? { itemId: sessionToSelect.nowPlayingItemId } : {})
+      });
+    }
+
     mainLogger.debug("Auto-selecting Jellyfin session", {
       sessionId: sessionToSelect.id,
       serverConfigId: sessionToSelect.serverConfigId,
@@ -843,7 +933,8 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
     return;
   }
 
-  const activeTabItemId = state.activeTabId ? tabJellyfinItems.get(state.activeTabId) ?? null : null;
+  const activeTabContext = getTabJellyfinContext(state.activeTabId);
+  const activeTabItemId = activeTabContext?.itemId ?? null;
   const selectedSession = state.jellyfin.sessions.find(
     (session) => session.id === payload.sessionId
   ) ?? null;
@@ -926,28 +1017,54 @@ function normalizeUrl(url: string | null): string | null {
   }
 }
 
-function isJellyfinServerUrl(url: string): boolean {
-  if (!appSettings.jellyfin.enabled || !appSettings.jellyfin.configs.length) {
-    return false;
+function extractOrigin(url: string | null | undefined): string | null {
+  if (!url) {
+    return null;
   }
-  
+  let candidate = url.trim();
+  if (!candidate) {
+    return null;
+  }
+  if (candidate.startsWith("blob:")) {
+    candidate = candidate.slice(5);
+  }
   try {
-    const urlObj = new URL(url);
-    const urlOrigin = `${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`;
-    
-    return appSettings.jellyfin.configs.some(config => {
-      if (!config.serverUrl) return false;
+    const parsed = new URL(candidate);
+    return `${parsed.protocol}//${parsed.hostname}${parsed.port ? ":" + parsed.port : ""}`;
+  } catch {
+    return null;
+  }
+}
+
+function resolveJellyfinConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
+  if (!appSettings.jellyfin.enabled || !appSettings.jellyfin.configs.length) {
+    return null;
+  }
+  for (const candidate of urls) {
+    const origin = extractOrigin(candidate);
+    if (!origin) {
+      continue;
+    }
+    for (const config of appSettings.jellyfin.configs) {
+      if (!config.serverUrl) {
+        continue;
+      }
       try {
         const serverUrl = new URL(normalizeServerUrl(config.serverUrl));
-        const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
-        return urlOrigin === serverOrigin;
+        const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ":" + serverUrl.port : ""}`;
+        if (serverOrigin === origin) {
+          return config.id;
+        }
       } catch {
-        return false;
+        continue;
       }
-    });
-  } catch {
-    return false;
+    }
   }
+  return null;
+}
+
+function isJellyfinServerUrl(url: string): boolean {
+  return Boolean(resolveJellyfinConfigIdFromUrls([url]));
 }
 
 function resolveVideoUrl(payload: ExtensionPayload): string | null {
@@ -988,10 +1105,20 @@ async function handleMessage(message: ExtensionMessage) {
       }
 
       // ===== TOP-LEVEL ROUTING: Detect Jellyfin URL =====
-      const isJellyfin = isJellyfinServerUrl(url);
+      const resolvedConfigId = resolveJellyfinConfigIdFromUrls([
+        url,
+        message.payload.pageUrl ?? null,
+        message.payload.videoSrc ?? null
+      ]);
+      const existingTabContext = getTabJellyfinContext(message.tabId);
+      const jellyfinConfigId = resolvedConfigId ?? existingTabContext?.serverConfigId ?? null;
+      const isJellyfin = Boolean(jellyfinConfigId);
       
       if (isJellyfin) {
         // ===== JELLYFIN MODE (Method B with Method A timestamps) =====
+        if (jellyfinConfigId) {
+          updateTabJellyfinContext(message.tabId, { serverConfigId: jellyfinConfigId });
+        }
         
         // Extract Jellyfin item ID from URL
         // Try videoSrc first (has mediaSourceId), then fall back to pageUrl
@@ -1012,15 +1139,22 @@ async function handleMessage(message: ExtensionMessage) {
         } catch (error) {
           mainLogger.error(`Failed to parse Jellyfin URL for itemId`, error);
         }
+
+        if (itemId) {
+          updateTabJellyfinContext(message.tabId, { itemId });
+        }
+
+        const tabContext = getTabJellyfinContext(message.tabId);
+        const storedSession =
+          tabContext?.sessionId
+            ? state.jellyfin.sessions.find((session) => session.id === tabContext.sessionId) ?? null
+            : null;
           
         if (itemId && appSettings.jellyfin.enabled) {
           // URL contains item ID - process new video logic
           state.activeSource = "jellyfin";
           state.videoUrl = url;
           state.site = "jellyfin";
-          
-          // Track this tab's itemId
-          tabJellyfinItems.set(message.tabId, itemId);
           
           // Select profile for this URL
           const selection = selectProfileForUrl(url);
@@ -1043,16 +1177,29 @@ async function handleMessage(message: ExtensionMessage) {
             jellyfinService.requestSessionsBurst(`jellyfin-video-change:${itemId}`);
           }
 
-          // New video - find matching Jellyfin session
-          const matchingSession = state.jellyfin.sessions.find(
-            session => session.nowPlayingItemId === itemId
-          );
+          let matchingSession: JellyfinSessionSummary | null = null;
+          if (storedSession && storedSession.nowPlayingItemId === itemId) {
+            matchingSession = storedSession;
+          }
+          if (!matchingSession) {
+            matchingSession =
+              state.jellyfin.sessions.find(
+                (session) =>
+                  session.nowPlayingItemId === itemId &&
+                  (!tabContext?.serverConfigId || session.serverConfigId === tabContext.serverConfigId)
+              ) ?? null;
+          }
           
           if (matchingSession) {
             state.jellyfin.selectedSessionId = matchingSession.id;
             jellyfinService.setActiveSession(matchingSession.id);
             state.status = "loading-subtitles";
             state.pendingJellyfinItemId = itemId;
+            updateTabJellyfinContext(message.tabId, {
+              sessionId: matchingSession.id,
+              serverConfigId: matchingSession.serverConfigId,
+              itemId: matchingSession.nowPlayingItemId ?? itemId
+            });
             
             // Only clear subtitles when switching to a NEW video
             state.selectedPrimarySubtitleId = null;
@@ -1063,6 +1210,9 @@ async function handleMessage(message: ExtensionMessage) {
             // No matching session yet - save itemId and wait for WebSocket update
             state.pendingJellyfinItemId = itemId;
             state.status = "loading-subtitles";
+            updateTabJellyfinContext(message.tabId, {
+              itemId
+            });
             
             // Clear subtitles when waiting for new session
             state.selectedPrimarySubtitleId = null;
@@ -1087,6 +1237,26 @@ async function handleMessage(message: ExtensionMessage) {
           const selection = selectProfileForUrl(url);
           applyProfileSelection(selection.profile, selection.rule);
 
+          if (storedSession) {
+            if (state.jellyfin.selectedSessionId !== storedSession.id) {
+              mainLogger.debug("Reusing stored Jellyfin session for tab without mediaSourceId", {
+                tabId: message.tabId,
+                sessionId: storedSession.id,
+                serverConfigId: storedSession.serverConfigId
+              });
+              state.jellyfin.selectedSessionId = storedSession.id;
+              jellyfinService.setActiveSession(storedSession.id);
+            }
+            updateTabJellyfinContext(message.tabId, {
+              sessionId: storedSession.id,
+              serverConfigId: storedSession.serverConfigId,
+              ...(storedSession.nowPlayingItemId ? { itemId: storedSession.nowPlayingItemId } : {})
+            });
+            if (!state.pendingJellyfinItemId && storedSession.nowPlayingItemId) {
+              state.pendingJellyfinItemId = storedSession.nowPlayingItemId;
+            }
+          }
+
           // Request a burst to get current session info
           jellyfinService.requestSessionsBurst("jellyfin-video-context-no-itemid");
 
@@ -1099,6 +1269,7 @@ async function handleMessage(message: ExtensionMessage) {
 
       // ===== EXTENSION MODE (Method A only - yt-dlp) =====
       // Force disconnect from Jellyfin when not on Jellyfin URL
+      clearTabJellyfinContext(message.tabId);
       if (state.activeSource !== "extension") {
         state.activeSource = "extension";
         if (state.jellyfin.selectedSessionId) {
@@ -1309,7 +1480,7 @@ function forgetSocket(socket: WebSocket) {
   tabs.forEach((tabId) => {
     tabSockets.delete(tabId);
     // Clean up Jellyfin item tracking for this tab
-    tabJellyfinItems.delete(tabId);
+    clearTabJellyfinContext(tabId);
     mainLogger.debug(`[CLEANUP] Removed tab ${tabId} from tracking`);
   });
   socketTabs.delete(socket);
