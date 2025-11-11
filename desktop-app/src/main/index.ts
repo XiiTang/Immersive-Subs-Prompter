@@ -599,10 +599,19 @@ function selectJellyfinSession(sessionId: string | null) {
     return;
   }
 
+  mainLogger.debug("Selecting Jellyfin session", {
+    requested: sessionId,
+    current: state.jellyfin.selectedSessionId
+  });
+
   if (!sessionId) {
     state.jellyfin.selectedSessionId = null;
     state.activeSource = state.connectionCount > 0 ? "extension" : null;
     jellyfinService.setActiveSession(null);
+    mainLogger.debug("Clearing Jellyfin selection (null requested)", {
+      connectionCount: state.connectionCount,
+      activeSource: state.activeSource
+    });
     if (state.activeSource !== "extension") {
       state.title = null;
       state.pageUrl = null;
@@ -617,6 +626,24 @@ function selectJellyfinSession(sessionId: string | null) {
 
   const session = state.jellyfin.sessions.find((item) => item.id === sessionId) ?? null;
   state.jellyfin.selectedSessionId = sessionId;
+  mainLogger.debug("Jellyfin session lookup", {
+    sessionId,
+    session,
+    serverName: session?.serverName,
+    serverConfigId: session?.serverConfigId,
+    nowPlayingItemId: session?.nowPlayingItemId
+  });
+  if (!session) {
+    mainLogger.warn("Requested Jellyfin session missing in latest update", {
+      sessionId,
+      knownSessions: state.jellyfin.sessions.map((item) => ({
+        id: item.id,
+        serverConfigId: item.serverConfigId,
+        serverName: item.serverName,
+        nowPlayingItemId: item.nowPlayingItemId
+      }))
+    });
+  }
   
   // Unified Jellyfin mode: always use "jellyfin" as activeSource
   // Extension will provide timestamps if available, otherwise fallback to WebSocket
@@ -649,28 +676,50 @@ function selectJellyfinSession(sessionId: string | null) {
 }
 
 function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
+  mainLogger.debug("Received Jellyfin sessions update", {
+    count: sessions.length,
+    sessions: sessions.map((session) => ({
+      id: session.id,
+      serverConfigId: session.serverConfigId,
+      serverName: session.serverName,
+      nowPlayingItemId: session.nowPlayingItemId
+    })),
+    previousSelected: state.jellyfin.selectedSessionId
+  });
   state.jellyfin.sessions = sessions;
   state.jellyfin.lastUpdated = Date.now();
   
   // Handle pending Jellyfin item ID (race condition resolution)
   if (state.pendingJellyfinItemId && state.activeSource === "jellyfin") {
     const matchingSession = sessions.find(
-      session => session.nowPlayingItemId === state.pendingJellyfinItemId
+      (session) => session.nowPlayingItemId === state.pendingJellyfinItemId
     );
-    
+
     if (matchingSession && matchingSession.id !== state.jellyfin.selectedSessionId) {
+      mainLogger.debug("Matching Jellyfin session found for pending item", {
+        pendingItemId: state.pendingJellyfinItemId,
+        sessionId: matchingSession.id,
+        serverConfigId: matchingSession.serverConfigId,
+        serverName: matchingSession.serverName
+      });
       state.jellyfin.selectedSessionId = matchingSession.id;
       jellyfinService.setActiveSession(matchingSession.id);
       state.pendingJellyfinItemId = null; // Clear pending after matching
     }
   }
-  
+
   if (state.jellyfin.selectedSessionId) {
-    const selected = sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
+    const selected =
+      sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
     if (!selected) {
+      mainLogger.warn("Previously selected Jellyfin session vanished", {
+        previousSessionId: state.jellyfin.selectedSessionId,
+        activeSource: state.activeSource,
+        connectionCount: state.connectionCount
+      });
       // Previously selected session is gone
       state.jellyfin.selectedSessionId = null;
-      
+
       // Auto-select first available session if in Jellyfin mode
       if (state.activeSource === "jellyfin" && sessions.length > 0) {
         state.jellyfin.selectedSessionId = sessions[0].id;
@@ -678,6 +727,10 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       } else if (state.activeSource === "jellyfin") {
         // No sessions available, fallback to extension if available
         state.activeSource = state.connectionCount > 0 ? "extension" : null;
+        mainLogger.debug("Falling back to extension because no Jellyfin sessions remain", {
+          connectionCount: state.connectionCount,
+          activeSource: state.activeSource
+        });
         state.status = state.connectionCount > 0 ? "awaiting-video" : "idle";
         state.title = null;
         state.pageUrl = null;
@@ -730,6 +783,13 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       }
     }
     
+    mainLogger.debug("Auto-selecting Jellyfin session", {
+      sessionId: sessionToSelect.id,
+      serverConfigId: sessionToSelect.serverConfigId,
+      serverName: sessionToSelect.serverName,
+      nowPlayingItemId: sessionToSelect.nowPlayingItemId,
+      activeTabItemId
+    });
     state.jellyfin.selectedSessionId = sessionToSelect.id;
     jellyfinService.setActiveSession(sessionToSelect.id);
   }
@@ -738,6 +798,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
 }
 
 function handleJellyfinStatusUpdate(connected: boolean) {
+  mainLogger.debug("Jellyfin status changed", { connected });
   state.jellyfin.connected = connected;
   if (!connected) {
     state.jellyfin.sessions = [];
