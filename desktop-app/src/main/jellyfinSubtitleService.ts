@@ -60,7 +60,15 @@ type SettingsProvider = () => JellyfinSettings;
 
 type SessionSubscriptionMode = "idle" | "burst" | "continuous";
 
-export class JellyfinSubtitleService {
+type ConnectionHooks = {
+  onStatus: (payload: JellyfinStatusPayload) => void;
+  onSessions: (sessions: JellyfinSessionSummary[]) => void;
+  onPlayback: (payload: JellyfinPlaybackPayload) => void;
+  onSubtitles: (payload: JellyfinSubtitlesPayload) => void;
+  onError: (error: Error) => void;
+};
+
+class JellyfinConnection {
   private socket: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private keepAliveTimer: NodeJS.Timeout | null = null;
@@ -68,8 +76,6 @@ export class JellyfinSubtitleService {
   private sessionStreamActive = false;
   private sessionBurstTimer: NodeJS.Timeout | null = null;
   private pendingBurstDuration: number | null = null;
-  private readonly log = createLogger("jellyfin");
-  private readonly listeners = createListenerMap();
   private sessions = new Map<string, JellyfinSessionSummary>();
   private activeSessionId: string | null = null;
   private subtitleRequestToken = 0;
@@ -77,86 +83,86 @@ export class JellyfinSubtitleService {
   private lastActiveSessionItemId: string | null = null;
   // Track position for each itemId separately to detect real activity
   private itemPositionHistory = new Map<string, number>();
-  private readonly identity = createJellyfinIdentity();
-  private settings: JellyfinSettings;
+  private readonly log: ReturnType<typeof createLogger>;
+  private readonly sessionIdPrefix: string;
+  private disposed = false;
 
   constructor(
-    private readonly settingsProvider: SettingsProvider,
+    private config: JellyfinConfig,
+    private readonly identity: JellyfinIdentity,
+    private readonly hooks: ConnectionHooks,
     private readonly cacheManager?: SubtitleCacheManager
   ) {
-    this.settings = this.settingsProvider();
-  }
-
-  private getActiveConfig(): JellyfinConfig | null {
-    if (!this.settings.activeConfigId) {
-      return null;
-    }
-    return this.settings.configs.find(c => c.id === this.settings.activeConfigId) ?? null;
-  }
-
-  on<K extends JellyfinEventName>(event: K, listener: JellyfinListener<K>) {
-    this.listeners[event].add(listener as JellyfinListener<any>);
-    return () => this.listeners[event].delete(listener as JellyfinListener<any>);
+    this.log = createLogger(`jellyfin:${config.id}`);
+    this.sessionIdPrefix = `${config.id}:`;
   }
 
   start() {
-    this.applySettings(this.settingsProvider());
-    if (this.settings.enabled) {
-      this.requestSessionsBurst("startup");
-    }
+    this.disposed = false;
+    this.connect();
   }
 
-  refresh() {
-    this.applySettings(this.settingsProvider());
-    if (this.settings.enabled) {
-      this.requestSessionsBurst("settings-refresh");
-    }
+  dispose() {
+    this.disposed = true;
+    this.setSessionSubscriptionMode("idle");
+    this.clearBurstTimer();
+    this.sessions.clear();
+    this.activeSessionId = null;
+    this.subtitleRequestToken = 0;
+    this.lastSubtitleItemKey = null;
+    this.lastActiveSessionItemId = null;
+    this.itemPositionHistory.clear();
+    this.disconnect();
+  }
+
+  updateConfig(nextConfig: JellyfinConfig) {
+    this.config = nextConfig;
+  }
+
+  getConfigSnapshot(): JellyfinConfig {
+    return this.config;
   }
 
   requestSessionsBurst(reason = "manual", durationMs = SESSION_BURST_DURATION_MS) {
-    if (!this.settings.enabled) {
-      return;
-    }
-
     if (this.sessionSubscriptionMode === "continuous") {
-      this.log.debug(`Skipping session burst request (${reason}): continuous polling active`);
+      this.log.debug(
+        `[${this.config.name}] Skipping session burst request (${reason}): continuous polling active`
+      );
       return;
     }
 
-    this.log.debug(`Requesting Jellyfin session burst (${reason}) for ${durationMs}ms`);
+    this.log.debug(`[${this.config.name}] Requesting Jellyfin session burst (${reason}) for ${durationMs}ms`);
     this.setSessionSubscriptionMode("burst");
     this.scheduleBurstStop(durationMs);
   }
 
   setContinuousSessionPolling(enabled: boolean) {
-    if (!this.settings.enabled && enabled) {
-      this.log.debug("Ignoring continuous polling request: Jellyfin disabled");
-      return;
-    }
-
     if (enabled) {
       if (this.sessionSubscriptionMode === "continuous") {
         return;
       }
-      this.log.info("Enabling continuous Jellyfin session polling");
+      this.log.info(`[${this.config.name}] Enabling continuous Jellyfin session polling`);
       this.clearBurstTimer();
       this.setSessionSubscriptionMode("continuous");
       return;
     }
 
     if (this.sessionSubscriptionMode === "continuous") {
-      this.log.info("Disabling continuous Jellyfin session polling");
+      this.log.info(`[${this.config.name}] Disabling continuous Jellyfin session polling`);
       this.setSessionSubscriptionMode("idle");
     }
   }
 
   setActiveSession(sessionId: string | null) {
-    if (this.activeSessionId === sessionId) {
-      const summary = sessionId ? this.sessions.get(sessionId) ?? null : null;
+    const normalizedId =
+      sessionId && sessionId.startsWith(this.sessionIdPrefix) ? sessionId : null;
+
+    if (this.activeSessionId === normalizedId) {
+      const summary = normalizedId ? this.sessions.get(normalizedId) ?? null : null;
       if (summary) {
         this.emitPlayback(summary);
       } else {
-        this.emit("playback", {
+        this.hooks.onPlayback({
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -168,14 +174,14 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    this.activeSessionId = sessionId;
+    this.activeSessionId = normalizedId;
     this.lastSubtitleItemKey = null;
     this.lastActiveSessionItemId = null;
     this.itemPositionHistory.clear();
 
-    if (!sessionId) {
-      this.emit("subtitles", { sessionId: null, itemName: null, tracks: [] });
-      this.emit("playback", {
+    if (!normalizedId) {
+      this.hooks.onSubtitles({ sessionId: null, itemName: null, tracks: [] });
+      this.hooks.onPlayback({
         sessionId: null,
         itemName: null,
         isPaused: true,
@@ -186,19 +192,19 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    const summary = this.sessions.get(sessionId);
+    const summary = this.sessions.get(normalizedId);
     if (summary) {
       this.emitPlayback(summary);
       // Only try to load subtitles if there's actually a playing item
       if (summary.nowPlayingItemId) {
         void this.loadSubtitlesForSession(summary, true);
       } else {
-        this.log.info("Selected session has no playing item, skipping subtitle load", {
+        this.log.info(`[${this.config.name}] Selected session has no playing item, skipping subtitle load`, {
           sessionId: summary.id,
           deviceName: summary.deviceName,
           client: summary.client
         });
-        this.emit("subtitles", {
+        this.hooks.onSubtitles({
           sessionId: summary.id,
           itemName: null,
           tracks: []
@@ -209,28 +215,6 @@ export class JellyfinSubtitleService {
 
   getCurrentSessions(): JellyfinSessionSummary[] {
     return Array.from(this.sessions.values());
-  }
-
-  private emit<K extends JellyfinEventName>(event: K, payload: JellyfinEventMap[K]) {
-    for (const listener of this.listeners[event]) {
-      try {
-        listener(payload);
-      } catch (error) {
-        this.log.error(`Error in Jellyfin listener for ${String(event)}`, error);
-      }
-    }
-  }
-
-  private applySettings(next: JellyfinSettings) {
-    this.settings = next;
-    if (!this.settings.enabled) {
-      this.setSessionSubscriptionMode("idle");
-      this.sessions.clear();
-      this.disconnect();
-      this.emit("status", { connected: false });
-      return;
-    }
-    this.connect();
   }
 
   private setSessionSubscriptionMode(mode: SessionSubscriptionMode) {
@@ -325,52 +309,51 @@ export class JellyfinSubtitleService {
   }
 
   private connect() {
-    if (this.socket || this.reconnectTimer) {
+    if (this.socket || this.reconnectTimer || this.disposed) {
       return;
     }
-    
-    const activeConfig = this.getActiveConfig();
-    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey) {
-      this.log.warn("Jellyfin server URL or API key missing, skipping connection");
+
+    if (!this.config.serverUrl || !this.config.apiKey) {
+      this.log.warn(`[${this.config.name}] Jellyfin server URL or API key missing, skipping connection`);
       return;
     }
 
     try {
-      const wsUrl = new URL(buildWebSocketUrl(activeConfig));
-      wsUrl.searchParams.set("api_key", activeConfig.apiKey);
+      const wsUrl = new URL(buildWebSocketUrl(this.config));
+      wsUrl.searchParams.set("api_key", this.config.apiKey);
       wsUrl.searchParams.set("deviceId", this.identity.deviceId);
       wsUrl.searchParams.set("client", this.identity.clientName);
       wsUrl.searchParams.set("deviceName", this.identity.deviceName);
       wsUrl.searchParams.set("version", this.identity.version);
       const headers = {
-        ...createAuthHeaders(activeConfig.apiKey, this.identity)
+        ...createAuthHeaders(this.config.apiKey, this.identity)
       };
-      this.log.info(`Connecting to Jellyfin WebSocket ${wsUrl.toString()}`);
+      this.log.info(`[${this.config.name}] Connecting to Jellyfin WebSocket ${wsUrl.toString()}`);
       this.socket = new WebSocket(wsUrl.toString(), { headers });
     } catch (error) {
-      this.log.error("Failed to create Jellyfin WebSocket", error);
+      this.log.error(`[${this.config.name}] Failed to create Jellyfin WebSocket`, error);
       this.scheduleReconnect();
       return;
     }
 
     this.socket.on("open", () => {
-      this.log.info("Jellyfin WebSocket connected");
-      this.emit("status", { connected: true });
+      this.log.info(`[${this.config.name}] Jellyfin WebSocket connected`);
+      this.hooks.onStatus({ connected: true });
       this.startKeepAlive();
       this.syncSessionSubscriptionState();
     });
     this.socket.on("message", (raw) => this.handleSocketMessage(raw));
     this.socket.on("close", () => {
-      this.log.warn("Jellyfin WebSocket closed");
+      this.log.warn(`[${this.config.name}] Jellyfin WebSocket closed`);
       this.socket = null;
       this.sessionStreamActive = false;
       this.stopKeepAlive();
-      this.emit("status", { connected: false });
+      this.hooks.onStatus({ connected: false });
       this.scheduleReconnect();
     });
     this.socket.on("error", (error) => {
-      this.log.error("Jellyfin WebSocket error", error);
-      this.emit("error", error instanceof Error ? error : new Error(String(error)));
+      this.log.error(`[${this.config.name}] Jellyfin WebSocket error`, error);
+      this.hooks.onError(error instanceof Error ? error : new Error(String(error)));
     });
   }
 
@@ -392,7 +375,7 @@ export class JellyfinSubtitleService {
   }
 
   private scheduleReconnect() {
-    if (!this.settings.enabled || this.reconnectTimer) {
+    if (this.disposed || this.reconnectTimer) {
       return;
     }
     this.reconnectTimer = setTimeout(() => {
@@ -470,8 +453,8 @@ export class JellyfinSubtitleService {
       nextSessions.set(summary.id, summary);
     }
     this.sessions = nextSessions;
-    this.log.info(`Received ${this.sessions.size} Jellyfin session(s)`);
-    this.emit("sessions", Array.from(this.sessions.values()));
+    this.log.info(`[${this.config.name}] Received ${this.sessions.size} Jellyfin session(s)`);
+    this.hooks.onSessions(Array.from(this.sessions.values()));
 
     if (this.activeSessionId) {
       const summary = this.sessions.get(this.activeSessionId);
@@ -533,7 +516,7 @@ export class JellyfinSubtitleService {
         if (effectiveItemId && shouldSwitchItem) {
           void this.loadSubtitlesForSession(summary);
         } else if (!effectiveItemId) {
-          this.emit("subtitles", {
+          this.hooks.onSubtitles({
             sessionId: summary.id,
             itemName: null,
             tracks: []
@@ -542,7 +525,7 @@ export class JellyfinSubtitleService {
       } else {
         this.lastActiveSessionItemId = null;
         this.itemPositionHistory.clear();
-        this.emit("playback", {
+        this.hooks.onPlayback({
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -558,8 +541,8 @@ export class JellyfinSubtitleService {
     if (!record || typeof record !== "object") {
       return null;
     }
-    const id = typeof record.Id === "string" ? record.Id : null;
-    if (!id) {
+    const rawId = typeof record.Id === "string" ? record.Id : null;
+    if (!rawId) {
       return null;
     }
 
@@ -580,7 +563,9 @@ export class JellyfinSubtitleService {
     const subtitleStreams = this.extractSubtitleStreams(mediaSource, nowPlayingItem);
 
     return {
-      id,
+      id: this.composeSessionId(rawId),
+      serverConfigId: this.config.id,
+      serverName: this.config.name,
       deviceName: typeof record.DeviceName === "string" ? record.DeviceName : null,
       client: typeof record.Client === "string" ? record.Client : null,
       userName: typeof record.UserName === "string" ? record.UserName : null,
@@ -593,6 +578,10 @@ export class JellyfinSubtitleService {
       playbackRate: typeof playState?.PlaybackRate === "number" ? playState.PlaybackRate : 1,
       subtitleStreams
     };
+  }
+
+  private composeSessionId(sessionId: string): string {
+    return `${this.config.id}:${sessionId}`;
   }
 
   private extractSubtitleStreams(
@@ -647,7 +636,7 @@ export class JellyfinSubtitleService {
 
   private emitPlayback(summary: JellyfinSessionSummary) {
     const positionMs = ticksToMilliseconds(summary.positionTicks);
-    this.emit("playback", {
+    this.hooks.onPlayback({
       sessionId: summary.id,
       itemName: summary.nowPlayingItemName ?? null,
       isPaused: summary.isPaused,
@@ -658,13 +647,12 @@ export class JellyfinSubtitleService {
   }
 
   private async loadSubtitlesForSession(summary: JellyfinSessionSummary, force = false) {
-    const activeConfig = this.getActiveConfig();
-    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey) {
-      this.log.warn("Skipping Jellyfin subtitles due to missing server configuration", {
-        serverUrl: activeConfig?.serverUrl,
-        hasApiKey: Boolean(activeConfig?.apiKey)
+    if (!this.config.serverUrl || !this.config.apiKey) {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing server configuration`, {
+        serverUrl: this.config.serverUrl,
+        hasApiKey: Boolean(this.config.apiKey)
       });
-      this.emit("subtitles", {
+      this.hooks.onSubtitles({
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -673,10 +661,10 @@ export class JellyfinSubtitleService {
     }
 
     if (!summary.nowPlayingItemId) {
-      this.log.warn("Skipping Jellyfin subtitles due to missing item ID", {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing item ID`, {
         sessionId: summary.id
       });
-      this.emit("subtitles", {
+      this.hooks.onSubtitles({
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -684,14 +672,13 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    // Enhanced metadata resolution with recursive retry (migrated from jellyfin-desktop-client)
-    const resolvedStreams = await this.resolveSubtitleStreams(summary, activeConfig, true);
+    const resolvedStreams = await this.resolveSubtitleStreams(summary, this.config, true);
     
     if (!resolvedStreams.streams.length) {
       this.log.info(
-        `No subtitle streams available for Jellyfin session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
+        `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
       );
-      this.emit("subtitles", {
+      this.hooks.onSubtitles({
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -706,10 +693,10 @@ export class JellyfinSubtitleService {
     };
 
     if (!workingSummary.mediaSourceId) {
-      this.log.warn("Skipping Jellyfin subtitles due to missing media source ID", {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing media source ID`, {
         itemId: workingSummary.nowPlayingItemId
       });
-      this.emit("subtitles", {
+      this.hooks.onSubtitles({
         sessionId: summary.id,
         itemName: workingSummary.nowPlayingItemName ?? null,
         tracks: []
@@ -720,7 +707,7 @@ export class JellyfinSubtitleService {
     const subtitleKey = `${workingSummary.id}:${workingSummary.nowPlayingItemId}:${workingSummary.mediaSourceId}`;
     if (!force && this.lastSubtitleItemKey === subtitleKey) {
       this.log.debug(
-        `Skipping subtitle refresh for session ${workingSummary.id}, media unchanged (${workingSummary.nowPlayingItemId})`
+        `[${this.config.name}] Skipping subtitle refresh for session ${workingSummary.id}, media unchanged (${workingSummary.nowPlayingItemId})`
       );
       return;
     }
@@ -729,21 +716,20 @@ export class JellyfinSubtitleService {
 
     const currentToken = ++this.subtitleRequestToken;
     this.log.info(
-      `Fetching ${workingSummary.subtitleStreams.length} subtitle stream(s) from Jellyfin session ${workingSummary.id} (${workingSummary.nowPlayingItemName ?? "unknown"})`
+      `[${this.config.name}] Fetching ${workingSummary.subtitleStreams.length} subtitle stream(s) from session ${workingSummary.id} (${workingSummary.nowPlayingItemName ?? "unknown"})`
     );
 
     const tracks: SubtitleTrack[] = [];
     for (const stream of workingSummary.subtitleStreams) {
       try {
         const extension = this.getPreferredExtension(stream);
-        const url = buildSubtitleUrl(activeConfig, workingSummary, stream, extension);
+        const url = buildSubtitleUrl(this.config, workingSummary, stream, extension);
         
         // Check cache first
         let content: string | null = null;
         if (this.cacheManager) {
           const cached = await this.cacheManager.get(url, "jellyfin");
           if (cached && cached.tracks.length > 0) {
-            // Use cached subtitle
             const cachedTrack = cached.tracks[0];
             tracks.push({
               id: `${workingSummary.id}:${stream.index}`,
@@ -753,18 +739,18 @@ export class JellyfinSubtitleService {
               cues: cachedTrack.cues,
               isAutoGenerated: false
             });
-            this.log.debug(`Cache hit for Jellyfin subtitle stream #${stream.index}`);
+            this.log.debug(`[${this.config.name}] Cache hit for subtitle stream #${stream.index}`);
             continue;
           }
         }
         
         this.log.info(
-          `Downloading Jellyfin subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
+          `[${this.config.name}] Downloading subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
         );
         const response = await fetch(url, {
           headers: {
             Accept: "text/vtt, text/plain, application/octet-stream",
-            ...createAuthHeaders(activeConfig.apiKey, this.identity)
+            ...createAuthHeaders(this.config.apiKey, this.identity)
           }
         });
         if (!response.ok) {
@@ -773,7 +759,7 @@ export class JellyfinSubtitleService {
         content = await response.text();
         const cues = parseSubtitle(content, extension);
         if (!cues.length) {
-          this.log.warn(`Parsed subtitle stream #${stream.index} but found no cues`);
+          this.log.warn(`[${this.config.name}] Parsed subtitle stream #${stream.index} but found no cues`);
           continue;
         }
         
@@ -787,12 +773,11 @@ export class JellyfinSubtitleService {
         };
         tracks.push(track);
         
-        // Save to cache
         if (this.cacheManager && content) {
           await this.cacheManager.set(url, "jellyfin", { tracks: [track] });
         }
       } catch (error) {
-        this.log.warn("Failed to fetch Jellyfin subtitle stream", {
+        this.log.warn(`[${this.config.name}] Failed to fetch Jellyfin subtitle stream`, {
           sessionId: workingSummary.id,
           streamIndex: stream.index,
           error
@@ -804,7 +789,7 @@ export class JellyfinSubtitleService {
       return;
     }
 
-    this.emit("subtitles", {
+    this.hooks.onSubtitles({
       sessionId: workingSummary.id,
       itemName: workingSummary.nowPlayingItemName ?? null,
       tracks
@@ -895,8 +880,8 @@ export class JellyfinSubtitleService {
   }
 
   private async fetchNowPlayingMetadata(summary: JellyfinSessionSummary, config?: JellyfinConfig) {
-    const activeConfig = config ?? this.getActiveConfig();
-    if (!activeConfig || !activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
+    const activeConfig = config ?? this.config;
+    if (!activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
       return null;
     }
     try {
@@ -970,6 +955,227 @@ export class JellyfinSubtitleService {
       parts.push("Default");
     }
     return parts.join(" · ");
+  }
+}
+
+export class JellyfinSubtitleService {
+  private readonly log = createLogger("jellyfin");
+  private readonly listeners = createListenerMap();
+  private readonly identity = createJellyfinIdentity();
+  private settings: JellyfinSettings;
+  private connections = new Map<string, JellyfinConnection>();
+  private connectionStatuses = new Map<string, boolean>();
+  private sessionsByConfig = new Map<string, JellyfinSessionSummary[]>();
+  private sessions = new Map<string, JellyfinSessionSummary>();
+  private activeSessionId: string | null = null;
+  private continuousSessionPolling = false;
+
+  constructor(
+    private readonly settingsProvider: SettingsProvider,
+    private readonly cacheManager?: SubtitleCacheManager
+  ) {
+    this.settings = this.settingsProvider();
+  }
+
+  on<K extends JellyfinEventName>(event: K, listener: JellyfinListener<K>) {
+    this.listeners[event].add(listener as JellyfinListener<any>);
+    return () => this.listeners[event].delete(listener as JellyfinListener<any>);
+  }
+
+  start() {
+    this.applySettings(this.settingsProvider());
+    if (this.settings.enabled) {
+      this.requestSessionsBurst("startup");
+    }
+  }
+
+  refresh() {
+    this.applySettings(this.settingsProvider());
+    if (this.settings.enabled) {
+      this.requestSessionsBurst("settings-refresh");
+    }
+  }
+
+  requestSessionsBurst(reason = "manual", durationMs = SESSION_BURST_DURATION_MS) {
+    if (!this.settings.enabled) {
+      return;
+    }
+    if (!this.connections.size) {
+      this.log.debug(`Skipping Jellyfin session burst (${reason}): no active connections`);
+      return;
+    }
+    for (const connection of this.connections.values()) {
+      connection.requestSessionsBurst(reason, durationMs);
+    }
+  }
+
+  setContinuousSessionPolling(enabled: boolean) {
+    if (!this.settings.enabled && enabled) {
+      this.log.debug("Ignoring continuous polling request: Jellyfin disabled");
+      return;
+    }
+    this.continuousSessionPolling = enabled;
+    for (const connection of this.connections.values()) {
+      connection.setContinuousSessionPolling(enabled);
+    }
+  }
+
+  setActiveSession(sessionId: string | null) {
+    if (!this.settings.enabled) {
+      sessionId = null;
+    }
+    if (!sessionId) {
+      this.activeSessionId = null;
+      for (const connection of this.connections.values()) {
+        connection.setActiveSession(null);
+      }
+      return;
+    }
+    const configId = this.extractConfigId(sessionId);
+    if (!configId) {
+      this.log.warn(`Invalid Jellyfin session identifier ${sessionId}, clearing selection`);
+      this.setActiveSession(null);
+      return;
+    }
+    const target = this.connections.get(configId);
+    if (!target) {
+      this.log.warn(`No Jellyfin connection for session ${sessionId}, clearing selection`);
+      this.setActiveSession(null);
+      return;
+    }
+    this.activeSessionId = sessionId;
+    for (const [id, connection] of this.connections.entries()) {
+      connection.setActiveSession(id === configId ? sessionId : null);
+    }
+  }
+
+  getCurrentSessions(): JellyfinSessionSummary[] {
+    return Array.from(this.sessions.values());
+  }
+
+  private applySettings(next: JellyfinSettings) {
+    this.settings = next;
+    if (!next.enabled) {
+      this.teardownAllConnections();
+      this.emit("status", { connected: false });
+      this.emit("sessions", []);
+      this.activeSessionId = null;
+      return;
+    }
+    this.syncConnections();
+  }
+
+  private syncConnections() {
+    const enabledConfigs = new Map(
+      this.settings.configs.filter((config) => config.enabled).map((config) => [config.id, config])
+    );
+
+    for (const [configId, connection] of Array.from(this.connections.entries())) {
+      const nextConfig = enabledConfigs.get(configId);
+      if (!nextConfig) {
+        this.disposeConnection(configId, connection);
+        continue;
+      }
+      const currentConfig = connection.getConfigSnapshot();
+      const requiresRestart =
+        currentConfig.serverUrl !== nextConfig.serverUrl ||
+        currentConfig.apiKey !== nextConfig.apiKey ||
+        currentConfig.webSocketPath !== nextConfig.webSocketPath;
+      if (requiresRestart) {
+        this.disposeConnection(configId, connection);
+        this.createConnection(nextConfig);
+      } else {
+        connection.updateConfig(nextConfig);
+      }
+      enabledConfigs.delete(configId);
+    }
+
+    for (const config of enabledConfigs.values()) {
+      this.createConnection(config);
+    }
+  }
+
+  private createConnection(config: JellyfinConfig) {
+    const hooks: ConnectionHooks = {
+      onStatus: (payload) => this.handleConnectionStatus(config.id, payload),
+      onSessions: (sessions) => this.handleConnectionSessions(config.id, sessions),
+      onPlayback: (payload) => this.emit("playback", payload),
+      onSubtitles: (payload) => this.emit("subtitles", payload),
+      onError: (error) => this.emit("error", error)
+    };
+    const connection = new JellyfinConnection(config, this.identity, hooks, this.cacheManager);
+    this.connections.set(config.id, connection);
+    connection.start();
+    connection.setContinuousSessionPolling(this.continuousSessionPolling);
+    if (this.activeSessionId && this.extractConfigId(this.activeSessionId) === config.id) {
+      connection.setActiveSession(this.activeSessionId);
+    }
+  }
+
+  private disposeConnection(configId: string, connection: JellyfinConnection) {
+    connection.setActiveSession(null);
+    connection.dispose();
+    this.connections.delete(configId);
+    this.connectionStatuses.delete(configId);
+    if (this.activeSessionId && this.extractConfigId(this.activeSessionId) === configId) {
+      this.activeSessionId = null;
+    }
+    this.handleConnectionSessions(configId, []);
+    this.emitAggregatedStatus();
+  }
+
+  private teardownAllConnections() {
+    for (const [configId, connection] of this.connections.entries()) {
+      connection.setActiveSession(null);
+      connection.dispose();
+      this.handleConnectionSessions(configId, []);
+    }
+    this.connections.clear();
+    this.connectionStatuses.clear();
+    this.sessionsByConfig.clear();
+    this.sessions.clear();
+    this.activeSessionId = null;
+  }
+
+  private handleConnectionStatus(configId: string, payload: JellyfinStatusPayload) {
+    this.connectionStatuses.set(configId, payload.connected);
+    this.emitAggregatedStatus();
+  }
+
+  private emitAggregatedStatus() {
+    const anyConnected =
+      this.settings.enabled && Array.from(this.connectionStatuses.values()).some(Boolean);
+    this.emit("status", { connected: anyConnected });
+  }
+
+  private handleConnectionSessions(configId: string, sessions: JellyfinSessionSummary[]) {
+    const previous = this.sessionsByConfig.get(configId) ?? [];
+    for (const summary of previous) {
+      this.sessions.delete(summary.id);
+    }
+    this.sessionsByConfig.set(configId, sessions);
+    for (const summary of sessions) {
+      this.sessions.set(summary.id, summary);
+    }
+    this.emit("sessions", Array.from(this.sessions.values()));
+  }
+
+  private extractConfigId(globalSessionId: string): string | null {
+    const separator = globalSessionId.indexOf(":");
+    if (separator === -1) {
+      return null;
+    }
+    return globalSessionId.slice(0, separator);
+  }
+
+  private emit<K extends JellyfinEventName>(event: K, payload: JellyfinEventMap[K]) {
+    for (const listener of this.listeners[event]) {
+      try {
+        listener(payload);
+      } catch (error) {
+        this.log.error(`Error in Jellyfin listener for ${String(event)}`, error);
+      }
+    }
   }
 }
 

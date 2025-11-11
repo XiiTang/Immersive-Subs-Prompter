@@ -17,6 +17,7 @@ import {
   ExtensionMessageType,
   ExtensionPayload,
   JellyfinPlaybackPayload,
+  JellyfinConfig,
   JellyfinSessionSummary,
   JellyfinSubtitlesPayload,
   PlaybackState,
@@ -544,16 +545,23 @@ function resetSubtitleState() {
   state.secondarySubtitles = null;
 }
 
-function getJellyfinBaseUrl(): string | null {
-  const activeConfigId = appSettings.jellyfin.activeConfigId;
-  if (!activeConfigId) {
+function resolveJellyfinConfig(configId?: string | null): JellyfinConfig | null {
+  if (configId) {
+    return appSettings.jellyfin.configs.find((config) => config.id === configId) ?? null;
+  }
+  const enabled = appSettings.jellyfin.configs.find((config) => config.enabled);
+  if (enabled) {
+    return enabled;
+  }
+  return appSettings.jellyfin.configs[0] ?? null;
+}
+
+function getJellyfinBaseUrl(configId?: string | null): string | null {
+  const config = resolveJellyfinConfig(configId);
+  if (!config) {
     return null;
   }
-  const activeConfig = appSettings.jellyfin.configs.find(c => c.id === activeConfigId);
-  if (!activeConfig) {
-    return null;
-  }
-  const base = normalizeServerUrl(activeConfig.serverUrl ?? "");
+  const base = normalizeServerUrl(config.serverUrl ?? "");
   return base.length ? base : null;
 }
 
@@ -561,7 +569,7 @@ function buildJellyfinItemUrl(session: JellyfinSessionSummary | null): string | 
   if (!session?.nowPlayingItemId) {
     return null;
   }
-  const base = getJellyfinBaseUrl();
+  const base = getJellyfinBaseUrl(session.serverConfigId);
   if (!base) {
     return `jellyfin://${session.nowPlayingItemId}`;
   }
@@ -569,10 +577,13 @@ function buildJellyfinItemUrl(session: JellyfinSessionSummary | null): string | 
 }
 
 function buildJellyfinPageUrl(session: JellyfinSessionSummary | null): string | null {
-  if (!session?.nowPlayingItemId) {
+  if (!session) {
     return getJellyfinBaseUrl();
   }
-  const base = getJellyfinBaseUrl();
+  if (!session.nowPlayingItemId) {
+    return getJellyfinBaseUrl(session.serverConfigId);
+  }
+  const base = getJellyfinBaseUrl(session.serverConfigId);
   if (!base) {
     return null;
   }
@@ -613,7 +624,7 @@ function selectJellyfinSession(sessionId: string | null) {
   state.site = "jellyfin";
   state.title = session?.nowPlayingItemName ?? "Jellyfin Session";
   state.pageUrl = buildJellyfinPageUrl(session);
-  state.videoUrl = buildJellyfinItemUrl(session) ?? getJellyfinBaseUrl();
+  state.videoUrl = buildJellyfinItemUrl(session) ?? getJellyfinBaseUrl(session?.serverConfigId);
   
   // Initialize playback state from WebSocket (will be overridden by extension if available)
   if (session) {
@@ -626,7 +637,7 @@ function selectJellyfinSession(sessionId: string | null) {
     });
   }
   
-  const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl();
+  const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl(session?.serverConfigId);
   const selection = selectProfileForUrl(jellyfinUrl);
   applyProfileSelection(selection.profile, selection.rule);
   state.status = "loading-subtitles";

@@ -40,8 +40,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
 
 export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
   enabled: false,
-  configs: [],
-  activeConfigId: null
+  configs: []
 };
 
 export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
@@ -216,7 +215,11 @@ function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallbackProf
   return rules;
 }
 
-function sanitizeJellyfinConfig(input: Partial<JellyfinConfig> | null | undefined, fallbackId?: string): JellyfinConfig {
+function sanitizeJellyfinConfig(
+  input: Partial<JellyfinConfig> | null | undefined,
+  fallbackId?: string,
+  fallbackEnabled?: boolean
+): JellyfinConfig {
   const id = typeof input?.id === "string" && input.id.trim() ? input.id.trim() : (fallbackId || randomUUID());
   const name = typeof input?.name === "string" ? input.name.trim() : "Jellyfin Server";
   const serverUrl = typeof input?.serverUrl === "string" ? input.serverUrl.trim() : "";
@@ -229,13 +232,20 @@ function sanitizeJellyfinConfig(input: Partial<JellyfinConfig> | null | undefine
   if (!webSocketPath.startsWith("/")) {
     webSocketPath = `/${webSocketPath}`;
   }
+  const enabled =
+    typeof input?.enabled === "boolean"
+      ? input.enabled
+      : typeof fallbackEnabled === "boolean"
+        ? fallbackEnabled
+        : false;
   
   return {
     id,
     name,
     serverUrl,
     apiKey,
-    webSocketPath
+    webSocketPath,
+    enabled
   };
 }
 
@@ -244,6 +254,9 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
   const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
   
   let configs: JellyfinConfig[] = [];
+  const hasExplicitEnabledFlags =
+    Array.isArray(source.configs) &&
+    source.configs.some((config) => typeof (config as Partial<JellyfinConfig> | undefined)?.enabled === "boolean");
   
   // Migration: check if old format exists (serverUrl, apiKey, webSocketPath directly in settings)
   const hasOldFormat = 'serverUrl' in source || 'apiKey' in source || 'webSocketPath' in source;
@@ -260,7 +273,8 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
         name: 'Jellyfin Server',
         serverUrl: oldServerUrl,
         apiKey: oldApiKey,
-        webSocketPath: oldWebSocketPath
+        webSocketPath: oldWebSocketPath,
+        enabled: true
       }));
     }
   } else if (Array.isArray(source.configs)) {
@@ -269,15 +283,20 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
     );
   }
   
-  const activeConfigId = 
-    typeof source.activeConfigId === "string" && source.activeConfigId.trim() 
-      ? source.activeConfigId.trim() 
-      : (configs.length > 0 ? configs[0].id : null);
+  if (!hasExplicitEnabledFlags && configs.length > 0) {
+    const legacyActiveConfigIdRaw = (source as { activeConfigId?: string }).activeConfigId;
+    const legacyActiveConfigId =
+      typeof legacyActiveConfigIdRaw === "string" && legacyActiveConfigIdRaw.trim() ? legacyActiveConfigIdRaw.trim() : null;
+    const enabledConfigId = legacyActiveConfigId ?? configs[0].id;
+    configs = configs.map((config) => ({
+      ...config,
+      enabled: config.id === enabledConfigId
+    }));
+  }
   
   return {
     enabled,
-    configs,
-    activeConfigId
+    configs
   };
 }
 

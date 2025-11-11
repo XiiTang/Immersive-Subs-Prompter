@@ -104,12 +104,12 @@ export interface JellyfinConfig {
   serverUrl: string;
   apiKey: string;
   webSocketPath: string;
+  enabled: boolean;
 }
 
 export interface JellyfinSettings {
   enabled: boolean;
   configs: JellyfinConfig[];
-  activeConfigId: string | null;
 }
 
 export interface SubtitleCacheSettings {
@@ -165,6 +165,8 @@ export interface JellyfinSubtitleStream {
 
 export interface JellyfinSessionSummary {
   id: string;
+  serverConfigId: string;
+  serverName: string;
   deviceName: string | null;
   client: string | null;
   userName: string | null;

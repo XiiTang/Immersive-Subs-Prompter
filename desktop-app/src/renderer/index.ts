@@ -40,7 +40,6 @@ const jellyfinEnabledToggle = document.getElementById("jellyfin-enabled") as HTM
 const jellyfinConfigListElement = document.getElementById("jellyfin-config-list") as HTMLElement;
 const jellyfinConfigAddButton = document.getElementById("jellyfin-config-add") as HTMLButtonElement;
 const jellyfinConfigDeleteButton = document.getElementById("jellyfin-config-delete") as HTMLButtonElement;
-const jellyfinConfigActivateButton = document.getElementById("jellyfin-config-activate") as HTMLButtonElement;
 const jellyfinConfigNameInput = document.getElementById("jellyfin-config-name") as HTMLInputElement | null;
 const jellyfinServerInput = document.getElementById("jellyfin-server-url") as HTMLInputElement | null;
 const jellyfinApiKeyInput = document.getElementById("jellyfin-api-key") as HTMLInputElement | null;
@@ -247,13 +246,6 @@ function getJellyfinConfigById(configId: string): JellyfinConfig | null {
     return null;
   }
   return currentSettings.jellyfin.configs.find((config) => config.id === configId) ?? null;
-}
-
-function getActiveJellyfinConfig(): JellyfinConfig | null {
-  if (!currentSettings || !currentSettings.jellyfin.activeConfigId) {
-    return null;
-  }
-  return getJellyfinConfigById(currentSettings.jellyfin.activeConfigId);
 }
 
 function ensureEditingJellyfinConfig(): JellyfinConfig | null {
@@ -538,7 +530,7 @@ function renderProfileEditor() {
 function renderJellyfinConfigList(settings: AppSettings) {
   jellyfinConfigListElement.innerHTML = "";
   const configs = settings.jellyfin.configs;
-  
+
   if (configs.length === 0) {
     const empty = document.createElement("div");
     empty.className = "jellyfin-config-list__empty";
@@ -546,37 +538,50 @@ function renderJellyfinConfigList(settings: AppSettings) {
     jellyfinConfigListElement.appendChild(empty);
     return;
   }
-  
+
   for (const config of configs) {
     const button = document.createElement("button");
     button.className = "jellyfin-config-list__item";
     button.type = "button";
-    
+
     if (config.id === editingJellyfinConfigId) {
       button.classList.add("is-selected");
     }
-    if (config.id === settings.jellyfin.activeConfigId) {
-      button.classList.add("is-active");
+    if (!config.enabled) {
+      button.classList.add("is-disabled");
     }
-    
+
     const nameSpan = document.createElement("span");
     nameSpan.className = "jellyfin-config-list__name";
     nameSpan.textContent = config.name;
     button.appendChild(nameSpan);
-    
-    if (config.id === settings.jellyfin.activeConfigId) {
-      const badge = document.createElement("span");
-      badge.className = "jellyfin-config-list__badge";
-      badge.textContent = "Active";
-      button.appendChild(badge);
-    }
-    
+
+    const toggleLabel = document.createElement("label");
+    toggleLabel.className = "toggle jellyfin-config-list__toggle";
+    const toggleInput = document.createElement("input");
+    toggleInput.type = "checkbox";
+    toggleInput.checked = Boolean(config.enabled);
+    toggleInput.addEventListener("click", (event) => event.stopPropagation());
+    const toggleText = document.createElement("span");
+    toggleText.className = "toggle__text";
+    toggleText.textContent = config.enabled ? "Enabled" : "Disabled";
+    toggleInput.addEventListener("change", () => {
+      const nextEnabled = toggleInput.checked;
+      toggleText.textContent = nextEnabled ? "Enabled" : "Disabled";
+      updateJellyfinConfig(config.id, (cfg) => ({
+        ...cfg,
+        enabled: nextEnabled
+      }));
+    });
+    toggleLabel.append(toggleInput, toggleText);
+    button.appendChild(toggleLabel);
+
     button.addEventListener("click", () => {
       editingJellyfinConfigId = config.id;
       renderJellyfinConfigList(settings);
       renderJellyfinConfigEditor();
     });
-    
+
     jellyfinConfigListElement.appendChild(button);
   }
 }
@@ -592,7 +597,6 @@ function renderJellyfinConfigEditor() {
     if (jellyfinApiKeyInput) jellyfinApiKeyInput.value = "";
     if (jellyfinWsPathInput) jellyfinWsPathInput.value = "";
     jellyfinConfigDeleteButton.disabled = true;
-    jellyfinConfigActivateButton.disabled = true;
     return;
   }
   
@@ -610,8 +614,6 @@ function renderJellyfinConfigEditor() {
   }
   
   jellyfinConfigDeleteButton.disabled = false;
-  const isActive = currentSettings.jellyfin.activeConfigId === config.id;
-  jellyfinConfigActivateButton.disabled = isActive;
 }
 
 function handleJellyfinConfigAdd() {
@@ -623,13 +625,13 @@ function handleJellyfinConfigAdd() {
     name: `Server ${currentSettings.jellyfin.configs.length + 1}`,
     serverUrl: "",
     apiKey: "",
-    webSocketPath: "/socket"
+    webSocketPath: "/socket",
+    enabled: true
   };
   editingJellyfinConfigId = newConfig.id;
   const newConfigs = [...currentSettings.jellyfin.configs, newConfig];
   updateJellyfinSettings({ 
-    configs: newConfigs,
-    activeConfigId: currentSettings.jellyfin.activeConfigId || newConfig.id
+    configs: newConfigs
   });
 }
 
@@ -645,22 +647,11 @@ function handleJellyfinConfigDelete() {
   }
   
   const nextConfigs = currentSettings.jellyfin.configs.filter((item) => item.id !== config.id);
-  const wasActive = currentSettings.jellyfin.activeConfigId === config.id;
-  const nextActiveId = wasActive && nextConfigs.length > 0 ? nextConfigs[0].id : currentSettings.jellyfin.activeConfigId;
   
   editingJellyfinConfigId = nextConfigs.length > 0 ? nextConfigs[0].id : null;
   updateJellyfinSettings({
-    configs: nextConfigs,
-    activeConfigId: nextActiveId
+    configs: nextConfigs
   });
-}
-
-function handleJellyfinConfigActivate() {
-  const config = ensureEditingJellyfinConfig();
-  if (!config || !currentSettings) {
-    return;
-  }
-  updateJellyfinSettings({ activeConfigId: config.id });
 }
 
 function handleProfileAdd() {
@@ -1454,9 +1445,12 @@ if (jellyfinEnabledToggle) {
   });
 }
 
-jellyfinConfigAddButton.addEventListener("click", handleJellyfinConfigAdd);
-jellyfinConfigDeleteButton.addEventListener("click", handleJellyfinConfigDelete);
-jellyfinConfigActivateButton.addEventListener("click", handleJellyfinConfigActivate);
+if (jellyfinConfigAddButton) {
+  jellyfinConfigAddButton.addEventListener("click", handleJellyfinConfigAdd);
+}
+if (jellyfinConfigDeleteButton) {
+  jellyfinConfigDeleteButton.addEventListener("click", handleJellyfinConfigDelete);
+}
 
 if (jellyfinConfigNameInput) {
   jellyfinConfigNameInput.addEventListener("change", () => {
