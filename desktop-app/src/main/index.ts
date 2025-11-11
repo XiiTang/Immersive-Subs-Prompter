@@ -456,6 +456,9 @@ function log(message: string, ...rest: unknown[]) {
 
 function updateConnectionCount(delta: number) {
   state.connectionCount = Math.max(0, state.connectionCount + delta);
+  const shouldUseContinuousPolling = state.connectionCount === 0;
+  jellyfinService.setContinuousSessionPolling(shouldUseContinuousPolling);
+
   if (state.connectionCount === 0 && state.activeSource !== "jellyfin") {
     state.status = "idle";
     state.activeTabId = null;
@@ -745,6 +748,7 @@ function handleJellyfinStatusUpdate(connected: boolean) {
     }
     return;
   }
+  jellyfinService.requestSessionsBurst("ws-status-connected");
   pushState();
 }
 
@@ -951,13 +955,18 @@ async function handleMessage(message: ExtensionMessage) {
               ? state.jellyfin.sessions.find(s => s.id === state.jellyfin.selectedSessionId)
               : null;
             const currentItemId = currentSession?.nowPlayingItemId;
-            
+
             if (currentItemId === itemId && state.subtitleTracks.length > 0) {
               // Same Jellyfin video - just update playback from extension, keep subtitles
               pushState();
               return;
             }
-            
+
+            const trackedItemId = state.pendingJellyfinItemId ?? currentItemId ?? null;
+            if (trackedItemId !== itemId) {
+              jellyfinService.requestSessionsBurst(`jellyfin-video-change:${itemId}`);
+            }
+
             // New video - find matching Jellyfin session
             const matchingSession = state.jellyfin.sessions.find(
               session => session.nowPlayingItemId === itemId
@@ -1001,7 +1010,10 @@ async function handleMessage(message: ExtensionMessage) {
             // Update profile if URL changed
             const selection = selectProfileForUrl(url);
             applyProfileSelection(selection.profile, selection.rule);
-            
+
+            // Request a short burst just in case Jellyfin session state drifted
+            jellyfinService.requestSessionsBurst("jellyfin-video-context");
+
             // DON'T clear subtitles - keep existing state
           }
         } catch (error) {

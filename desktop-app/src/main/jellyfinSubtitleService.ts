@@ -26,6 +26,7 @@ import {
 } from "./types.js";
 
 const SESSION_POLL_CONFIG = "0,2000";
+const SESSION_BURST_DURATION_MS = 10_000;
 const RECONNECT_DELAY_MS = 5_000;
 const KEEP_ALIVE_INTERVAL_MS = 30_000;
 const CLIENT_NAME = "Immersive Subs Prompter";
@@ -57,10 +58,16 @@ type RawSessionRecord = Record<string, unknown>;
 
 type SettingsProvider = () => JellyfinSettings;
 
+type SessionSubscriptionMode = "idle" | "burst" | "continuous";
+
 export class JellyfinSubtitleService {
   private socket: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private keepAliveTimer: NodeJS.Timeout | null = null;
+  private sessionSubscriptionMode: SessionSubscriptionMode = "idle";
+  private sessionStreamActive = false;
+  private sessionBurstTimer: NodeJS.Timeout | null = null;
+  private pendingBurstDuration: number | null = null;
   private readonly log = createLogger("jellyfin");
   private readonly listeners = createListenerMap();
   private sessions = new Map<string, JellyfinSessionSummary>();
@@ -94,10 +101,53 @@ export class JellyfinSubtitleService {
 
   start() {
     this.applySettings(this.settingsProvider());
+    if (this.settings.enabled) {
+      this.requestSessionsBurst("startup");
+    }
   }
 
   refresh() {
     this.applySettings(this.settingsProvider());
+    if (this.settings.enabled) {
+      this.requestSessionsBurst("settings-refresh");
+    }
+  }
+
+  requestSessionsBurst(reason = "manual", durationMs = SESSION_BURST_DURATION_MS) {
+    if (!this.settings.enabled) {
+      return;
+    }
+
+    if (this.sessionSubscriptionMode === "continuous") {
+      this.log.debug(`Skipping session burst request (${reason}): continuous polling active`);
+      return;
+    }
+
+    this.log.debug(`Requesting Jellyfin session burst (${reason}) for ${durationMs}ms`);
+    this.setSessionSubscriptionMode("burst");
+    this.scheduleBurstStop(durationMs);
+  }
+
+  setContinuousSessionPolling(enabled: boolean) {
+    if (!this.settings.enabled && enabled) {
+      this.log.debug("Ignoring continuous polling request: Jellyfin disabled");
+      return;
+    }
+
+    if (enabled) {
+      if (this.sessionSubscriptionMode === "continuous") {
+        return;
+      }
+      this.log.info("Enabling continuous Jellyfin session polling");
+      this.clearBurstTimer();
+      this.setSessionSubscriptionMode("continuous");
+      return;
+    }
+
+    if (this.sessionSubscriptionMode === "continuous") {
+      this.log.info("Disabling continuous Jellyfin session polling");
+      this.setSessionSubscriptionMode("idle");
+    }
   }
 
   setActiveSession(sessionId: string | null) {
@@ -174,12 +224,104 @@ export class JellyfinSubtitleService {
   private applySettings(next: JellyfinSettings) {
     this.settings = next;
     if (!this.settings.enabled) {
-      this.disconnect();
+      this.setSessionSubscriptionMode("idle");
       this.sessions.clear();
+      this.disconnect();
       this.emit("status", { connected: false });
       return;
     }
     this.connect();
+  }
+
+  private setSessionSubscriptionMode(mode: SessionSubscriptionMode) {
+    if (this.sessionSubscriptionMode === mode) {
+      return;
+    }
+
+    this.sessionSubscriptionMode = mode;
+    if (mode !== "burst") {
+      this.pendingBurstDuration = null;
+    }
+    if (mode === "idle") {
+      this.clearBurstTimer();
+      this.stopSessionStream();
+      return;
+    }
+
+    if (mode === "continuous") {
+      this.clearBurstTimer();
+    }
+
+    this.startSessionStream();
+  }
+
+  private scheduleBurstStop(durationMs: number) {
+    if (!this.sessionStreamActive) {
+      this.pendingBurstDuration = durationMs;
+      return;
+    }
+
+    this.pendingBurstDuration = null;
+    this.clearBurstTimer();
+    this.sessionBurstTimer = setTimeout(() => {
+      this.sessionBurstTimer = null;
+      if (this.sessionSubscriptionMode === "burst") {
+        this.log.debug("Jellyfin session burst window elapsed, stopping session polling");
+        this.setSessionSubscriptionMode("idle");
+      }
+    }, durationMs);
+  }
+
+  private clearBurstTimer() {
+    if (this.sessionBurstTimer) {
+      clearTimeout(this.sessionBurstTimer);
+      this.sessionBurstTimer = null;
+    }
+  }
+
+  private startSessionStream() {
+    if (this.sessionStreamActive) {
+      return;
+    }
+
+    this.connect();
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      this.log.debug("Deferring Jellyfin SessionsStart until WebSocket is ready");
+      return;
+    }
+
+    this.log.debug("Starting Jellyfin session polling");
+    this.sendMessage({
+      MessageType: "SessionsStart",
+      Data: SESSION_POLL_CONFIG
+    });
+    this.sessionStreamActive = true;
+
+    if (this.sessionSubscriptionMode === "burst" && this.pendingBurstDuration !== null) {
+      const duration = this.pendingBurstDuration;
+      // scheduleBurstStop will clear pendingBurstDuration when the timer starts
+      this.scheduleBurstStop(duration);
+    }
+  }
+
+  private stopSessionStream() {
+    if (!this.sessionStreamActive) {
+      return;
+    }
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.log.debug("Stopping Jellyfin session polling");
+      this.sendMessage({ MessageType: "SessionsStop" });
+    }
+    this.sessionStreamActive = false;
+  }
+
+  private syncSessionSubscriptionState() {
+    if (this.sessionSubscriptionMode === "idle") {
+      this.stopSessionStream();
+    } else {
+      this.startSessionStream();
+    }
   }
 
   private connect() {
@@ -215,15 +357,13 @@ export class JellyfinSubtitleService {
       this.log.info("Jellyfin WebSocket connected");
       this.emit("status", { connected: true });
       this.startKeepAlive();
-      this.sendMessage({
-        MessageType: "SessionsStart",
-        Data: SESSION_POLL_CONFIG
-      });
+      this.syncSessionSubscriptionState();
     });
     this.socket.on("message", (raw) => this.handleSocketMessage(raw));
     this.socket.on("close", () => {
       this.log.warn("Jellyfin WebSocket closed");
       this.socket = null;
+      this.sessionStreamActive = false;
       this.stopKeepAlive();
       this.emit("status", { connected: false });
       this.scheduleReconnect();
@@ -240,6 +380,7 @@ export class JellyfinSubtitleService {
       this.reconnectTimer = null;
     }
     this.stopKeepAlive();
+    this.sessionStreamActive = false;
     if (this.socket) {
       try {
         this.socket.close();
