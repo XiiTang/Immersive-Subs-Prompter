@@ -1024,6 +1024,10 @@ export class JellyfinSubtitleService {
     if (!this.settings.enabled) {
       sessionId = null;
     }
+    this.log.debug("setActiveSession requested", {
+      requested: sessionId,
+      current: this.activeSessionId
+    });
     if (!sessionId) {
       this.activeSessionId = null;
       for (const connection of this.connections.values()) {
@@ -1043,6 +1047,11 @@ export class JellyfinSubtitleService {
       this.setActiveSession(null);
       return;
     }
+    this.log.debug("Routing active session to connection", {
+      sessionId,
+      configId,
+      hasConnection: Boolean(target)
+    });
     this.activeSessionId = sessionId;
     for (const [id, connection] of this.connections.entries()) {
       connection.setActiveSession(id === configId ? sessionId : null);
@@ -1097,10 +1106,32 @@ export class JellyfinSubtitleService {
 
   private createConnection(config: JellyfinConfig) {
     const hooks: ConnectionHooks = {
-      onStatus: (payload) => this.handleConnectionStatus(config.id, payload),
+      onStatus: (payload) => {
+        this.log.debug("Connection status update", {
+          configId: config.id,
+          configName: config.name,
+          connected: payload.connected
+        });
+        this.handleConnectionStatus(config.id, payload);
+      },
       onSessions: (sessions) => this.handleConnectionSessions(config.id, sessions),
-      onPlayback: (payload) => this.emit("playback", payload),
-      onSubtitles: (payload) => this.emit("subtitles", payload),
+      onPlayback: (payload) => {
+        this.log.debug("Forwarding Jellyfin playback payload", {
+          configId: config.id,
+          sessionId: payload.sessionId,
+          itemName: payload.itemName,
+          isPaused: payload.isPaused
+        });
+        this.emit("playback", payload);
+      },
+      onSubtitles: (payload) => {
+        this.log.debug("Forwarding Jellyfin subtitles payload", {
+          configId: config.id,
+          sessionId: payload.sessionId,
+          trackCount: payload.tracks.length
+        });
+        this.emit("subtitles", payload);
+      },
       onError: (error) => this.emit("error", error)
     };
     const connection = new JellyfinConnection(config, this.identity, hooks, this.cacheManager);
@@ -1149,6 +1180,11 @@ export class JellyfinSubtitleService {
   }
 
   private handleConnectionSessions(configId: string, sessions: JellyfinSessionSummary[]) {
+    this.log.debug("Connection sessions update", {
+      configId,
+      count: sessions.length,
+      sessionIds: sessions.map((session) => session.id)
+    });
     const previous = this.sessionsByConfig.get(configId) ?? [];
     for (const summary of previous) {
       this.sessions.delete(summary.id);
