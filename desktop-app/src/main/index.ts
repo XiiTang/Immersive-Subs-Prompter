@@ -1239,6 +1239,11 @@ async function handleMessage(message: ExtensionMessage) {
 
           if (storedSession) {
             if (state.jellyfin.selectedSessionId !== storedSession.id) {
+              mainLogger.debug("Reusing stored Jellyfin session for tab without mediaSourceId", {
+                tabId: message.tabId,
+                sessionId: storedSession.id,
+                serverConfigId: storedSession.serverConfigId
+              });
               state.jellyfin.selectedSessionId = storedSession.id;
               jellyfinService.setActiveSession(storedSession.id);
             }
@@ -1476,6 +1481,7 @@ function forgetSocket(socket: WebSocket) {
     tabSockets.delete(tabId);
     // Clean up Jellyfin item tracking for this tab
     clearTabJellyfinContext(tabId);
+    mainLogger.debug(`[CLEANUP] Removed tab ${tabId} from tracking`);
   });
   socketTabs.delete(socket);
 }
