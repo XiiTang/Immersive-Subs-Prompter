@@ -438,6 +438,18 @@ function sendPlaybackUpdate(playback: PlaybackState) {
   mainWindow.webContents.send("usp:time", playback);
 }
 
+/**
+ * Update playback state while preserving loop state
+ */
+function updatePlaybackState(updates: Partial<PlaybackState>) {
+  state.playback = {
+    ...state.playback,
+    ...updates,
+    lastUpdate: Date.now()
+  };
+  sendPlaybackUpdate(state.playback);
+}
+
 function log(message: string, ...rest: unknown[]) {
   mainLogger.info(message, ...rest);
 }
@@ -603,13 +615,12 @@ function selectJellyfinSession(sessionId: string | null) {
   // Initialize playback state from WebSocket (will be overridden by extension if available)
   if (session) {
     const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
-    state.playback = {
+    updatePlaybackState({
       currentTime: currentTimeMilliseconds,
       playbackRate: session.isPaused ? 0 : session.playbackRate || 1,
-      lastUpdate: Date.now(),
       isLooping: false,
       loopCueIndex: null
-    };
+    });
   }
   
   const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl();
@@ -783,14 +794,10 @@ function handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
   // Fallback to WebSocket timestamps when extension is not driving this item
   const currentTime = payload.positionMs ?? 0;
   const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
-  state.playback = {
+  updatePlaybackState({
     currentTime,
-    playbackRate,
-    lastUpdate: Date.now(),
-    isLooping: state.playback.isLooping, // Preserve loop state
-    loopCueIndex: state.playback.loopCueIndex // Preserve loop cue index
-  };
-  sendPlaybackUpdate(state.playback);
+    playbackRate
+  });
 }
 
 jellyfinService.on("status", ({ connected }) => handleJellyfinStatusUpdate(connected));
@@ -1095,24 +1102,21 @@ async function handleMessage(message: ExtensionMessage) {
       const playbackRate = message.payload.paused ? 0 : rawPlaybackRate;
 
       // Update playback state from extension - use actual time
-      state.playback = {
+      updatePlaybackState({
         currentTime,
-        playbackRate,
-        lastUpdate: Date.now(),
-        isLooping: state.playback.isLooping, // Preserve loop state
-        loopCueIndex: state.playback.loopCueIndex // Preserve loop cue index
-      };
-      sendPlaybackUpdate(state.playback);
+        playbackRate
+      });
       break;
     }
 
     case "loop-started": {
-      // Extension notifies that loop has started
+      // Extension confirms that loop has started
       if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
         return;
       }
       
       state.playback.isLooping = true;
+      state.playback.lastUpdate = Date.now();
       sendPlaybackUpdate(state.playback);
       break;
     }
@@ -1272,13 +1276,9 @@ function sendControlCommand(command: VideoControlCommand): boolean {
   if (command.type === "seek") {
     payload = { time: command.time };
   } else if (command.type === "loop") {
-    // Set loopCueIndex and isLooping immediately when loop command is sent
+    // Store cueIndex for when loop-started is received
     state.playback.loopCueIndex = command.cueIndex;
-    state.playback.isLooping = true;
     payload = { start: command.start, end: command.end };
-    
-    // Immediately send playback update so renderer locks the highlight
-    sendPlaybackUpdate(state.playback);
   }
 
   socket.send(

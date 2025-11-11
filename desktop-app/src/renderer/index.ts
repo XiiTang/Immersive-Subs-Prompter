@@ -1709,18 +1709,10 @@ ruleSaveButton.addEventListener("click", () => handleRuleSave());
 ruleCancelButton.addEventListener("click", () => resetRuleForm());
 
 pauseButton.addEventListener("click", () => {
-  // Pause should clear loop
-  if (loopingCueIndex !== null) {
-    clearLoopUI();
-  }
   window.usp.controlVideo({ type: "pause" });
 });
 
 playButton.addEventListener("click", () => {
-  // Play should clear loop
-  if (loopingCueIndex !== null) {
-    clearLoopUI();
-  }
   window.usp.controlVideo({ type: "play" });
 });
 
