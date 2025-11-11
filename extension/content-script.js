@@ -20,10 +20,12 @@ const log = (() => {
   const DRIFT_CHECK_INTERVAL_MS = 250;
   const DRIFT_THRESHOLD_MS = 200;
   const PORT_NAME = "usp-video-channel";
+  const KEEPALIVE_INTERVAL_MS = 15000;
   const RECONNECT_DELAY_MS = 1000;
 
   let port = null;
   let reconnectTimer = null;
+  let keepAliveTimer = null;
   let activeVideo = null;
   let driftMonitorTimer = null;
   const hooked = new WeakSet();
@@ -351,6 +353,32 @@ const log = (() => {
       handleTimeUpdate(activeVideo);
     }
     return nextPort;
+  }
+
+  function startKeepAlive() {
+    if (keepAliveTimer !== null || !monitoringActive) {
+      return;
+    }
+    const tick = () => {
+      if (!monitoringActive) {
+        stopKeepAlive();
+        return;
+      }
+      send("keepalive", {
+        pageUrl: location.href,
+        title: document.title,
+        timestamp: Date.now()
+      });
+      keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
+    };
+    keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
+  }
+
+  function stopKeepAlive() {
+    if (keepAliveTimer !== null) {
+      clearTimeout(keepAliveTimer);
+      keepAliveTimer = null;
+    }
   }
 
   function send(type, payload = {}) {
@@ -726,6 +754,7 @@ const log = (() => {
     ensurePrototypeHooks();
     connectPort();
     ensureDocListeners(document);
+    startKeepAlive();
     
     // Scan for existing Shadow DOMs that may have been created before script injection
     log.info('shadow', 'Scanning for existing Shadow DOMs...');
@@ -743,6 +772,7 @@ const log = (() => {
     stopDriftMonitor();
     resetPlaybackPrediction();
     activeVideo = null;
+    stopKeepAlive();
     
     // Disconnect mutation observer
     if (domObserver) {
