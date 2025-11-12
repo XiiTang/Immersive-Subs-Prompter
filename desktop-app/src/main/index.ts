@@ -411,7 +411,7 @@ async function evaluateGameProcessFocusState() {
   try {
     const active = await activeWindow();
     
-    // 获取应用程序名和进程文件名
+    // Get application name and process file name
     const appName = active?.owner?.name?.trim() || "";
     const processPath = active?.owner?.path || "";
     const processFileName = processPath ? path.basename(processPath) : "";
@@ -419,7 +419,7 @@ async function evaluateGameProcessFocusState() {
     const normalizedAppName = appName.toLowerCase();
     const normalizedProcessFileName = processFileName.toLowerCase();
     
-    // 检查应用程序名或进程文件名是否在黑名单中
+    // Check if application name or process file name is in the blacklist
     let matchedValue = "";
     if (normalizedAppName && blacklist.has(normalizedAppName)) {
       matchedValue = appName;

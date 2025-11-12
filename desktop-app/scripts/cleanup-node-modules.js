@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * 清理 node_modules 中的不必要文件，减少打包体积
- * 这个脚本在打包前运行，删除编译产物、文档、测试文件等
+ * Clean up unnecessary files in node_modules to reduce package size
+ * This script runs before packaging to delete build artifacts, documentation, test files, etc.
  */
 
 const fs = require('fs');
@@ -10,7 +10,7 @@ const path = require('path');
 
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 
-// 要删除的目录和文件模式
+// Directories and file patterns to delete
 const patternsToRemove = [
   '**/build',
   '**/*.map',
@@ -54,12 +54,12 @@ function removeFile(filePath) {
 }
 
 function shouldRemove(filePath, fileName) {
-  // 始终保留 package.json 和 node_modules/.package-lock.json
+  // Always keep package.json and node_modules/.package-lock.json
   if (fileName === 'package.json' || fileName === 'package-lock.json') {
     return false;
   }
 
-  // 检查是否匹配移除模式
+  // Check if it matches the removal pattern
   for (const pattern of patternsToRemove) {
     if (pattern.startsWith('**/')) {
       const suffix = pattern.slice(3);
@@ -73,7 +73,7 @@ function shouldRemove(filePath, fileName) {
 }
 
 function cleanupDirectory(dir, depth = 0) {
-  if (depth > 10) return; // 限制递归深度
+  if (depth > 10) return; // Limit recursion depth
 
   try {
     const files = fs.readdirSync(dir);
