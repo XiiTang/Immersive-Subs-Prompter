@@ -1,6 +1,47 @@
+
 # Immersive Subs Prompter
 
-A "Subtitle Messenger" system composed of a browser extension and an Electron desktop app. The extension resides on YouTube / Bilibili / Douyin and other sites, collecting video playback information in real-time and pushing it to the local desktop application via WebSocket; the desktop app is responsible for fetching subtitles (via `yt-dlp`), displaying a scrolling subtitle panel, and supporting jumping within the subtitle list or controlling the browser player.
+
+**A cross-platform subtitle enhancement tool for language learners and immersive viewing.** 🌐🎧
+
+This project combines a browser extension with an Electron desktop app. It extracts subtitles from streaming services — YouTube, Bilibili, Douyin, and even Jellyfin — and displays them on your desktop in a standalone, scrollable "teleprompter" panel. 🖥️📜
+
+It unlocks the full potential of video subtitles and delivers an exceptional experience for both watching and learning. ✨
+
+## Core Use Cases 🚀
+
+This tool is more than a simple "subtitle viewer" — it transforms how you interact with video content:
+
+- **Language learning (ideal for focused listening) 🎓:**
+  - **Bilingual subtitles:** Automatically fetches all available subtitle tracks (including auto-generated ones) and displays two languages side-by-side in the desktop panel (for example, primary English with secondary Chinese) for immersive bilingual comparison.
+  - **A–B repeat (single-sentence loop) 🔁:** Spot a tricky sentence? Click the "loop" button beside a subtitle line and the corresponding segment will replay continuously — perfect for listening drills and shadowing.
+  - **Precise seeking 🎯:** Click any line in the subtitle panel to jump the video to that exact timestamp for quick review.
+
+- **Jellyfin media-library enhancements 🏠:**
+  - **Unified experience:** Not limited to web players — deep Jellyfin integration brings the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
+
+- **Transcription & note-taking 📝:**
+  - **Scrollable transcript:** Present the entire video's subtitles as a searchable, scrollable transcript for fast browsing, locating, and copying.
+  - **No window switching:** Keep subtitle content resident in your workflow without flipping between the player and a notes app.
+
+- **Immersive viewing 🎬:**
+  - **Clean player:** Remove subtitles from the video surface for an unobstructed picture.
+  - **Multitasking:** Minimize the video while keeping the desktop subtitle panel visible so you can listen and glance while working or browsing.
+
+- **Highly customizable ⚙️:**
+  - **Profiles:** Configure fonts, sizes, scroll positions, and even `yt-dlp` download options for different sites or learning scenarios.
+  - **URL rules:** Automatically activate specific profiles based on the current URL.
+
+## How it works ⚙️
+
+The extension (`extension/`) runs in the page and continuously collects playback information (URL, play state, timestamp), pushing updates via WebSocket to the local desktop app (`desktop-app/`). The desktop application is the control center and is responsible for:
+
+1. (For web pages) invoking `yt-dlp` to obtain all subtitle tracks for a given URL.
+2. (For Jellyfin) synchronizing session and subtitle information in real time via a WebSocket API.
+3. Parsing and merging subtitle tracks (e.g., primary + secondary) and displaying them in a scrollable teleprompter panel.
+4. Enabling bidirectional control so clicking to seek, looping a segment, or sending play/pause commands from the subtitle panel can control the browser video.
+
+---
 
 ## Directory Structure
 

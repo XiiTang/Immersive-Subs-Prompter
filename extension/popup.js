@@ -88,6 +88,10 @@ function normalizeBlacklistRules(input) {
     .filter(Boolean);
 }
 
+function areBlacklistRulesEqual(a, b) {
+  return JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+}
+
 function fetchBlacklistRules() {
   return new Promise((resolve) => {
     try {
@@ -106,9 +110,11 @@ function fetchBlacklistRules() {
   });
 }
 
-function saveBlacklistRules(nextRules) {
+function saveBlacklistRules(nextRules, { render = true } = {}) {
   blacklistRules = nextRules;
-  renderBlacklistRules();
+  if (render) {
+    renderBlacklistRules();
+  }
   chrome.storage.local.set({ [BLACKLIST_STORAGE_KEY]: nextRules }, () => {
     if (chrome.runtime?.lastError) {
       console.error("[USP] Failed to persist blacklist", chrome.runtime.lastError);
@@ -162,24 +168,33 @@ function renderBlacklistRules() {
       select.appendChild(option);
     });
     select.value = rule.mode;
-    select.addEventListener("change", () => updateBlacklistRule(rule.id, { mode: select.value }));
-
     const input = document.createElement("input");
     input.className = "blacklist-item__input";
     input.type = "text";
     input.placeholder = "Enter URL or keywords to match";
     input.value = rule.value;
-    input.addEventListener("input", () => updateBlacklistRule(rule.id, { value: input.value }));
+    const error = document.createElement("div");
+    error.className = "blacklist-item__error";
+    const updateErrorMessage = () => {
+      const currentMode = select.value;
+      const currentValue = input.value;
+      error.textContent = currentMode === "regex" && !isRegexValid(currentValue) ? "Invalid regex" : "";
+    };
+    select.addEventListener("change", () => {
+      updateBlacklistRule(rule.id, { mode: select.value });
+      updateErrorMessage();
+    });
+    input.addEventListener("input", () => {
+      updateBlacklistRule(rule.id, { value: input.value });
+      updateErrorMessage();
+    });
 
     row.appendChild(select);
     row.appendChild(input);
 
     const footer = document.createElement("div");
     footer.className = "blacklist-item__footer";
-
-    const error = document.createElement("div");
-    error.className = "blacklist-item__error";
-    error.textContent = rule.mode === "regex" && !isRegexValid(rule.value) ? "Invalid regex" : "";
+    updateErrorMessage();
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
@@ -208,7 +223,7 @@ function updateBlacklistRule(ruleId, partial) {
   }
   const nextRules = [...blacklistRules];
   nextRules[index] = next;
-  saveBlacklistRules(nextRules);
+  saveBlacklistRules(nextRules, { render: false });
 }
 
 function removeBlacklistRule(ruleId) {
@@ -361,7 +376,11 @@ if (chrome?.storage?.onChanged) {
     if (!Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
       return;
     }
-    blacklistRules = normalizeBlacklistRules(changes[BLACKLIST_STORAGE_KEY].newValue ?? []);
+    const normalized = normalizeBlacklistRules(changes[BLACKLIST_STORAGE_KEY].newValue ?? []);
+    if (areBlacklistRulesEqual(normalized, blacklistRules)) {
+      return;
+    }
+    blacklistRules = normalized;
     renderBlacklistRules();
   });
 }
