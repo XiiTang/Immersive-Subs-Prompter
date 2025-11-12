@@ -19,10 +19,6 @@ const CONTENT_PORT = "usp-video-channel";
 const DASHBOARD_PORT = "usp-dashboard";
 // Minimum duration to consider a video as valid media (in milliseconds, was 10 seconds)
 const MINIMUM_DURATION = 10000;
-const KEEPALIVE_ALARM_NAME = "usp-keepalive";
-// Heartbeat interval: 25 seconds (same as alarm to avoid redundancy)
-const HEARTBEAT_INTERVAL_SECONDS = 25;
-const KEEPALIVE_PERIOD_MINUTES = HEARTBEAT_INTERVAL_SECONDS / 60;
 
 class DesktopBridge {
   constructor(onDesktopMessage) {
@@ -447,33 +443,3 @@ function handleDashboardPort(port) {
     dashboardPorts.delete(port);
   });
 }
-
-function ensureKeepAliveAlarm() {
-  chrome.alarms.get(KEEPALIVE_ALARM_NAME, (existing) => {
-    if (chrome.runtime?.lastError) {
-      log.warn('alarm', 'Failed to query alarm', chrome.runtime.lastError);
-    }
-    const desired = KEEPALIVE_PERIOD_MINUTES;
-    if (!existing || Math.abs((existing.periodInMinutes || 0) - desired) > 0.001) {
-      chrome.alarms.create(KEEPALIVE_ALARM_NAME, {
-        periodInMinutes: desired,
-        delayInMinutes: desired
-      });
-      log.info('alarm', `${existing ? 'Update' : 'Create'} keepalive alarm`, { intervalSeconds: KEEPALIVE_INTERVAL_SECONDS });
-    }
-  });
-}
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm?.name !== KEEPALIVE_ALARM_NAME) {
-    return;
-  }
-  log.debug('alarm', 'keepalive tick', { scheduledTime: alarm.scheduledTime });
-  // Send heartbeat to keep WebSocket connection alive
-  // If not connected, this will trigger a reconnect
-  bridge.send({ type: "heartbeat" });
-});
-
-ensureKeepAliveAlarm();
-chrome.runtime.onInstalled.addListener(ensureKeepAliveAlarm);
-chrome.runtime.onStartup.addListener(ensureKeepAliveAlarm);

@@ -345,9 +345,9 @@ class JellyfinConnection {
     this.socket.on("message", (raw) => this.handleSocketMessage(raw));
     this.socket.on("close", () => {
       this.log.warn(`[${this.config.name}] Jellyfin WebSocket closed`);
+      this.stopKeepAlive();
       this.socket = null;
       this.sessionStreamActive = false;
-      this.stopKeepAlive();
       this.hooks.onStatus({ connected: false });
       this.scheduleReconnect();
     });
@@ -400,7 +400,6 @@ class JellyfinConnection {
     if (type === "Sessions") {
       this.processSessions(payload.Data);
     } else if (type === "ForceKeepAlive") {
-      this.log.debug("Received ForceKeepAlive, replying with KeepAlive");
       this.sendKeepAlive();
     }
   }
