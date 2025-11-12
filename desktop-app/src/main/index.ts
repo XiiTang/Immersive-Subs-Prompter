@@ -346,6 +346,7 @@ function registerGlobalShortcut() {
   }
 
   const shortcut = (appSettings.global.toggleWindowShortcut ?? "").trim();
+  
   if (!shortcut) {
     if (!hasLoggedMissingShortcut) {
       mainLogger.warn("No global shortcut configured");
@@ -374,10 +375,10 @@ function registerGlobalShortcut() {
       lastRegisteredShortcut = shortcut;
       mainLogger.info(`Global shortcut registered: ${shortcut}`);
     } else {
-      mainLogger.error(`Failed to register global shortcut: ${shortcut}`);
+      mainLogger.error(`Failed to register shortcut: ${shortcut} (may be in use)`);
     }
   } catch (error) {
-    mainLogger.error(`Error registering global shortcut: ${shortcut}`, error);
+    mainLogger.error(`Exception registering shortcut: ${shortcut}`, error);
   }
 }
 
@@ -398,6 +399,7 @@ function getNormalizedGameProcessBlacklist(): Set<string> {
 
 async function evaluateGameProcessFocusState() {
   const blacklist = getNormalizedGameProcessBlacklist();
+  
   if (!blacklist.size) {
     if (isGlobalShortcutBlockedByGame) {
       isGlobalShortcutBlockedByGame = false;
@@ -408,11 +410,26 @@ async function evaluateGameProcessFocusState() {
 
   try {
     const active = await activeWindow();
-    const rawProcessName = active?.owner?.name?.trim() || "";
-    const normalizedProcessName = rawProcessName.toLowerCase();
-    if (normalizedProcessName && blacklist.has(normalizedProcessName)) {
+    
+    // 获取应用程序名和进程文件名
+    const appName = active?.owner?.name?.trim() || "";
+    const processPath = active?.owner?.path || "";
+    const processFileName = processPath ? path.basename(processPath) : "";
+    
+    const normalizedAppName = appName.toLowerCase();
+    const normalizedProcessFileName = processFileName.toLowerCase();
+    
+    // 检查应用程序名或进程文件名是否在黑名单中
+    let matchedValue = "";
+    if (normalizedAppName && blacklist.has(normalizedAppName)) {
+      matchedValue = appName;
+    } else if (normalizedProcessFileName && blacklist.has(normalizedProcessFileName)) {
+      matchedValue = processFileName;
+    }
+    
+    if (matchedValue) {
       if (!isGlobalShortcutBlockedByGame) {
-        mainLogger.info(`Active window process "${rawProcessName}" is blacklisted; disabling shortcut`);
+        mainLogger.info(`[GameBlacklist] Matched "${matchedValue}" - disabling shortcuts`);
       }
       isGlobalShortcutBlockedByGame = true;
       clearGlobalShortcutRegistration();
@@ -421,17 +438,15 @@ async function evaluateGameProcessFocusState() {
 
     if (isGlobalShortcutBlockedByGame) {
       isGlobalShortcutBlockedByGame = false;
-      mainLogger.info(
-        `Active window process "${rawProcessName || "unknown"}" is no longer on the blacklist; restoring shortcut`
-      );
+      mainLogger.info(`[GameBlacklist] Switched to "${processFileName || appName}" - enabling shortcuts`);
     }
 
     registerGlobalShortcut();
   } catch (error) {
+    mainLogger.warn("[GameBlacklist] Failed to check active window:", error);
     if (isGlobalShortcutBlockedByGame) {
       isGlobalShortcutBlockedByGame = false;
     }
-    mainLogger.warn("Failed to resolve active window for game blacklist monitoring", error);
     registerGlobalShortcut();
   }
 }
