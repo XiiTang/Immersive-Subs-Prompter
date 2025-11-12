@@ -1380,7 +1380,7 @@ function renderState(state: DesktopState) {
     syncPlaybackProfileSettings();
   }
 
-  const browserStatus = `Browser: ${state.connectionCount}`;
+  const browserStatus = `Extension: ${state.connectionCount}`;
   const jellyfinStatus = `Jellyfin: ${state.jellyfin.sessions.length}`;
   connectionIndicator.textContent = `${browserStatus} · ${jellyfinStatus}`;
 
