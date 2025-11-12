@@ -11,10 +11,11 @@
     "copy-static": "copyfiles -u 2 \"src/renderer/**/*.{html,css}\" dist/renderer",
     "start": "npm run build && electron .",
     "clean": "rimraf dist",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:linux": "npm run build && electron-builder --linux",
-    "dist:all": "npm run build && electron-builder -mwl"
+    "clean:node-modules": "node scripts/cleanup-node-modules.js",
+    "dist:win": "npm run build && npm run clean:node-modules && electron-builder --win",
+    "dist:mac": "npm run build && npm run clean:node-modules && electron-builder --mac",
+    "dist:linux": "npm run build && npm run clean:node-modules && electron-builder --linux",
+    "dist:all": "npm run build && npm run clean:node-modules && electron-builder -mwl"
   },
   "keywords": [
     "electron",
@@ -45,7 +46,22 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "!**/node_modules/**/build/**",
+      "!**/node_modules/**/*.map",
+      "!**/node_modules/**/*.d.ts",
+      "!**/node_modules/**/README*",
+      "!**/node_modules/**/CHANGELOG*",
+      "!**/node_modules/**/*.md",
+      "!**/node_modules/**/.bin",
+      "!**/node_modules/**/test/**",
+      "!**/node_modules/**/tests/**",
+      "!**/node_modules/**/spec/**",
+      "!**/node_modules/**/docs/**",
+      "!**/node_modules/**/*.tgz"
+    ],
+    "asarUnpack": [
+      "node_modules/active-win/lib/binding/**"
     ],
     "extraResources": [
       {
