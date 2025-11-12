@@ -1424,14 +1424,44 @@ function bootstrapWebSocketServer() {
   const wss = new WebSocketServer({ port: WS_PORT });
   log(`WebSocket server listening on ws://127.0.0.1:${WS_PORT}`);
 
+  // Track connected clients for heartbeat
+  const connectedClients = new Set<WebSocket>();
+  
+  // Heartbeat interval: send heartbeat to all clients every 25 seconds
+  // This matches the chrome.alarm interval on the extension side for coordinated keepalive
+  const HEARTBEAT_INTERVAL_MS = 25000;
+  const heartbeatInterval = setInterval(() => {
+    connectedClients.forEach((socket) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({
+            source: "usp-desktop",
+            type: "heartbeat"
+          }));
+          mainLogger.debug("Sent heartbeat to client");
+        } catch (error) {
+          mainLogger.error("Failed to send heartbeat", error);
+        }
+      }
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+
   wss.on("connection", (socket: WebSocket) => {
     log("Extension connected");
     updateConnectionCount(+1);
+    connectedClients.add(socket);
 
     socket.on("message", (raw: Buffer) => {
       try {
         const data = JSON.parse(raw.toString());
         if (!data || typeof data !== "object") return;
+        
+        // Handle heartbeat responses
+        if (data.type === "heartbeat-ack") {
+          mainLogger.debug("Received heartbeat ACK from client");
+          return;
+        }
+        
         if (data.source !== "usp-extension") return;
         const { tabId, type, payload } = data as {
           tabId: number;
@@ -1449,6 +1479,7 @@ function bootstrapWebSocketServer() {
 
     socket.on("close", () => {
       log("Extension disconnected");
+      connectedClients.delete(socket);
       forgetSocket(socket);
       updateConnectionCount(-1);
     });
@@ -1461,6 +1492,12 @@ function bootstrapWebSocketServer() {
 
   wss.on("error", (error: Error) => {
     mainLogger.error("WebSocket server error", error);
+  });
+
+  // Cleanup on server close
+  wss.on("close", () => {
+    clearInterval(heartbeatInterval);
+    connectedClients.clear();
   });
 }
 

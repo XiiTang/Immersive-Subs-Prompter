@@ -20,8 +20,9 @@ const DASHBOARD_PORT = "usp-dashboard";
 // Minimum duration to consider a video as valid media (in milliseconds, was 10 seconds)
 const MINIMUM_DURATION = 10000;
 const KEEPALIVE_ALARM_NAME = "usp-keepalive";
-const KEEPALIVE_INTERVAL_SECONDS = 25;
-const KEEPALIVE_PERIOD_MINUTES = KEEPALIVE_INTERVAL_SECONDS / 60;
+// Heartbeat interval: 25 seconds (same as alarm to avoid redundancy)
+const HEARTBEAT_INTERVAL_SECONDS = 25;
+const KEEPALIVE_PERIOD_MINUTES = HEARTBEAT_INTERVAL_SECONDS / 60;
 
 class DesktopBridge {
   constructor(onDesktopMessage) {
@@ -67,6 +68,14 @@ class DesktopBridge {
             : "";
         if (!raw) return;
         const payload = JSON.parse(raw);
+        
+        // Handle heartbeat from server
+        if (payload.type === "heartbeat") {
+          this.send({ type: "heartbeat-ack" });
+          log.debug('ws', 'Received heartbeat, sent ACK');
+          return;
+        }
+        
         log.debug('ws', `← ${payload.type}`, { source: payload.source });
         this.onDesktopMessage?.(payload);
       } catch (err) {
@@ -460,7 +469,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     return;
   }
   log.debug('alarm', 'keepalive tick', { scheduledTime: alarm.scheduledTime });
-  bridge.connect();
+  // Send heartbeat to keep WebSocket connection alive
+  // If not connected, this will trigger a reconnect
+  bridge.send({ type: "heartbeat" });
 });
 
 ensureKeepAliveAlarm();
