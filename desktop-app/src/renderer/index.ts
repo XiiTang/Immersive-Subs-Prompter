@@ -1380,8 +1380,8 @@ function renderState(state: DesktopState) {
     syncPlaybackProfileSettings();
   }
 
-  const browserStatus = state.connectionCount > 0 ? `Browser: ${state.connectionCount}` : "Browser: disconnected";
-  const jellyfinStatus = state.jellyfin.connected ? "Jellyfin: connected" : "Jellyfin: disconnected";
+  const browserStatus = `Browser: ${state.connectionCount}`;
+  const jellyfinStatus = `Jellyfin: ${state.jellyfin.sessions.length}`;
   connectionIndicator.textContent = `${browserStatus} · ${jellyfinStatus}`;
 
   videoTitle.textContent = state.title ?? "Waiting for video...";
