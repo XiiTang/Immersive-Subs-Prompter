@@ -30,6 +30,9 @@ const pauseButton = document.getElementById("pause-btn") as HTMLButtonElement;
 const closeBehaviorSelect = document.getElementById("close-behavior") as HTMLSelectElement;
 const autostartToggle = document.getElementById("autostart-toggle") as HTMLInputElement;
 const toggleWindowShortcutInput = document.getElementById("toggle-window-shortcut") as HTMLInputElement;
+const gameProcessInput = document.getElementById("game-process-input") as HTMLInputElement;
+const gameProcessAddButton = document.getElementById("game-process-add") as HTMLButtonElement;
+const gameProcessListElement = document.getElementById("game-process-list") as HTMLElement;
 const subtitleFontInput = document.getElementById("subtitle-font") as HTMLInputElement;
 const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as HTMLInputElement;
 const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
@@ -1078,6 +1081,76 @@ function setupPriorityEditorInteractions(role: PriorityRole) {
   });
 }
 
+function getGameProcessBlacklistValues(): string[] {
+  if (!currentSettings) {
+    return [];
+  }
+  return currentSettings.global.gameProcessBlacklist ?? [];
+}
+
+function requestGameProcessBlacklistUpdate(nextValues: string[]) {
+  if (!currentSettings) {
+    return;
+  }
+  updateSettings({
+    global: {
+      ...currentSettings.global,
+      gameProcessBlacklist: nextValues
+    }
+  });
+}
+
+function handleGameProcessBlacklistAdd() {
+  if (!gameProcessInput) {
+    return;
+  }
+  const rawValue = gameProcessInput.value.trim();
+  if (!rawValue || !currentSettings) {
+    return;
+  }
+  const normalized = rawValue.toLowerCase();
+  const existing = getGameProcessBlacklistValues().map((item) => item.toLowerCase());
+  if (existing.includes(normalized)) {
+    gameProcessInput.value = "";
+    return;
+  }
+  const nextValues = [...getGameProcessBlacklistValues(), rawValue];
+  requestGameProcessBlacklistUpdate(nextValues);
+  gameProcessInput.value = "";
+}
+
+function handleGameProcessBlacklistRemove(index: number) {
+  const values = [...getGameProcessBlacklistValues()];
+  if (index < 0 || index >= values.length) {
+    return;
+  }
+  values.splice(index, 1);
+  requestGameProcessBlacklistUpdate(values);
+}
+
+function renderGameProcessBlacklist(values: string[]) {
+  if (!gameProcessListElement) {
+    return;
+  }
+  if (!values.length) {
+    gameProcessListElement.innerHTML =
+      '<div class="game-blacklist-editor__empty">None configured.</div>';
+    return;
+  }
+  gameProcessListElement.innerHTML = values
+    .map(
+      (value, index) => `
+        <div class="game-blacklist-editor__item" data-index="${index}">
+          <span>${escapeHtml(value)}</span>
+          <button type="button" class="text-button game-blacklist-editor__item-remove">
+            Remove
+          </button>
+        </div>
+      `.trim()
+    )
+    .join("");
+}
+
 function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: SubtitleTrack | null) {
   subtitleList.innerHTML = "";
   cueElements = [];
@@ -1380,6 +1453,7 @@ function renderSettings(settings: AppSettings) {
   if (jellyfinEnabledToggle) {
     jellyfinEnabledToggle.checked = settings.jellyfin.enabled;
   }
+  renderGameProcessBlacklist(settings.global.gameProcessBlacklist ?? []);
   
   // Render cache settings
   cacheEnabledCheckbox.checked = settings.cache.enabled;
@@ -1582,6 +1656,37 @@ toggleWindowShortcutInput.addEventListener("blur", () => {
     }
   });
 });
+
+if (gameProcessAddButton) {
+  gameProcessAddButton.addEventListener("click", handleGameProcessBlacklistAdd);
+}
+
+if (gameProcessInput) {
+  gameProcessInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleGameProcessBlacklistAdd();
+    }
+  });
+}
+
+if (gameProcessListElement) {
+  gameProcessListElement.addEventListener("click", (event) => {
+    const removeButton = (event.target as HTMLElement).closest(".game-blacklist-editor__item-remove");
+    if (!removeButton) {
+      return;
+    }
+    const parent = removeButton.closest(".game-blacklist-editor__item") as HTMLElement | null;
+    if (!parent) {
+      return;
+    }
+    const index = Number(parent.dataset.index);
+    if (Number.isNaN(index)) {
+      return;
+    }
+    handleGameProcessBlacklistRemove(index);
+  });
+}
 
 subtitleFontInput.addEventListener("change", () => {
   const profile = ensureEditingProfile();

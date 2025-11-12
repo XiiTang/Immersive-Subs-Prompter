@@ -96,6 +96,7 @@ export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
   toggleWindowShortcut: string;
+  gameProcessBlacklist: string[];
 }
 
 export interface JellyfinConfig {

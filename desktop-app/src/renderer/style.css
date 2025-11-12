@@ -330,6 +330,58 @@ body {
   font-family: inherit;
 }
 
+.game-blacklist-editor__controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.game-blacklist-editor__controls input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.game-blacklist-editor__list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-blacklist-editor__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  color: #f5f5f5;
+}
+
+.game-blacklist-editor__item-remove {
+  border: none;
+  background: transparent;
+  color: #67e8f9;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.game-blacklist-editor__item-remove:hover {
+  background: rgba(103, 232, 249, 0.12);
+}
+
+.game-blacklist-editor__empty {
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 6px 8px;
+}
+
 .settings-field textarea {
   min-height: 72px;
   resize: vertical;
@@ -1027,4 +1079,3 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
-

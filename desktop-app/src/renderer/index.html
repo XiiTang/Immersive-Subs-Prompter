@@ -80,6 +80,22 @@
                 />
                 <span class="settings-field__hint">Use modifiers like CommandOrControl, Alt, Shift with keys. Press Enter to save.</span>
               </label>
+              <section class="settings-field">
+                <div class="settings-field__label-row">
+                  <span class="settings-field__label">游戏进程黑名单</span>
+                  <small class="settings-field__hint">当游戏进程在前台时，快捷键将被自动禁用（输入可执行文件名）。</small>
+                </div>
+                <div class="game-blacklist-editor__controls">
+                  <input
+                    type="text"
+                    id="game-process-input"
+                    placeholder="e.g.: cyberpunk2077.exe"
+                    autocomplete="off"
+                  />
+                  <button type="button" class="text-button" id="game-process-add">Add</button>
+                </div>
+                <div class="game-blacklist-editor__list" id="game-process-list"></div>
+              </section>
             </section>
 
             <section class="settings-section">

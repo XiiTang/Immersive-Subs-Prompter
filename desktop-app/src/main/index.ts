@@ -10,6 +10,7 @@ import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import { normalizeServerUrl, ticksToMilliseconds } from "./jellyfinUtils.js";
+import activeWindow from "active-win";
 import {
   AppSettings,
   DesktopState,
@@ -39,6 +40,13 @@ const jellyfinService = new JellyfinSubtitleService(() => appSettings.jellyfin, 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRAY_ICON_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
+
+const GAME_PROCESS_POLL_INTERVAL_MS = 10000;
+let gameProcessMonitor: NodeJS.Timeout | null = null;
+let isGlobalShortcutBlockedByGame = false;
+let isGlobalShortcutRegistered = false;
+let lastRegisteredShortcut: string | null = null;
+let hasLoggedMissingShortcut = false;
 
 let mainWindow: BrowserWindow | null = null;
 let subtitleRequestToken = 0;
@@ -326,23 +334,44 @@ function toggleMainWindow() {
   }
 }
 
-function registerGlobalShortcut() {
-  // Unregister all existing shortcuts first
+function clearGlobalShortcutRegistration() {
   globalShortcut.unregisterAll();
-  
-  const shortcut = appSettings.global.toggleWindowShortcut;
-  if (!shortcut || !shortcut.trim()) {
-    mainLogger.warn("No global shortcut configured");
+  isGlobalShortcutRegistered = false;
+  lastRegisteredShortcut = null;
+}
+
+function registerGlobalShortcut() {
+  if (isGlobalShortcutBlockedByGame) {
     return;
   }
-  
+
+  const shortcut = (appSettings.global.toggleWindowShortcut ?? "").trim();
+  if (!shortcut) {
+    if (!hasLoggedMissingShortcut) {
+      mainLogger.warn("No global shortcut configured");
+      hasLoggedMissingShortcut = true;
+    }
+    clearGlobalShortcutRegistration();
+    return;
+  }
+
+  hasLoggedMissingShortcut = false;
+
+  if (isGlobalShortcutRegistered && lastRegisteredShortcut === shortcut) {
+    return;
+  }
+
+  clearGlobalShortcutRegistration();
+
   try {
     const success = globalShortcut.register(shortcut, () => {
       mainLogger.info(`Global shortcut triggered: ${shortcut}`);
       toggleMainWindow();
     });
-    
+
     if (success) {
+      isGlobalShortcutRegistered = true;
+      lastRegisteredShortcut = shortcut;
       mainLogger.info(`Global shortcut registered: ${shortcut}`);
     } else {
       mainLogger.error(`Failed to register global shortcut: ${shortcut}`);
@@ -350,6 +379,79 @@ function registerGlobalShortcut() {
   } catch (error) {
     mainLogger.error(`Error registering global shortcut: ${shortcut}`, error);
   }
+}
+
+function getNormalizedGameProcessBlacklist(): Set<string> {
+  const list = appSettings.global.gameProcessBlacklist ?? [];
+  const normalized = new Set<string>();
+  for (const entry of list) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+    const trimmed = entry.trim().toLowerCase();
+    if (trimmed.length) {
+      normalized.add(trimmed);
+    }
+  }
+  return normalized;
+}
+
+async function evaluateGameProcessFocusState() {
+  const blacklist = getNormalizedGameProcessBlacklist();
+  if (!blacklist.size) {
+    if (isGlobalShortcutBlockedByGame) {
+      isGlobalShortcutBlockedByGame = false;
+    }
+    registerGlobalShortcut();
+    return;
+  }
+
+  try {
+    const active = await activeWindow();
+    const rawProcessName = active?.owner?.name?.trim() || "";
+    const normalizedProcessName = rawProcessName.toLowerCase();
+    if (normalizedProcessName && blacklist.has(normalizedProcessName)) {
+      if (!isGlobalShortcutBlockedByGame) {
+        mainLogger.info(`Active window process "${rawProcessName}" is blacklisted; disabling shortcut`);
+      }
+      isGlobalShortcutBlockedByGame = true;
+      clearGlobalShortcutRegistration();
+      return;
+    }
+
+    if (isGlobalShortcutBlockedByGame) {
+      isGlobalShortcutBlockedByGame = false;
+      mainLogger.info(
+        `Active window process "${rawProcessName || "unknown"}" is no longer on the blacklist; restoring shortcut`
+      );
+    }
+
+    registerGlobalShortcut();
+  } catch (error) {
+    if (isGlobalShortcutBlockedByGame) {
+      isGlobalShortcutBlockedByGame = false;
+    }
+    mainLogger.warn("Failed to resolve active window for game blacklist monitoring", error);
+    registerGlobalShortcut();
+  }
+}
+
+function startGameProcessMonitor() {
+  if (gameProcessMonitor) {
+    return;
+  }
+  void evaluateGameProcessFocusState();
+  gameProcessMonitor = setInterval(() => {
+    void evaluateGameProcessFocusState();
+  }, GAME_PROCESS_POLL_INTERVAL_MS);
+}
+
+function stopGameProcessMonitor() {
+  if (!gameProcessMonitor) {
+    return;
+  }
+  clearInterval(gameProcessMonitor);
+  gameProcessMonitor = null;
 }
 
 function pushSettings() {
@@ -409,6 +511,7 @@ function updateAppSettings(partial: Partial<AppSettings>) {
 
   pushSettings();
   jellyfinService.refresh();
+  void evaluateGameProcessFocusState();
   return appSettings;
 }
 
@@ -1637,6 +1740,7 @@ app.whenReady().then(() => {
   applyAutoLaunch(appSettings.global.autoLaunch);
   registerGlobalShortcut();
   ensureTray();
+  startGameProcessMonitor();
   bootstrapWebSocketServer();
   jellyfinService.start();
   createWindow();
@@ -1648,6 +1752,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  stopGameProcessMonitor();
   globalShortcut.unregisterAll();
   cacheManager.stop();
   if (tray) {

@@ -25,7 +25,8 @@ const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
 const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   closeBehavior: "tray",
   autoLaunch: false,
-  toggleWindowShortcut: "CommandOrControl+Shift+S"
+  toggleWindowShortcut: "CommandOrControl+Shift+S",
+  gameProcessBlacklist: []
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -83,6 +84,31 @@ function sanitizePriorityList(value: unknown): string[] {
     .filter((item): item is string => Boolean(item.length));
 }
 
+function sanitizeProcessList(value: unknown): string[] {
+  if (!value) {
+    return [];
+  }
+  const items = Array.isArray(value) ? value : [value];
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const item of items) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const trimmed = item.trim();
+    if (!trimmed.length) {
+      continue;
+    }
+    const lowercase = trimmed.toLowerCase();
+    if (seen.has(lowercase)) {
+      continue;
+    }
+    seen.add(lowercase);
+    normalized.push(trimmed);
+  }
+  return normalized;
+}
+
 function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefined): ProfileSettings {
   const source = input ?? {};
   const subtitleFontFamily =
@@ -126,13 +152,16 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
   const source = input ?? {};
   const closeBehavior = isCloseBehavior(source.closeBehavior) ? source.closeBehavior : DEFAULT_GLOBAL_SETTINGS.closeBehavior;
   const autoLaunch = typeof source.autoLaunch === "boolean" ? source.autoLaunch : DEFAULT_GLOBAL_SETTINGS.autoLaunch;
-  const toggleWindowShortcut = typeof source.toggleWindowShortcut === "string" && source.toggleWindowShortcut.trim().length 
-    ? source.toggleWindowShortcut.trim() 
-    : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
+  const toggleWindowShortcut =
+    typeof source.toggleWindowShortcut === "string" && source.toggleWindowShortcut.trim().length
+      ? source.toggleWindowShortcut.trim()
+      : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
+  const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
   return {
     closeBehavior,
     autoLaunch,
-    toggleWindowShortcut
+    toggleWindowShortcut,
+    gameProcessBlacklist
   };
 }
 
