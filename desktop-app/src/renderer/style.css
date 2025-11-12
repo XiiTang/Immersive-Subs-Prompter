@@ -170,13 +170,6 @@ body {
   min-width: 150px;
 }
 
-.track-picker__label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #a1a1aa;
-}
-
 .track-picker select {
   width: 100%;
   padding: 6px 8px;

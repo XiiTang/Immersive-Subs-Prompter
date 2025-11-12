@@ -1316,16 +1316,30 @@ function resetAutoScrollTimer() {
 }
 
 function renderTrackSelectors(state: DesktopState) {
+  controlPanel.style.display = "flex";
   if (!state.subtitleTracks.length) {
-    controlPanel.style.display = "flex";
     primaryTrackSelector.innerHTML = "";
+    const placeholderPrimary = document.createElement("option");
+    placeholderPrimary.value = "";
+    placeholderPrimary.disabled = true;
+    placeholderPrimary.selected = true;
+    placeholderPrimary.textContent = "Primary Subtitle";
+    primaryTrackSelector.appendChild(placeholderPrimary);
+
     secondaryTrackSelector.innerHTML = "";
+    const placeholderSecondary = document.createElement("option");
+    placeholderSecondary.value = "";
+    placeholderSecondary.disabled = true;
+    placeholderSecondary.selected = true;
+    placeholderSecondary.textContent = "Secondary Subtitle";
+    secondaryTrackSelector.appendChild(placeholderSecondary);
+
     lastTrackSignature = "";
     return;
   }
 
-  controlPanel.style.display = "flex";
   const signature = state.subtitleTracks.map((track) => `${track.id}:${track.label}`).join("|");
+
   if (signature !== lastTrackSignature) {
     primaryTrackSelector.innerHTML = "";
     secondaryTrackSelector.innerHTML = "";
