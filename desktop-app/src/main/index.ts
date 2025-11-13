@@ -1674,6 +1674,13 @@ function sendControlCommand(command: VideoControlCommand): boolean {
     payload = { start: command.start, end: command.end };
   }
 
+  mainLogger.debug("Sending control command", {
+    type: command.type,
+    payload,
+    activeTabId: state.activeTabId,
+    readyState: socket.readyState
+  });
+
   socket.send(
     JSON.stringify({
       source: "usp-desktop",
@@ -1681,7 +1688,14 @@ function sendControlCommand(command: VideoControlCommand): boolean {
       tabId: state.activeTabId,
       action: command.type,
       payload
-    })
+    }),
+    (err?: Error) => {
+      if (err) {
+        mainLogger.error("WebSocket send failed", err);
+      } else {
+        mainLogger.debug("Control command dispatched", { type: command.type });
+      }
+    }
   );
   return true;
 }
@@ -1698,7 +1712,10 @@ ipcMain.handle("usp:select-track", (_event, payload: TrackSelectionPayload | str
   }
 });
 ipcMain.handle("usp:control", (_event, command) => {
-  sendControlCommand(command);
+  mainLogger.debug("IPC usp:control invoked", { type: command?.type });
+  const ok = sendControlCommand(command);
+  mainLogger.debug("IPC usp:control completed", { ok });
+  return ok;
 });
 ipcMain.handle("usp:get-settings", () => appSettings);
 ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {

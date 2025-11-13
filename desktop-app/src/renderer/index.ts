@@ -136,6 +136,8 @@ let editingJellyfinConfigId: string | null = null;
 let playbackProfileSettings: ProfileSettings | null = null;
 let ruleFormInitialized = false;
 let loopingCueIndex: number | null = null;
+const logPrefixUI = "[Renderer][UI]";
+const logPrefixAnim = "[Renderer][Anim]";
 
 const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
   primary: {
@@ -1224,9 +1226,10 @@ function highlightActiveCue(currentTime: number) {
     
     if (activeCueIndex !== lockedIndex) {
       // Remove highlight from current active cue
-      if (activeCueIndex !== null && cueElements[activeCueIndex]) {
-        cueElements[activeCueIndex].classList.remove("subtitle-item--active");
-      }
+    if (activeCueIndex !== null && cueElements[activeCueIndex]) {
+      console.debug(`${logPrefixAnim} remove-active`, { index: activeCueIndex });
+      cueElements[activeCueIndex].classList.remove("subtitle-item--active");
+    }
       
       // Highlight the locked cue
       const element = cueElements[lockedIndex];
@@ -1257,11 +1260,13 @@ function highlightActiveCue(currentTime: number) {
   }
 
   if (activeCueIndex !== null && cueElements[activeCueIndex]) {
+    console.debug(`${logPrefixAnim} switch-active`, { from: activeCueIndex, to: newIndex });
     cueElements[activeCueIndex].classList.remove("subtitle-item--active");
   }
 
   const element = cueElements[newIndex];
   if (element) {
+    console.debug(`${logPrefixAnim} add-active`, { index: newIndex, time: currentTime });
     element.classList.add("subtitle-item--active");
     if (autoScrollEnabled) {
       scrollToActiveSubtitle(element);
@@ -1280,6 +1285,13 @@ function scrollToActiveSubtitle(element: HTMLElement) {
   const positionPercent = (playbackProfileSettings?.subtitleScrollPosition ?? DEFAULT_PROFILE_TEMPLATE.subtitleScrollPosition) / 100;
   const targetScroll = elementTop - containerHeight * positionPercent + elementHeight / 2;
   
+  console.debug(`${logPrefixAnim} scroll`, {
+    elementTop,
+    containerHeight,
+    elementHeight,
+    positionPercent,
+    targetScroll
+  });
   container.scrollTo({
     top: targetScroll,
     behavior: "smooth"
@@ -1293,6 +1305,7 @@ function clearLoopUI() {
       `.subtitle-item__loop-btn[data-index="${loopingCueIndex}"]`
     );
     if (loopButton) {
+      console.debug(`${logPrefixAnim} loop-btn-remove-active`, { index: loopingCueIndex });
       loopButton.classList.remove("subtitle-item__loop-btn--active");
     }
     loopingCueIndex = null;
@@ -1822,11 +1835,25 @@ ruleSaveButton.addEventListener("click", () => handleRuleSave());
 ruleCancelButton.addEventListener("click", () => resetRuleForm());
 
 pauseButton.addEventListener("click", () => {
-  window.usp.controlVideo({ type: "pause" });
+  console.debug(`${logPrefixUI} pause-click`);
+  window.usp.controlVideo({ type: "pause" })
+    .then((res: any) => {
+      console.debug(`${logPrefixUI} pause-sent`, { ok: res === undefined ? true : res });
+    })
+    .catch((error: unknown) => {
+      console.error(`${logPrefixUI} pause-failed`, error);
+    });
 });
 
 playButton.addEventListener("click", () => {
-  window.usp.controlVideo({ type: "play" });
+  console.debug(`${logPrefixUI} play-click`);
+  window.usp.controlVideo({ type: "play" })
+    .then((res: any) => {
+      console.debug(`${logPrefixUI} play-sent`, { ok: res === undefined ? true : res });
+    })
+    .catch((error: unknown) => {
+      console.error(`${logPrefixUI} play-failed`, error);
+    });
 });
 
 subtitleList.addEventListener("click", (event) => {
@@ -1838,12 +1865,19 @@ subtitleList.addEventListener("click", (event) => {
     if (Number.isNaN(index)) return;
     const cue = combinedCues[index];
     if (cue) {
+      console.debug(`${logPrefixUI} seek-click`, { index, start: cue.start, end: cue.end, loopingCueIndex });
       // Seeking should clear loop (unless clicking the looped cue's play button)
       if (loopingCueIndex !== null && loopingCueIndex !== index) {
         clearLoopUI();
         window.usp.controlVideo({ type: "stopLoop" });
       }
-      window.usp.controlVideo({ type: "seek", time: cue.start });
+      window.usp.controlVideo({ type: "seek", time: cue.start })
+        .then((res: any) => {
+          console.debug(`${logPrefixUI} seek-sent`, { ok: res === undefined ? true : res });
+        })
+        .catch((error: unknown) => {
+          console.error(`${logPrefixUI} seek-failed`, error);
+        });
     }
   }
   
@@ -1855,20 +1889,34 @@ subtitleList.addEventListener("click", (event) => {
     // Toggle loop mode
     if (loopingCueIndex === index) {
       // Disable loop
+      console.debug(`${logPrefixUI} loop-toggle-off`, { index });
       clearLoopUI();
       // Send stop loop command to extension
-      window.usp.controlVideo({ type: "stopLoop" });
+      window.usp.controlVideo({ type: "stopLoop" })
+        .then((res: any) => {
+          console.debug(`${logPrefixUI} stopLoop-sent`, { ok: res === undefined ? true : res });
+        })
+        .catch((error: unknown) => {
+          console.error(`${logPrefixUI} stopLoop-failed`, error);
+        });
     } else {
       // If already looping another cue, clear it first and send stopLoop
       if (loopingCueIndex !== null) {
         clearLoopUI();
-        window.usp.controlVideo({ type: "stopLoop" });
+        window.usp.controlVideo({ type: "stopLoop" })
+          .then((res: any) => {
+            console.debug(`${logPrefixUI} stopLoop-sent`, { ok: res === undefined ? true : res });
+          })
+          .catch((error: unknown) => {
+            console.error(`${logPrefixUI} stopLoop-failed`, error);
+          });
       }
       
       // Enable loop for this cue
       loopingCueIndex = index;
       
       // Add active class to current loop button
+      console.debug(`${logPrefixAnim} loop-btn-add-active`, { index });
       target.classList.add("subtitle-item__loop-btn--active");
       
       // Immediately highlight this cue (before loop starts)
@@ -1889,7 +1937,14 @@ subtitleList.addEventListener("click", (event) => {
       // Send loop command to extension with start, end times, and cueIndex
       const cue = combinedCues[index];
       if (cue) {
-        window.usp.controlVideo({ type: "loop", start: cue.start, end: cue.end, cueIndex: index });
+        console.debug(`${logPrefixUI} loop-toggle-on`, { index, start: cue.start, end: cue.end });
+        window.usp.controlVideo({ type: "loop", start: cue.start, end: cue.end, cueIndex: index })
+          .then((res: any) => {
+            console.debug(`${logPrefixUI} loop-sent`, { ok: res === undefined ? true : res });
+          })
+          .catch((error: unknown) => {
+            console.error(`${logPrefixUI} loop-failed`, error);
+          });
       }
     }
   }
@@ -1932,6 +1987,12 @@ async function bootstrap() {
   });
 
   window.usp.onPlayback((payload) => {
+    console.debug("[Renderer][Playback] update", {
+      time: payload.currentTime,
+      rate: payload.playbackRate,
+      looping: payload.isLooping,
+      loopCueIndex: payload.loopCueIndex
+    });
     const wasLooping = lastKnownPlaybackState?.isLooping ?? false;
     lastKnownPlaybackState = payload;
     

@@ -499,10 +499,12 @@ const log = (() => {
         // Clear loop state when seeking manually
         clearLoopState();
         if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
+          log.debug('ctrl', 'seek requested', { ms: payload.time, before: Math.round(target.currentTime * 1000) });
           const timeInSeconds = payload.time / 1000; // Convert milliseconds to seconds
           const clamped = Math.max(0, Math.min(timeInSeconds, target.duration || timeInSeconds));
           const wasPaused = target.paused;
           target.currentTime = clamped;
+          log.debug('ctrl', 'seek applied', { after: Math.round(target.currentTime * 1000) });
           // Auto-play if video was paused
           if (wasPaused) {
             target.play().catch((err) => {
@@ -517,12 +519,14 @@ const log = (() => {
       case "loop":
         if (typeof payload.start === "number" && typeof payload.end === "number" && 
             Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
+          log.debug('ctrl', 'loop requested', { start: payload.start, end: payload.end, before: Math.round(target.currentTime * 1000) });
           loopStartMs = payload.start;
           loopEndMs = payload.end;
           isLooping = true;
           programmaticSeek = true;
           const wasPaused = target.paused;
           target.currentTime = loopStartMs / 1000;
+          log.debug('ctrl', 'loop applied', { after: Math.round(target.currentTime * 1000) });
           if (wasPaused) {
             target.play().catch((err) => {
               log.error('ctrl', 'Auto-play after loop enabled failed', err);
@@ -541,19 +545,24 @@ const log = (() => {
         }
         break;
       case "stopLoop":
+        log.debug('ctrl', 'stopLoop requested');
         clearLoopState();
         break;
       case "pause":
         // Clear loop state when pausing
+        log.debug('ctrl', 'pause requested', { time: Math.round(target.currentTime * 1000) });
         clearLoopState();
         target.pause();
+        log.debug('ctrl', 'pause applied');
         break;
       case "play":
         // Clear loop state when playing
+        log.debug('ctrl', 'play requested', { time: Math.round(target.currentTime * 1000) });
         clearLoopState();
         target.play().catch((err) => {
           log.error('ctrl', 'play failed', err);
         });
+        log.debug('ctrl', 'play applied');
         break;
       default:
         log.warn('ctrl', `Unknown command: ${action}`);
