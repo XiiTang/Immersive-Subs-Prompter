@@ -58,6 +58,7 @@ const primaryPriorityAddButton = document.getElementById("primary-priority-add")
 const secondaryPriorityAddButton = document.getElementById("secondary-priority-add") as HTMLButtonElement;
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
 const pinButton = document.getElementById("pin-btn") as HTMLButtonElement | null;
+const pinIconElement = document.getElementById("pin-icon") as HTMLElement | null;
 const transparencyButton = document.getElementById("transparency-btn") as HTMLButtonElement | null;
 const transparencyPopover = document.getElementById("transparency-popover") as HTMLElement | null;
 const transparencyControl = document.getElementById("transparency-control") as HTMLElement | null;
@@ -139,6 +140,9 @@ const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
     addButton: secondaryPriorityAddButton
   }
 };
+
+const PIN_ICON_PINNED = "📌";
+const PIN_ICON_UNPINNED = "📍";
 
 const PANEL_OPACITY_MIN = 0;
 const PANEL_OPACITY_MAX = 100;
@@ -1489,6 +1493,9 @@ function setPinnedState(nextValue: boolean) {
   }
   pinButton.classList.toggle("icon-button--active", nextValue);
   pinButton.setAttribute("aria-pressed", String(nextValue));
+  if (pinIconElement) {
+    pinIconElement.textContent = nextValue ? PIN_ICON_PINNED : PIN_ICON_UNPINNED;
+  }
 }
 
 function clampPanelOpacity(value: number): number {
