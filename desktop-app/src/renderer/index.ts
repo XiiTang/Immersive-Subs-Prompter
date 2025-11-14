@@ -57,6 +57,12 @@ const secondaryPriorityInput = document.getElementById("secondary-priority-input
 const primaryPriorityAddButton = document.getElementById("primary-priority-add") as HTMLButtonElement;
 const secondaryPriorityAddButton = document.getElementById("secondary-priority-add") as HTMLButtonElement;
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
+const pinButton = document.getElementById("pin-btn") as HTMLButtonElement | null;
+const transparencyButton = document.getElementById("transparency-btn") as HTMLButtonElement | null;
+const transparencyPopover = document.getElementById("transparency-popover") as HTMLElement | null;
+const transparencyControl = document.getElementById("transparency-control") as HTMLElement | null;
+const panelOpacitySlider = document.getElementById("panel-opacity-slider") as HTMLInputElement | null;
+const panelOpacityValue = document.getElementById("panel-opacity-value") as HTMLElement | null;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
 const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
 const windowContainer = document.querySelector(".window") as HTMLElement;
@@ -121,6 +127,23 @@ type PriorityEditorElements = {
   addButton: HTMLButtonElement;
 };
 
+const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
+  primary: {
+    list: primaryPriorityList,
+    input: primaryPriorityInput,
+    addButton: primaryPriorityAddButton
+  },
+  secondary: {
+    list: secondaryPriorityList,
+    input: secondaryPriorityInput,
+    addButton: secondaryPriorityAddButton
+  }
+};
+
+const PANEL_OPACITY_MIN = 0;
+const PANEL_OPACITY_MAX = 100;
+const DEFAULT_PANEL_OPACITY = 100;
+
 let autoHideEnabled = false;
 let collapseTimer: number | null = null;
 let isCollapsed = false;
@@ -143,21 +166,10 @@ let editingJellyfinConfigId: string | null = null;
 let playbackProfileSettings: ProfileSettings | null = null;
 let ruleFormInitialized = false;
 let loopingCueIndex: number | null = null;
+let isTransparencyPopoverOpen = false;
+let currentPanelOpacity = DEFAULT_PANEL_OPACITY;
 const logPrefixUI = "[Renderer][UI]";
 const logPrefixAnim = "[Renderer][Anim]";
-
-const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
-  primary: {
-    list: primaryPriorityList,
-    input: primaryPriorityInput,
-    addButton: primaryPriorityAddButton
-  },
-  secondary: {
-    list: secondaryPriorityList,
-    input: secondaryPriorityInput,
-    addButton: secondaryPriorityAddButton
-  }
-};
 
 function getPredictedPlaybackTime(now = Date.now()): number | null {
   if (!lastKnownPlaybackState) {
@@ -1471,6 +1483,56 @@ function setSettingsOpen(nextValue: boolean) {
   }
 }
 
+function setPinnedState(nextValue: boolean) {
+  if (!pinButton) {
+    return;
+  }
+  pinButton.classList.toggle("icon-button--active", nextValue);
+  pinButton.setAttribute("aria-pressed", String(nextValue));
+}
+
+function clampPanelOpacity(value: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_PANEL_OPACITY;
+  }
+  return Math.min(PANEL_OPACITY_MAX, Math.max(PANEL_OPACITY_MIN, Math.round(value)));
+}
+
+function applyPanelOpacity(nextValue: number) {
+  const clamped = clampPanelOpacity(nextValue);
+  currentPanelOpacity = clamped;
+  if (panelOpacitySlider && panelOpacitySlider.value !== String(clamped)) {
+    panelOpacitySlider.value = String(clamped);
+  }
+  if (panelOpacityValue) {
+    panelOpacityValue.textContent = `${clamped}%`;
+  }
+  rootElement.style.setProperty("--panel-opacity-factor", (clamped / 100).toFixed(2));
+}
+
+function setTransparencyPopover(open: boolean) {
+  if (!transparencyPopover || !transparencyButton) {
+    isTransparencyPopoverOpen = false;
+    return;
+  }
+  isTransparencyPopoverOpen = open;
+  transparencyPopover.classList.toggle("is-open", open);
+  transparencyPopover.setAttribute("aria-hidden", String(!open));
+  transparencyButton.setAttribute("aria-expanded", String(open));
+}
+
+function requestPanelOpacityUpdate(nextValue: number) {
+  if (!currentSettings) {
+    return;
+  }
+  updateSettings({
+    global: {
+      ...currentSettings.global,
+      panelOpacity: clampPanelOpacity(nextValue)
+    }
+  });
+}
+
 function setCollapsed(next: boolean) {
   if (!windowContainer) return;
   if (isCollapsed === next) return;
@@ -1507,6 +1569,9 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
 
 function renderSettings(settings: AppSettings) {
   currentSettings = settings;
+  setPinnedState(Boolean(settings.global.alwaysOnTop));
+  applyPanelOpacity(settings.global.panelOpacity ?? DEFAULT_PANEL_OPACITY);
+  setTransparencyPopover(false);
   ensureEditingProfile();
   ensureEditingJellyfinConfig();
   closeBehaviorSelect.value = settings.global.closeBehavior;
@@ -1667,6 +1732,62 @@ settingsButton.addEventListener("click", () => {
 
 settingsBackButton.addEventListener("click", () => {
   setSettingsOpen(false);
+});
+
+if (pinButton) {
+  pinButton.addEventListener("click", () => {
+    if (!currentSettings) {
+      return;
+    }
+    const nextValue = !currentSettings.global.alwaysOnTop;
+    setPinnedState(nextValue);
+    updateSettings({
+      global: {
+        ...currentSettings.global,
+        alwaysOnTop: nextValue
+      }
+    });
+  });
+}
+
+if (transparencyButton) {
+  transparencyButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setTransparencyPopover(!isTransparencyPopoverOpen);
+  });
+}
+
+if (transparencyPopover) {
+  transparencyPopover.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+}
+
+if (panelOpacitySlider) {
+  panelOpacitySlider.addEventListener("input", () => {
+    const nextValue = clampPanelOpacity(Number(panelOpacitySlider.value));
+    applyPanelOpacity(nextValue);
+  });
+  panelOpacitySlider.addEventListener("change", () => {
+    const nextValue = clampPanelOpacity(Number(panelOpacitySlider.value));
+    requestPanelOpacityUpdate(nextValue);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!isTransparencyPopoverOpen) {
+    return;
+  }
+  if (transparencyControl && event.target instanceof Node && transparencyControl.contains(event.target)) {
+    return;
+  }
+  setTransparencyPopover(false);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isTransparencyPopoverOpen) {
+    setTransparencyPopover(false);
+  }
 });
 
 if (autoHideToggle) {

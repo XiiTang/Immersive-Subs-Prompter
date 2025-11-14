@@ -13,6 +13,43 @@
         <div class="window__title">Immersive Subs Prompter</div>
         <div class="window__status" id="connection-indicator">Not connected</div>
         <div class="window__header-actions">
+          <button
+            type="button"
+            class="icon-button"
+            id="pin-btn"
+            aria-label="Toggle always-on-top"
+            aria-pressed="false"
+          >
+            <span aria-hidden="true">📌</span>
+          </button>
+          <div class="transparency-control" id="transparency-control">
+            <button
+              type="button"
+              class="icon-button"
+              id="transparency-btn"
+              aria-label="Adjust panel opacity"
+              aria-expanded="false"
+              aria-controls="transparency-popover"
+            >
+              <span aria-hidden="true">🌓</span>
+            </button>
+            <div class="transparency-popover" id="transparency-popover" aria-hidden="true">
+              <div class="transparency-popover__label">
+                背景不透明度
+                <span class="transparency-popover__value" id="panel-opacity-value">100%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value="100"
+                id="panel-opacity-slider"
+                class="slider"
+                aria-label="Background opacity"
+              />
+            </div>
+          </div>
           <button type="button" class="icon-button" id="settings-btn" aria-label="Open settings">
             <span aria-hidden="true">⚙</span>
           </button>

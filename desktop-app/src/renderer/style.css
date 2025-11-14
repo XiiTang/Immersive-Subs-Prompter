@@ -4,6 +4,7 @@
   font-size: 14px;
   --subtitle-font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --subtitle-font-size: 14px;
+  --panel-opacity-factor: 1;
 }
 
 *,
@@ -15,7 +16,7 @@
 body {
   margin: 0;
   padding: 0;
-  background: rgba(12, 12, 12, 0.9);
+  background: rgba(12, 12, 12, calc(0.9 * var(--panel-opacity-factor)));
   color: #f5f5f5;
   user-select: none;
 }
@@ -25,8 +26,8 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: rgba(18, 18, 18, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 18, calc(0.95 * var(--panel-opacity-factor)));
+  border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   backdrop-filter: blur(12px);
   position: relative;
 }
@@ -38,8 +39,8 @@ body {
   gap: 8px;
   padding: 10px 16px;
   -webkit-app-region: drag;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
+  border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   font-weight: 600;
 }
 
@@ -91,6 +92,52 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.icon-button--active {
+  background: rgba(103, 232, 249, 0.2);
+  border-color: rgba(103, 232, 249, 0.4);
+  color: #67e8f9;
+}
+
+.transparency-control {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.transparency-popover {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 220px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 5, 5, 0.95);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  -webkit-app-region: no-drag;
+}
+
+.transparency-popover.is-open {
+  display: flex;
+}
+
+.transparency-popover__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #cbd5f5;
+}
+
+.transparency-popover__value {
+  font-weight: 600;
+  color: #facc15;
+}
+
 .video-meta,
 .control-panel,
 .status-banner,
@@ -129,8 +176,8 @@ body {
 
 .video-info-section {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, calc(0.02 * var(--panel-opacity-factor)));
+  border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   position: relative;
   z-index: 20;
 }

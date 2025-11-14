@@ -502,6 +502,10 @@ function updateAppSettings(partial: Partial<AppSettings>) {
     }
   }
 
+  if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop && mainWindow) {
+    mainWindow.setAlwaysOnTop(Boolean(appSettings.global.alwaysOnTop));
+  }
+
   const activeProfileChanged = reapplyActiveProfileForCurrentVideo();
   const nextProfileSettings = getActiveProfileSettings();
   const primaryPriorityChanged = !areStringArraysEqual(
@@ -546,7 +550,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.setAlwaysOnTop(false);
+  mainWindow.setAlwaysOnTop(Boolean(appSettings.global.alwaysOnTop));
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 
   mainWindow.on("close", (event) => {

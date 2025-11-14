@@ -98,6 +98,8 @@ export interface GlobalSettings {
   toggleWindowShortcut: string;
   gameProcessBlacklist: string[];
   autoHidePanels: boolean;
+  alwaysOnTop: boolean;
+  panelOpacity: number;
 }
 
 export interface JellyfinConfig {

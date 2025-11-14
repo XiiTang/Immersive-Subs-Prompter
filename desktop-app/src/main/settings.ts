@@ -27,7 +27,9 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoLaunch: false,
   toggleWindowShortcut: "CommandOrControl+Shift+S",
   gameProcessBlacklist: [],
-  autoHidePanels: false
+  autoHidePanels: false,
+  alwaysOnTop: false,
+  panelOpacity: 100
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -159,12 +161,20 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
       : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
   const autoHidePanels = typeof source.autoHidePanels === "boolean" ? source.autoHidePanels : DEFAULT_GLOBAL_SETTINGS.autoHidePanels;
+  const alwaysOnTop = typeof source.alwaysOnTop === "boolean" ? source.alwaysOnTop : DEFAULT_GLOBAL_SETTINGS.alwaysOnTop;
+  let panelOpacity = Number(source.panelOpacity);
+  if (!Number.isFinite(panelOpacity)) {
+    panelOpacity = DEFAULT_GLOBAL_SETTINGS.panelOpacity;
+  }
+  panelOpacity = Math.min(100, Math.max(0, Math.round(panelOpacity)));
   return {
     closeBehavior,
     autoLaunch,
     toggleWindowShortcut,
     gameProcessBlacklist,
-    autoHidePanels
+    autoHidePanels,
+    alwaysOnTop,
+    panelOpacity
   };
 }
 
