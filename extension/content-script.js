@@ -1,18 +1,4 @@
-const log = (() => {
-  const PREFIX = "[USP][content]";
-  const fmt = (cat, msg, data) => {
-    const time = new Date().toISOString().split('T')[1].slice(0, -1);
-    return data !== undefined 
-      ? `${PREFIX}[${cat}] ${time} ${msg}` 
-      : `${PREFIX}[${cat}] ${time} ${msg}`;
-  };
-  return {
-    debug: (cat, msg, data) => console.log(fmt(cat, msg), data),
-    info: (cat, msg, data) => console.info(fmt(cat, msg), data),
-    warn: (cat, msg, data) => console.warn(fmt(cat, msg), data),
-    error: (cat, msg, err) => console.error(fmt(cat, msg), err)
-  };
-})();
+const log = new Logger('content-script');
 
 (function () {
   const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
@@ -193,14 +179,14 @@ const log = (() => {
       try {
         chrome.storage.local.get([BLACKLIST_STORAGE_KEY], (result) => {
           if (chrome.runtime?.lastError) {
-            console.error("[USP] Failed to read blacklist", chrome.runtime.lastError);
+            log.logError('blacklist', 'Failed to read blacklist', chrome.runtime.lastError);
             resolve([]);
             return;
           }
           resolve(result?.[BLACKLIST_STORAGE_KEY] ?? []);
         });
       } catch (error) {
-        console.error("[USP] Failed to read blacklist", error);
+        log.logError('blacklist', 'Failed to read blacklist', error);
         resolve([]);
       }
     });
@@ -808,7 +794,7 @@ const log = (() => {
       const raw = await loadBlacklistRules();
       blacklistRules = normalizeBlacklistRules(raw);
     } catch (error) {
-      console.error("[USP] Failed to init blacklist", error);
+      log.logError('blacklist', 'Failed to init blacklist', error);
       blacklistRules = [];
     }
     regexCache.clear();

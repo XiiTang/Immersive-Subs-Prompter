@@ -1,17 +1,5 @@
-// Simplified logging function
-const log = (() => {
-  const PREFIX = "[USP][bg]";
-  const fmt = (cat, msg) => {
-    const time = new Date().toISOString().split('T')[1].slice(0, -1);
-    return `${PREFIX}[${cat}] ${time} ${msg}`;
-  };
-  return {
-    debug: (cat, msg, data) => console.log(fmt(cat, msg), data),
-    info: (cat, msg, data) => console.info(fmt(cat, msg), data),
-    warn: (cat, msg, data) => console.warn(fmt(cat, msg), data),
-    error: (cat, msg, err) => console.error(fmt(cat, msg), err)
-  };
-})();
+import { Logger } from "./logger.module.js";
+const logger = new Logger("background");
 
 const WS_ENDPOINT = "ws://127.0.0.1:44501";
 const RETRY_DELAY_MS = 2000;
@@ -36,21 +24,21 @@ class DesktopBridge {
     clearTimeout(this.retryTimer);
 
     try {
-      log.info('ws', 'Connecting...', { endpoint: WS_ENDPOINT });
+      logger.info('ws', 'Connecting...', { endpoint: WS_ENDPOINT });
       this.socket = new WebSocket(WS_ENDPOINT);
     } catch (err) {
-      log.error('ws', 'Failed to create connection', err);
+      logger.error('ws', 'Failed to create connection', err);
       this.scheduleReconnect();
       return;
     }
 
     this.socket.addEventListener("open", () => {
-      log.info('ws', 'Connected');
+      logger.info('ws', 'Connected');
       this.flushPending();
     });
 
     this.socket.addEventListener("close", () => {
-      log.warn('ws', 'Disconnected');
+      logger.warn('ws', 'Disconnected');
       this.scheduleReconnect();
     });
 
@@ -68,33 +56,33 @@ class DesktopBridge {
         // Handle heartbeat from server
         if (payload.type === "heartbeat") {
           this.send({ type: "heartbeat-ack" });
-          log.debug('ws', 'Received heartbeat, sent ACK');
+          logger.debug('ws', 'Received heartbeat, sent ACK');
           return;
         }
         
-        log.debug('ws', `← ${payload.type}`, { source: payload.source });
+        logger.debug('ws', `← ${payload.type}`, { source: payload.source });
         this.onDesktopMessage?.(payload);
       } catch (err) {
-        log.error('ws', 'Failed to parse message', err);
+        logger.error('ws', 'Failed to parse message', err);
       }
     });
 
     this.socket.addEventListener("error", (err) => {
-      log.error('ws', 'WebSocket error', err);
+      logger.error('ws', 'WebSocket error', err);
       this.socket.close();
     });
   }
 
   scheduleReconnect() {
     clearTimeout(this.retryTimer);
-    log.info('ws', `Reconnecting... ${RETRY_DELAY_MS}ms`);
+    logger.info('ws', `Reconnecting... ${RETRY_DELAY_MS}ms`);
     this.retryTimer = setTimeout(() => this.connect(), RETRY_DELAY_MS);
   }
 
   flushPending() {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
     if (this.pending.length > 0) {
-      log.info('ws', `Sending queue: ${this.pending.length} messages`);
+      logger.info('ws', `Sending queue: ${this.pending.length} messages`);
     }
     while (this.pending.length) {
       this.socket.send(this.pending.shift());
@@ -108,12 +96,12 @@ class DesktopBridge {
       sentAt: Date.now()
     });
 
-    log.debug('ws', `→ ${payload.type}`, { tabId: payload.tabId });
+    logger.debug('ws', `→ ${payload.type}`, { tabId: payload.tabId });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
-      log.debug('ws', `Queue +1 (${this.pending.length + 1})`);
+      logger.debug('ws', `Queue +1 (${this.pending.length + 1})`);
       this.pending.push(data);
       this.connect();
     }
@@ -169,7 +157,7 @@ function broadcastMediaSnapshot() {
     try {
       port.postMessage(snapshot);
     } catch (err) {
-      console.warn("[USP] Failed to reach dashboard port", err);
+    logger.warn('dashboard', 'Failed to reach dashboard port', err);
       dashboardPorts.delete(port);
     }
   });
@@ -185,7 +173,7 @@ function sendSnapshotToPort(port) {
       }
     });
   } catch (err) {
-    console.error("[USP] Failed to send dashboard snapshot", err);
+    logger.error('dashboard', 'Failed to send dashboard snapshot', err);
   }
 }
 
@@ -256,12 +244,12 @@ function isValidMedia(payload) {
   
   // Must have readyState and duration > MINIMUM_DURATION
   if (!payload.readyState) {
-    log.debug('filter', 'Filtered: no readyState');
+    logger.debug('filter', 'Filtered: no readyState');
     return false;
   }
   const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
   if (duration <= MINIMUM_DURATION) {
-    log.debug('filter', `Filtered: duration=${duration}s`);
+    logger.debug('filter', `Filtered: duration=${duration}s`);
     return false;
   }
   
@@ -273,7 +261,7 @@ function ingestMediaMessage(tabId, frameId, message) {
   const { type, payload } = message;
   if (!type) return;
 
-  log.debug('msg', `Tab${tabId} ← ${type}`);
+  logger.debug('msg', `Tab${tabId} ← ${type}`);
 
   if (type === "video-context") {
     rememberActiveFrame(tabId, frameId, payload?.pageUrl);
@@ -283,14 +271,14 @@ function ingestMediaMessage(tabId, frameId, message) {
     // Only store valid media in mediaStates (duration > MINIMUM_DURATION)
     const isValid = isValidMedia(payload);
     if (isValid) {
-      log.info('media', `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
+      logger.info('media', `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
       const patch =
         typeof frameId === "number" ? { ...(payload || {}), frameId } : payload || {};
       setMediaState(tabId, patch, type);
     }
   } else if (type === "loop-started") {
     // Forward loop-started message to desktop-app
-    log.info('loop', `Tab${tabId} Loop started`);
+    logger.info('loop', `Tab${tabId} Loop started`);
     bridge.send({
       source: "usp-extension",
       type: "loop-started",
@@ -299,7 +287,7 @@ function ingestMediaMessage(tabId, frameId, message) {
     });
   } else if (type === "loop-cleared") {
     // Forward loop-cleared message to desktop-app
-    log.info('loop', `Tab${tabId} Loop cleared by user interaction`);
+    logger.info('loop', `Tab${tabId} Loop cleared by user interaction`);
     bridge.send({
       source: "usp-extension",
       type: "loop-cleared",
@@ -307,10 +295,10 @@ function ingestMediaMessage(tabId, frameId, message) {
       payload: payload || {}
     });
   } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
-    log.info('page', `Tab${tabId} URL changed`, { url: payload.pageUrl });
+    logger.info('page', `Tab${tabId} URL changed`, { url: payload.pageUrl });
     setMediaState(tabId, payload || {}, type);
   } else if (type === "video-ended") {
-    log.info('media', `Tab${tabId} Playback ended`);
+    logger.info('media', `Tab${tabId} Playback ended`);
     removeMediaState(tabId);
   }
 }
@@ -319,14 +307,14 @@ function sendToContentScript(tabId, message) {
   const preferredFrameId = tabMetadata.get(tabId)?.lastFrameId;
   const port = getPortForTab(tabId, preferredFrameId);
   if (!port) {
-    log.warn('msg', `Tab${tabId} No port`, { preferredFrameId });
+    logger.warn('msg', `Tab${tabId} No port`, { preferredFrameId });
     return;
   }
   try {
-    log.debug('msg', `Tab${tabId} → ${message.type}`, { frameId: preferredFrameId });
+    logger.debug('msg', `Tab${tabId} → ${message.type}`, { frameId: preferredFrameId });
     port.postMessage(message);
   } catch (err) {
-    log.error('msg', `Tab${tabId} Send failed`, err);
+    logger.error('msg', `Tab${tabId} Send failed`, err);
   }
 }
 
@@ -336,7 +324,7 @@ function handleDesktopMessage(message) {
 
   if (message.type === "control-command" && typeof message.tabId === "number") {
     const frameId = tabMetadata.get(message.tabId)?.lastFrameId ?? null;
-    log.info('ctrl', `Desktop command: ${message.action}`, { tabId: message.tabId, frameId });
+    logger.info('ctrl', `Desktop command: ${message.action}`, { tabId: message.tabId, frameId });
     sendToContentScript(message.tabId, {
       type: "control",
       action: message.action,
@@ -358,12 +346,12 @@ chrome.runtime.onConnect.addListener((port) => {
 function handleContentPort(port) {
   const tabId = port.sender?.tab?.id;
   if (tabId === undefined) {
-    log.warn('conn', 'Ignored: no tabId');
+    logger.warn('conn', 'Ignored: no tabId');
     return;
   }
   const frameId = typeof port.sender?.frameId === "number" ? port.sender.frameId : 0;
 
-  log.info('conn', `Tab${tabId} Connected`, { url: port.sender?.tab?.url, frameId });
+  logger.info('conn', `Tab${tabId} Connected`, { url: port.sender?.tab?.url, frameId });
 
   ensureTabInfo(tabId);
   const framePorts = tabPorts.get(tabId) || new Map();
@@ -390,7 +378,7 @@ function handleContentPort(port) {
     } else if (mediaStates.has(tabId)) {
       // Use buildMediaInfo to ensure consistent data format
       const mediaInfo = buildMediaInfo(mediaStates.get(tabId));
-      log.debug('fwd', `→Desktop Tab${tabId}:${message.type}`, { 
+      logger.debug('fwd', `→Desktop Tab${tabId}:${message.type}`, { 
         dur: mediaInfo.duration?.toFixed(1),
         time: mediaInfo.currentTime?.toFixed(1)
       });
@@ -403,7 +391,7 @@ function handleContentPort(port) {
   });
 
   port.onDisconnect.addListener(() => {
-    log.info('conn', `Tab${tabId} Frame${frameId} Disconnected`);
+    logger.info('conn', `Tab${tabId} Frame${frameId} Disconnected`);
     const frames = tabPorts.get(tabId);
     if (frames) {
       frames.delete(frameId);
@@ -435,11 +423,11 @@ function handleContentPort(port) {
 }
 
 function handleDashboardPort(port) {
-  log.info('conn', `Dashboard Connected (total: ${dashboardPorts.size + 1})`);
+  logger.info('conn', `Dashboard Connected (total: ${dashboardPorts.size + 1})`);
   dashboardPorts.add(port);
   sendSnapshotToPort(port);
   port.onDisconnect.addListener(() => {
-    log.info('conn', `Dashboard Disconnected (total: ${dashboardPorts.size - 1})`);
+    logger.info('conn', `Dashboard Disconnected (total: ${dashboardPorts.size - 1})`);
     dashboardPorts.delete(port);
   });
 }

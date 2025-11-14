@@ -16,13 +16,22 @@ class Logger {
     this.context = context; // 'content-script', 'background', 'popup'
     this.minLevel = minLevel;
     this.enabledCategories = new Set([
-      'video-detection',      // Video detection
-      'message-transmission', // Message transmission
-      'desktop-communication',// Communication with desktop-app
-      'media-state',          // Media state changes
-      'connection',           // Connection management
-      'control',              // Control commands
-      'error'                 // Error information
+      'ws',           // WebSocket communication
+      'msg',          // Message passing
+      'conn',         // Connection management
+      'ctrl',         // Control commands
+      'video',        // Video detection/state
+      'media',        // Media state updates
+      'loop',         // Loop control
+      'page',         // Page navigation
+      'fwd',          // Message forwarding
+      'blacklist',    // Blacklist filtering
+      'site',         // Site detection
+      'event',        // DOM events
+      'shadow',       // Shadow DOM
+      'drift',        // Playback drift
+      'filter',       // Media filtering
+      'dashboard'     // Dashboard port
     ]);
   }
 

@@ -20,6 +20,7 @@
         "<all_urls>"
       ],
       "js": [
+        "logger.js",
         "content-script.js"
       ],
       "all_frames": true,
