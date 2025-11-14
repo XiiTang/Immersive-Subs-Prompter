@@ -26,7 +26,8 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   closeBehavior: "tray",
   autoLaunch: false,
   toggleWindowShortcut: "CommandOrControl+Shift+S",
-  gameProcessBlacklist: []
+  gameProcessBlacklist: [],
+  autoHidePanels: false
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -157,11 +158,13 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
       ? source.toggleWindowShortcut.trim()
       : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
+  const autoHidePanels = typeof source.autoHidePanels === "boolean" ? source.autoHidePanels : DEFAULT_GLOBAL_SETTINGS.autoHidePanels;
   return {
     closeBehavior,
     autoLaunch,
     toggleWindowShortcut,
-    gameProcessBlacklist
+    gameProcessBlacklist,
+    autoHidePanels
   };
 }
 

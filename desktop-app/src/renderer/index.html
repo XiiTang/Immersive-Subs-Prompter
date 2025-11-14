@@ -20,6 +20,7 @@
       </header>
       <div class="window__content">
         <div class="primary-view" id="primary-view">
+          <div class="auto-hide-trigger" id="auto-hide-trigger"></div>
           <section class="video-info-section">
             <section class="video-meta" id="video-meta">
               <p class="video-meta__title" id="video-title">Waiting for video...</p>
@@ -38,7 +39,12 @@
                 <button id="pause-btn" type="button">Pause</button>
               </div>
             </section>
-            <section class="status-banner" id="status-banner">Initializing...</section>
+            <div class="status-row">
+              <section class="status-banner" id="status-banner">
+                <span id="status-banner-text">Initializing...</span>
+              </section>
+              <button type="button" class="auto-hide-toggle" id="auto-hide-toggle" aria-label="Auto Hide Panels">▼</button>
+            </div>
           </section>
           <section class="subtitle-scroll-section">
             <section class="subtitle-list" id="subtitle-list"></section>

@@ -20,8 +20,11 @@ const videoTitle = document.getElementById("video-title") as HTMLElement;
 const videoUrl = document.getElementById("video-url") as HTMLElement;
 const activeProfileLabel = document.getElementById("active-profile-label") as HTMLElement;
 const statusBanner = document.getElementById("status-banner") as HTMLElement;
+const statusBannerText = document.getElementById("status-banner-text") as HTMLElement;
+const autoHideToggle = document.getElementById("auto-hide-toggle") as HTMLButtonElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
+const autoHideTrigger = document.getElementById("auto-hide-trigger") as HTMLElement;
 
 const primaryTrackSelector = document.getElementById("primary-track-selector") as HTMLSelectElement;
 const secondaryTrackSelector = document.getElementById("secondary-track-selector") as HTMLSelectElement;
@@ -117,6 +120,10 @@ type PriorityEditorElements = {
   input: HTMLInputElement;
   addButton: HTMLButtonElement;
 };
+
+let autoHideEnabled = false;
+let collapseTimer: number | null = null;
+let isCollapsed = false;
 
 let lastKnownPlaybackState: PlaybackState | null = null;
 let playbackPredictionFrame: number | null = null;
@@ -1427,7 +1434,11 @@ function renderState(state: DesktopState) {
   }
 
   const { text, modifier } = formatStatus(state);
-  statusBanner.textContent = text;
+  if (statusBannerText) {
+    statusBannerText.textContent = text;
+  } else {
+    statusBanner.textContent = text;
+  }
   statusBanner.className = `status-banner ${modifier}`;
 
   renderTrackSelectors(state);
@@ -1458,6 +1469,30 @@ function setSettingsOpen(nextValue: boolean) {
   } else {
     settingsButton.focus();
   }
+}
+
+function setCollapsed(next: boolean) {
+  if (!windowContainer) return;
+  if (isCollapsed === next) return;
+  isCollapsed = next;
+  console.log(`[Auto-hide] Setting collapsed: ${next}`);
+  windowContainer.classList.toggle("auto-hide-collapsed", next);
+}
+
+function clearCollapseTimer() {
+  if (collapseTimer !== null) {
+    window.clearTimeout(collapseTimer);
+    collapseTimer = null;
+  }
+}
+
+function scheduleCollapse() {
+  clearCollapseTimer();
+  if (!autoHideEnabled) return;
+  collapseTimer = window.setTimeout(() => {
+    setCollapsed(true);
+    collapseTimer = null;
+  }, 2000);
 }
 
 function applySubtitleStyles(settings: ProfileSettings | null) {
@@ -1519,6 +1554,11 @@ function renderSettings(settings: AppSettings) {
   
   // Load cache stats
   refreshCacheStats();
+
+  if (autoHideToggle) {
+    autoHideEnabled = Boolean(settings.global.autoHidePanels);
+    autoHideToggle.textContent = autoHideEnabled ? "▲" : "▼";
+  }
 }
 
 function updateSettings(partial: Partial<AppSettings>) {
@@ -1628,6 +1668,41 @@ settingsButton.addEventListener("click", () => {
 settingsBackButton.addEventListener("click", () => {
   setSettingsOpen(false);
 });
+
+if (autoHideToggle) {
+  autoHideToggle.addEventListener("click", () => {
+    autoHideEnabled = !autoHideEnabled;
+    autoHideToggle.textContent = autoHideEnabled ? "▲" : "▼";
+    console.log(`[Auto-hide] Toggled to: ${autoHideEnabled ? "enabled (▲)" : "disabled (▼)"}`);
+    if (!autoHideEnabled) {
+      clearCollapseTimer();
+      setCollapsed(false);
+    }
+    if (currentSettings) {
+      updateSettings({
+        global: {
+          ...currentSettings.global,
+          autoHidePanels: autoHideEnabled
+        }
+      });
+    }
+  });
+}
+
+if (autoHideTrigger) {
+  autoHideTrigger.addEventListener("mouseenter", () => {
+    console.log(`[Auto-hide] Mouse enter trigger area, enabled: ${autoHideEnabled}`);
+    if (!autoHideEnabled) return;
+    clearCollapseTimer();
+    setCollapsed(false);
+  }, { passive: true });
+
+  autoHideTrigger.addEventListener("mouseleave", () => {
+    console.log(`[Auto-hide] Mouse leave trigger area, enabled: ${autoHideEnabled}`);
+    if (!autoHideEnabled) return;
+    scheduleCollapse();
+  }, { passive: true });
+}
 
 closeBehaviorSelect.addEventListener("change", () => {
   const nextValue = closeBehaviorSelect.value === "quit" ? "quit" : "tray";

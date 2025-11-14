@@ -97,6 +97,7 @@ export interface GlobalSettings {
   autoLaunch: boolean;
   toggleWindowShortcut: string;
   gameProcessBlacklist: string[];
+  autoHidePanels: boolean;
 }
 
 export interface JellyfinConfig {
