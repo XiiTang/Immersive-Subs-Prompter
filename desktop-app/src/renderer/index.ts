@@ -1510,6 +1510,28 @@ function applyPanelOpacity(nextValue: number) {
   rootElement.style.setProperty("--panel-opacity-factor", (clamped / 100).toFixed(2));
 }
 
+function positionTransparencyPopover() {
+  if (!transparencyPopover || !transparencyButton) {
+    return;
+  }
+  const buttonRect = transparencyButton.getBoundingClientRect();
+  const fallbackWidth = 220;
+  const fallbackHeight = 80;
+  const width = transparencyPopover.offsetWidth || fallbackWidth;
+  const height = transparencyPopover.offsetHeight || fallbackHeight;
+  const spacing = 8;
+
+  let left = buttonRect.right - width;
+  left = Math.max(spacing, Math.min(left, window.innerWidth - width - spacing));
+
+  let top = buttonRect.bottom + spacing;
+  const maxTop = window.innerHeight - height - spacing;
+  top = Math.min(Math.max(spacing, top), maxTop);
+
+  transparencyPopover.style.left = `${left}px`;
+  transparencyPopover.style.top = `${top}px`;
+}
+
 function setTransparencyPopover(open: boolean) {
   if (!transparencyPopover || !transparencyButton) {
     isTransparencyPopoverOpen = false;
@@ -1519,6 +1541,9 @@ function setTransparencyPopover(open: boolean) {
   transparencyPopover.classList.toggle("is-open", open);
   transparencyPopover.setAttribute("aria-hidden", String(!open));
   transparencyButton.setAttribute("aria-expanded", String(open));
+  if (open) {
+    positionTransparencyPopover();
+  }
 }
 
 function requestPanelOpacityUpdate(nextValue: number) {
@@ -1787,6 +1812,12 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && isTransparencyPopoverOpen) {
     setTransparencyPopover(false);
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (isTransparencyPopoverOpen) {
+    positionTransparencyPopover();
   }
 });
 
