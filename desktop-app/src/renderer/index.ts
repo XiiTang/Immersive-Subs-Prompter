@@ -64,6 +64,8 @@ const secondaryPriorityAddButton = document.getElementById("secondary-priority-a
 const settingsButton = document.getElementById("settings-btn") as HTMLButtonElement;
 const pinButton = document.getElementById("pin-btn") as HTMLButtonElement | null;
 const pinIconElement = document.getElementById("pin-icon") as HTMLElement | null;
+const fullscreenButton = document.getElementById("fullscreen-btn") as HTMLButtonElement | null;
+const fullscreenIconElement = document.getElementById("fullscreen-icon") as HTMLElement | null;
 const transparencyButton = document.getElementById("transparency-btn") as HTMLButtonElement | null;
 const transparencyPopover = document.getElementById("transparency-popover") as HTMLElement | null;
 const transparencyControl = document.getElementById("transparency-control") as HTMLElement | null;
@@ -151,6 +153,8 @@ const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
 
 const PIN_ICON_PINNED = "📌";
 const PIN_ICON_UNPINNED = "📍";
+const FULLSCREEN_ICON_DEFAULT = "⛶";
+const FULLSCREEN_ICON_ACTIVE = "🗗";
 
 const PANEL_OPACITY_MIN = 0;
 const PANEL_OPACITY_MAX = 100;
@@ -1510,6 +1514,17 @@ function setPinnedState(nextValue: boolean) {
   }
 }
 
+function setFullscreenButtonState(nextValue: boolean) {
+  if (!fullscreenButton) {
+    return;
+  }
+  fullscreenButton.classList.toggle("icon-button--active", nextValue);
+  fullscreenButton.setAttribute("aria-pressed", String(nextValue));
+  if (fullscreenIconElement) {
+    fullscreenIconElement.textContent = nextValue ? FULLSCREEN_ICON_ACTIVE : FULLSCREEN_ICON_DEFAULT;
+  }
+}
+
 function clampPanelOpacity(value: number): number {
   if (!Number.isFinite(value)) {
     return DEFAULT_PANEL_OPACITY;
@@ -1686,6 +1701,7 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
 function renderSettings(settings: AppSettings) {
   currentSettings = settings;
   setPinnedState(Boolean(settings.global.alwaysOnTop));
+  setFullscreenButtonState(false);
   applyPanelOpacity(settings.global.panelOpacity ?? DEFAULT_PANEL_OPACITY);
   applyAutoHideZoneHeight(settings.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ACTIVE_ZONE_HEIGHT);
   setTransparencyPopover(false);
@@ -1864,6 +1880,17 @@ if (pinButton) {
         alwaysOnTop: nextValue
       }
     });
+  });
+}
+
+if (fullscreenButton) {
+  fullscreenButton.addEventListener("click", async () => {
+    try {
+      const nextValue = await window.usp.toggleDisplayFullscreen();
+      setFullscreenButtonState(Boolean(nextValue));
+    } catch (error) {
+      console.error("[Renderer] Failed to toggle fullscreen", error);
+    }
   });
 }
 

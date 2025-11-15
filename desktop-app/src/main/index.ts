@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, globalShortcut, screen, shell } from "electron";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -107,6 +107,9 @@ const state: DesktopState = {
   }
 };
 
+let isDisplayFullscreen = false;
+let displayFullscreenPreviousBounds: Electron.Rectangle | null = null;
+
 function getTabJellyfinContext(tabId: number | null): TabJellyfinContext | null {
   if (tabId === null) {
     return null;
@@ -133,6 +136,28 @@ function updateTabJellyfinContext(
 
 function clearTabJellyfinContext(tabId: number) {
   tabJellyfinContexts.delete(tabId);
+}
+
+function toggleDisplayFullscreenOnCurrentDisplay(): boolean {
+  if (!mainWindow) {
+    return false;
+  }
+
+  if (isDisplayFullscreen) {
+    if (displayFullscreenPreviousBounds) {
+      mainWindow.setBounds(displayFullscreenPreviousBounds);
+    }
+    displayFullscreenPreviousBounds = null;
+    isDisplayFullscreen = false;
+    return false;
+  }
+
+  const previousBounds = mainWindow.getBounds();
+  const targetDisplay = screen.getDisplayMatching(previousBounds);
+  displayFullscreenPreviousBounds = previousBounds;
+  mainWindow.setBounds(targetDisplay.bounds);
+  isDisplayFullscreen = true;
+  return true;
 }
 
 function getProfileById(settings: AppSettings, profileId: string | null | undefined): ProfileDefinition | null {
@@ -584,6 +609,8 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    displayFullscreenPreviousBounds = null;
+    isDisplayFullscreen = false;
   });
 }
 
@@ -1725,6 +1752,9 @@ ipcMain.handle("usp:control", (_event, command) => {
 ipcMain.handle("usp:get-settings", () => appSettings);
 ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
   return updateAppSettings(payload);
+});
+ipcMain.handle("usp:toggle-display-fullscreen", () => {
+  return toggleDisplayFullscreenOnCurrentDisplay();
 });
 
 // Cache management IPC handlers
