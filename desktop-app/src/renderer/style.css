@@ -946,7 +946,6 @@ body {
   border-radius: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, calc(0.04 * var(--panel-opacity-factor)));
   transition: color 0.2s ease, border-color 0.2s ease;
   font-size: var(--subtitle-font-size);
   line-height: 1.45;
@@ -955,10 +954,6 @@ body {
   flex-direction: column;
   gap: 2px;
   user-select: text;
-}
-
-.subtitle-item:last-child {
-  border-bottom: none;
 }
 
 .subtitle-item__time {
@@ -1065,7 +1060,6 @@ body {
 
 .subtitle-item--active {
   background: transparent;
-  border-bottom-color: rgba(250, 204, 21, calc(0.6 * var(--panel-opacity-factor)));
   color: #fff8dc;
 }
 
