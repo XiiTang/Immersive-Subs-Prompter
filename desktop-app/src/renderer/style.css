@@ -47,16 +47,6 @@ body {
   overflow: visible;
 }
 
-.auto-hide-trigger {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 300px;
-  z-index: 10;
-  pointer-events: auto;
-}
-
 .window__title {
   font-size: 15px;
   letter-spacing: 0.02em;

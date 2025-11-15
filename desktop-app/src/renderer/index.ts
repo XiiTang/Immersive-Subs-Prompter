@@ -24,7 +24,6 @@ const statusBannerText = document.getElementById("status-banner-text") as HTMLEl
 const autoHideToggle = document.getElementById("auto-hide-toggle") as HTMLButtonElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
-const autoHideTrigger = document.getElementById("auto-hide-trigger") as HTMLElement;
 
 const primaryTrackSelector = document.getElementById("primary-track-selector") as HTMLSelectElement;
 const secondaryTrackSelector = document.getElementById("secondary-track-selector") as HTMLSelectElement;
@@ -147,10 +146,12 @@ const PIN_ICON_UNPINNED = "📍";
 const PANEL_OPACITY_MIN = 0;
 const PANEL_OPACITY_MAX = 100;
 const DEFAULT_PANEL_OPACITY = 100;
+const AUTO_HIDE_ACTIVE_ZONE_HEIGHT = 300;
 
 let autoHideEnabled = false;
 let collapseTimer: number | null = null;
 let isCollapsed = false;
+let isMouseInActiveZone = false;
 
 let lastKnownPlaybackState: PlaybackState | null = null;
 let playbackPredictionFrame: number | null = null;
@@ -1589,6 +1590,43 @@ function scheduleCollapse() {
   }, 2000);
 }
 
+function handleAutoHideMouseMove(event: MouseEvent) {
+  if (!autoHideEnabled) {
+    return;
+  }
+  const pointerInZone = event.clientY >= 0 && event.clientY <= AUTO_HIDE_ACTIVE_ZONE_HEIGHT;
+  if (pointerInZone) {
+    if (!isMouseInActiveZone) {
+      console.log(
+        `[Auto-hide] Pointer entered active zone (<= ${AUTO_HIDE_ACTIVE_ZONE_HEIGHT}px from top)`
+      );
+    }
+    isMouseInActiveZone = true;
+    clearCollapseTimer();
+    setCollapsed(false);
+    return;
+  }
+  if (isMouseInActiveZone) {
+    console.log(`[Auto-hide] Pointer left active zone (> ${AUTO_HIDE_ACTIVE_ZONE_HEIGHT}px from top)`);
+    isMouseInActiveZone = false;
+    scheduleCollapse();
+  }
+}
+
+function handleAutoHidePointerExit(event: MouseEvent) {
+  if (!autoHideEnabled) {
+    return;
+  }
+  if (event.relatedTarget !== null) {
+    return;
+  }
+  if (isMouseInActiveZone) {
+    console.log("[Auto-hide] Pointer left window");
+    isMouseInActiveZone = false;
+  }
+  scheduleCollapse();
+}
+
 function applySubtitleStyles(settings: ProfileSettings | null) {
   const family = settings?.subtitleFontFamily?.trim();
   const fontSize = Number(settings?.subtitleFontSize ?? DEFAULT_SUBTITLE_FONT_SIZE) || DEFAULT_SUBTITLE_FONT_SIZE;
@@ -1848,20 +1886,8 @@ if (autoHideToggle) {
   });
 }
 
-if (autoHideTrigger) {
-  autoHideTrigger.addEventListener("mouseenter", () => {
-    console.log(`[Auto-hide] Mouse enter trigger area, enabled: ${autoHideEnabled}`);
-    if (!autoHideEnabled) return;
-    clearCollapseTimer();
-    setCollapsed(false);
-  }, { passive: true });
-
-  autoHideTrigger.addEventListener("mouseleave", () => {
-    console.log(`[Auto-hide] Mouse leave trigger area, enabled: ${autoHideEnabled}`);
-    if (!autoHideEnabled) return;
-    scheduleCollapse();
-  }, { passive: true });
-}
+window.addEventListener("mousemove", handleAutoHideMouseMove, { passive: true });
+document.addEventListener("mouseleave", handleAutoHidePointerExit, { passive: true });
 
 closeBehaviorSelect.addEventListener("change", () => {
   const nextValue = closeBehaviorSelect.value === "quit" ? "quit" : "tray";
