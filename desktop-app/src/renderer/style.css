@@ -5,6 +5,7 @@
   --subtitle-font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --subtitle-font-size: 14px;
   --panel-opacity-factor: 1;
+  --auto-hide-zone-height: 300px;
 }
 
 *,
@@ -30,6 +31,26 @@ body {
   border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   backdrop-filter: blur(calc(12px * var(--panel-opacity-factor)));
   position: relative;
+}
+
+.auto-hide-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--auto-hide-zone-height, 300px);
+  pointer-events: none;
+  border: 2px dashed rgba(103, 232, 249, 0.7);
+  border-radius: 0 0 12px 12px;
+  background: rgba(8, 145, 178, 0.08);
+  opacity: 0;
+  transform: translateZ(0);
+  transition: opacity 120ms ease;
+  z-index: 400;
+}
+
+.auto-hide-preview.is-visible {
+  opacity: 1;
 }
 
 .window__header {

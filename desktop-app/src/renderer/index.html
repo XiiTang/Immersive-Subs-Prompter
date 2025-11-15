@@ -136,6 +136,21 @@
                 </div>
                 <div class="game-blacklist-editor__list" id="game-process-list"></div>
               </section>
+              <label class="settings-field">
+                <div class="settings-field__label-row">
+                  <span class="settings-field__label">Auto-hide Trigger Area Height</span>
+                  <span class="settings-field__value" id="auto-hide-zone-height-value">300px</span>
+                </div>
+                <input
+                  type="range"
+                  id="auto-hide-zone-height"
+                  min="80"
+                  max="600"
+                  step="10"
+                  class="slider"
+                />
+                <small class="settings-field__hint">Distance from the top edge that keeps panels expanded while auto-hide is on</small>
+              </label>
             </section>
 
             <section class="settings-section">
@@ -358,6 +373,7 @@
           </div>
         </section>
       </div>
+      <div class="auto-hide-preview" id="auto-hide-preview" aria-hidden="true"></div>
     </div>
     <script type="module" src="./index.js"></script>
   </body>

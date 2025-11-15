@@ -12,6 +12,12 @@ import type {
   SubtitleTrack,
   UrlMatchType
 } from "../main/types.js";
+import {
+  AUTO_HIDE_ZONE_MAX,
+  AUTO_HIDE_ZONE_MIN,
+  DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
+  clampAutoHideZoneHeight
+} from "../common/autoHide.js";
 
 const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 
@@ -63,6 +69,9 @@ const transparencyPopover = document.getElementById("transparency-popover") as H
 const transparencyControl = document.getElementById("transparency-control") as HTMLElement | null;
 const panelOpacitySlider = document.getElementById("panel-opacity-slider") as HTMLInputElement | null;
 const panelOpacityValue = document.getElementById("panel-opacity-value") as HTMLElement | null;
+const autoHideZoneSlider = document.getElementById("auto-hide-zone-height") as HTMLInputElement | null;
+const autoHideZoneValue = document.getElementById("auto-hide-zone-height-value") as HTMLElement | null;
+const autoHidePreviewElement = document.getElementById("auto-hide-preview") as HTMLElement | null;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
 const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
 const windowContainer = document.querySelector(".window") as HTMLElement;
@@ -146,12 +155,13 @@ const PIN_ICON_UNPINNED = "📍";
 const PANEL_OPACITY_MIN = 0;
 const PANEL_OPACITY_MAX = 100;
 const DEFAULT_PANEL_OPACITY = 100;
-const AUTO_HIDE_ACTIVE_ZONE_HEIGHT = 300;
+const DEFAULT_AUTO_HIDE_ACTIVE_ZONE_HEIGHT = DEFAULT_AUTO_HIDE_ZONE_HEIGHT;
 
 let autoHideEnabled = false;
 let collapseTimer: number | null = null;
 let isCollapsed = false;
 let isMouseInActiveZone = false;
+let autoHideActiveZoneHeight = DEFAULT_AUTO_HIDE_ACTIVE_ZONE_HEIGHT;
 
 let lastKnownPlaybackState: PlaybackState | null = null;
 let playbackPredictionFrame: number | null = null;
@@ -173,6 +183,7 @@ let ruleFormInitialized = false;
 let loopingCueIndex: number | null = null;
 let isTransparencyPopoverOpen = false;
 let currentPanelOpacity = DEFAULT_PANEL_OPACITY;
+let isAutoHidePreviewVisible = false;
 const logPrefixUI = "[Renderer][UI]";
 const logPrefixAnim = "[Renderer][Anim]";
 
@@ -1566,6 +1577,41 @@ function requestPanelOpacityUpdate(nextValue: number) {
   });
 }
 
+function applyAutoHideZoneHeight(nextValue: number) {
+  const clamped = clampAutoHideZoneHeight(nextValue);
+  autoHideActiveZoneHeight = clamped;
+  rootElement.style.setProperty("--auto-hide-zone-height", `${clamped}px`);
+  if (autoHideZoneSlider && autoHideZoneSlider.value !== String(clamped)) {
+    autoHideZoneSlider.value = String(clamped);
+  }
+  if (autoHideZoneValue) {
+    autoHideZoneValue.textContent = `${clamped}px`;
+  }
+}
+
+function requestAutoHideZoneHeightUpdate(nextValue: number) {
+  if (!currentSettings) {
+    return;
+  }
+  updateSettings({
+    global: {
+      ...currentSettings.global,
+      autoHideActiveZoneHeight: clampAutoHideZoneHeight(nextValue)
+    }
+  });
+}
+
+function setAutoHidePreviewVisible(visible: boolean) {
+  if (!autoHidePreviewElement) {
+    return;
+  }
+  if (isAutoHidePreviewVisible === visible) {
+    return;
+  }
+  isAutoHidePreviewVisible = visible;
+  autoHidePreviewElement.classList.toggle("is-visible", visible);
+}
+
 function setCollapsed(next: boolean) {
   if (!windowContainer) return;
   if (isCollapsed === next) return;
@@ -1594,11 +1640,11 @@ function handleAutoHideMouseMove(event: MouseEvent) {
   if (!autoHideEnabled) {
     return;
   }
-  const pointerInZone = event.clientY >= 0 && event.clientY <= AUTO_HIDE_ACTIVE_ZONE_HEIGHT;
+  const pointerInZone = event.clientY >= 0 && event.clientY <= autoHideActiveZoneHeight;
   if (pointerInZone) {
     if (!isMouseInActiveZone) {
       console.log(
-        `[Auto-hide] Pointer entered active zone (<= ${AUTO_HIDE_ACTIVE_ZONE_HEIGHT}px from top)`
+        `[Auto-hide] Pointer entered active zone (<= ${autoHideActiveZoneHeight}px from top)`
       );
     }
     isMouseInActiveZone = true;
@@ -1607,7 +1653,7 @@ function handleAutoHideMouseMove(event: MouseEvent) {
     return;
   }
   if (isMouseInActiveZone) {
-    console.log(`[Auto-hide] Pointer left active zone (> ${AUTO_HIDE_ACTIVE_ZONE_HEIGHT}px from top)`);
+    console.log(`[Auto-hide] Pointer left active zone (> ${autoHideActiveZoneHeight}px from top)`);
     isMouseInActiveZone = false;
     scheduleCollapse();
   }
@@ -1641,6 +1687,7 @@ function renderSettings(settings: AppSettings) {
   currentSettings = settings;
   setPinnedState(Boolean(settings.global.alwaysOnTop));
   applyPanelOpacity(settings.global.panelOpacity ?? DEFAULT_PANEL_OPACITY);
+  applyAutoHideZoneHeight(settings.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ACTIVE_ZONE_HEIGHT);
   setTransparencyPopover(false);
   ensureEditingProfile();
   ensureEditingJellyfinConfig();
@@ -1842,6 +1889,34 @@ if (panelOpacitySlider) {
     const nextValue = clampPanelOpacity(Number(panelOpacitySlider.value));
     requestPanelOpacityUpdate(nextValue);
   });
+}
+
+const hideAutoHidePreview = () => {
+  setAutoHidePreviewVisible(false);
+};
+
+const showAutoHidePreview = () => {
+  setAutoHidePreviewVisible(true);
+};
+
+if (autoHideZoneSlider) {
+  autoHideZoneSlider.min = String(AUTO_HIDE_ZONE_MIN);
+  autoHideZoneSlider.max = String(AUTO_HIDE_ZONE_MAX);
+  autoHideZoneSlider.step = "10";
+  autoHideZoneSlider.addEventListener("pointerdown", showAutoHidePreview);
+  autoHideZoneSlider.addEventListener("input", () => {
+    const nextValue = clampAutoHideZoneHeight(Number(autoHideZoneSlider.value));
+    applyAutoHideZoneHeight(nextValue);
+    showAutoHidePreview();
+  });
+  autoHideZoneSlider.addEventListener("change", () => {
+    const nextValue = clampAutoHideZoneHeight(Number(autoHideZoneSlider.value));
+    requestAutoHideZoneHeightUpdate(nextValue);
+    hideAutoHidePreview();
+  });
+  autoHideZoneSlider.addEventListener("blur", hideAutoHidePreview);
+  autoHideZoneSlider.addEventListener("pointerup", hideAutoHidePreview);
+  autoHideZoneSlider.addEventListener("pointercancel", hideAutoHidePreview);
 }
 
 document.addEventListener("click", (event) => {
