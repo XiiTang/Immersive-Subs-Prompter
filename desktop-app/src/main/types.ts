@@ -92,6 +92,8 @@ export type CloseBehavior = "quit" | "tray";
 
 export type UrlMatchType = "contains" | "exact" | "regex";
 
+export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
+
 export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
@@ -99,7 +101,7 @@ export interface GlobalSettings {
   gameProcessBlacklist: string[];
   autoHidePanels: boolean;
   autoHideActiveZoneHeight: number;
-  alwaysOnTop: boolean;
+  alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
 }
 

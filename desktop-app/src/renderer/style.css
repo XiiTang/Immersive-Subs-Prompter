@@ -120,6 +120,19 @@ body {
   color: #67e8f9;
 }
 
+/* Special styling for screen-saver level (highest priority) */
+.icon-button--screen-saver {
+  background: rgba(250, 204, 21, calc(0.25 * var(--panel-opacity-factor)));
+  border-color: rgba(250, 204, 21, calc(0.5 * var(--panel-opacity-factor)));
+  color: #facc15;
+  box-shadow: 0 0 8px rgba(250, 204, 21, calc(0.3 * var(--panel-opacity-factor)));
+}
+
+.icon-button--screen-saver:hover {
+  background: rgba(250, 204, 21, calc(0.3 * var(--panel-opacity-factor)));
+  border-color: rgba(250, 204, 21, calc(0.6 * var(--panel-opacity-factor)));
+}
+
 .transparency-control {
   position: relative;
   display: flex;

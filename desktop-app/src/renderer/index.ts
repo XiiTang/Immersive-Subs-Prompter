@@ -179,8 +179,10 @@ const priorityEditors: Record<PriorityRole, PriorityEditorElements> = {
   }
 };
 
-const PIN_ICON_PINNED = "📌";
-const PIN_ICON_UNPINNED = "📍";
+// Pin icons for three states
+const PIN_ICON_OFF = "📍";           // Unpinned
+const PIN_ICON_FLOATING = "📌";      // Pinned (floating)
+const PIN_ICON_SCREEN_SAVER = "🔒";  // Locked (screen-saver, highest level)
 const FULLSCREEN_ICON_DEFAULT = "⛶";
 const FULLSCREEN_ICON_ACTIVE = "🗗";
 
@@ -1562,15 +1564,43 @@ function setSettingsOpen(nextValue: boolean) {
   }
 }
 
-function setPinnedState(nextValue: boolean) {
+function setPinnedState(level: "off" | "floating" | "screen-saver") {
   if (!pinButton) {
     return;
   }
-  pinButton.classList.toggle("icon-button--active", nextValue);
-  pinButton.setAttribute("aria-pressed", String(nextValue));
-  if (pinIconElement) {
-    pinIconElement.textContent = nextValue ? PIN_ICON_PINNED : PIN_ICON_UNPINNED;
+  
+  // Remove all state classes
+  pinButton.classList.remove("icon-button--active", "icon-button--screen-saver");
+  
+  // Set appropriate class and icon based on level
+  let icon: string;
+  let label: string;
+  
+  switch (level) {
+    case "off":
+      icon = PIN_ICON_OFF;
+      label = "未置顶";
+      pinButton.setAttribute("aria-pressed", "false");
+      break;
+    case "floating":
+      icon = PIN_ICON_FLOATING;
+      label = "置顶（普通）";
+      pinButton.classList.add("icon-button--active");
+      pinButton.setAttribute("aria-pressed", "true");
+      break;
+    case "screen-saver":
+      icon = PIN_ICON_SCREEN_SAVER;
+      label = "置顶（高级）";
+      pinButton.classList.add("icon-button--active", "icon-button--screen-saver");
+      pinButton.setAttribute("aria-pressed", "true");
+      break;
   }
+  
+  if (pinIconElement) {
+    pinIconElement.textContent = icon;
+  }
+  pinButton.setAttribute("aria-label", label);
+  pinButton.setAttribute("title", label);
 }
 
 function setFullscreenButtonState(nextValue: boolean) {
@@ -1807,7 +1837,7 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
 
 function renderSettings(settings: AppSettings) {
   currentSettings = settings;
-  setPinnedState(Boolean(settings.global.alwaysOnTop));
+  setPinnedState(settings.global.alwaysOnTop);
   setFullscreenButtonState(false);
   applyPanelOpacity(settings.global.panelOpacity ?? DEFAULT_PANEL_OPACITY);
   applyAutoHideZoneHeight(settings.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ACTIVE_ZONE_HEIGHT);
@@ -1979,12 +2009,27 @@ if (pinButton) {
     if (!currentSettings) {
       return;
     }
-    const nextValue = !currentSettings.global.alwaysOnTop;
-    setPinnedState(nextValue);
+    // Cycle through states: off -> floating -> screen-saver -> off
+    let nextLevel: "off" | "floating" | "screen-saver";
+    switch (currentSettings.global.alwaysOnTop) {
+      case "off":
+        nextLevel = "floating";
+        break;
+      case "floating":
+        nextLevel = "screen-saver";
+        break;
+      case "screen-saver":
+        nextLevel = "off";
+        break;
+      default:
+        nextLevel = "floating";
+    }
+    
+    setPinnedState(nextLevel);
     updateSettings({
       global: {
         ...currentSettings.global,
-        alwaysOnTop: nextValue
+        alwaysOnTop: nextLevel
       }
     });
   });

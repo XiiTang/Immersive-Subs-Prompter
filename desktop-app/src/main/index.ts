@@ -528,7 +528,12 @@ function updateAppSettings(partial: Partial<AppSettings>) {
   }
 
   if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop && mainWindow) {
-    mainWindow.setAlwaysOnTop(Boolean(appSettings.global.alwaysOnTop));
+    const level = appSettings.global.alwaysOnTop;
+    if (level === "off") {
+      mainWindow.setAlwaysOnTop(false);
+    } else {
+      mainWindow.setAlwaysOnTop(true, level);
+    }
   }
 
   const activeProfileChanged = reapplyActiveProfileForCurrentVideo();
@@ -576,7 +581,12 @@ function createWindow() {
     }
   });
 
-  mainWindow.setAlwaysOnTop(Boolean(appSettings.global.alwaysOnTop));
+  const initialLevel = appSettings.global.alwaysOnTop;
+  if (initialLevel === "off") {
+    mainWindow.setAlwaysOnTop(false);
+  } else {
+    mainWindow.setAlwaysOnTop(true, initialLevel);
+  }
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 
   mainWindow.on("close", (event) => {

@@ -35,7 +35,7 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   gameProcessBlacklist: [],
   autoHidePanels: false,
   autoHideActiveZoneHeight: DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
-  alwaysOnTop: false,
+  alwaysOnTop: "off",
   panelOpacity: 100
 };
 
@@ -234,7 +234,14 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
   const autoHidePanels = typeof source.autoHidePanels === "boolean" ? source.autoHidePanels : DEFAULT_GLOBAL_SETTINGS.autoHidePanels;
   const autoHideActiveZoneHeight = clampAutoHideZoneHeight(Number(source.autoHideActiveZoneHeight));
-  const alwaysOnTop = typeof source.alwaysOnTop === "boolean" ? source.alwaysOnTop : DEFAULT_GLOBAL_SETTINGS.alwaysOnTop;
+  // Handle legacy boolean values and new string values
+  let alwaysOnTop: "off" | "floating" | "screen-saver" = DEFAULT_GLOBAL_SETTINGS.alwaysOnTop;
+  if (typeof source.alwaysOnTop === "boolean") {
+    // Migrate old boolean to new format
+    alwaysOnTop = source.alwaysOnTop ? "floating" : "off";
+  } else if (source.alwaysOnTop === "off" || source.alwaysOnTop === "floating" || source.alwaysOnTop === "screen-saver") {
+    alwaysOnTop = source.alwaysOnTop;
+  }
   let panelOpacity = Number(source.panelOpacity);
   if (!Number.isFinite(panelOpacity)) {
     panelOpacity = DEFAULT_GLOBAL_SETTINGS.panelOpacity;
