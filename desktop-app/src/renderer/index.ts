@@ -295,6 +295,8 @@ const CHINESE_TRANSLATIONS: Record<string, string> = {
   "status-error": "字幕加载失败",
   "status-unknown": "未知状态",
   "status-error-detail": "字幕加载失败：{error}",
+  "play-button": "播放",
+  "pause-button": "暂停",
   "pin-label-unpinned": "未置顶",
   "pin-label-floating": "置顶（普通）",
   "pin-label-screensaver": "置顶（屏保）",
