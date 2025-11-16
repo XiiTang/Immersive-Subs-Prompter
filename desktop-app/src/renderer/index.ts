@@ -1579,18 +1579,18 @@ function setPinnedState(level: "off" | "floating" | "screen-saver") {
   switch (level) {
     case "off":
       icon = PIN_ICON_OFF;
-      label = "未置顶";
+      label = "Unpinned";
       pinButton.setAttribute("aria-pressed", "false");
       break;
     case "floating":
       icon = PIN_ICON_FLOATING;
-      label = "置顶（普通）";
+      label = "Pinned (Normal)";
       pinButton.classList.add("icon-button--active");
       pinButton.setAttribute("aria-pressed", "true");
       break;
     case "screen-saver":
       icon = PIN_ICON_SCREEN_SAVER;
-      label = "置顶（高级）";
+      label = "Pinned (Screen Saver)";
       pinButton.classList.add("icon-button--active", "icon-button--screen-saver");
       pinButton.setAttribute("aria-pressed", "true");
       break;
