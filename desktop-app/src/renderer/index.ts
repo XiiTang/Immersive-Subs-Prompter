@@ -85,6 +85,7 @@ const panelOpacitySlider = document.getElementById("panel-opacity-slider") as HT
 const panelOpacityValue = document.getElementById("panel-opacity-value") as HTMLElement | null;
 const autoHideZoneSlider = document.getElementById("auto-hide-zone-height") as HTMLInputElement | null;
 const autoHideZoneValue = document.getElementById("auto-hide-zone-height-value") as HTMLElement | null;
+const languageSelect = document.getElementById("language-select") as HTMLSelectElement | null;
 const autoHidePreviewElement = document.getElementById("auto-hide-preview") as HTMLElement | null;
 const settingsBackButton = document.getElementById("settings-back") as HTMLButtonElement;
 const settingsPanelElement = document.getElementById("settings-panel") as HTMLElement;
@@ -150,6 +151,233 @@ const MATCH_TYPE_LABELS: Record<UrlMatchType, string> = {
   exact: "Exact Match",
   regex: "Regex"
 };
+
+const SUPPORTED_LANGUAGES = ["en", "zh"];
+const DEFAULT_LANGUAGE = "en";
+let currentLanguage = DEFAULT_LANGUAGE;
+
+type I18nEntry = {
+  element: HTMLElement;
+  key: string;
+  attr: string;
+  defaultValue: string;
+};
+
+const translationEntries: I18nEntry[] = [];
+
+const CHINESE_TRANSLATIONS: Record<string, string> = {
+  "settings-back": "← 返回",
+  "settings-title": "设置",
+  "section-global-settings": "全局设置",
+  "close-behavior-label": "关闭行为",
+  "close-behavior-tray": "关闭时最小化到托盘",
+  "close-behavior-quit": "退出应用",
+  "auto-start-label": "开机启动",
+  "toggle-enable": "启用",
+  "toggle-shortcut-label": "切换窗口快捷键",
+  "toggle-shortcut-hint": "使用 CommandOrControl、Alt、Shift 等修饰键与按键组合。按 Enter 保存。",
+  "process-blacklist-label": "进程黑名单",
+  "process-blacklist-hint": "当指定进程处于前台时，快捷键将自动禁用（请输入可执行文件名）。",
+  "button-add": "添加",
+  "auto-hide-label": "自动隐藏触发区高度",
+  "auto-hide-hint": "距离顶部的距离，可保持自动隐藏时面板展开",
+  "language-label": "语言",
+  "language-option-en": "English",
+  "language-option-zh": "中文",
+  "language-hint": "选择界面语言。",
+  "section-jellyfin": "Jellyfin 集成",
+  "jellyfin-enable-label": "启用 Jellyfin",
+  "server-list-label": "服务器列表",
+  "button-delete": "删除",
+  "server-name-label": "服务器名称",
+  "server-url-label": "服务器 URL",
+  "api-key-label": "API 密钥",
+  "ws-path-label": "WebSocket 路径",
+  "section-profiles": "配置文件",
+  "profile-list-label": "配置文件列表",
+  "button-duplicate": "复制",
+  "button-set-default": "设为默认",
+  "profile-name-label": "配置文件名称",
+  "subtitle-font-label": "字幕字体",
+  "subtitle-font-size-label": "字幕字体大小",
+  "subtitle-autoscroll-label": "自动滚动恢复时间（秒）",
+  "subtitle-autoscroll-hint": "手动滚动后多长时间恢复自动跟随",
+  "subtitle-scroll-position-label": "字幕滚动位置",
+  "subtitle-scroll-position-hint": "活动字幕在面板中的位置（0%=顶部，50%=中间，100%=底部）",
+  "subtitle-line-spacing-label": "字幕行间距",
+  "subtitle-line-spacing-hint": "调整字幕行之间的垂直间距",
+  "subtitle-time-gap-label": "时间戳与文字间距",
+  "subtitle-time-gap-hint": "控制时间戳与字幕文本之间的距离",
+  "subtitle-primary-secondary-gap-label": "主副字幕间距",
+  "subtitle-primary-secondary-gap-hint": "调整主字幕与副字幕之间的垂直距离",
+  "subtitle-line-height-label": "字幕行高",
+  "subtitle-line-height-hint": "控制字幕行高以提高可读性",
+  "subtitle-primary-color-label": "主字幕颜色",
+  "subtitle-primary-color-hint": "设置字幕列表中主字幕的默认文本颜色",
+  "subtitle-secondary-color-label": "副字幕颜色",
+  "subtitle-secondary-color-hint": "设置字幕列表中副字幕的默认文本颜色",
+  "subtitle-active-primary-color-label": "高亮主字幕颜色",
+  "subtitle-active-primary-color-hint": "调整高亮时主字幕的文字颜色",
+  "subtitle-active-secondary-color-label": "高亮副字幕颜色",
+  "subtitle-active-secondary-color-hint": "调整高亮时副字幕的文字颜色",
+  "primary-priority-label": "主字幕优先级",
+  "primary-priority-hint": "匹配语言/标签关键词，可拖拽调整顺序",
+  "primary-priority-placeholder": "例如：en",
+  "secondary-priority-label": "副字幕优先级",
+  "secondary-priority-hint": "通常是你的母语关键词",
+  "secondary-priority-placeholder": "例如：zh, zh-Hans",
+  "yt-dlp-args-label": "yt-dlp 参数",
+  "yt-dlp-args-hint": "留空则使用默认参数",
+  "section-cache": "字幕缓存",
+  "enable-cache-label": "启用缓存",
+  "cache-path-label": "缓存路径",
+  "cache-path-hint": "留空则使用默认位置",
+  "cache-retention-label": "保留天数",
+  "cache-retention-hint": "缓存字幕保留的天数（1-365）",
+  "cache-stats-entries": "条目总数：",
+  "cache-stats-size": "总大小：",
+  "cache-stats-oldest": "最早条目：",
+  "button-open-cache": "打开缓存文件夹",
+  "button-refresh-stats": "刷新统计",
+  "button-cleanup": "清理过期项",
+  "button-clear-cache": "清除所有缓存",
+  "section-rules": "URL 规则",
+  "rule-form-title": "添加规则",
+  "rule-form-title-edit": "编辑规则",
+  "rule-cancel": "取消编辑",
+  "rule-name-label": "规则名称",
+  "rule-match-label": "匹配模式",
+  "rule-match-contains": "包含",
+  "rule-match-exact": "完全匹配",
+  "rule-match-regex": "正则表达式",
+  "rule-pattern-label": "匹配内容",
+  "rule-apply-profile-label": "应用配置文件",
+  "rule-form-submit-add": "添加规则",
+  "rule-form-submit-save": "保存规则",
+  "priority-empty": "暂无优先级",
+  "profile-empty": "暂无配置文件",
+  "default-badge": "默认",
+  "jellyfin-no-servers": "尚未配置服务器",
+  "jellyfin-config-enabled": "已启用",
+  "jellyfin-config-disabled": "已禁用",
+  "rule-empty": "暂无规则",
+  "rule-apply-prefix": "应用配置文件：",
+  "rule-action-disable": "禁用",
+  "rule-action-enable": "启用",
+  "rule-action-edit": "编辑",
+  "rule-action-delete": "删除",
+  "rule-action-move-up": "上移",
+  "rule-action-move-down": "下移",
+  "game-blacklist-none": "尚未配置任何进程。",
+  "game-blacklist-remove": "删除",
+  "alert-delete-last-server": "无法删除最后一个服务器。在启用 Jellyfin 时请先禁用 Jellyfin 或添加其他服务器。",
+  "alert-delete-default-profile": "无法删除默认配置文件。请先更改默认配置文件。",
+  "alert-delete-last-profile": "至少要保留一个配置文件。",
+  "alert-profile-referenced": "该配置文件仍被规则引用，请先修改或删除相关规则。",
+  "cache-open-error": "无法打开缓存文件夹：{error}",
+  "cache-cleanup-success": "清理完成！已移除 {count} 个过期条目。",
+  "cache-cleanup-failure": "清理缓存失败：{error}",
+  "cache-cleanup-progress": "正在清理...",
+  "cache-clear-confirm": "确定要清除所有缓存的字幕吗？该操作无法撤销。",
+  "cache-clear-success": "缓存已成功清除！",
+  "cache-clear-failure": "清除缓存失败：{error}",
+  "cache-clear-progress": "正在清除...",
+  "connection-extension": "扩展",
+  "connection-jellyfin": "Jellyfin",
+  "active-profile-prefix": "配置文件",
+  "status-waiting-video": "等待视频...",
+  "status-initializing": "初始化中...",
+  "status-failed-init": "获取初始状态失败：{error}",
+  "pin-label-unpinned": "未置顶",
+  "pin-label-floating": "置顶（普通）",
+  "pin-label-screensaver": "置顶（屏保）",
+  "primary-track-placeholder": "主字幕",
+  "secondary-track-placeholder": "副字幕",
+  "secondary-track-none": "无",
+  "priority-remove": "移除优先级"
+};
+
+const TRANSLATIONS: Record<string, Record<string, string>> = {
+  en: {},
+  zh: CHINESE_TRANSLATIONS
+};
+
+function normalizeLanguageCode(value: string | null | undefined): string {
+  const candidate = (value ?? "").trim().toLowerCase();
+  return SUPPORTED_LANGUAGES.includes(candidate) ? candidate : DEFAULT_LANGUAGE;
+}
+
+function collectTranslationEntries() {
+  document.querySelectorAll<HTMLElement>("[data-i18n-key]").forEach((element) => {
+    const key = element.getAttribute("data-i18n-key");
+    if (!key) {
+      return;
+    }
+    const attr = element.getAttribute("data-i18n-attr") ?? "text";
+    const defaultValue = attr === "text" ? element.textContent ?? "" : element.getAttribute(attr) ?? "";
+    translationEntries.push({ element, key, attr, defaultValue });
+  });
+}
+
+function applyTranslationEntries(language: string) {
+  const dictionary = TRANSLATIONS[language] ?? TRANSLATIONS[DEFAULT_LANGUAGE] ?? {};
+  for (const entry of translationEntries) {
+    const value = dictionary[entry.key] ?? entry.defaultValue;
+    if (entry.attr === "text") {
+      entry.element.textContent = value;
+    } else {
+      entry.element.setAttribute(entry.attr, value);
+    }
+  }
+}
+
+function translate(key: string, fallback: string): string {
+  const dictionary = TRANSLATIONS[currentLanguage] ?? TRANSLATIONS[DEFAULT_LANGUAGE] ?? {};
+  return dictionary[key] ?? fallback;
+}
+
+function formatTranslation(key: string, fallback: string, replacements: Record<string, string> = {}): string {
+  let text = translate(key, fallback);
+  for (const [placeholder, replacement] of Object.entries(replacements)) {
+    text = text.split(`{${placeholder}}`).join(replacement);
+  }
+  return text;
+}
+
+function syncLanguageFromSettings(language?: string | null) {
+  currentLanguage = normalizeLanguageCode(language);
+  applyTranslationEntries(currentLanguage);
+}
+
+function setTranslatedElementText(element: HTMLElement, key: string, fallback: string, attr: string = "text") {
+  const dictionary = TRANSLATIONS[currentLanguage] ?? TRANSLATIONS[DEFAULT_LANGUAGE] ?? {};
+  const value = dictionary[key] ?? fallback;
+  if (attr === "text") {
+    element.textContent = value;
+  } else {
+    element.setAttribute(attr, value);
+  }
+}
+
+function handleLanguageSelectionChange() {
+  if (!languageSelect) {
+    return;
+  }
+  const selected = normalizeLanguageCode(languageSelect.value);
+  currentLanguage = selected;
+  applyTranslationEntries(selected);
+  if (currentSettings && currentSettings.global.language !== selected) {
+    updateSettings({
+      global: {
+        ...currentSettings.global,
+        language: selected
+      }
+    });
+  }
+}
+
+collectTranslationEntries();
+applyTranslationEntries(currentLanguage);
 
 type CombinedCue = {
   start: number;
@@ -515,7 +743,7 @@ function renderPriorityEditor(role: PriorityRole, values: string[]) {
   if (!values.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "priority-editor__empty";
-    placeholder.textContent = "No priorities";
+    setTranslatedElementText(placeholder, "priority-empty", "No priorities");
     container.appendChild(placeholder);
     return;
   }
@@ -533,7 +761,7 @@ function renderPriorityEditor(role: PriorityRole, values: string[]) {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "priority-editor__item-remove";
-    removeButton.setAttribute("aria-label", "Remove priority");
+    setTranslatedElementText(removeButton, "priority-remove", "Remove priority", "aria-label");
     removeButton.textContent = "×";
 
     item.appendChild(textNode);
@@ -547,7 +775,7 @@ function renderProfileList(settings: AppSettings) {
   if (!settings.profiles.length) {
     const empty = document.createElement("div");
     empty.className = "profile-list__empty";
-    empty.textContent = "No profiles";
+    setTranslatedElementText(empty, "profile-empty", "No profiles");
     profileListElement.appendChild(empty);
     return;
   }
@@ -568,7 +796,7 @@ function renderProfileList(settings: AppSettings) {
     if (profile.id === settings.defaultProfileId) {
       const badge = document.createElement("span");
       badge.className = "profile-list__badge";
-      badge.textContent = "Default";
+      setTranslatedElementText(badge, "default-badge", "Default");
       button.appendChild(badge);
     }
 
@@ -639,7 +867,7 @@ function renderJellyfinConfigList(settings: AppSettings) {
   if (configs.length === 0) {
     const empty = document.createElement("div");
     empty.className = "jellyfin-config-list__empty";
-    empty.textContent = "No servers configured";
+    setTranslatedElementText(empty, "jellyfin-no-servers", "No servers configured");
     jellyfinConfigListElement.appendChild(empty);
     return;
   }
@@ -669,10 +897,18 @@ function renderJellyfinConfigList(settings: AppSettings) {
     toggleInput.addEventListener("click", (event) => event.stopPropagation());
     const toggleText = document.createElement("span");
     toggleText.className = "toggle__text";
-    toggleText.textContent = config.enabled ? "Enabled" : "Disabled";
+    setTranslatedElementText(
+      toggleText,
+      config.enabled ? "jellyfin-config-enabled" : "jellyfin-config-disabled",
+      config.enabled ? "Enabled" : "Disabled"
+    );
     toggleInput.addEventListener("change", () => {
       const nextEnabled = toggleInput.checked;
-      toggleText.textContent = nextEnabled ? "Enabled" : "Disabled";
+      setTranslatedElementText(
+        toggleText,
+        nextEnabled ? "jellyfin-config-enabled" : "jellyfin-config-disabled",
+        nextEnabled ? "Enabled" : "Disabled"
+      );
       updateJellyfinConfig(config.id, (cfg) => ({
         ...cfg,
         enabled: nextEnabled
@@ -747,7 +983,10 @@ function handleJellyfinConfigDelete() {
   }
   
   if (currentSettings.jellyfin.configs.length <= 1 && currentSettings.jellyfin.enabled) {
-    window.alert("Cannot delete the last server while Jellyfin is enabled. Disable Jellyfin first or add another server.");
+    window.alert(translate(
+      "alert-delete-last-server",
+      "Cannot delete the last server while Jellyfin is enabled. Disable Jellyfin first or add another server."
+    ));
     return;
   }
   
@@ -794,15 +1033,25 @@ function handleProfileDelete() {
     return;
   }
   if (profile.id === currentSettings.defaultProfileId) {
-    window.alert("Cannot delete the default profile. Please change the default profile first.");
+    window.alert(
+      translate(
+        "alert-delete-default-profile",
+        "Cannot delete the default profile. Please change the default profile first."
+      )
+    );
     return;
   }
   if (currentSettings.profiles.length <= 1) {
-    window.alert("At least one profile must remain.");
+    window.alert(translate("alert-delete-last-profile", "At least one profile must remain."));
     return;
   }
   if (currentSettings.rules.some((rule) => rule.profileId === profile.id)) {
-    window.alert("This profile is still referenced by rules. Please modify or delete the related rules first.");
+    window.alert(
+      translate(
+        "alert-profile-referenced",
+        "This profile is still referenced by rules. Please modify or delete the related rules first."
+      )
+    );
     return;
   }
   const profiles = currentSettings.profiles.filter((item) => item.id !== profile.id);
@@ -848,7 +1097,7 @@ function renderRuleList() {
   if (!settings.rules.length) {
     const empty = document.createElement("div");
     empty.className = "rule-list__empty";
-    empty.textContent = "No rules";
+    setTranslatedElementText(empty, "rule-empty", "No rules");
     ruleListElement.appendChild(empty);
     return;
   }
@@ -870,7 +1119,8 @@ function renderRuleList() {
 
     const meta = document.createElement("div");
     meta.className = "rule-item__meta";
-    const matchLabel = MATCH_TYPE_LABELS[rule.matchType] ?? rule.matchType;
+    const fallbackMatch = MATCH_TYPE_LABELS[rule.matchType] ?? rule.matchType;
+    const matchLabel = translate(`rule-match-${rule.matchType}`, fallbackMatch ?? rule.matchType);
     meta.textContent = `${matchLabel}：${rule.pattern}`;
 
     header.appendChild(title);
@@ -879,17 +1129,26 @@ function renderRuleList() {
 
     const target = document.createElement("div");
     target.className = "rule-item__profile";
-    target.textContent = `Apply Profile: ${getProfileDisplayName(rule.profileId)}`;
+    const applyPrefix = translate("rule-apply-prefix", "Apply Profile: ");
+    target.textContent = `${applyPrefix}${getProfileDisplayName(rule.profileId)}`;
     item.appendChild(target);
 
     const actions = document.createElement("div");
     actions.className = "rule-item__actions";
-    const toggleButton = createRuleActionButton(rule.isEnabled ? "Disable" : "Enable", () => handleRuleToggle(rule.id));
-    const editButton = createRuleActionButton("Edit", () => handleRuleEdit(rule.id));
-    const deleteButton = createRuleActionButton("Delete", () => handleRuleDelete(rule.id));
-    const upButton = createRuleActionButton("Move Up", () => handleRuleMove(rule.id, -1), index === 0);
+    const toggleLabel = rule.isEnabled ? "rule-action-disable" : "rule-action-enable";
+    const toggleButton = createRuleActionButton(
+      translate(toggleLabel, rule.isEnabled ? "Disable" : "Enable"),
+      () => handleRuleToggle(rule.id)
+    );
+    const editButton = createRuleActionButton(translate("rule-action-edit", "Edit"), () => handleRuleEdit(rule.id));
+    const deleteButton = createRuleActionButton(translate("rule-action-delete", "Delete"), () => handleRuleDelete(rule.id));
+    const upButton = createRuleActionButton(
+      translate("rule-action-move-up", "Move Up"),
+      () => handleRuleMove(rule.id, -1),
+      index === 0
+    );
     const downButton = createRuleActionButton(
-      "Move Down",
+      translate("rule-action-move-down", "Move Down"),
       () => handleRuleMove(rule.id, +1),
       index === settings.rules.length - 1
     );
@@ -925,8 +1184,8 @@ function updateRuleProfileOptions() {
 function resetRuleForm() {
   editingRuleId = null;
   ruleFormInitialized = true;
-  ruleFormTitle.textContent = "Add Rule";
-  ruleSaveButton.textContent = "Add Rule";
+  setTranslatedElementText(ruleFormTitle, "rule-form-title", "Add Rule");
+  setTranslatedElementText(ruleSaveButton, "rule-form-submit-add", "Add Rule");
   ruleCancelButton.classList.add("is-hidden");
   ruleNameInput.value = "";
   rulePatternInput.value = "";
@@ -939,8 +1198,8 @@ function resetRuleForm() {
 
 function populateRuleForm(rule: ProfileRule) {
   editingRuleId = rule.id;
-  ruleFormTitle.textContent = "Edit Rule";
-  ruleSaveButton.textContent = "Save Rule";
+  setTranslatedElementText(ruleFormTitle, "rule-form-title-edit", "Edit Rule");
+  setTranslatedElementText(ruleSaveButton, "rule-form-submit-save", "Save Rule");
   ruleCancelButton.classList.remove("is-hidden");
   ruleNameInput.value = rule.name;
   rulePatternInput.value = rule.pattern;
@@ -1234,23 +1493,33 @@ function renderGameProcessBlacklist(values: string[]) {
   if (!gameProcessListElement) {
     return;
   }
+  gameProcessListElement.innerHTML = "";
   if (!values.length) {
-    gameProcessListElement.innerHTML =
-      '<div class="game-blacklist-editor__empty">None configured.</div>';
+    const empty = document.createElement("div");
+    empty.className = "game-blacklist-editor__empty";
+    setTranslatedElementText(empty, "game-blacklist-none", "None configured.");
+    gameProcessListElement.appendChild(empty);
     return;
   }
-  gameProcessListElement.innerHTML = values
-    .map(
-      (value, index) => `
-        <div class="game-blacklist-editor__item" data-index="${index}">
-          <span>${escapeHtml(value)}</span>
-          <button type="button" class="text-button game-blacklist-editor__item-remove">
-            Remove
-          </button>
-        </div>
-      `.trim()
-    )
-    .join("");
+
+  values.forEach((value, index) => {
+    const item = document.createElement("div");
+    item.className = "game-blacklist-editor__item";
+    item.dataset.index = String(index);
+
+    const name = document.createElement("span");
+    name.textContent = value;
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "text-button game-blacklist-editor__item-remove";
+    setTranslatedElementText(removeButton, "game-blacklist-remove", "Remove");
+    setTranslatedElementText(removeButton, "game-blacklist-remove", "Remove", "aria-label");
+    removeButton.addEventListener("click", () => handleGameProcessBlacklistRemove(index));
+
+    item.append(name, removeButton);
+    gameProcessListElement.appendChild(item);
+  });
 }
 
 function renderSubtitles(primaryTrack: SubtitleTrack | null, secondaryTrack: SubtitleTrack | null) {
@@ -1436,7 +1705,7 @@ function renderTrackSelectors(state: DesktopState) {
     placeholderPrimary.value = "";
     placeholderPrimary.disabled = true;
     placeholderPrimary.selected = true;
-    placeholderPrimary.textContent = "Primary Subtitle";
+    setTranslatedElementText(placeholderPrimary, "primary-track-placeholder", "Primary Subtitle");
     primaryTrackSelector.appendChild(placeholderPrimary);
 
     secondaryTrackSelector.innerHTML = "";
@@ -1444,7 +1713,7 @@ function renderTrackSelectors(state: DesktopState) {
     placeholderSecondary.value = "";
     placeholderSecondary.disabled = true;
     placeholderSecondary.selected = true;
-    placeholderSecondary.textContent = "Secondary Subtitle";
+    setTranslatedElementText(placeholderSecondary, "secondary-track-placeholder", "Secondary Subtitle");
     secondaryTrackSelector.appendChild(placeholderSecondary);
 
     lastTrackSignature = "";
@@ -1466,7 +1735,7 @@ function renderTrackSelectors(state: DesktopState) {
 
     const noneOption = document.createElement("option");
     noneOption.value = "";
-    noneOption.textContent = "None";
+    setTranslatedElementText(noneOption, "secondary-track-none", "None");
     secondaryTrackSelector.appendChild(noneOption);
 
     state.subtitleTracks.forEach((track) => {
@@ -1507,22 +1776,26 @@ function renderState(state: DesktopState) {
     syncPlaybackProfileSettings();
   }
 
-  const browserStatus = `Extension: ${state.connectionCount}`;
-  const jellyfinStatus = `Jellyfin: ${state.jellyfin.sessions.length}`;
+  const browserStatus = `${translate("connection-extension", "Extension")}: ${state.connectionCount}`;
+  const jellyfinStatus = `${translate("connection-jellyfin", "Jellyfin")}: ${state.jellyfin.sessions.length}`;
   connectionIndicator.textContent = `${browserStatus} · ${jellyfinStatus}`;
 
-  videoTitle.textContent = state.title ?? "Waiting for video...";
+  videoTitle.textContent = state.title ?? translate("status-waiting-video", "Waiting for video...");
   videoUrl.textContent = formatUrl(state.videoUrl);
 
   if (activeProfileLabel) {
     const profileName = state.appliedProfileName ?? "Default Profile";
+    const profileLabel = translate("active-profile-prefix", "Profile");
     if (state.appliedRulePattern) {
       const matchLabel = state.appliedRuleMatchType
-        ? MATCH_TYPE_LABELS[state.appliedRuleMatchType] ?? state.appliedRuleMatchType
-        : "Rule";
-      activeProfileLabel.textContent = `Profile: ${profileName} (${matchLabel}: ${state.appliedRulePattern})`;
+        ? translate(
+            `rule-match-${state.appliedRuleMatchType}`,
+            MATCH_TYPE_LABELS[state.appliedRuleMatchType] ?? state.appliedRuleMatchType ?? "Rule"
+          )
+        : translate("rule-match-label", "Rule");
+      activeProfileLabel.textContent = `${profileLabel}: ${profileName} (${matchLabel}: ${state.appliedRulePattern})`;
     } else {
-      activeProfileLabel.textContent = `Profile: ${profileName}`;
+      activeProfileLabel.textContent = `${profileLabel}: ${profileName}`;
     }
   }
 
@@ -1574,27 +1847,28 @@ function setPinnedState(level: "off" | "floating" | "screen-saver") {
   
   // Set appropriate class and icon based on level
   let icon: string;
-  let label: string;
   
+  let labelKey = "pin-label-unpinned";
   switch (level) {
     case "off":
       icon = PIN_ICON_OFF;
-      label = "Unpinned";
+      labelKey = "pin-label-unpinned";
       pinButton.setAttribute("aria-pressed", "false");
       break;
     case "floating":
       icon = PIN_ICON_FLOATING;
-      label = "Pinned (Normal)";
+      labelKey = "pin-label-floating";
       pinButton.classList.add("icon-button--active");
       pinButton.setAttribute("aria-pressed", "true");
       break;
     case "screen-saver":
       icon = PIN_ICON_SCREEN_SAVER;
-      label = "Pinned (Screen Saver)";
+      labelKey = "pin-label-screensaver";
       pinButton.classList.add("icon-button--active", "icon-button--screen-saver");
       pinButton.setAttribute("aria-pressed", "true");
       break;
   }
+  const label = translate(labelKey, labelKey === "pin-label-unpinned" ? "Unpinned" : labelKey === "pin-label-floating" ? "Pinned (Normal)" : "Pinned (Screen Saver)");
   
   if (pinIconElement) {
     pinIconElement.textContent = icon;
@@ -1837,6 +2111,11 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
 
 function renderSettings(settings: AppSettings) {
   currentSettings = settings;
+  const normalizedLanguage = normalizeLanguageCode(settings.global.language);
+  syncLanguageFromSettings(normalizedLanguage);
+  if (languageSelect) {
+    languageSelect.value = normalizedLanguage;
+  }
   setPinnedState(settings.global.alwaysOnTop);
   setFullscreenButtonState(false);
   applyPanelOpacity(settings.global.panelOpacity ?? DEFAULT_PANEL_OPACITY);
@@ -2003,6 +2282,10 @@ settingsButton.addEventListener("click", () => {
 settingsBackButton.addEventListener("click", () => {
   setSettingsOpen(false);
 });
+
+if (languageSelect) {
+  languageSelect.addEventListener("change", handleLanguageSelectionChange);
+}
 
 if (pinButton) {
   pinButton.addEventListener("click", () => {
@@ -2647,7 +2930,12 @@ async function bootstrap() {
     renderState(initialState);
   } catch (error) {
     console.error("[Renderer] Failed to get initial state:", error);
-    statusBanner.textContent = `Failed to get initial state: ${error instanceof Error ? error.message : String(error)}`;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    statusBanner.textContent = formatTranslation(
+      "status-failed-init",
+      "Failed to get initial state: {error}",
+      { error: errorMessage }
+    );
     statusBanner.className = "status-banner status-banner--error";
   }
 
@@ -2759,41 +3047,65 @@ cacheOpenFolderButton.addEventListener("click", async () => {
     await window.usp.openCacheFolder();
   } catch (error) {
     console.error('[Renderer] Failed to open cache folder:', error);
-    alert(`Failed to open cache folder: ${error instanceof Error ? error.message : String(error)}`);
+    alert(
+      formatTranslation(
+        "cache-open-error",
+        "Failed to open cache folder: {error}",
+        { error: error instanceof Error ? error.message : String(error) }
+      )
+    );
   }
 });
 
 cacheCleanupButton.addEventListener("click", async () => {
   try {
     cacheCleanupButton.disabled = true;
-    cacheCleanupButton.textContent = "Cleaning up...";
+    setTranslatedElementText(cacheCleanupButton, "cache-cleanup-progress", "Cleaning up...");
     const result = await window.usp.cleanupCache();
-    alert(`Cleanup completed! Removed ${result.removedCount} expired entries.`);
+    alert(
+      formatTranslation(
+        "cache-cleanup-success",
+        "Cleanup completed! Removed {count} expired entries.",
+        { count: String(result.removedCount) }
+      )
+    );
     await refreshCacheStats();
   } catch (error) {
     console.error('[Renderer] Failed to cleanup cache:', error);
-    alert(`Failed to cleanup cache: ${error instanceof Error ? error.message : String(error)}`);
+    alert(
+      formatTranslation(
+        "cache-cleanup-failure",
+        "Failed to cleanup cache: {error}",
+        { error: error instanceof Error ? error.message : String(error) }
+      )
+    );
   } finally {
     cacheCleanupButton.disabled = false;
-    cacheCleanupButton.textContent = "Clean Up Expired";
+    setTranslatedElementText(cacheCleanupButton, "button-cleanup", "Clean Up Expired");
   }
 });
 
 cacheClearButton.addEventListener("click", async () => {
-  if (!confirm("Are you sure you want to clear all cached subtitles? This cannot be undone.")) {
+  if (!confirm(translate("cache-clear-confirm", "Are you sure you want to clear all cached subtitles? This cannot be undone."))) {
     return;
   }
   try {
     cacheClearButton.disabled = true;
-    cacheClearButton.textContent = "Clearing...";
+    setTranslatedElementText(cacheClearButton, "cache-clear-progress", "Clearing...");
     await window.usp.clearCache();
-    alert("Cache cleared successfully!");
+    alert(translate("cache-clear-success", "Cache cleared successfully!"));
     await refreshCacheStats();
   } catch (error) {
     console.error('[Renderer] Failed to clear cache:', error);
-    alert(`Failed to clear cache: ${error instanceof Error ? error.message : String(error)}`);
+    alert(
+      formatTranslation(
+        "cache-clear-failure",
+        "Failed to clear cache: {error}",
+        { error: error instanceof Error ? error.message : String(error) }
+      )
+    );
   } finally {
     cacheClearButton.disabled = false;
-    cacheClearButton.textContent = "Clear All Cache";
+    setTranslatedElementText(cacheClearButton, "button-clear-cache", "Clear All Cache");
   }
 });

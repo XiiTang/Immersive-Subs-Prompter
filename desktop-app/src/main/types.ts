@@ -103,6 +103,7 @@ export interface GlobalSettings {
   autoHideActiveZoneHeight: number;
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
+  language: string;
 }
 
 export interface JellyfinConfig {

@@ -27,6 +27,8 @@ const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR = "#fff8dc";
 const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR = "#fff9c4";
 
 const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
+const SUPPORTED_LANGUAGES = ["en", "zh"];
+const DEFAULT_LANGUAGE = "en";
 
 const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   closeBehavior: "tray",
@@ -36,7 +38,8 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoHidePanels: false,
   autoHideActiveZoneHeight: DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
   alwaysOnTop: "off",
-  panelOpacity: 100
+  panelOpacity: 100,
+  language: DEFAULT_LANGUAGE
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -247,6 +250,12 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
     panelOpacity = DEFAULT_GLOBAL_SETTINGS.panelOpacity;
   }
   panelOpacity = Math.min(100, Math.max(0, Math.round(panelOpacity)));
+  const languageCandidate =
+    typeof source.language === "string" ? source.language.trim().toLowerCase() : "";
+  const language =
+    languageCandidate && SUPPORTED_LANGUAGES.includes(languageCandidate)
+      ? languageCandidate
+      : DEFAULT_GLOBAL_SETTINGS.language;
   return {
     closeBehavior,
     autoLaunch,
@@ -255,7 +264,8 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
     autoHidePanels,
     autoHideActiveZoneHeight,
     alwaysOnTop,
-    panelOpacity
+    panelOpacity,
+    language
   };
 }
 
