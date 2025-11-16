@@ -37,6 +37,10 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   subtitleFontFamily: "",
   subtitleFontSize: 14,
+  subtitleLineSpacing: 0,
+  subtitleTimeTextGap: 2,
+  subtitlePrimarySecondaryGap: 3,
+  subtitleLineHeight: 1.45,
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
@@ -125,6 +129,30 @@ function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefi
   }
   subtitleFontSize = Math.min(48, Math.max(10, Math.round(subtitleFontSize)));
 
+  let subtitleLineSpacing = Number(source.subtitleLineSpacing);
+  if (!Number.isFinite(subtitleLineSpacing)) {
+    subtitleLineSpacing = DEFAULT_PROFILE_SETTINGS.subtitleLineSpacing;
+  }
+  subtitleLineSpacing = Math.min(60, Math.max(0, Math.round(subtitleLineSpacing)));
+
+  let subtitleTimeTextGap = Number(source.subtitleTimeTextGap);
+  if (!Number.isFinite(subtitleTimeTextGap)) {
+    subtitleTimeTextGap = DEFAULT_PROFILE_SETTINGS.subtitleTimeTextGap;
+  }
+  subtitleTimeTextGap = Math.min(60, Math.max(0, Math.round(subtitleTimeTextGap)));
+
+  let subtitlePrimarySecondaryGap = Number(source.subtitlePrimarySecondaryGap);
+  if (!Number.isFinite(subtitlePrimarySecondaryGap)) {
+    subtitlePrimarySecondaryGap = DEFAULT_PROFILE_SETTINGS.subtitlePrimarySecondaryGap;
+  }
+  subtitlePrimarySecondaryGap = Math.min(60, Math.max(0, Math.round(subtitlePrimarySecondaryGap)));
+
+  let subtitleLineHeight = Number(source.subtitleLineHeight);
+  if (!Number.isFinite(subtitleLineHeight)) {
+    subtitleLineHeight = DEFAULT_PROFILE_SETTINGS.subtitleLineHeight;
+  }
+  subtitleLineHeight = Number(Math.min(3, Math.max(1, subtitleLineHeight)).toFixed(2));
+
   const ytDlpArgs = typeof source.ytDlpArgs === "string" ? source.ytDlpArgs.trim() : DEFAULT_PROFILE_SETTINGS.ytDlpArgs;
 
   let subtitleAutoScrollTimeout = Number(source.subtitleAutoScrollTimeout);
@@ -145,6 +173,10 @@ function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefi
   return {
     subtitleFontFamily,
     subtitleFontSize,
+    subtitleLineSpacing,
+    subtitleTimeTextGap,
+    subtitlePrimarySecondaryGap,
+    subtitleLineHeight,
     ytDlpArgs,
     subtitleAutoScrollTimeout,
     subtitleScrollPosition,

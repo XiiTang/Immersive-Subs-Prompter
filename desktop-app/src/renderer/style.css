@@ -4,6 +4,10 @@
   font-size: 14px;
   --subtitle-font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --subtitle-font-size: 14px;
+  --subtitle-line-spacing: 0px;
+  --subtitle-time-text-gap: 2px;
+  --subtitle-primary-secondary-gap: 3px;
+  --subtitle-line-height: 1.45;
   --panel-opacity-factor: 1;
   --auto-hide-zone-height: 300px;
 }
@@ -914,13 +918,13 @@ body {
   padding: 12px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--subtitle-line-spacing, 0px);
   min-height: 0;
   scroll-behavior: smooth;
   user-select: text;
   font-family: var(--subtitle-font-family);
   font-size: var(--subtitle-font-size);
-  line-height: 1.45;
+  line-height: var(--subtitle-line-height, 1.45);
 }
 
 .subtitle-list::-webkit-scrollbar {
@@ -948,11 +952,11 @@ body {
   border: none;
   transition: color 0.2s ease, border-color 0.2s ease;
   font-size: var(--subtitle-font-size);
-  line-height: 1.45;
+  line-height: var(--subtitle-line-height, 1.45);
   font-family: var(--subtitle-font-family);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--subtitle-time-text-gap, 2px);
   user-select: text;
 }
 
@@ -1056,6 +1060,7 @@ body {
   font-size: calc(var(--subtitle-font-size) - 1px);
   color: #c7d2fe;
   opacity: 0.85;
+  margin-top: var(--subtitle-primary-secondary-gap, 0px);
 }
 
 .subtitle-item--active {

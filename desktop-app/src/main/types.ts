@@ -126,6 +126,10 @@ export interface SubtitleCacheSettings {
 export interface ProfileSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
+  subtitleLineSpacing: number;
+  subtitleTimeTextGap: number;
+  subtitlePrimarySecondaryGap: number;
+  subtitleLineHeight: number;
   ytDlpArgs: string;
   subtitleAutoScrollTimeout: number;
   subtitleScrollPosition: number;

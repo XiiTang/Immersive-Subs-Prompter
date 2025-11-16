@@ -252,6 +252,70 @@
                     <input type="range" id="subtitle-scroll-position" min="0" max="100" step="1" class="slider" />
                     <small class="settings-field__hint">Position of active subtitle in panel (0%=top, 50%=center, 100%=bottom)</small>
                   </label>
+                  <label class="settings-field">
+                    <div class="settings-field__label-row">
+                      <span class="settings-field__label">字幕行间距</span>
+                      <span class="settings-field__value" id="subtitle-line-spacing-value">0px</span>
+                    </div>
+                    <input
+                      type="range"
+                      id="subtitle-line-spacing"
+                      min="0"
+                      max="60"
+                      step="1"
+                      class="slider"
+                      aria-label="Subtitle line spacing"
+                    />
+                    <small class="settings-field__hint">调整字幕条之间的垂直间距</small>
+                  </label>
+                  <label class="settings-field">
+                    <div class="settings-field__label-row">
+                      <span class="settings-field__label">时间戳与文本间距</span>
+                      <span class="settings-field__value" id="subtitle-time-text-gap-value">2px</span>
+                    </div>
+                    <input
+                      type="range"
+                      id="subtitle-time-text-gap"
+                      min="0"
+                      max="60"
+                      step="1"
+                      class="slider"
+                      aria-label="Time stamp to text gap"
+                    />
+                    <small class="settings-field__hint">控制时间戳部分与字幕文本之间的距离</small>
+                  </label>
+                  <label class="settings-field">
+                    <div class="settings-field__label-row">
+                      <span class="settings-field__label">主字幕与次字幕间距</span>
+                      <span class="settings-field__value" id="subtitle-primary-secondary-gap-value">3px</span>
+                    </div>
+                    <input
+                      type="range"
+                      id="subtitle-primary-secondary-gap"
+                      min="0"
+                      max="60"
+                      step="1"
+                      class="slider"
+                      aria-label="Primary to secondary subtitle gap"
+                    />
+                    <small class="settings-field__hint">调整主字幕与次字幕之间的垂直间距</small>
+                  </label>
+                  <label class="settings-field">
+                    <div class="settings-field__label-row">
+                      <span class="settings-field__label">行高 line-height</span>
+                      <span class="settings-field__value" id="subtitle-line-height-value">1.45</span>
+                    </div>
+                    <input
+                      type="range"
+                      id="subtitle-line-height"
+                      min="1"
+                      max="3"
+                      step="0.05"
+                      class="slider"
+                      aria-label="Subtitle line height"
+                    />
+                    <small class="settings-field__hint">控制字幕文本的行高，用于改善可读性</small>
+                  </label>
                   <section class="settings-field priority-editor">
                     <div class="priority-editor__header">
                       <span class="settings-field__label">Primary Subtitle Priority</span>

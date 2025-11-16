@@ -46,6 +46,14 @@ const subtitleFontSizeInput = document.getElementById("subtitle-font-size") as H
 const subtitleAutoScrollTimeoutInput = document.getElementById("subtitle-auto-scroll-timeout") as HTMLInputElement;
 const subtitleScrollPositionInput = document.getElementById("subtitle-scroll-position") as HTMLInputElement;
 const subtitleScrollPositionValue = document.getElementById("subtitle-scroll-position-value") as HTMLElement;
+const subtitleLineSpacingInput = document.getElementById("subtitle-line-spacing") as HTMLInputElement;
+const subtitleLineSpacingValue = document.getElementById("subtitle-line-spacing-value") as HTMLElement;
+const subtitleTimeTextGapInput = document.getElementById("subtitle-time-text-gap") as HTMLInputElement;
+const subtitleTimeTextGapValue = document.getElementById("subtitle-time-text-gap-value") as HTMLElement;
+const subtitlePrimarySecondaryGapInput = document.getElementById("subtitle-primary-secondary-gap") as HTMLInputElement;
+const subtitlePrimarySecondaryGapValue = document.getElementById("subtitle-primary-secondary-gap-value") as HTMLElement;
+const subtitleLineHeightInput = document.getElementById("subtitle-line-height") as HTMLInputElement;
+const subtitleLineHeightValue = document.getElementById("subtitle-line-height-value") as HTMLElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const jellyfinEnabledToggle = document.getElementById("jellyfin-enabled") as HTMLInputElement | null;
 const jellyfinConfigListElement = document.getElementById("jellyfin-config-list") as HTMLElement;
@@ -111,6 +119,10 @@ const DEFAULT_SUBTITLE_FONT_SIZE =
 const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   subtitleFontFamily: "",
   subtitleFontSize: DEFAULT_SUBTITLE_FONT_SIZE,
+  subtitleLineSpacing: 0,
+  subtitleTimeTextGap: 2,
+  subtitlePrimarySecondaryGap: 3,
+  subtitleLineHeight: 1.45,
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
@@ -231,6 +243,10 @@ function cloneProfileSettings(settings: ProfileSettings): ProfileSettings {
   return {
     subtitleFontFamily: settings.subtitleFontFamily,
     subtitleFontSize: settings.subtitleFontSize,
+    subtitleLineSpacing: settings.subtitleLineSpacing,
+    subtitleTimeTextGap: settings.subtitleTimeTextGap,
+    subtitlePrimarySecondaryGap: settings.subtitlePrimarySecondaryGap,
+    subtitleLineHeight: settings.subtitleLineHeight,
     ytDlpArgs: settings.ytDlpArgs,
     subtitleAutoScrollTimeout: settings.subtitleAutoScrollTimeout,
     subtitleScrollPosition: settings.subtitleScrollPosition,
@@ -559,6 +575,21 @@ function renderProfileEditor() {
   subtitleAutoScrollTimeoutInput.value = String(settings.subtitleAutoScrollTimeout);
   subtitleScrollPositionInput.value = String(settings.subtitleScrollPosition);
   subtitleScrollPositionValue.textContent = `${settings.subtitleScrollPosition}%`;
+  const lineSpacing = settings.subtitleLineSpacing ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineSpacing;
+  subtitleLineSpacingInput.value = String(lineSpacing);
+  subtitleLineSpacingValue.textContent = `${lineSpacing}px`;
+  const timeTextGap = settings.subtitleTimeTextGap ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimeTextGap;
+  subtitleTimeTextGapInput.value = String(timeTextGap);
+  subtitleTimeTextGapValue.textContent = `${timeTextGap}px`;
+  const primarySecondaryGap =
+    settings.subtitlePrimarySecondaryGap ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimarySecondaryGap;
+  subtitlePrimarySecondaryGapInput.value = String(primarySecondaryGap);
+  subtitlePrimarySecondaryGapValue.textContent = `${primarySecondaryGap}px`;
+  const lineHeight =
+    settings.subtitleLineHeight ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight;
+  const formattedLineHeight = Number(lineHeight).toFixed(2);
+  subtitleLineHeightInput.value = formattedLineHeight;
+  subtitleLineHeightValue.textContent = formattedLineHeight;
   ytDlpArgsInput.placeholder = DEFAULT_YTDLP_ARGS;
   if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
     ytDlpArgsInput.value = settings.ytDlpArgs;
@@ -1689,13 +1720,37 @@ function handleAutoHidePointerExit(event: MouseEvent) {
 }
 
 function applySubtitleStyles(settings: ProfileSettings | null) {
+  const normalizeNumber = (value: number, fallback: number): number =>
+    Number.isFinite(value) ? value : fallback;
+
   const family = settings?.subtitleFontFamily?.trim();
   const fontSize = Number(settings?.subtitleFontSize ?? DEFAULT_SUBTITLE_FONT_SIZE) || DEFAULT_SUBTITLE_FONT_SIZE;
+  const lineSpacing = normalizeNumber(
+    Number(settings?.subtitleLineSpacing ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineSpacing),
+    DEFAULT_PROFILE_TEMPLATE.subtitleLineSpacing
+  );
+  const timeTextGap = normalizeNumber(
+    Number(settings?.subtitleTimeTextGap ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimeTextGap),
+    DEFAULT_PROFILE_TEMPLATE.subtitleTimeTextGap
+  );
+  const primarySecondaryGap = normalizeNumber(
+    Number(settings?.subtitlePrimarySecondaryGap ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimarySecondaryGap),
+    DEFAULT_PROFILE_TEMPLATE.subtitlePrimarySecondaryGap
+  );
+  const lineHeight = normalizeNumber(
+    Number(settings?.subtitleLineHeight ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight),
+    DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight
+  );
+
   rootElement.style.setProperty(
     "--subtitle-font-family",
     family && family.length ? family : DEFAULT_SUBTITLE_FONT_FAMILY
   );
   rootElement.style.setProperty("--subtitle-font-size", `${fontSize}px`);
+  rootElement.style.setProperty("--subtitle-line-spacing", `${lineSpacing}px`);
+  rootElement.style.setProperty("--subtitle-time-text-gap", `${timeTextGap}px`);
+  rootElement.style.setProperty("--subtitle-primary-secondary-gap", `${primarySecondaryGap}px`);
+  rootElement.style.setProperty("--subtitle-line-height", lineHeight.toString());
 }
 
 function renderSettings(settings: AppSettings) {
@@ -2147,6 +2202,108 @@ subtitleScrollPositionInput.addEventListener("change", () => {
   updateEditingProfileSettings((settings) => ({
     ...settings,
     subtitleScrollPosition: nextValue
+  }));
+});
+
+subtitleLineSpacingInput.addEventListener("input", () => {
+  subtitleLineSpacingValue.textContent = `${subtitleLineSpacingInput.value}px`;
+});
+
+subtitleLineSpacingInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitleLineSpacingInput.value, 10);
+  if (!Number.isFinite(nextValue)) {
+    const profile = ensureEditingProfile();
+    const fallback = profile?.settings.subtitleLineSpacing ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineSpacing;
+    subtitleLineSpacingInput.value = String(fallback);
+    subtitleLineSpacingValue.textContent = `${fallback}px`;
+    return;
+  }
+  const profile = ensureEditingProfile();
+  if (!profile || profile.settings.subtitleLineSpacing === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleLineSpacing: nextValue
+  }));
+});
+
+subtitleTimeTextGapInput.addEventListener("input", () => {
+  subtitleTimeTextGapValue.textContent = `${subtitleTimeTextGapInput.value}px`;
+});
+
+subtitleTimeTextGapInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitleTimeTextGapInput.value, 10);
+  if (!Number.isFinite(nextValue)) {
+    const profile = ensureEditingProfile();
+    const fallback = profile?.settings.subtitleTimeTextGap ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimeTextGap;
+    subtitleTimeTextGapInput.value = String(fallback);
+    subtitleTimeTextGapValue.textContent = `${fallback}px`;
+    return;
+  }
+  const profile = ensureEditingProfile();
+  if (!profile || profile.settings.subtitleTimeTextGap === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleTimeTextGap: nextValue
+  }));
+});
+
+subtitlePrimarySecondaryGapInput.addEventListener("input", () => {
+  subtitlePrimarySecondaryGapValue.textContent = `${subtitlePrimarySecondaryGapInput.value}px`;
+});
+
+subtitlePrimarySecondaryGapInput.addEventListener("change", () => {
+  const nextValue = Number.parseInt(subtitlePrimarySecondaryGapInput.value, 10);
+  if (!Number.isFinite(nextValue)) {
+    const profile = ensureEditingProfile();
+    const fallback =
+      profile?.settings.subtitlePrimarySecondaryGap ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimarySecondaryGap;
+    subtitlePrimarySecondaryGapInput.value = String(fallback);
+    subtitlePrimarySecondaryGapValue.textContent = `${fallback}px`;
+    return;
+  }
+  const profile = ensureEditingProfile();
+  if (!profile || profile.settings.subtitlePrimarySecondaryGap === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitlePrimarySecondaryGap: nextValue
+  }));
+});
+
+subtitleLineHeightInput.addEventListener("input", () => {
+  const parsed = Number.parseFloat(subtitleLineHeightInput.value);
+  subtitleLineHeightValue.textContent = Number.isFinite(parsed)
+    ? parsed.toFixed(2)
+    : DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight.toFixed(2);
+});
+
+subtitleLineHeightInput.addEventListener("change", () => {
+  const nextValue = Number.parseFloat(subtitleLineHeightInput.value);
+  if (!Number.isFinite(nextValue)) {
+    const profile = ensureEditingProfile();
+    const fallback = profile?.settings.subtitleLineHeight ?? DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight;
+    const formatted = Number(fallback).toFixed(2);
+    subtitleLineHeightInput.value = formatted;
+    subtitleLineHeightValue.textContent = formatted;
+    return;
+  }
+  const normalized = Number(Math.min(3, Math.max(1, nextValue)).toFixed(2));
+  const profile = ensureEditingProfile();
+  if (!profile || profile.settings.subtitleLineHeight === normalized) {
+    subtitleLineHeightInput.value = normalized.toFixed(2);
+    subtitleLineHeightValue.textContent = normalized.toFixed(2);
+    return;
+  }
+  subtitleLineHeightInput.value = normalized.toFixed(2);
+  subtitleLineHeightValue.textContent = normalized.toFixed(2);
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleLineHeight: normalized
   }));
 });
 
