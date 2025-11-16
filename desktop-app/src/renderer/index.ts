@@ -288,6 +288,13 @@ const CHINESE_TRANSLATIONS: Record<string, string> = {
   "status-waiting-video": "等待视频...",
   "status-initializing": "初始化中...",
   "status-failed-init": "获取初始状态失败：{error}",
+  "status-idle": "等待扩展连接...",
+  "status-awaiting-video": "请在浏览器中打开受支持的视频",
+  "status-loading-subtitles": "正在下载字幕...",
+  "status-ready": "字幕加载完成",
+  "status-error": "字幕加载失败",
+  "status-unknown": "未知状态",
+  "status-error-detail": "字幕加载失败：{error}",
   "pin-label-unpinned": "未置顶",
   "pin-label-floating": "置顶（普通）",
   "pin-label-screensaver": "置顶（屏保）",
@@ -366,6 +373,9 @@ function handleLanguageSelectionChange() {
   const selected = normalizeLanguageCode(languageSelect.value);
   currentLanguage = selected;
   applyTranslationEntries(selected);
+  if (currentStateSnapshot) {
+    renderState(currentStateSnapshot);
+  }
   if (currentSettings && currentSettings.global.language !== selected) {
     updateSettings({
       global: {
@@ -645,17 +655,40 @@ function escapeHtml(input: string): string {
 function formatStatus(state: DesktopState): { text: string; modifier: string } {
   switch (state.status) {
     case "idle":
-      return { text: "Waiting for extension connection...", modifier: "" };
+      return {
+        text: translate("status-idle", "Waiting for extension connection..."),
+        modifier: ""
+      };
     case "awaiting-video":
-      return { text: "Please open a supported video in your browser", modifier: "" };
+      return {
+        text: translate("status-awaiting-video", "Please open a supported video in your browser"),
+        modifier: ""
+      };
     case "loading-subtitles":
-      return { text: "Downloading subtitles...", modifier: "" };
+      return {
+        text: translate("status-loading-subtitles", "Downloading subtitles..."),
+        modifier: ""
+      };
     case "ready":
-      return { text: "Subtitles loaded", modifier: "status-banner--ready" };
-    case "error":
-      return { text: state.error ?? "Subtitle loading failed", modifier: "status-banner--error" };
+      return {
+        text: translate("status-ready", "Subtitles loaded"),
+        modifier: "status-banner--ready"
+      };
+    case "error": {
+      const errorText = state.error
+        ? formatTranslation(
+            "status-error-detail",
+            "Subtitle loading failed: {error}",
+            { error: state.error }
+          )
+        : translate("status-error", "Subtitle loading failed");
+      return {
+        text: errorText,
+        modifier: "status-banner--error"
+      };
+    }
     default:
-      return { text: "Unknown status", modifier: "" };
+      return { text: translate("status-unknown", "Unknown status"), modifier: "" };
   }
 }
 
