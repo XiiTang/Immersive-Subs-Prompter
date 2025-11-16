@@ -130,6 +130,10 @@ export interface ProfileSettings {
   subtitleTimeTextGap: number;
   subtitlePrimarySecondaryGap: number;
   subtitleLineHeight: number;
+  subtitlePrimaryColor: string;
+  subtitleSecondaryColor: string;
+  subtitleActivePrimaryColor: string;
+  subtitleActiveSecondaryColor: string;
   ytDlpArgs: string;
   subtitleAutoScrollTimeout: number;
   subtitleScrollPosition: number;

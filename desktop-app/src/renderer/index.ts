@@ -54,6 +54,10 @@ const subtitlePrimarySecondaryGapInput = document.getElementById("subtitle-prima
 const subtitlePrimarySecondaryGapValue = document.getElementById("subtitle-primary-secondary-gap-value") as HTMLElement;
 const subtitleLineHeightInput = document.getElementById("subtitle-line-height") as HTMLInputElement;
 const subtitleLineHeightValue = document.getElementById("subtitle-line-height-value") as HTMLElement;
+const subtitlePrimaryColorInput = document.getElementById("subtitle-primary-color") as HTMLInputElement;
+const subtitleSecondaryColorInput = document.getElementById("subtitle-secondary-color") as HTMLInputElement;
+const subtitleActivePrimaryColorInput = document.getElementById("subtitle-active-primary-color") as HTMLInputElement;
+const subtitleActiveSecondaryColorInput = document.getElementById("subtitle-active-secondary-color") as HTMLInputElement;
 const ytDlpArgsInput = document.getElementById("yt-dlp-args") as HTMLTextAreaElement;
 const jellyfinEnabledToggle = document.getElementById("jellyfin-enabled") as HTMLInputElement | null;
 const jellyfinConfigListElement = document.getElementById("jellyfin-config-list") as HTMLElement;
@@ -116,6 +120,14 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
   '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
 const DEFAULT_SUBTITLE_FONT_SIZE =
   parseInt(computedStyles.getPropertyValue("--subtitle-font-size"), 10) || 14;
+const DEFAULT_SUBTITLE_PRIMARY_COLOR =
+  computedStyles.getPropertyValue("--subtitle-primary-text-color").trim() || "#f5f5f5";
+const DEFAULT_SUBTITLE_SECONDARY_COLOR =
+  computedStyles.getPropertyValue("--subtitle-secondary-text-color").trim() || "#c7d2fe";
+const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR =
+  computedStyles.getPropertyValue("--subtitle-active-primary-text-color").trim() || "#fff8dc";
+const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR =
+  computedStyles.getPropertyValue("--subtitle-active-secondary-text-color").trim() || "#fff9c4";
 const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   subtitleFontFamily: "",
   subtitleFontSize: DEFAULT_SUBTITLE_FONT_SIZE,
@@ -123,6 +135,10 @@ const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   subtitleTimeTextGap: 2,
   subtitlePrimarySecondaryGap: 3,
   subtitleLineHeight: 1.45,
+  subtitlePrimaryColor: DEFAULT_SUBTITLE_PRIMARY_COLOR,
+  subtitleSecondaryColor: DEFAULT_SUBTITLE_SECONDARY_COLOR,
+  subtitleActivePrimaryColor: DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR,
+  subtitleActiveSecondaryColor: DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR,
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
@@ -247,6 +263,10 @@ function cloneProfileSettings(settings: ProfileSettings): ProfileSettings {
     subtitleTimeTextGap: settings.subtitleTimeTextGap,
     subtitlePrimarySecondaryGap: settings.subtitlePrimarySecondaryGap,
     subtitleLineHeight: settings.subtitleLineHeight,
+    subtitlePrimaryColor: settings.subtitlePrimaryColor,
+    subtitleSecondaryColor: settings.subtitleSecondaryColor,
+    subtitleActivePrimaryColor: settings.subtitleActivePrimaryColor,
+    subtitleActiveSecondaryColor: settings.subtitleActiveSecondaryColor,
     ytDlpArgs: settings.ytDlpArgs,
     subtitleAutoScrollTimeout: settings.subtitleAutoScrollTimeout,
     subtitleScrollPosition: settings.subtitleScrollPosition,
@@ -590,6 +610,14 @@ function renderProfileEditor() {
   const formattedLineHeight = Number(lineHeight).toFixed(2);
   subtitleLineHeightInput.value = formattedLineHeight;
   subtitleLineHeightValue.textContent = formattedLineHeight;
+  subtitlePrimaryColorInput.value =
+    settings.subtitlePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimaryColor;
+  subtitleSecondaryColorInput.value =
+    settings.subtitleSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleSecondaryColor;
+  subtitleActivePrimaryColorInput.value =
+    settings.subtitleActivePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActivePrimaryColor;
+  subtitleActiveSecondaryColorInput.value =
+    settings.subtitleActiveSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActiveSecondaryColor;
   ytDlpArgsInput.placeholder = DEFAULT_YTDLP_ARGS;
   if (ytDlpArgsInput.value !== settings.ytDlpArgs) {
     ytDlpArgsInput.value = settings.ytDlpArgs;
@@ -1751,6 +1779,30 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
   rootElement.style.setProperty("--subtitle-time-text-gap", `${timeTextGap}px`);
   rootElement.style.setProperty("--subtitle-primary-secondary-gap", `${primarySecondaryGap}px`);
   rootElement.style.setProperty("--subtitle-line-height", lineHeight.toString());
+  const normalizeColorValue = (value: string | undefined | null, fallback: string): string => {
+    const trimmed = value?.trim();
+    return trimmed && trimmed.length ? trimmed : fallback;
+  };
+  const primaryColor = normalizeColorValue(
+    settings?.subtitlePrimaryColor,
+    DEFAULT_PROFILE_TEMPLATE.subtitlePrimaryColor
+  );
+  const secondaryColor = normalizeColorValue(
+    settings?.subtitleSecondaryColor,
+    DEFAULT_PROFILE_TEMPLATE.subtitleSecondaryColor
+  );
+  const activePrimaryColor = normalizeColorValue(
+    settings?.subtitleActivePrimaryColor,
+    DEFAULT_PROFILE_TEMPLATE.subtitleActivePrimaryColor
+  );
+  const activeSecondaryColor = normalizeColorValue(
+    settings?.subtitleActiveSecondaryColor,
+    DEFAULT_PROFILE_TEMPLATE.subtitleActiveSecondaryColor
+  );
+  rootElement.style.setProperty("--subtitle-primary-text-color", primaryColor);
+  rootElement.style.setProperty("--subtitle-secondary-text-color", secondaryColor);
+  rootElement.style.setProperty("--subtitle-active-primary-text-color", activePrimaryColor);
+  rootElement.style.setProperty("--subtitle-active-secondary-text-color", activeSecondaryColor);
 }
 
 function renderSettings(settings: AppSettings) {
@@ -2304,6 +2356,66 @@ subtitleLineHeightInput.addEventListener("change", () => {
   updateEditingProfileSettings((settings) => ({
     ...settings,
     subtitleLineHeight: normalized
+  }));
+});
+
+subtitlePrimaryColorInput.addEventListener("change", () => {
+  const profile = ensureEditingProfile();
+  if (!profile) {
+    return;
+  }
+  const nextValue = subtitlePrimaryColorInput.value.trim();
+  if (!nextValue || profile.settings.subtitlePrimaryColor === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitlePrimaryColor: nextValue
+  }));
+});
+
+subtitleSecondaryColorInput.addEventListener("change", () => {
+  const profile = ensureEditingProfile();
+  if (!profile) {
+    return;
+  }
+  const nextValue = subtitleSecondaryColorInput.value.trim();
+  if (!nextValue || profile.settings.subtitleSecondaryColor === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleSecondaryColor: nextValue
+  }));
+});
+
+subtitleActivePrimaryColorInput.addEventListener("change", () => {
+  const profile = ensureEditingProfile();
+  if (!profile) {
+    return;
+  }
+  const nextValue = subtitleActivePrimaryColorInput.value.trim();
+  if (!nextValue || profile.settings.subtitleActivePrimaryColor === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleActivePrimaryColor: nextValue
+  }));
+});
+
+subtitleActiveSecondaryColorInput.addEventListener("change", () => {
+  const profile = ensureEditingProfile();
+  if (!profile) {
+    return;
+  }
+  const nextValue = subtitleActiveSecondaryColorInput.value.trim();
+  if (!nextValue || profile.settings.subtitleActiveSecondaryColor === nextValue) {
+    return;
+  }
+  updateEditingProfileSettings((settings) => ({
+    ...settings,
+    subtitleActiveSecondaryColor: nextValue
   }));
 });
 

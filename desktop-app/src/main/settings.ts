@@ -21,6 +21,11 @@ export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --coo
 export const DEFAULT_PROFILE_ID = "default-profile";
 const DEFAULT_PROFILE_NAME = "Default Profile";
 
+const DEFAULT_SUBTITLE_PRIMARY_COLOR = "#f5f5f5";
+const DEFAULT_SUBTITLE_SECONDARY_COLOR = "#c7d2fe";
+const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR = "#fff8dc";
+const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR = "#fff9c4";
+
 const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
 
 const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
@@ -41,6 +46,10 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   subtitleTimeTextGap: 2,
   subtitlePrimarySecondaryGap: 3,
   subtitleLineHeight: 1.45,
+  subtitlePrimaryColor: DEFAULT_SUBTITLE_PRIMARY_COLOR,
+  subtitleSecondaryColor: DEFAULT_SUBTITLE_SECONDARY_COLOR,
+  subtitleActivePrimaryColor: DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR,
+  subtitleActiveSecondaryColor: DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR,
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
@@ -118,6 +127,14 @@ function sanitizeProcessList(value: unknown): string[] {
   return normalized;
 }
 
+function normalizeColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : fallback;
+}
+
 function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefined): ProfileSettings {
   const source = input ?? {};
   const subtitleFontFamily =
@@ -153,6 +170,23 @@ function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefi
   }
   subtitleLineHeight = Number(Math.min(3, Math.max(1, subtitleLineHeight)).toFixed(2));
 
+  const subtitlePrimaryColor = normalizeColor(
+    source.subtitlePrimaryColor,
+    DEFAULT_PROFILE_SETTINGS.subtitlePrimaryColor
+  );
+  const subtitleSecondaryColor = normalizeColor(
+    source.subtitleSecondaryColor,
+    DEFAULT_PROFILE_SETTINGS.subtitleSecondaryColor
+  );
+  const subtitleActivePrimaryColor = normalizeColor(
+    source.subtitleActivePrimaryColor,
+    DEFAULT_PROFILE_SETTINGS.subtitleActivePrimaryColor
+  );
+  const subtitleActiveSecondaryColor = normalizeColor(
+    source.subtitleActiveSecondaryColor,
+    DEFAULT_PROFILE_SETTINGS.subtitleActiveSecondaryColor
+  );
+
   const ytDlpArgs = typeof source.ytDlpArgs === "string" ? source.ytDlpArgs.trim() : DEFAULT_PROFILE_SETTINGS.ytDlpArgs;
 
   let subtitleAutoScrollTimeout = Number(source.subtitleAutoScrollTimeout);
@@ -177,6 +211,10 @@ function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefi
     subtitleTimeTextGap,
     subtitlePrimarySecondaryGap,
     subtitleLineHeight,
+    subtitlePrimaryColor,
+    subtitleSecondaryColor,
+    subtitleActivePrimaryColor,
+    subtitleActiveSecondaryColor,
     ytDlpArgs,
     subtitleAutoScrollTimeout,
     subtitleScrollPosition,
