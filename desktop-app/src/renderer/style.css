@@ -1077,6 +1077,11 @@ body {
   opacity: 1;
 }
 
+.subtitle-item--active .subtitle-item__text-primary,
+.subtitle-item--active .subtitle-item__text-secondary {
+  font-weight: 600;
+}
+
 /* Jellyfin Config Manager */
 .jellyfin-config-manager {
   display: flex;
