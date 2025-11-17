@@ -453,6 +453,18 @@ let editingProfileId: string | null = null;
 let editingRuleId: string | null = null;
 let editingJellyfinConfigId: string | null = null;
 let playbackProfileSettings: ProfileSettings | null = null;
+type SubtitleColorField =
+  | "subtitlePrimaryColor"
+  | "subtitleSecondaryColor"
+  | "subtitleActivePrimaryColor"
+  | "subtitleActiveSecondaryColor";
+
+function getActiveProfileId(): string | null {
+  if (!currentSettings) {
+    return null;
+  }
+  return currentStateSnapshot?.appliedProfileId ?? currentSettings.defaultProfileId ?? null;
+}
 let ruleFormInitialized = false;
 let loopingCueIndex: number | null = null;
 let isTransparencyPopoverOpen = false;
@@ -2722,65 +2734,41 @@ subtitleLineHeightInput.addEventListener("change", () => {
   }));
 });
 
-subtitlePrimaryColorInput.addEventListener("change", () => {
-  const profile = ensureEditingProfile();
-  if (!profile) {
+function bindSubtitleColorInput(field: SubtitleColorField, input: HTMLInputElement | null) {
+  if (!input) {
     return;
   }
-  const nextValue = subtitlePrimaryColorInput.value.trim();
-  if (!nextValue || profile.settings.subtitlePrimaryColor === nextValue) {
-    return;
-  }
-  updateEditingProfileSettings((settings) => ({
-    ...settings,
-    subtitlePrimaryColor: nextValue
-  }));
-});
+  const handleInput = () => {
+    const profile = ensureEditingProfile();
+    if (!profile) {
+      return;
+    }
+    const nextValue = input.value.trim();
+    if (!nextValue || profile.settings[field] === nextValue) {
+      return;
+    }
+    updateEditingProfileSettings((settings) => ({
+      ...settings,
+      [field]: nextValue
+    }));
 
-subtitleSecondaryColorInput.addEventListener("change", () => {
-  const profile = ensureEditingProfile();
-  if (!profile) {
-    return;
-  }
-  const nextValue = subtitleSecondaryColorInput.value.trim();
-  if (!nextValue || profile.settings.subtitleSecondaryColor === nextValue) {
-    return;
-  }
-  updateEditingProfileSettings((settings) => ({
-    ...settings,
-    subtitleSecondaryColor: nextValue
-  }));
-});
+    const activeProfileId = getActiveProfileId();
+    if (activeProfileId && playbackProfileSettings && profile.id === activeProfileId) {
+      playbackProfileSettings = {
+        ...playbackProfileSettings,
+        [field]: nextValue
+      };
+      applySubtitleStyles(playbackProfileSettings);
+    }
+  };
 
-subtitleActivePrimaryColorInput.addEventListener("change", () => {
-  const profile = ensureEditingProfile();
-  if (!profile) {
-    return;
-  }
-  const nextValue = subtitleActivePrimaryColorInput.value.trim();
-  if (!nextValue || profile.settings.subtitleActivePrimaryColor === nextValue) {
-    return;
-  }
-  updateEditingProfileSettings((settings) => ({
-    ...settings,
-    subtitleActivePrimaryColor: nextValue
-  }));
-});
+  input.addEventListener("input", handleInput);
+}
 
-subtitleActiveSecondaryColorInput.addEventListener("change", () => {
-  const profile = ensureEditingProfile();
-  if (!profile) {
-    return;
-  }
-  const nextValue = subtitleActiveSecondaryColorInput.value.trim();
-  if (!nextValue || profile.settings.subtitleActiveSecondaryColor === nextValue) {
-    return;
-  }
-  updateEditingProfileSettings((settings) => ({
-    ...settings,
-    subtitleActiveSecondaryColor: nextValue
-  }));
-});
+bindSubtitleColorInput("subtitlePrimaryColor", subtitlePrimaryColorInput);
+bindSubtitleColorInput("subtitleSecondaryColor", subtitleSecondaryColorInput);
+bindSubtitleColorInput("subtitleActivePrimaryColor", subtitleActivePrimaryColorInput);
+bindSubtitleColorInput("subtitleActiveSecondaryColor", subtitleActiveSecondaryColorInput);
 
 ytDlpArgsInput.addEventListener("input", () => {
   const value = ytDlpArgsInput.value;
