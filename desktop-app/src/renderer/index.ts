@@ -448,6 +448,7 @@ let isSettingsOpen = false;
 let autoScrollEnabled = true;
 let autoScrollTimer: number | null = null;
 let isSubtitlePointerDown = false;
+let hasSubtitleTextSelection = false;
 let activePriorityDrag: { role: PriorityRole; index: number } | null = null;
 let editingProfileId: string | null = null;
 let editingRuleId: string | null = null;
@@ -1730,6 +1731,9 @@ function pauseAutoScrollImmediate() {
 
 function resetAutoScrollTimer() {
   pauseAutoScrollImmediate();
+  if (isSubtitlePointerDown || hasSubtitleTextSelection) {
+    return;
+  }
   const timeoutSeconds = playbackProfileSettings?.subtitleAutoScrollTimeout ?? DEFAULT_PROFILE_TEMPLATE.subtitleAutoScrollTimeout;
   autoScrollTimer = window.setTimeout(() => {
     autoScrollEnabled = true;
@@ -1739,6 +1743,34 @@ function resetAutoScrollTimer() {
       scrollToActiveSubtitle(cueElements[activeCueIndex]);
     }
   }, timeoutSeconds * 1000);
+}
+
+function isNodeInsideSubtitleList(node: Node | null): boolean {
+  return node instanceof Node && subtitleList.contains(node);
+}
+
+function handleSubtitleSelectionChange() {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed) {
+    if (!hasSubtitleTextSelection) {
+      return;
+    }
+    hasSubtitleTextSelection = false;
+    resetAutoScrollTimer();
+    return;
+  }
+  const selectionActive =
+    isNodeInsideSubtitleList(selection.anchorNode) ||
+    isNodeInsideSubtitleList(selection.focusNode);
+  if (selectionActive === hasSubtitleTextSelection) {
+    return;
+  }
+  hasSubtitleTextSelection = selectionActive;
+  if (selectionActive) {
+    pauseAutoScrollImmediate();
+    return;
+  }
+  resetAutoScrollTimer();
 }
 
 function renderTrackSelectors(state: DesktopState) {
@@ -2956,7 +2988,10 @@ window.addEventListener("mouseup", (event) => {
     return;
   }
   isSubtitlePointerDown = false;
-  resetAutoScrollTimer();
+  handleSubtitleSelectionChange();
+  if (!hasSubtitleTextSelection) {
+    resetAutoScrollTimer();
+  }
 });
 
 window.addEventListener("keydown", (event) => {
@@ -2964,6 +2999,8 @@ window.addEventListener("keydown", (event) => {
     setSettingsOpen(false);
   }
 });
+
+document.addEventListener("selectionchange", handleSubtitleSelectionChange);
 
 async function bootstrap() {
   try {
