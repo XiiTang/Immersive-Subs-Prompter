@@ -1048,8 +1048,12 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
 }
 
 function handleJellyfinStatusUpdate(connected: boolean) {
-  mainLogger.debug("Jellyfin status changed", { connected });
+  if (state.jellyfin.connected === connected) {
+    return;
+  }
   state.jellyfin.connected = connected;
+  mainLogger.debug("Jellyfin status changed", { connected });
+
   if (!connected) {
     state.jellyfin.sessions = [];
     if (state.activeSource === "jellyfin") {
@@ -1059,6 +1063,7 @@ function handleJellyfinStatusUpdate(connected: boolean) {
     }
     return;
   }
+
   jellyfinService.requestSessionsBurst("ws-status-connected");
   pushState();
 }
