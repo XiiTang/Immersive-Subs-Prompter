@@ -473,7 +473,6 @@ let currentPanelOpacity = DEFAULT_PANEL_OPACITY;
 let isAutoHidePreviewVisible = false;
 const logPrefixUI = "[Renderer][UI]";
 const logPrefixAnim = "[Renderer][Anim]";
-const logPrefixSelection = "[Renderer][Selection]";
 
 function getPredictedPlaybackTime(now = Date.now()): number | null {
   if (!lastKnownPlaybackState) {
@@ -1746,44 +1745,13 @@ function resetAutoScrollTimer() {
   }, timeoutSeconds * 1000);
 }
 
-function summarizeSelectionText(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return "";
-  }
-  return normalized.length <= 80 ? normalized : `${normalized.slice(0, 80)}...`;
-}
-
-function describeNodeForSelection(node: Node | null): string {
-  if (!node) {
-    return "null";
-  }
-  if (node instanceof Text) {
-    const snippet = summarizeSelectionText(node.textContent);
-    return snippet ? `Text("${snippet}")` : "Text(empty)";
-  }
-  if (node instanceof HTMLElement) {
-    const classes = node.classList.length ? `.${Array.from(node.classList).join(".")}` : "";
-    const id = node.id ? `#${node.id}` : "";
-    return `HTMLElement(${node.tagName.toLowerCase()}${id}${classes})`;
-  }
-  return node.nodeName;
-}
-
 function isNodeInsideSubtitleList(node: Node | null): boolean {
   return node instanceof Node && subtitleList.contains(node);
 }
 
 function handleSubtitleSelectionChange() {
   const selection = window.getSelection();
-  if (!selection) {
-    console.debug(`${logPrefixSelection} selection-change no selection`, {
-      hasSubtitleTextSelection,
-      isSubtitlePointerDown
-    });
+  if (!selection || selection.isCollapsed) {
     if (!hasSubtitleTextSelection) {
       return;
     }
@@ -1791,34 +1759,12 @@ function handleSubtitleSelectionChange() {
     resetAutoScrollTimer();
     return;
   }
-
   const selectionActive =
     isNodeInsideSubtitleList(selection.anchorNode) ||
     isNodeInsideSubtitleList(selection.focusNode);
-  console.debug(`${logPrefixSelection} selection-change`, {
-    collapsed: selection.isCollapsed,
-    selectionActive,
-    rangeCount: selection.rangeCount,
-    text: summarizeSelectionText(selection.toString()),
-    anchor: describeNodeForSelection(selection.anchorNode),
-    focus: describeNodeForSelection(selection.focusNode),
-    hasSubtitleTextSelection,
-    isMouseDown: isSubtitlePointerDown
-  });
-
-  if (selection.isCollapsed) {
-    if (!hasSubtitleTextSelection) {
-      return;
-    }
-    hasSubtitleTextSelection = false;
-    resetAutoScrollTimer();
-    return;
-  }
-
   if (selectionActive === hasSubtitleTextSelection) {
     return;
   }
-
   hasSubtitleTextSelection = selectionActive;
   if (selectionActive) {
     pauseAutoScrollImmediate();
@@ -3039,15 +2985,7 @@ subtitleList.addEventListener("mousedown", (event) => {
   if (!element || element.closest("button")) {
     return;
   }
-  const targetDescription = describeNodeForSelection(element);
-  const previousPointerState = isSubtitlePointerDown;
   isSubtitlePointerDown = true;
-  console.debug(`${logPrefixSelection} mousedown`, {
-    button: event.button,
-    target: targetDescription,
-    hasSubtitleTextSelection,
-    wasPointerDown: previousPointerState
-  });
   pauseAutoScrollImmediate();
 });
 
@@ -3055,17 +2993,8 @@ window.addEventListener("mouseup", (event) => {
   if (!isSubtitlePointerDown || event.button !== 0) {
     return;
   }
-  console.debug(`${logPrefixSelection} mouseup-start`, {
-    button: event.button,
-    hasSubtitleTextSelection,
-    pointerDown: true
-  });
   isSubtitlePointerDown = false;
   handleSubtitleSelectionChange();
-  console.debug(`${logPrefixSelection} mouseup-end`, {
-    hasSubtitleTextSelection,
-    pointerDown: isSubtitlePointerDown
-  });
   if (!hasSubtitleTextSelection) {
     resetAutoScrollTimer();
   }
