@@ -367,7 +367,7 @@ body {
 }
 
 .status-row {
-  max-height: var(--status-row-max-height, max-content);
+  max-height: 60px;
 }
 
 .auto-hide-collapsed .window__header,
