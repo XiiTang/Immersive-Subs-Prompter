@@ -2976,7 +2976,13 @@ subtitleList.addEventListener("mousedown", (event) => {
     return;
   }
   const target = event.target;
-  if (!(target instanceof HTMLElement) || target.closest("button")) {
+  const element =
+    target instanceof HTMLElement
+      ? target
+      : target instanceof Node
+        ? target.parentElement
+        : null;
+  if (!element || element.closest("button")) {
     return;
   }
   isSubtitlePointerDown = true;
