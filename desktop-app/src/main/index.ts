@@ -1473,18 +1473,9 @@ async function handleMessage(message: ExtensionMessage) {
         const result = await subtitleService.getSubtitles(url);
         if (requestId === subtitleRequestToken) {
           state.subtitleTracks = result.tracks;
-          if (result.tracks.length) {
-            applyPreferredTracksFromSettings(result.tracks);
-            state.status = "ready";
-            state.error = null;
-          } else {
-            state.primarySubtitles = null;
-            state.secondarySubtitles = null;
-            state.selectedPrimarySubtitleId = null;
-            state.selectedSecondarySubtitleId = null;
-            state.status = "error";
-            state.error = "No available subtitles found";
-          }
+          applyPreferredTracksFromSettings(result.tracks);
+          state.status = "ready";
+          state.error = null;
           pushState();
         }
       } catch (error) {

@@ -309,6 +309,9 @@ body {
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   background: rgba(99, 102, 241, calc(0.12 * var(--panel-opacity-factor)));
   color: #d4d4ff;
   border: 1px solid rgba(99, 102, 241, calc(0.3 * var(--panel-opacity-factor)));

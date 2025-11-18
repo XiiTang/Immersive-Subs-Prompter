@@ -294,7 +294,6 @@ const CHINESE_TRANSLATIONS: Record<string, string> = {
   "status-ready": "字幕加载完成",
   "status-error": "字幕加载失败",
   "status-unknown": "未知状态",
-  "status-error-detail": "字幕加载失败：{error}",
   "play-button": "播放",
   "pause-button": "暂停",
   "pin-label-unpinned": "未置顶",
@@ -688,19 +687,11 @@ function formatStatus(state: DesktopState): { text: string; modifier: string } {
         text: translate("status-ready", "Subtitles loaded"),
         modifier: "status-banner--ready"
       };
-    case "error": {
-      const errorText = state.error
-        ? formatTranslation(
-            "status-error-detail",
-            "Subtitle loading failed: {error}",
-            { error: state.error }
-          )
-        : translate("status-error", "Subtitle loading failed");
+    case "error":
       return {
-        text: errorText,
+        text: state.error ?? translate("status-error", "Subtitle loading failed"),
         modifier: "status-banner--error"
       };
-    }
     default:
       return { text: translate("status-unknown", "Unknown status"), modifier: "" };
   }

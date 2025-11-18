@@ -71,12 +71,17 @@ export class SubtitleService {
     const baseOutput = path.join(workingDir, randomUUID());
     const args = this.buildArgs(videoUrl, baseOutput);
     let binaryPath: string | null = null;
+    let commandLine = "";
+    let commandResult: CommandResult | null = null;
 
     try {
       binaryPath = await this.binaryResolver();
       this.log.info(`Starting yt-dlp for: ${videoUrl}`);
-      
-      await runCommand(binaryPath, args, workingDir);
+      if (binaryPath) {
+        commandLine = formatCommandLine(binaryPath, args);
+      }
+
+      commandResult = await runCommand(binaryPath, args, workingDir);
       this.log.info("yt-dlp command completed successfully");
       
       const subtitleFiles = (await fs.readdir(workingDir))
@@ -117,7 +122,6 @@ export class SubtitleService {
         tracks
       };
     } catch (error) {
-      const commandLine = binaryPath ? formatCommandLine(binaryPath, args) : "";
       if (error instanceof CommandExecutionError) {
         this.log.error("yt-dlp command failed", {
           command: commandLine,
@@ -128,7 +132,7 @@ export class SubtitleService {
       } else {
         this.log.error("yt-dlp invocation failed", error);
       }
-      const detailedMessage = formatCommandError(error, commandLine);
+      const detailedMessage = formatCommandError(error, commandLine, commandResult);
       throw new Error(`[yt-dlp] ${detailedMessage}`);
     } finally {
       await fs.rm(workingDir, { recursive: true, force: true });
@@ -317,32 +321,31 @@ function formatCommandLine(binary: string, args: string[]): string {
     .join(" ");
 }
 
-function formatCommandError(error: unknown, commandLine: string): string {
+function formatCommandError(
+  error: unknown,
+  commandLine: string,
+  fallbackOutput?: CommandResult | null
+): string {
   const baseMessage =
     error && typeof error === "object" && "message" in error
       ? (error as Error).message
       : "Unknown error";
 
-  if (!(error instanceof CommandExecutionError)) {
-    return commandLine ? `${baseMessage}\nCommand: ${commandLine}` : baseMessage;
-  }
-
-  const output = (error.info.stderr || error.info.stdout || "").trim();
-  const snippet = output ? trimLines(output, 40) : "";
+  const info = error instanceof CommandExecutionError ? error.info : null;
+  const output = info ?? fallbackOutput ?? null;
+  const stdoutText = output?.stdout?.trim() ?? "";
+  const stderrText = output?.stderr?.trim() ?? "";
   const parts = [baseMessage];
+
   if (commandLine) {
     parts.push(`Command: ${commandLine}`);
   }
-  if (snippet) {
-    parts.push(`Output:\n${snippet}`);
+  if (stdoutText) {
+    parts.push(`Stdout:\n${stdoutText}`);
   }
-  return parts.join("\n");
-}
+  if (stderrText) {
+    parts.push(`Stderr:\n${stderrText}`);
+  }
 
-function trimLines(text: string, maxLines: number): string {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim().length);
-  if (lines.length <= maxLines) {
-    return lines.join("\n");
-  }
-  return lines.slice(-maxLines).join("\n");
+  return parts.join("\n\n");
 }
