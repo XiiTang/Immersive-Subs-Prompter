@@ -447,6 +447,7 @@ let lastTrackSignature = "";
 let isSettingsOpen = false;
 let autoScrollEnabled = true;
 let autoScrollTimer: number | null = null;
+let isSubtitlePointerDown = false;
 let activePriorityDrag: { role: PriorityRole; index: number } | null = null;
 let editingProfileId: string | null = null;
 let editingRuleId: string | null = null;
@@ -1719,11 +1720,16 @@ function clearLoopUI() {
   }
 }
 
-function resetAutoScrollTimer() {
+function pauseAutoScrollImmediate() {
   if (autoScrollTimer !== null) {
     clearTimeout(autoScrollTimer);
+    autoScrollTimer = null;
   }
   autoScrollEnabled = false;
+}
+
+function resetAutoScrollTimer() {
+  pauseAutoScrollImmediate();
   const timeoutSeconds = playbackProfileSettings?.subtitleAutoScrollTimeout ?? DEFAULT_PROFILE_TEMPLATE.subtitleAutoScrollTimeout;
   autoScrollTimer = window.setTimeout(() => {
     autoScrollEnabled = true;
@@ -2931,6 +2937,27 @@ subtitleList.addEventListener("wheel", () => {
 subtitleList.addEventListener("touchmove", () => {
   resetAutoScrollTimer();
 }, { passive: true });
+
+// Pause auto-scroll while the user is selecting subtitle text with the mouse
+subtitleList.addEventListener("mousedown", (event) => {
+  if (event.button !== 0) {
+    return;
+  }
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || target.closest("button")) {
+    return;
+  }
+  isSubtitlePointerDown = true;
+  pauseAutoScrollImmediate();
+});
+
+window.addEventListener("mouseup", (event) => {
+  if (!isSubtitlePointerDown || event.button !== 0) {
+    return;
+  }
+  isSubtitlePointerDown = false;
+  resetAutoScrollTimer();
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && isSettingsOpen) {
