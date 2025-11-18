@@ -27,6 +27,7 @@ const videoUrl = document.getElementById("video-url") as HTMLElement;
 const activeProfileLabel = document.getElementById("active-profile-label") as HTMLElement;
 const statusBanner = document.getElementById("status-banner") as HTMLElement;
 const statusBannerText = document.getElementById("status-banner-text") as HTMLElement;
+const statusRow = document.querySelector(".status-row") as HTMLElement | null;
 const autoHideToggle = document.getElementById("auto-hide-toggle") as HTMLButtonElement;
 const subtitleList = document.getElementById("subtitle-list") as HTMLElement;
 const controlPanel = document.getElementById("control-panel") as HTMLElement;
@@ -695,6 +696,14 @@ function formatStatus(state: DesktopState): { text: string; modifier: string } {
     default:
       return { text: translate("status-unknown", "Unknown status"), modifier: "" };
   }
+}
+
+function refreshStatusRowHeight() {
+  if (!statusRow) {
+    return;
+  }
+  const measuredHeight = statusRow.scrollHeight;
+  statusRow.style.setProperty("--status-row-max-height", `${measuredHeight}px`);
 }
 
 function formatTime(milliseconds: number): string {
@@ -1843,6 +1852,7 @@ function renderState(state: DesktopState) {
   } else {
     statusBanner.textContent = text;
   }
+  refreshStatusRowHeight();
   statusBanner.className = `status-banner ${modifier}`;
 
   renderTrackSelectors(state);
@@ -2950,6 +2960,7 @@ async function bootstrap() {
       "Failed to get initial state: {error}",
       { error: errorMessage }
     );
+    refreshStatusRowHeight();
     statusBanner.className = "status-banner status-banner--error";
   }
 
