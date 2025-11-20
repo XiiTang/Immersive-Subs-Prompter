@@ -1,0 +1,179 @@
+import type { ComputedRef } from "vue";
+
+const SUPPORTED_LANGUAGES = ["en", "zh"] as const;
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
+
+export const CHINESE_TRANSLATIONS: Record<string, string> = {
+  "settings-back": "← 返回",
+  "settings-title": "设置",
+  "section-global-settings": "全局设置",
+  "close-behavior-label": "关闭行为",
+  "close-behavior-tray": "关闭时最小化到托盘",
+  "close-behavior-quit": "退出应用",
+  "auto-start-label": "开机启动",
+  "toggle-enable": "启用",
+  "toggle-shortcut-label": "切换窗口快捷键",
+  "toggle-shortcut-hint": "使用 CommandOrControl、Alt、Shift 等修饰键与按键组合。按 Enter 保存。",
+  "process-blacklist-label": "进程黑名单",
+  "process-blacklist-hint": "当指定进程处于前台时，快捷键将自动禁用（请输入可执行文件名）。",
+  "button-add": "添加",
+  "auto-hide-label": "自动隐藏触发区高度",
+  "auto-hide-hint": "距离顶部的距离，可保持自动隐藏时面板展开",
+  "language-label": "语言",
+  "language-option-en": "English",
+  "language-option-zh": "中文",
+  "language-hint": "选择界面语言。",
+  "section-jellyfin": "Jellyfin 集成",
+  "jellyfin-enable-label": "启用 Jellyfin",
+  "server-list-label": "服务器列表",
+  "button-delete": "删除",
+  "server-name-label": "服务器名称",
+  "server-url-label": "服务器 URL",
+  "api-key-label": "API 密钥",
+  "ws-path-label": "WebSocket 路径",
+  "section-profiles": "配置文件",
+  "profile-list-label": "配置文件列表",
+  "button-duplicate": "复制",
+  "button-set-default": "设为默认",
+  "profile-name-label": "配置文件名称",
+  "subtitle-font-label": "字幕字体",
+  "subtitle-font-size-label": "字幕字体大小",
+  "subtitle-autoscroll-label": "自动滚动恢复时间（秒）",
+  "subtitle-autoscroll-hint": "手动滚动后多长时间恢复自动跟随",
+  "subtitle-scroll-position-label": "字幕滚动位置",
+  "subtitle-scroll-position-hint": "活动字幕在面板中的位置（0%=顶部，50%=中间，100%=底部）",
+  "subtitle-line-spacing-label": "字幕行间距",
+  "subtitle-line-spacing-hint": "调整字幕行之间的垂直间距",
+  "subtitle-time-gap-label": "时间戳与文字间距",
+  "subtitle-time-gap-hint": "控制时间戳与字幕文本之间的距离",
+  "subtitle-primary-secondary-gap-label": "主副字幕间距",
+  "subtitle-primary-secondary-gap-hint": "调整主字幕与副字幕之间的垂直距离",
+  "subtitle-line-height-label": "字幕行高",
+  "subtitle-line-height-hint": "控制字幕行高以提高可读性",
+  "subtitle-primary-color-label": "主字幕颜色",
+  "subtitle-primary-color-hint": "设置字幕列表中主字幕的默认文本颜色",
+  "subtitle-secondary-color-label": "副字幕颜色",
+  "subtitle-secondary-color-hint": "设置字幕列表中副字幕的默认文本颜色",
+  "subtitle-active-primary-color-label": "高亮主字幕颜色",
+  "subtitle-active-primary-color-hint": "调整高亮时主字幕的文字颜色",
+  "subtitle-active-secondary-color-label": "高亮副字幕颜色",
+  "subtitle-active-secondary-color-hint": "调整高亮时副字幕的文字颜色",
+  "primary-priority-label": "主字幕优先级",
+  "primary-priority-hint": "匹配语言/标签关键词，可拖拽调整顺序",
+  "primary-priority-placeholder": "例如：en",
+  "secondary-priority-label": "副字幕优先级",
+  "secondary-priority-hint": "通常是你的母语关键词",
+  "secondary-priority-placeholder": "例如：zh, zh-Hans",
+  "yt-dlp-args-label": "yt-dlp 参数",
+  "yt-dlp-args-hint": "留空则使用默认参数",
+  "section-cache": "字幕缓存",
+  "enable-cache-label": "启用缓存",
+  "cache-path-label": "缓存路径",
+  "cache-path-hint": "留空则使用默认位置",
+  "cache-retention-label": "保留天数",
+  "cache-retention-hint": "缓存字幕保留的天数（1-365）",
+  "cache-stats-entries": "条目总数：",
+  "cache-stats-size": "总大小：",
+  "cache-stats-oldest": "最早条目：",
+  "button-open-cache": "打开缓存文件夹",
+  "button-refresh-stats": "刷新统计",
+  "button-cleanup": "清理过期项",
+  "button-clear-cache": "清除所有缓存",
+  "section-rules": "URL 规则",
+  "rule-form-title": "添加规则",
+  "rule-form-title-edit": "编辑规则",
+  "rule-cancel": "取消编辑",
+  "rule-name-label": "规则名称",
+  "rule-match-label": "匹配模式",
+  "rule-match-contains": "包含",
+  "rule-match-exact": "完全匹配",
+  "rule-match-regex": "正则表达式",
+  "rule-pattern-label": "匹配内容",
+  "rule-apply-profile-label": "应用配置文件",
+  "rule-form-submit-add": "添加规则",
+  "rule-form-submit-save": "保存规则",
+  "priority-empty": "暂无优先级",
+  "profile-empty": "暂无配置文件",
+  "default-badge": "默认",
+  "jellyfin-no-servers": "尚未配置服务器",
+  "jellyfin-config-enabled": "已启用",
+  "jellyfin-config-disabled": "已禁用",
+  "rule-empty": "暂无规则",
+  "rule-apply-prefix": "应用配置文件：",
+  "rule-action-disable": "禁用",
+  "rule-action-enable": "启用",
+  "rule-action-edit": "编辑",
+  "rule-action-delete": "删除",
+  "rule-action-move-up": "上移",
+  "rule-action-move-down": "下移",
+  "game-blacklist-none": "尚未配置任何进程。",
+  "game-blacklist-remove": "删除",
+  "alert-delete-last-server": "无法删除最后一个服务器。在启用 Jellyfin 时请先禁用 Jellyfin 或添加其他服务器。",
+  "alert-delete-default-profile": "无法删除默认配置文件。请先更改默认配置文件。",
+  "alert-delete-last-profile": "至少要保留一个配置文件。",
+  "alert-profile-referenced": "该配置文件仍被规则引用，请先修改或删除相关规则。",
+  "cache-open-error": "无法打开缓存文件夹：{error}",
+  "cache-cleanup-success": "清理完成！已移除 {count} 个过期条目。",
+  "cache-cleanup-failure": "清理缓存失败：{error}",
+  "cache-cleanup-progress": "正在清理...",
+  "cache-clear-confirm": "确定要清除所有缓存的字幕吗？该操作无法撤销。",
+  "cache-clear-success": "缓存已成功清除！",
+  "cache-clear-failure": "清除缓存失败：{error}",
+  "cache-clear-progress": "正在清除...",
+  "connection-extension": "扩展",
+  "connection-jellyfin": "Jellyfin",
+  "active-profile-prefix": "配置文件",
+  "status-waiting-video": "等待视频...",
+  "status-initializing": "初始化中...",
+  "status-failed-init": "获取初始状态失败：{error}",
+  "status-idle": "等待扩展连接...",
+  "status-awaiting-video": "请在浏览器中打开受支持的视频",
+  "status-loading-subtitles": "正在下载字幕...",
+  "status-ready": "字幕加载完成",
+  "status-error": "字幕加载失败",
+  "status-unknown": "未知状态",
+  "play-button": "播放",
+  "pause-button": "暂停",
+  "pin-label-unpinned": "未置顶",
+  "pin-label-floating": "置顶（普通）",
+  "pin-label-screensaver": "置顶（屏保）",
+  "primary-track-placeholder": "主字幕",
+  "secondary-track-placeholder": "副字幕",
+  "secondary-track-none": "无",
+  "priority-remove": "移除优先级"
+};
+
+export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
+  en: {},
+  zh: CHINESE_TRANSLATIONS
+};
+
+export function normalizeLanguage(value: string | null | undefined): SupportedLanguage {
+  const code = (value ?? "").trim().toLowerCase();
+  return (SUPPORTED_LANGUAGES as readonly string[]).includes(code) ? (code as SupportedLanguage) : DEFAULT_LANGUAGE;
+}
+
+export function translate(key: string, fallback: string, language: SupportedLanguage): string {
+  const dictionary = TRANSLATIONS[language] ?? TRANSLATIONS[DEFAULT_LANGUAGE];
+  return dictionary[key] ?? fallback;
+}
+
+export function formatTranslation(
+  key: string,
+  fallback: string,
+  language: SupportedLanguage,
+  replacements: Record<string, string> = {}
+): string {
+  let text = translate(key, fallback, language);
+  for (const [placeholder, replacement] of Object.entries(replacements)) {
+    text = text.split(`{${placeholder}}`).join(replacement);
+  }
+  return text;
+}
+
+export function useI18n(language: ComputedRef<string>) {
+  const t = (key: string, fallback: string, replacements: Record<string, string> = {}) =>
+    formatTranslation(key, fallback, normalizeLanguage(language.value), replacements);
+  return { t };
+}

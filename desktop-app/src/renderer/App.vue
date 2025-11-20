@@ -1,0 +1,156 @@
+<template>
+  <div class="window" :class="windowClasses">
+    <HeaderBar />
+    <div class="window__content">
+      <div class="primary-view">
+        <SubtitleList />
+      </div>
+      <SettingsPanel v-show="store.isSettingsOpen" @preview-auto-hide="setAutoHidePreview" />
+    </div>
+    <div class="auto-hide-preview" :class="{ 'is-visible': autoHidePreviewVisible }"></div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import HeaderBar from "./components/HeaderBar.vue";
+import SubtitleList from "./components/SubtitleList.vue";
+import SettingsPanel from "./components/SettingsPanel.vue";
+import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "./stores/desktop";
+import type { ProfileSettings } from "./main/types.js";
+import { normalizeLanguage } from "./i18n.js";
+
+const store = useDesktopStore();
+
+const DEFAULT_SUBTITLE_FONT_FAMILY =
+  '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
+
+const autoHideCollapsed = ref(false);
+const autoHidePreviewVisible = ref(false);
+const lastPointerY = ref<number | null>(null);
+
+const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
+const windowClasses = computed(() => ({
+  "window--settings-open": store.isSettingsOpen,
+  "auto-hide-collapsed": autoHideCollapsed.value
+}));
+
+function applySubtitleStyles(settings: ProfileSettings | null) {
+  const root = document.documentElement;
+  const config = settings ?? DEFAULT_PROFILE_TEMPLATE;
+  root.style.setProperty(
+    "--subtitle-font-family",
+    config.subtitleFontFamily?.trim() || DEFAULT_SUBTITLE_FONT_FAMILY
+  );
+  root.style.setProperty("--subtitle-font-size", `${config.subtitleFontSize ?? 14}px`);
+  root.style.setProperty("--subtitle-line-spacing", `${config.subtitleLineSpacing ?? 0}px`);
+  root.style.setProperty("--subtitle-time-text-gap", `${config.subtitleTimeTextGap ?? 2}px`);
+  root.style.setProperty(
+    "--subtitle-primary-secondary-gap",
+    `${config.subtitlePrimarySecondaryGap ?? 3}px`
+  );
+  root.style.setProperty("--subtitle-line-height", `${config.subtitleLineHeight ?? 1.45}`);
+  root.style.setProperty(
+    "--subtitle-primary-text-color",
+    config.subtitlePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimaryColor
+  );
+  root.style.setProperty(
+    "--subtitle-secondary-text-color",
+    config.subtitleSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleSecondaryColor
+  );
+  root.style.setProperty(
+    "--subtitle-active-primary-text-color",
+    config.subtitleActivePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActivePrimaryColor
+  );
+  root.style.setProperty(
+    "--subtitle-active-secondary-text-color",
+    config.subtitleActiveSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActiveSecondaryColor
+  );
+}
+
+function applyPanelOpacity(value: number | null | undefined) {
+  const clamped = Number.isFinite(value) ? Math.max(0, Math.min(100, Number(value))) : 100;
+  document.documentElement.style.setProperty("--panel-opacity-factor", (clamped / 100).toFixed(2));
+}
+
+function updateAutoHideState(pointerY?: number | null) {
+  if (!autoHideEnabled.value || store.isSettingsOpen) {
+    autoHideCollapsed.value = false;
+    return;
+  }
+  const y = pointerY ?? lastPointerY.value ?? 0;
+  lastPointerY.value = y;
+  autoHideCollapsed.value = y > store.autoHideZoneHeight;
+}
+
+function handlePointerMove(event: PointerEvent) {
+  updateAutoHideState(event.clientY);
+}
+
+function handlePointerLeave() {
+  updateAutoHideState(Number.MAX_SAFE_INTEGER);
+}
+
+function setAutoHidePreview(visible: boolean) {
+  autoHidePreviewVisible.value = visible;
+}
+
+onMounted(() => {
+  store.initialize();
+  window.addEventListener("pointermove", handlePointerMove, { passive: true });
+  window.addEventListener("pointerleave", handlePointerLeave, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("pointermove", handlePointerMove);
+  window.removeEventListener("pointerleave", handlePointerLeave);
+});
+
+watch(
+  () => store.editingProfileSettings,
+  (settings) => applySubtitleStyles(settings),
+  { deep: true, immediate: true }
+);
+
+watch(
+  () => store.panelOpacity,
+  (value) => applyPanelOpacity(value),
+  { immediate: true }
+);
+
+watch(
+  () => store.autoHideZoneHeight,
+  (height) => {
+    document.documentElement.style.setProperty("--auto-hide-zone-height", `${height}px`);
+    updateAutoHideState();
+  },
+  { immediate: true }
+);
+
+watch(autoHideEnabled, (enabled) => {
+  if (!enabled) {
+    autoHideCollapsed.value = false;
+    return;
+  }
+  updateAutoHideState();
+});
+
+watch(
+  () => store.isSettingsOpen,
+  (open) => {
+    if (open) {
+      autoHideCollapsed.value = false;
+    } else {
+      updateAutoHideState();
+    }
+  }
+);
+
+watch(
+  () => store.settings?.global.language,
+  (lang) => {
+    document.documentElement.lang = normalizeLanguage(lang);
+  },
+  { immediate: true }
+);
+</script>

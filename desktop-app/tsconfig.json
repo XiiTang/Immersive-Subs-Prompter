@@ -20,9 +20,11 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
+    "src/main/**/*",
+    "src/common/**/*"
   ],
   "exclude": [
-    "src/preload.ts"
+    "src/preload.ts",
+    "src/renderer/**/*"
   ]
 }

@@ -5,10 +5,11 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run clean && npm run build:main && npm run build:preload && npm run copy-static",
+    "build": "npm run clean && npm run build:main && npm run build:preload && npm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
-    "copy-static": "copyfiles -u 2 \"src/renderer/**/*.{html,css}\" dist/renderer",
+    "build:renderer": "vite build",
+    "dev:renderer": "vite dev",
     "start": "npm run build && electron .",
     "clean": "rimraf dist",
     "clean:node-modules": "node scripts/cleanup-node-modules.js",
@@ -27,16 +28,20 @@
   "dependencies": {
     "active-win": "^8.2.1",
     "iconv-lite": "^0.7.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
     "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
     "@types/ws": "^8.18.1",
-    "copyfiles": "^2.4.1",
+    "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^30.0.0",
     "electron-builder": "^26.0.12",
     "rimraf": "^5.0.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "vue-tsc": "^1.8.27"
   },
   "build": {
     "appId": "com.example.immersivesubsprompter",

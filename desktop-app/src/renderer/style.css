@@ -199,6 +199,13 @@ body {
   position: relative;
 }
 
+.subtitle-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .window--settings-open .primary-view {
   opacity: 0;
   pointer-events: none;
@@ -251,7 +258,7 @@ body {
 }
 
 .control-panel {
-  display: none;
+  display: flex;
   flex-direction: row;
   align-items: flex-end;
   gap: 12px;
