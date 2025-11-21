@@ -77,6 +77,7 @@ export interface DesktopState {
   appliedRuleMatchType: UrlMatchType | null;
   pendingJellyfinItemId: string | null; // Used to prevent race conditions when switching between Jellyfin and extension
   jellyfin: JellyfinPanelState;
+  isFullscreen: boolean;
 }
 
 export type SubtitleSource = "extension" | "jellyfin";

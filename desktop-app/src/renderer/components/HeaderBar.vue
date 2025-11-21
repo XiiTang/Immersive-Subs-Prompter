@@ -28,8 +28,8 @@
       <button
         class="icon-button"
         type="button"
-        :aria-pressed="false"
-        aria-label="Toggle fullscreen on current display"
+        :aria-pressed="store.desktopState?.isFullscreen"
+        :aria-label="store.desktopState?.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
         @click="store.toggleFullscreen()"
       >
         <span aria-hidden="true">{{ fullscreenIcon }}</span>
@@ -81,7 +81,7 @@ const panelOpacityValue = computed({
 });
 
 const fullscreenIcon = computed(() =>
-  store.desktopState?.status === "ready" ? "🗗" : "⛶"
+  store.desktopState?.isFullscreen ? "🗗" : "⛶"
 );
 
 function cyclePin() {

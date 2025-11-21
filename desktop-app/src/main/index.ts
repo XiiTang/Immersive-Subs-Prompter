@@ -104,7 +104,8 @@ const state: DesktopState = {
     sessions: [],
     selectedSessionId: null,
     lastUpdated: null
-  }
+  },
+  isFullscreen: false
 };
 
 let isDisplayFullscreen = false;
@@ -149,6 +150,8 @@ function toggleDisplayFullscreenOnCurrentDisplay(): boolean {
     }
     displayFullscreenPreviousBounds = null;
     isDisplayFullscreen = false;
+    state.isFullscreen = false;
+    pushState();
     return false;
   }
 
@@ -157,6 +160,8 @@ function toggleDisplayFullscreenOnCurrentDisplay(): boolean {
   displayFullscreenPreviousBounds = previousBounds;
   mainWindow.setBounds(targetDisplay.bounds);
   isDisplayFullscreen = true;
+  state.isFullscreen = true;
+  pushState();
   return true;
 }
 
@@ -347,7 +352,7 @@ function toggleMainWindow() {
     createWindow();
     return;
   }
-  
+
   if (mainWindow.isVisible()) {
     mainWindow.hide();
   } else {
@@ -371,7 +376,7 @@ function registerGlobalShortcut() {
   }
 
   const shortcut = (appSettings.global.toggleWindowShortcut ?? "").trim();
-  
+
   if (!shortcut) {
     if (!hasLoggedMissingShortcut) {
       mainLogger.warn("No global shortcut configured");
@@ -424,7 +429,7 @@ function getNormalizedGameProcessBlacklist(): Set<string> {
 
 async function evaluateGameProcessFocusState() {
   const blacklist = getNormalizedGameProcessBlacklist();
-  
+
   if (!blacklist.size) {
     if (isGlobalShortcutBlockedByGame) {
       isGlobalShortcutBlockedByGame = false;
@@ -435,15 +440,15 @@ async function evaluateGameProcessFocusState() {
 
   try {
     const active = await activeWindow();
-    
+
     // Get application name and process file name
     const appName = active?.owner?.name?.trim() || "";
     const processPath = active?.owner?.path || "";
     const processFileName = processPath ? path.basename(processPath) : "";
-    
+
     const normalizedAppName = appName.toLowerCase();
     const normalizedProcessFileName = processFileName.toLowerCase();
-    
+
     // Check if application name or process file name is in the blacklist
     let matchedValue = "";
     if (normalizedAppName && blacklist.has(normalizedAppName)) {
@@ -451,7 +456,7 @@ async function evaluateGameProcessFocusState() {
     } else if (normalizedProcessFileName && blacklist.has(normalizedProcessFileName)) {
       matchedValue = processFileName;
     }
-    
+
     if (matchedValue) {
       if (!isGlobalShortcutBlockedByGame) {
         mainLogger.info(`[GameBlacklist] Matched "${matchedValue}" - disabling shortcuts`);
@@ -839,7 +844,7 @@ function selectJellyfinSession(sessionId: string | null) {
       }))
     });
   }
-  
+
   // Unified Jellyfin mode: always use "jellyfin" as activeSource
   // Extension will provide timestamps if available, otherwise fallback to WebSocket
   state.activeSource = "jellyfin";
@@ -847,7 +852,7 @@ function selectJellyfinSession(sessionId: string | null) {
   state.title = session?.nowPlayingItemName ?? "Jellyfin Session";
   state.pageUrl = buildJellyfinPageUrl(session);
   state.videoUrl = buildJellyfinItemUrl(session) ?? getJellyfinBaseUrl(session?.serverConfigId);
-  
+
   // Initialize playback state from WebSocket (will be overridden by extension if available)
   if (session) {
     const currentTimeMilliseconds = ticksToMilliseconds(session.positionTicks) ?? 0;
@@ -858,14 +863,14 @@ function selectJellyfinSession(sessionId: string | null) {
       loopCueIndex: null
     });
   }
-  
+
   const jellyfinUrl = state.videoUrl ?? getJellyfinBaseUrl(session?.serverConfigId);
   const selection = selectProfileForUrl(jellyfinUrl);
   applyProfileSelection(selection.profile, selection.rule);
   state.status = "loading-subtitles";
   state.error = null;
   resetSubtitleState();
-  
+
   pushState();
   jellyfinService.setActiveSession(sessionId);
 }
@@ -911,7 +916,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       });
     }
   }
-  
+
   // Handle pending Jellyfin item ID (race condition resolution)
   if (state.pendingJellyfinItemId && state.activeSource === "jellyfin") {
     const matchingSession = sessions.find(
@@ -975,7 +980,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
       const activeTabContext = getTabJellyfinContext(state.activeTabId);
       const activeTabItemId = activeTabContext?.itemId ?? null;
       const sessionItemId = selected.nowPlayingItemId;
-      
+
       if (state.activeTabId) {
         updateTabJellyfinContext(state.activeTabId, {
           sessionId: selected.id,
@@ -983,7 +988,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
           ...(sessionItemId ? { itemId: sessionItemId } : {})
         });
       }
-      
+
       if (activeTabItemId && sessionItemId && activeTabItemId !== sessionItemId) {
         // WebSocket session switched to a different video than what the active tab is playing
         // This happens when you have multiple tabs with different Jellyfin videos
@@ -992,7 +997,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
         pushState();
         return;
       }
-      
+
       state.title = selected.nowPlayingItemName ?? state.title;
       state.pageUrl = buildJellyfinPageUrl(selected);
       state.videoUrl = buildJellyfinItemUrl(selected) ?? state.videoUrl;
@@ -1002,7 +1007,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
     const activeTabItemId = activeTabContext?.itemId ?? null;
     const activeTabSessionId = activeTabContext?.sessionId ?? null;
     const activeServerId = activeTabContext?.serverConfigId ?? null;
-    
+
     let sessionToSelect = sessions[0];
     if (activeTabSessionId) {
       const matchingBySession = sessions.find((session) => session.id === activeTabSessionId);
@@ -1024,7 +1029,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
         sessionToSelect = matchingByServer;
       }
     }
-    
+
     if (state.activeTabId) {
       updateTabJellyfinContext(state.activeTabId, {
         sessionId: sessionToSelect.id,
@@ -1043,7 +1048,7 @@ function handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
     state.jellyfin.selectedSessionId = sessionToSelect.id;
     jellyfinService.setActiveSession(sessionToSelect.id);
   }
-  
+
   pushState();
 }
 
@@ -1261,7 +1266,7 @@ async function handleMessage(message: ExtensionMessage) {
       state.title = message.payload.title ?? null;
 
       const url = resolveVideoUrl(message.payload);
-      
+
       if (!url) {
         state.status = "error";
         state.error = "Unable to parse video URL";
@@ -1278,13 +1283,13 @@ async function handleMessage(message: ExtensionMessage) {
       const existingTabContext = getTabJellyfinContext(message.tabId);
       const jellyfinConfigId = resolvedConfigId ?? existingTabContext?.serverConfigId ?? null;
       const isJellyfin = Boolean(jellyfinConfigId);
-      
+
       if (isJellyfin) {
         // ===== JELLYFIN MODE (Method B with Method A timestamps) =====
         if (jellyfinConfigId) {
           updateTabJellyfinContext(message.tabId, { serverConfigId: jellyfinConfigId });
         }
-        
+
         // Extract Jellyfin item ID from URL
         // Try videoSrc first (has mediaSourceId), then fall back to pageUrl
         let itemId: string | null = null;
@@ -1295,7 +1300,7 @@ async function handleMessage(message: ExtensionMessage) {
             const videoUrlObj = new URL(videoSrc);
             itemId = videoUrlObj.searchParams.get("mediaSourceId");
           }
-          
+
           // If not found in videoSrc, try the resolved URL
           if (!itemId) {
             const urlObj = new URL(url);
@@ -1314,17 +1319,17 @@ async function handleMessage(message: ExtensionMessage) {
           tabContext?.sessionId
             ? state.jellyfin.sessions.find((session) => session.id === tabContext.sessionId) ?? null
             : null;
-          
+
         if (itemId && appSettings.jellyfin.enabled) {
           // URL contains item ID - process new video logic
           state.activeSource = "jellyfin";
           state.videoUrl = url;
           state.site = "jellyfin";
-          
+
           // Select profile for this URL
           const selection = selectProfileForUrl(url);
           applyProfileSelection(selection.profile, selection.rule);
-          
+
           // Check if same video is already playing
           const currentSession = state.jellyfin.selectedSessionId
             ? state.jellyfin.sessions.find(s => s.id === state.jellyfin.selectedSessionId)
@@ -1354,7 +1359,7 @@ async function handleMessage(message: ExtensionMessage) {
                   (!tabContext?.serverConfigId || session.serverConfigId === tabContext.serverConfigId)
               ) ?? null;
           }
-          
+
           if (matchingSession) {
             state.jellyfin.selectedSessionId = matchingSession.id;
             jellyfinService.setActiveSession(matchingSession.id);
@@ -1365,7 +1370,7 @@ async function handleMessage(message: ExtensionMessage) {
               serverConfigId: matchingSession.serverConfigId,
               itemId: matchingSession.nowPlayingItemId ?? itemId
             });
-            
+
             // Only clear subtitles when switching to a NEW video
             state.selectedPrimarySubtitleId = null;
             state.selectedSecondarySubtitleId = null;
@@ -1378,7 +1383,7 @@ async function handleMessage(message: ExtensionMessage) {
             updateTabJellyfinContext(message.tabId, {
               itemId
             });
-            
+
             // Clear subtitles when waiting for new session
             state.selectedPrimarySubtitleId = null;
             state.selectedSecondarySubtitleId = null;
@@ -1397,7 +1402,7 @@ async function handleMessage(message: ExtensionMessage) {
           if (state.videoUrl !== url) {
             state.videoUrl = url;
           }
-          
+
           // Update profile if URL changed
           const selection = selectProfileForUrl(url);
           applyProfileSelection(selection.profile, selection.rule);
@@ -1427,7 +1432,7 @@ async function handleMessage(message: ExtensionMessage) {
 
           // DON'T clear subtitles - keep existing state
         }
-        
+
         pushState();
         return;
       }
@@ -1448,10 +1453,10 @@ async function handleMessage(message: ExtensionMessage) {
       // Normalize URL to remove tracking parameters
       const normalizedUrl = normalizeUrl(url);
       const previousVideoUrl = state.videoUrl;
-      
+
       // Store normalized URL for consistency
       state.videoUrl = normalizedUrl;
-      
+
       // Select profile based on normalized URL
       const selection = selectProfileForUrl(normalizedUrl);
       applyProfileSelection(selection.profile, selection.rule);
@@ -1523,7 +1528,7 @@ async function handleMessage(message: ExtensionMessage) {
       if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
         return;
       }
-      
+
       state.playback.isLooping = true;
       state.playback.lastUpdate = Date.now();
       sendPlaybackUpdate(state.playback);
@@ -1536,7 +1541,7 @@ async function handleMessage(message: ExtensionMessage) {
         // Clear loop state
         state.playback.isLooping = false;
         state.playback.loopCueIndex = null;
-        
+
         mainWindow.webContents.send("usp:loop-cleared");
         sendPlaybackUpdate(state.playback);
       }
@@ -1581,7 +1586,7 @@ function bootstrapWebSocketServer() {
   log(`WebSocket server listening on ws://127.0.0.1:${WS_PORT}`);
 
   const connectedClients = new Set<WebSocket>();
-  
+
   // Send heartbeat every 25 seconds to keep connections alive
   const heartbeatInterval = setInterval(() => {
     connectedClients.forEach((socket) => {
@@ -1600,10 +1605,10 @@ function bootstrapWebSocketServer() {
       try {
         const data = JSON.parse(raw.toString());
         if (!data || typeof data !== "object") return;
-        
+
         // Ignore heartbeat ACK
         if (data.type === "heartbeat-ack") return;
-        
+
         if (data.source !== "usp-extension") return;
         const { tabId, type, payload } = data as {
           tabId: number;
@@ -1672,8 +1677,8 @@ type TrackSelectionPayload = {
 function isTrackSelectionPayload(value: unknown): value is TrackSelectionPayload {
   return Boolean(
     value &&
-      typeof value === "object" &&
-      "trackId" in value
+    typeof value === "object" &&
+    "trackId" in value
   );
 }
 
@@ -1696,9 +1701,9 @@ function sendControlCommand(command: VideoControlCommand): boolean {
   }
   const socket = tabSockets.get(state.activeTabId);
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    mainLogger.warn("Cannot send control command: socket not ready", { 
-      hasSocket: !!socket, 
-      readyState: socket?.readyState 
+    mainLogger.warn("Cannot send control command: socket not ready", {
+      hasSocket: !!socket,
+      readyState: socket?.readyState
     });
     return false;
   }
