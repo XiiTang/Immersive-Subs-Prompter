@@ -182,12 +182,20 @@
               {{ t("primary-priority-hint", "Match language/tag keywords; reorder to reprioritize") }}
             </span>
           </div>
-          <div class="priority-editor__list">
+          <div class="priority-editor__list" @dragover.prevent @drop.prevent="onPriorityListDrop('primary')">
             <template v-if="primaryPriority.length">
               <span
                 v-for="(item, index) in primaryPriority"
-                :key="`${item}-${index}`"
+                :key="item"
                 class="priority-editor__item"
+                :class="{ 'priority-editor__item--dragover': isPriorityDragOver('primary', index) }"
+                draggable="true"
+                @dragstart="onPriorityDragStart('primary', index, $event)"
+                @dragenter.prevent="onPriorityDragEnter('primary', index)"
+                @dragover.prevent
+                @drop.prevent.stop="onPriorityDrop('primary', index)"
+                @dragleave="onPriorityDragLeave('primary', index)"
+                @dragend="onPriorityDragEnd"
               >
                 <span>{{ item }}</span>
                 <button
@@ -198,24 +206,6 @@
                 >
                   ✕
                 </button>
-                <div class="priority-editor__actions">
-                  <button
-                    class="text-button"
-                    type="button"
-                    :disabled="index === 0"
-                    @click="movePriority('primary', index, 'up')"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    class="text-button"
-                    type="button"
-                    :disabled="index === primaryPriority.length - 1"
-                    @click="movePriority('primary', index, 'down')"
-                  >
-                    ↓
-                  </button>
-                </div>
               </span>
             </template>
             <span v-else class="priority-editor__empty">
@@ -244,12 +234,20 @@
               {{ t("secondary-priority-hint", "Usually the keywords for your native language") }}
             </span>
           </div>
-          <div class="priority-editor__list">
+          <div class="priority-editor__list" @dragover.prevent @drop.prevent="onPriorityListDrop('secondary')">
             <template v-if="secondaryPriority.length">
               <span
                 v-for="(item, index) in secondaryPriority"
-                :key="`${item}-${index}`"
+                :key="item"
                 class="priority-editor__item"
+                :class="{ 'priority-editor__item--dragover': isPriorityDragOver('secondary', index) }"
+                draggable="true"
+                @dragstart="onPriorityDragStart('secondary', index, $event)"
+                @dragenter.prevent="onPriorityDragEnter('secondary', index)"
+                @dragover.prevent
+                @drop.prevent.stop="onPriorityDrop('secondary', index)"
+                @dragleave="onPriorityDragLeave('secondary', index)"
+                @dragend="onPriorityDragEnd"
               >
                 <span>{{ item }}</span>
                 <button
@@ -260,24 +258,6 @@
                 >
                   ✕
                 </button>
-                <div class="priority-editor__actions">
-                  <button
-                    class="text-button"
-                    type="button"
-                    :disabled="index === 0"
-                    @click="movePriority('secondary', index, 'up')"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    class="text-button"
-                    type="button"
-                    :disabled="index === secondaryPriority.length - 1"
-                    @click="movePriority('secondary', index, 'down')"
-                  >
-                    ↓
-                  </button>
-                </div>
               </span>
             </template>
             <span v-else class="priority-editor__empty">
@@ -404,6 +384,19 @@ const secondaryPriority = computed(() => store.editingProfileSettings.secondaryS
 const primaryPriorityInput = ref("");
 const secondaryPriorityInput = ref("");
 
+type PriorityRole = "primary" | "secondary";
+type PriorityDragState = {
+  role: PriorityRole | null;
+  fromIndex: number | null;
+  overIndex: number | null;
+};
+
+const priorityDragState = ref<PriorityDragState>({
+  role: null,
+  fromIndex: null,
+  overIndex: null
+});
+
 function deleteEditingProfile() {
   if (editingProfileId.value) {
     store.deleteProfile(editingProfileId.value);
@@ -426,7 +419,70 @@ function removePriority(role: "primary" | "secondary", value: string) {
   store.removePriority(role, value);
 }
 
-function movePriority(role: "primary" | "secondary", index: number, direction: "up" | "down") {
-  store.movePriority(role, index, direction);
+function onPriorityDragStart(role: PriorityRole, index: number, event: DragEvent) {
+  priorityDragState.value = { role, fromIndex: index, overIndex: index };
+  event.dataTransfer?.setData("text/plain", `${role}:${index}`);
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onPriorityDragEnter(role: PriorityRole, index: number) {
+  if (priorityDragState.value.role !== role) {
+    return;
+  }
+  priorityDragState.value.overIndex = index;
+}
+
+function onPriorityDragLeave(role: PriorityRole, index: number) {
+  if (priorityDragState.value.role !== role) {
+    return;
+  }
+  if (priorityDragState.value.overIndex === index) {
+    priorityDragState.value.overIndex = null;
+  }
+}
+
+function onPriorityDrop(role: PriorityRole, index: number) {
+  const { role: draggingRole, fromIndex } = priorityDragState.value;
+  if (draggingRole !== role || fromIndex === null) {
+    resetPriorityDragState();
+    return;
+  }
+  if (fromIndex !== index) {
+    store.reorderPriority(role, fromIndex, index);
+  }
+  resetPriorityDragState();
+}
+
+function onPriorityListDrop(role: PriorityRole) {
+  const { role: draggingRole, fromIndex, overIndex } = priorityDragState.value;
+  if (draggingRole !== role || fromIndex === null) {
+    resetPriorityDragState();
+    return;
+  }
+  const listLength = role === "primary" ? primaryPriority.value.length : secondaryPriority.value.length;
+  const targetIndex = Math.min(overIndex ?? listLength - 1, listLength - 1);
+  if (targetIndex !== fromIndex) {
+    store.reorderPriority(role, fromIndex, targetIndex);
+  }
+  resetPriorityDragState();
+}
+
+function onPriorityDragEnd() {
+  resetPriorityDragState();
+}
+
+function resetPriorityDragState() {
+  priorityDragState.value = {
+    role: null,
+    fromIndex: null,
+    overIndex: null
+  };
+}
+
+function isPriorityDragOver(role: PriorityRole, index: number) {
+  const state = priorityDragState.value;
+  return state.role === role && state.overIndex === index && state.fromIndex !== index;
 }
 </script>

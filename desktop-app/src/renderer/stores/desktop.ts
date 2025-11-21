@@ -393,17 +393,23 @@ export const useDesktopStore = defineStore("desktop", {
       const next = current.filter((entry) => entry.toLowerCase() !== value.toLowerCase());
       this.updateProfileSetting(key as keyof ProfileSettings, next as any);
     },
-    movePriority(role: "primary" | "secondary", index: number, direction: "up" | "down") {
+    reorderPriority(role: "primary" | "secondary", fromIndex: number, toIndex: number) {
       if (!this.settings || !this.editingProfileId) {
         return;
       }
       const key = role === "primary" ? "primarySubtitlePriority" : "secondarySubtitlePriority";
       const list = [...(this.editingProfileSettings[key] ?? [])];
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= list.length) {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= list.length ||
+        toIndex >= list.length
+      ) {
         return;
       }
-      [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
+      const [moved] = list.splice(fromIndex, 1);
+      list.splice(toIndex, 0, moved);
       this.updateProfileSetting(key as keyof ProfileSettings, list as any);
     },
     async selectSubtitleTrack(trackId: string | null, role: "primary" | "secondary" = "primary") {
