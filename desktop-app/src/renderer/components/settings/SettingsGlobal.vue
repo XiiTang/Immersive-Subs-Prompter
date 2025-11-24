@@ -91,6 +91,27 @@
       </small>
     </label>
     <label class="settings-field">
+      <div class="settings-field__label-row">
+        <span class="settings-field__label">{{ t("auto-hide-delay-label", "Auto-hide Delay (ms)") }}</span>
+        <span class="settings-field__value">{{ autoHideDelayMs }}ms</span>
+      </div>
+      <input
+        type="number"
+        :min="AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN"
+        :max="AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX"
+        step="50"
+        v-model.number="autoHideDelayMs"
+      />
+      <small class="settings-field__hint">
+        {{
+          t(
+            "auto-hide-delay-hint",
+            "Wait time after the pointer leaves the active area before panels collapse"
+          )
+        }}
+      </small>
+    </label>
+    <label class="settings-field">
       <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
       <select v-model="languageSetting">
         <option value="en">{{ t("language-option-en", "English") }}</option>
@@ -105,6 +126,10 @@
 import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import {
+  AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX,
+  AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN
+} from "../../common/autoHide.js";
 
 const emit = defineEmits<{
   (e: "preview-auto-hide", visible: boolean): void;
@@ -137,6 +162,20 @@ const autoHidePanels = computed({
 const autoHideHeight = computed({
   get: () => store.autoHideZoneHeight,
   set: (value: number) => store.updateGlobalSetting("autoHideActiveZoneHeight", value)
+});
+
+const autoHideDelayMs = computed({
+  get: () => store.autoHideMouseLeaveDelay,
+  set: (value: number) => {
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    const clamped = Math.min(
+      AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX,
+      Math.max(AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN, Math.round(value))
+    );
+    store.updateGlobalSetting("autoHideMouseLeaveDelayMs", clamped);
+  }
 });
 
 const languageSetting = computed({

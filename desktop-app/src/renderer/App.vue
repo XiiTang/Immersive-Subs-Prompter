@@ -19,6 +19,7 @@ import SettingsPanel from "./components/SettingsPanel.vue";
 import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "./stores/desktop";
 import type { ProfileSettings } from "./main/types.js";
 import { normalizeLanguage } from "./i18n.js";
+import { DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS } from "../common/autoHide.js";
 
 const store = useDesktopStore();
 
@@ -28,8 +29,12 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
 const autoHideCollapsed = ref(false);
 const autoHidePreviewVisible = ref(false);
 const lastPointerY = ref<number | null>(null);
+const autoHideCollapseTimer = ref<number | null>(null);
 
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
+const autoHideDelayMs = computed(
+  () => store.autoHideMouseLeaveDelay ?? DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS
+);
 const windowClasses = computed(() => ({
   "window--settings-open": store.isSettingsOpen,
   "auto-hide-collapsed": autoHideCollapsed.value
@@ -75,12 +80,19 @@ function applyPanelOpacity(value: number | null | undefined) {
 
 function updateAutoHideState(pointerY?: number | null) {
   if (!autoHideEnabled.value || store.isSettingsOpen) {
+    clearAutoHideCollapseTimer();
     autoHideCollapsed.value = false;
     return;
   }
   const y = pointerY ?? lastPointerY.value ?? 0;
   lastPointerY.value = y;
-  autoHideCollapsed.value = y > store.autoHideZoneHeight;
+  const shouldCollapse = y > store.autoHideZoneHeight;
+  if (shouldCollapse) {
+    scheduleAutoHideCollapse();
+  } else {
+    clearAutoHideCollapseTimer();
+    autoHideCollapsed.value = false;
+  }
 }
 
 function handlePointerMove(event: PointerEvent) {
@@ -89,6 +101,28 @@ function handlePointerMove(event: PointerEvent) {
 
 function handlePointerLeave() {
   updateAutoHideState(Number.MAX_SAFE_INTEGER);
+}
+
+function clearAutoHideCollapseTimer() {
+  if (autoHideCollapseTimer.value !== null) {
+    window.clearTimeout(autoHideCollapseTimer.value);
+    autoHideCollapseTimer.value = null;
+  }
+}
+
+function scheduleAutoHideCollapse() {
+  if (autoHideCollapseTimer.value !== null) {
+    return;
+  }
+  const delay = Math.max(0, autoHideDelayMs.value);
+  if (delay === 0) {
+    autoHideCollapsed.value = true;
+    return;
+  }
+  autoHideCollapseTimer.value = window.setTimeout(() => {
+    autoHideCollapsed.value = true;
+    autoHideCollapseTimer.value = null;
+  }, delay);
 }
 
 function setAutoHidePreview(visible: boolean) {
@@ -104,6 +138,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("pointermove", handlePointerMove);
   window.removeEventListener("pointerleave", handlePointerLeave);
+  clearAutoHideCollapseTimer();
 });
 
 watch(
@@ -129,6 +164,7 @@ watch(
 
 watch(autoHideEnabled, (enabled) => {
   if (!enabled) {
+    clearAutoHideCollapseTimer();
     autoHideCollapsed.value = false;
     return;
   }
@@ -139,12 +175,22 @@ watch(
   () => store.isSettingsOpen,
   (open) => {
     if (open) {
+      clearAutoHideCollapseTimer();
       autoHideCollapsed.value = false;
     } else {
       updateAutoHideState();
     }
   }
 );
+
+watch(autoHideDelayMs, () => {
+  if (!autoHideEnabled.value || store.isSettingsOpen) {
+    clearAutoHideCollapseTimer();
+    return;
+  }
+  clearAutoHideCollapseTimer();
+  updateAutoHideState();
+});
 
 watch(
   () => store.settings?.global.language,

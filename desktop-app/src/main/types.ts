@@ -102,6 +102,7 @@ export interface GlobalSettings {
   gameProcessBlacklist: string[];
   autoHidePanels: boolean;
   autoHideActiveZoneHeight: number;
+  autoHideMouseLeaveDelayMs: number;
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
   language: string;

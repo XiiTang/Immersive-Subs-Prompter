@@ -15,6 +15,10 @@ import type {
   SubtitleTrack,
   VideoControlCommand
 } from "../main/types.js";
+import {
+  DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
+  DEFAULT_AUTO_HIDE_ZONE_HEIGHT
+} from "../../common/autoHide.js";
 
 export type CombinedCue = {
   start: number;
@@ -42,7 +46,6 @@ export const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
 };
 
 const DEFAULT_PANEL_OPACITY = 100;
-const DEFAULT_AUTO_HIDE_ZONE_HEIGHT = 300;
 type CacheStats = {
   totalEntries: number;
   totalSize: number;
@@ -188,6 +191,9 @@ export const useDesktopStore = defineStore("desktop", {
     },
     autoHideZoneHeight(state): number {
       return state.settings?.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ZONE_HEIGHT;
+    },
+    autoHideMouseLeaveDelay(state): number {
+      return state.settings?.global.autoHideMouseLeaveDelayMs ?? DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS;
     }
   },
   actions: {

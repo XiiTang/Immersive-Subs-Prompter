@@ -20,6 +20,8 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "button-add": "添加",
   "auto-hide-label": "自动隐藏触发区高度",
   "auto-hide-hint": "距离顶部的距离，可保持自动隐藏时面板展开",
+  "auto-hide-delay-label": "自动隐藏延迟（毫秒）",
+  "auto-hide-delay-hint": "鼠标离开触发区后等待多久再收起面板",
   "language-label": "语言",
   "language-option-en": "English",
   "language-option-zh": "中文",
