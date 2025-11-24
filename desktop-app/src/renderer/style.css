@@ -285,7 +285,7 @@ body {
 
 .status-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin: 8px 16px;
 }
@@ -334,10 +334,15 @@ body {
 /* Collapsible panels animation */
 .window__header,
 .video-meta,
-.control-panel,
+.control-panel {
+  overflow: hidden;
+  transition: max-height 300ms ease-in-out, opacity 300ms ease-in-out, transform 300ms ease-in-out, padding 300ms ease-in-out, margin 300ms ease-in-out;
+}
+
 .status-row {
   overflow: hidden;
   transition: max-height 300ms ease-in-out, opacity 300ms ease-in-out, transform 300ms ease-in-out, padding 300ms ease-in-out, margin 300ms ease-in-out;
+  max-height: var(--status-row-max-height, 100vh);
 }
 
 .window__header {
@@ -350,10 +355,6 @@ body {
 
 .control-panel {
   max-height: 120px;
-}
-
-.status-row {
-  max-height: 60px;
 }
 
 .auto-hide-collapsed .window__header,

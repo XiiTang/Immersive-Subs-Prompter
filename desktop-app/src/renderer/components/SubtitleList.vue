@@ -32,7 +32,11 @@
           </button>
         </div>
       </section>
-      <div class="status-row">
+      <div
+        class="status-row"
+        ref="statusRowRef"
+        :style="{ '--status-row-max-height': statusRowMaxHeight }"
+      >
         <section class="status-banner" :class="statusBanner.modifier">
           <span>{{ statusBanner.text }}</span>
         </section>
@@ -105,6 +109,7 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const subtitleListEl = ref<HTMLElement | null>(null);
+const statusRowRef = ref<HTMLElement | null>(null);
 const cueRefs = ref<HTMLElement[]>([]);
 const autoScrollEnabled = ref(true);
 const isPointerDown = ref(false);
@@ -112,6 +117,7 @@ const hasSubtitleSelection = ref(false);
 let autoScrollTimer: number | null = null;
 let predictionFrame: number | null = null;
 const predictedTime = ref<number | null>(null);
+const statusRowMaxHeight = ref("100vh");
 
 onBeforeUpdate(() => {
   cueRefs.value = [];
@@ -264,6 +270,16 @@ function toggleAutoHide() {
   store.updateGlobalSetting("autoHidePanels", !autoHideEnabled.value);
 }
 
+function updateStatusRowMaxHeight() {
+  nextTick(() => {
+    const el = statusRowRef.value;
+    if (!el) {
+      return;
+    }
+    statusRowMaxHeight.value = `${el.scrollHeight}px`;
+  });
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -399,6 +415,14 @@ watch(autoScrollDelayMs, () => {
   }
 });
 
+watch(
+  statusBanner,
+  () => {
+    updateStatusRowMaxHeight();
+  },
+  { deep: true, immediate: true }
+);
+
 function computePredictedTime(now = Date.now()): number | null {
   const state = playback.value;
   if (!state || state.currentTime === undefined || state.currentTime === null) {
@@ -450,6 +474,8 @@ onMounted(() => {
   list?.addEventListener("mousedown", handlePointerDown);
   window.addEventListener("mouseup", handlePointerUp);
   document.addEventListener("selectionchange", handleSelectionChange);
+  window.addEventListener("resize", updateStatusRowMaxHeight);
+  updateStatusRowMaxHeight();
 });
 
 onBeforeUnmount(() => {
@@ -459,6 +485,7 @@ onBeforeUnmount(() => {
   list?.removeEventListener("mousedown", handlePointerDown);
   window.removeEventListener("mouseup", handlePointerUp);
   document.removeEventListener("selectionchange", handleSelectionChange);
+  window.removeEventListener("resize", updateStatusRowMaxHeight);
   clearAutoScrollTimer();
   stopPredictionLoop();
 });
