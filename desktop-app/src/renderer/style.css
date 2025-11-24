@@ -285,7 +285,7 @@ body {
 
 .status-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
   margin: 8px 16px;
 }
@@ -316,6 +316,7 @@ body {
 }
 
 .auto-hide-toggle {
+  align-self: flex-end;
   flex-shrink: 0;
   padding: 4px 8px;
   font-size: 14px;
