@@ -215,6 +215,7 @@ body {
 .video-meta {
   padding: 12px 16px 4px;
   opacity: 0.9;
+  user-select: text;
 }
 
 .video-meta__title {
@@ -301,6 +302,7 @@ body {
   background: rgba(99, 102, 241, calc(0.12 * var(--panel-opacity-factor)));
   color: #d4d4ff;
   border: 1px solid rgba(99, 102, 241, calc(0.3 * var(--panel-opacity-factor)));
+  user-select: text;
 }
 
 .status-banner--error {
