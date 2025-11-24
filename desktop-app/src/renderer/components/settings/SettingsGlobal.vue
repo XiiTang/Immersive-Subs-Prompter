@@ -129,7 +129,7 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import {
   AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX,
   AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN
-} from "../../common/autoHide.js";
+} from "../../../common/autoHide.js";
 
 const emit = defineEmits<{
   (e: "preview-auto-hide", visible: boolean): void;
