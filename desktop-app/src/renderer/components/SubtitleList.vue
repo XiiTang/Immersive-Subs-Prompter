@@ -91,7 +91,6 @@
             </div>
           </div>
         </template>
-        <div v-else class="subtitle-list__empty">No subtitles yet.</div>
       </section>
     </section>
   </div>
