@@ -285,7 +285,7 @@ body {
 
 .status-row {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8px;
   margin: 8px 16px;
 }
