@@ -75,6 +75,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
       }
     ],
     "nsis": {

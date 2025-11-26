@@ -22,8 +22,7 @@ import { createLogger } from "./logger.js";
 import { AppSettings, DesktopState, PlaybackState, VideoControlCommand } from "./types.js";
 import { JellyfinController } from "./jellyfinController.js";
 
-const TRAY_ICON_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAHklEQVR4nGOw2PvjPzUxw6iBowaOGjhq4KiBI9VAAN3kkP39BLd4AAAAAElFTkSuQmCC";
+
 
 const GAME_PROCESS_POLL_INTERVAL_MS = 10000;
 
@@ -52,7 +51,7 @@ export class WindowController {
   private readonly __dirname = path.dirname(fileURLToPath(import.meta.url));
   private readonly log = createLogger("desktop");
 
-  constructor(private readonly options: WindowControllerOptions) {}
+  constructor(private readonly options: WindowControllerOptions) { }
 
   initialize() {
     const previousSettings = this.options.getSettings();
@@ -219,7 +218,8 @@ export class WindowController {
     if (this.tray) {
       return;
     }
-    const icon = nativeImage.createFromDataURL(TRAY_ICON_DATA_URL);
+    const iconPath = this.getIconPath();
+    const icon = nativeImage.createFromPath(iconPath);
     this.tray = new Tray(icon);
     this.tray.setToolTip("Immersive Subs Prompter");
     this.tray.setContextMenu(
@@ -260,7 +260,8 @@ export class WindowController {
         preload: path.join(this.__dirname, "../preload.js"),
         contextIsolation: true,
         nodeIntegration: false
-      }
+      },
+      icon: this.getIconPath()
     });
 
     const initialLevel = settings.global.alwaysOnTop;
@@ -533,5 +534,12 @@ export class WindowController {
     this.pushSettings();
     void this.evaluateGameProcessFocusState();
     return appSettings;
+  }
+
+  private getIconPath(): string {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, "icon.png");
+    }
+    return path.join(app.getAppPath(), "resources", "icon.png");
   }
 }

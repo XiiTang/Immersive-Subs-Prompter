@@ -1,6 +1,10 @@
 
 # Immersive Subs Prompter
 
+<p align="center">
+  <img src="assets/logo.png" alt="Logo" width="128" height="128">
+</p>
+
 
 **A cross-platform subtitle enhancement tool for language learners and immersive viewing.** 🌐🎧
 
