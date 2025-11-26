@@ -29,6 +29,7 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
 const autoHideCollapsed = ref(false);
 const autoHidePreviewVisible = ref(false);
 const lastPointerY = ref<number | null>(null);
+const isPointerInWindow = ref(false);
 const autoHideCollapseTimer = ref<number | null>(null);
 
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
@@ -84,9 +85,13 @@ function updateAutoHideState(pointerY?: number | null) {
     autoHideCollapsed.value = false;
     return;
   }
-  const y = pointerY ?? lastPointerY.value ?? 0;
-  lastPointerY.value = y;
-  const shouldCollapse = y > store.autoHideZoneHeight;
+  if (typeof pointerY === "number") {
+    lastPointerY.value = pointerY;
+    isPointerInWindow.value = true;
+  }
+  const lastPointerValue = lastPointerY.value;
+  const pointerKnown = isPointerInWindow.value && typeof lastPointerValue === "number";
+  const shouldCollapse = !pointerKnown || lastPointerValue > store.autoHideZoneHeight;
   if (shouldCollapse) {
     scheduleAutoHideCollapse();
   } else {
@@ -96,11 +101,28 @@ function updateAutoHideState(pointerY?: number | null) {
 }
 
 function handlePointerMove(event: PointerEvent) {
+  isPointerInWindow.value = true;
   updateAutoHideState(event.clientY);
 }
 
 function handlePointerLeave() {
-  updateAutoHideState(Number.MAX_SAFE_INTEGER);
+  markPointerLeftWindow();
+}
+
+function handlePointerOut(event: PointerEvent) {
+  if (event.relatedTarget === null) {
+    markPointerLeftWindow();
+  }
+}
+
+function handleWindowBlur() {
+  markPointerLeftWindow();
+}
+
+function markPointerLeftWindow() {
+  isPointerInWindow.value = false;
+  lastPointerY.value = null;
+  updateAutoHideState(null);
 }
 
 function clearAutoHideCollapseTimer() {
@@ -133,11 +155,15 @@ onMounted(() => {
   store.initialize();
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
   window.addEventListener("pointerleave", handlePointerLeave, { passive: true });
+  window.addEventListener("pointerout", handlePointerOut, { passive: true });
+  window.addEventListener("blur", handleWindowBlur);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("pointermove", handlePointerMove);
   window.removeEventListener("pointerleave", handlePointerLeave);
+  window.removeEventListener("pointerout", handlePointerOut);
+  window.removeEventListener("blur", handleWindowBlur);
   clearAutoHideCollapseTimer();
 });
 
