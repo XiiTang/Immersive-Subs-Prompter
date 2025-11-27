@@ -58,8 +58,11 @@
             v-for="(cue, index) in cues"
             :key="`${cue.start}-${index}`"
             class="subtitle-item"
-            :class="{ 'subtitle-item--active': index === activeCueIndex }"
-            :ref="(el) => setCueRef(el, index)"
+            :class="{
+              'subtitle-item--active': index === activeCueIndex,
+              'subtitle-item--auto-hide-time': autoHideTimestamps
+            }"
+            :ref="(el: any) => setCueRef(el, index)"
           >
             <div class="subtitle-item__time">
               <span>{{ formatTime(cue.start) }} - {{ formatTime(cue.end) }}</span>
@@ -162,6 +165,7 @@ const cues = computed<CombinedCue[]>(() => store.combinedCues);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
 const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
+const autoHideTimestamps = computed(() => store.settings?.global.autoHideTimestamps ?? false);
 
 const activeCueIndex = computed(() => {
   if (playback.value?.isLooping && loopCueIndex.value !== null) {
@@ -489,3 +493,14 @@ onBeforeUnmount(() => {
   stopPredictionLoop();
 });
 </script>
+
+<style scoped>
+.subtitle-item--auto-hide-time .subtitle-item__time {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.subtitle-item--auto-hide-time:hover .subtitle-item__time {
+  opacity: 1;
+}
+</style>

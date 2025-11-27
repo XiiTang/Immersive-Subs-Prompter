@@ -22,6 +22,13 @@
         <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
       </label>
     </div>
+    <div class="settings-field settings-field--inline">
+      <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Auto-hide Timestamps") }}</span>
+      <label class="toggle">
+        <input type="checkbox" v-model="autoHideTimestamps" />
+        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+      </label>
+    </div>
     <label class="settings-field">
       <span class="settings-field__label">{{ t("toggle-shortcut-label", "Toggle Window Shortcut") }}</span>
       <input type="text" v-model="toggleShortcut" placeholder="CommandOrControl+Shift+S" />
@@ -157,6 +164,11 @@ const toggleShortcut = computed({
 const autoHidePanels = computed({
   get: () => store.settings?.global.autoHidePanels ?? false,
   set: (value: boolean) => store.updateGlobalSetting("autoHidePanels", value)
+});
+
+const autoHideTimestamps = computed({
+  get: () => store.settings?.global.autoHideTimestamps ?? false,
+  set: (value: boolean) => store.updateGlobalSetting("autoHideTimestamps", value)
 });
 
 const autoHideHeight = computed({

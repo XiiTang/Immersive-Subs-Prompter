@@ -105,6 +105,7 @@ export interface GlobalSettings {
   autoHideMouseLeaveDelayMs: number;
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
+  autoHideTimestamps: boolean;
   language: string;
 }
 

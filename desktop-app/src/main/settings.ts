@@ -46,6 +46,7 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoHideMouseLeaveDelayMs: DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
   alwaysOnTop: "off",
   panelOpacity: 100,
+  autoHideTimestamps: false,
   language: DEFAULT_LANGUAGE
 };
 
@@ -278,6 +279,7 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
     autoHideMouseLeaveDelayMs,
     alwaysOnTop,
     panelOpacity,
+    autoHideTimestamps: typeof source.autoHideTimestamps === "boolean" ? source.autoHideTimestamps : false,
     language
   };
 }
@@ -371,7 +373,7 @@ function sanitizeJellyfinConfig(
   const serverUrl = typeof input?.serverUrl === "string" ? input.serverUrl.trim() : "";
   const apiKey = typeof input?.apiKey === "string" ? input.apiKey.trim() : "";
   let webSocketPath = typeof input?.webSocketPath === "string" ? input.webSocketPath.trim() : "/socket";
-  
+
   if (!webSocketPath.length) {
     webSocketPath = "/socket";
   }
@@ -384,7 +386,7 @@ function sanitizeJellyfinConfig(
       : typeof fallbackEnabled === "boolean"
         ? fallbackEnabled
         : false;
-  
+
   return {
     id,
     name,
@@ -398,21 +400,21 @@ function sanitizeJellyfinConfig(
 function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | undefined): JellyfinSettings {
   const source = input ?? {};
   const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
-  
+
   let configs: JellyfinConfig[] = [];
   const hasExplicitEnabledFlags =
     Array.isArray(source.configs) &&
     source.configs.some((config) => typeof (config as Partial<JellyfinConfig> | undefined)?.enabled === "boolean");
-  
+
   // Migration: check if old format exists (serverUrl, apiKey, webSocketPath directly in settings)
   const hasOldFormat = 'serverUrl' in source || 'apiKey' in source || 'webSocketPath' in source;
-  
+
   if (hasOldFormat) {
     // Convert old single config to new format
     const oldServerUrl = typeof (source as any).serverUrl === "string" ? (source as any).serverUrl.trim() : "";
     const oldApiKey = typeof (source as any).apiKey === "string" ? (source as any).apiKey.trim() : "";
     const oldWebSocketPath = typeof (source as any).webSocketPath === "string" ? (source as any).webSocketPath.trim() : "/socket";
-    
+
     if (oldServerUrl || oldApiKey) {
       configs.push(sanitizeJellyfinConfig({
         id: 'jellyfin-config-migrated',
@@ -424,11 +426,11 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
       }));
     }
   } else if (Array.isArray(source.configs)) {
-    configs = source.configs.map((config, index) => 
+    configs = source.configs.map((config, index) =>
       sanitizeJellyfinConfig(config, `jellyfin-config-${index}`)
     );
   }
-  
+
   if (!hasExplicitEnabledFlags && configs.length > 0) {
     const legacyActiveConfigIdRaw = (source as { activeConfigId?: string }).activeConfigId;
     const legacyActiveConfigId =
@@ -439,7 +441,7 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
       enabled: config.id === enabledConfigId
     }));
   }
-  
+
   return {
     enabled,
     configs
@@ -450,13 +452,13 @@ function sanitizeCacheSettings(input: Partial<SubtitleCacheSettings> | null | un
   const source = input ?? {};
   const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_CACHE_SETTINGS.enabled;
   const path = typeof source.path === "string" && source.path.trim() ? source.path.trim() : DEFAULT_CACHE_SETTINGS.path;
-  
+
   let retentionDays = Number(source.retentionDays);
   if (!Number.isFinite(retentionDays) || retentionDays < 1) {
     retentionDays = DEFAULT_CACHE_SETTINGS.retentionDays;
   }
   retentionDays = Math.min(365, Math.max(1, Math.round(retentionDays)));
-  
+
   return {
     enabled,
     path,
