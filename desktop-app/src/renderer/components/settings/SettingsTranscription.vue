@@ -82,7 +82,7 @@
             }}
           </small>
         </div>
-        <input type="text" v-model="ytDlpArgs" placeholder="--extract-audio --audio-format mp3 ..." />
+        <input type="text" v-model="ytDlpArgs" placeholder="--extract-audio --audio-format wav --cookies-from-browser firefox ..." />
       </label>
     </template>
   </section>

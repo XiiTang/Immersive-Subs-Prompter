@@ -76,7 +76,7 @@ export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
 };
 
 export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
-  "--extract-audio --audio-format mp3 --audio-quality 0 --cookies-from-browser firefox";
+  '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox';
 
 const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 

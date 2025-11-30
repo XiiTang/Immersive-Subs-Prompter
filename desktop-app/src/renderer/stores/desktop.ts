@@ -64,7 +64,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
   prompt: "",
   enableWordTimestamps: true,
   extraParams: {},
-  ytDlpArgs: ""
+  ytDlpArgs: '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox'
 };
 
 function createId(prefix: string): string {
@@ -309,12 +309,12 @@ export const useDesktopStore = defineStore("desktop", {
       const nextProfiles = this.settings.profiles.map((profile) =>
         profile.id === this.editingProfileId
           ? {
-              ...profile,
-              settings: {
-                ...profile.settings,
-                [key]: value
-              }
+            ...profile,
+            settings: {
+              ...profile.settings,
+              [key]: value
             }
+          }
           : profile
       );
       this.updateSettings({ profiles: nextProfiles });
