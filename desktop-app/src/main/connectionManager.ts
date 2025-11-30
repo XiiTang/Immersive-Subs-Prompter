@@ -3,7 +3,14 @@ import { SubtitleService } from "./subtitleService.js";
 import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
-import { ExtensionMessage, ExtensionMessageType, ExtensionPayload, VideoControlCommand } from "./types.js";
+import { SubtitleCacheManager } from "./subtitleCacheManager.js";
+import {
+  ExtensionMessage,
+  ExtensionMessageType,
+  ExtensionPayload,
+  SubtitleTrack,
+  VideoControlCommand
+} from "./types.js";
 
 const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
 
@@ -12,6 +19,7 @@ type ConnectionManagerOptions = {
   subtitleService: SubtitleService;
   stateManager: StateManager;
   bus: AppEventBus;
+  cacheManager: SubtitleCacheManager;
 };
 
 type TrackSelectionPayload = {
@@ -214,6 +222,16 @@ export class ConnectionManager {
     this.socketTabs.delete(socket);
   }
 
+  private async getCachedTranscriptionTracks(videoUrl: string): Promise<SubtitleTrack[]> {
+    try {
+      const cached = await this.options.cacheManager.get(videoUrl, "transcription");
+      return cached?.tracks ?? [];
+    } catch (error) {
+      this.log.warn("Failed to read transcription cache", { videoUrl, error });
+      return [];
+    }
+  }
+
   private async handleMessage(message: ExtensionMessage, resolvedUrl: string | null) {
     switch (message.type) {
       case "video-context": {
@@ -232,6 +250,10 @@ export class ConnectionManager {
         }
 
         const normalizedUrl = this.normalizeUrl(resolvedUrl);
+        if (!normalizedUrl) {
+          return;
+        }
+
         const state = this.options.stateManager.getState();
         const previousVideoUrl = state.videoUrl;
 
@@ -260,12 +282,20 @@ export class ConnectionManager {
           draft.status = "loading-subtitles";
         });
 
+        const cachedTranscriptionTracks = await this.getCachedTranscriptionTracks(normalizedUrl);
+        if (cachedTranscriptionTracks.length) {
+          this.log.info("Using cached transcription for video", { url: normalizedUrl });
+        }
+
         const requestId = ++this.subtitleRequestToken;
         try {
           const result = await this.options.subtitleService.getSubtitles(resolvedUrl);
           if (requestId === this.subtitleRequestToken) {
-            this.options.stateManager.setSubtitleTracks(result.tracks);
-            this.options.stateManager.applyPreferredTracksFromSettings(result.tracks);
+            const tracks: SubtitleTrack[] = cachedTranscriptionTracks.length
+              ? [...cachedTranscriptionTracks, ...result.tracks]
+              : result.tracks;
+            this.options.stateManager.setSubtitleTracks(tracks);
+            this.options.stateManager.applyPreferredTracksFromSettings(tracks);
             this.options.stateManager.updateState((draft) => {
               draft.status = "ready";
               draft.error = null;
@@ -273,17 +303,26 @@ export class ConnectionManager {
           }
         } catch (error) {
           if (requestId === this.subtitleRequestToken) {
-            this.options.stateManager.updateState((draft) => {
-              draft.status = "error";
-              draft.error =
-                error && typeof error === "object" && "message" in error
-                  ? (error as Error).message
-                  : "Subtitle download failed";
-              draft.primarySubtitles = null;
-              draft.secondarySubtitles = null;
-              draft.selectedPrimarySubtitleId = null;
-              draft.selectedSecondarySubtitleId = null;
-            });
+            if (cachedTranscriptionTracks.length) {
+              this.options.stateManager.setSubtitleTracks(cachedTranscriptionTracks);
+              this.options.stateManager.applyPreferredTracksFromSettings(cachedTranscriptionTracks);
+              this.options.stateManager.updateState((draft) => {
+                draft.status = "ready";
+                draft.error = null;
+              });
+            } else {
+              this.options.stateManager.updateState((draft) => {
+                draft.status = "error";
+                draft.error =
+                  error && typeof error === "object" && "message" in error
+                    ? (error as Error).message
+                    : "Subtitle download failed";
+                draft.primarySubtitles = null;
+                draft.secondarySubtitles = null;
+                draft.selectedPrimarySubtitleId = null;
+                draft.selectedSecondarySubtitleId = null;
+              });
+            }
           }
         }
         break;

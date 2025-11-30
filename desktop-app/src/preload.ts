@@ -26,7 +26,9 @@ const api = {
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),
   cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup"),
   openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder"),
-  toggleDisplayFullscreen: (): Promise<boolean> => ipcRenderer.invoke("usp:toggle-display-fullscreen")
+  toggleDisplayFullscreen: (): Promise<boolean> => ipcRenderer.invoke("usp:toggle-display-fullscreen"),
+  startTranscription: (): Promise<{ ok: boolean; error?: string; trackId?: string }> =>
+    ipcRenderer.invoke("usp:start-transcription")
 };
 
 contextBridge.exposeInMainWorld("usp", api);

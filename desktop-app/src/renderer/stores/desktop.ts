@@ -13,6 +13,8 @@ import type {
   SubtitleCacheSettings,
   SubtitleCue,
   SubtitleTrack,
+  TranscriptionConfig,
+  TranscriptionState,
   VideoControlCommand
 } from "../main/types.js";
 import {
@@ -51,6 +53,18 @@ type CacheStats = {
   totalSize: number;
   oldestEntry: number | null;
   newestEntry: number | null;
+};
+
+const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
+  name: "Whisper API",
+  baseUrl: "https://api.openai.com/v1",
+  apiKey: "",
+  model: "whisper-1",
+  language: "",
+  prompt: "",
+  enableWordTimestamps: true,
+  extraParams: {},
+  ytDlpArgs: ""
 };
 
 function createId(prefix: string): string {
@@ -194,6 +208,20 @@ export const useDesktopStore = defineStore("desktop", {
     },
     autoHideMouseLeaveDelay(state): number {
       return state.settings?.global.autoHideMouseLeaveDelayMs ?? DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS;
+    },
+    transcriptionState(state): TranscriptionState | null {
+      return state.desktopState?.transcription ?? null;
+    },
+    activeTranscriptionConfig(state): TranscriptionConfig | null {
+      const transcription = state.settings?.transcription;
+      if (!transcription) {
+        return null;
+      }
+      return (
+        transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
+        transcription.configs[0] ??
+        null
+      );
     }
   },
   actions: {
@@ -512,6 +540,89 @@ export const useDesktopStore = defineStore("desktop", {
       }
       const nextCache = { ...this.settings.cache, [key]: value } as SubtitleCacheSettings;
       this.updateSettings({ cache: nextCache });
+    },
+    setActiveTranscriptionConfig(configId: string) {
+      if (!this.settings) {
+        return;
+      }
+      const configs = this.settings.transcription.configs;
+      const exists = configs.some((config) => config.id === configId);
+      const nextActive = exists ? configId : configs[0]?.id ?? null;
+      this.updateSettings({
+        transcription: {
+          ...this.settings.transcription,
+          activeConfigId: nextActive
+        }
+      });
+    },
+    addTranscriptionConfig() {
+      if (!this.settings) {
+        return null;
+      }
+      const id = createId("transcription");
+      const newConfig: TranscriptionConfig = {
+        ...DEFAULT_TRANSCRIPTION_CONFIG,
+        id
+      };
+      const configs = [...this.settings.transcription.configs, newConfig];
+      this.updateSettings({
+        transcription: {
+          ...this.settings.transcription,
+          configs,
+          activeConfigId: this.settings.transcription.activeConfigId ?? id
+        }
+      });
+      return id;
+    },
+    updateTranscriptionConfig(configId: string, patch: Partial<TranscriptionConfig>) {
+      if (!this.settings) {
+        return;
+      }
+      const configs = this.settings.transcription.configs.map((config) =>
+        config.id === configId ? mergePartial(config, patch) : config
+      );
+      this.updateSettings({
+        transcription: {
+          ...this.settings.transcription,
+          configs
+        }
+      });
+    },
+    deleteTranscriptionConfig(configId: string) {
+      if (!this.settings) {
+        return;
+      }
+      let configs = this.settings.transcription.configs.filter((config) => config.id !== configId);
+      if (!configs.length) {
+        const id = createId("transcription");
+        configs = [
+          {
+            ...DEFAULT_TRANSCRIPTION_CONFIG,
+            id
+          }
+        ];
+      }
+      const activeConfigId =
+        this.settings.transcription.activeConfigId === configId
+          ? configs[0]?.id ?? null
+          : this.settings.transcription.activeConfigId;
+      this.updateSettings({
+        transcription: {
+          ...this.settings.transcription,
+          configs,
+          activeConfigId
+        }
+      });
+    },
+    async startTranscription() {
+      try {
+        const result = await window.usp.startTranscription();
+        if (!result?.ok && result?.error) {
+          console.error("[Renderer] Transcription failed:", result.error);
+        }
+      } catch (error) {
+        console.error("[Renderer] Transcription IPC failed", error);
+      }
     },
     addRule(payload: Omit<ProfileRule, "id">) {
       if (!this.settings) {

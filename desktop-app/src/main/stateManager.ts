@@ -9,7 +9,9 @@ import {
   ProfileRule,
   ProfileSettings,
   SubtitleSource,
-  SubtitleTrack
+  SubtitleTrack,
+  TranscriptionState,
+  TranscriptionStatus
 } from "./types.js";
 import { pickBestTrack } from "./subtitleService.js";
 
@@ -27,7 +29,7 @@ const STATUS_TRANSITIONS: Record<Status, Status[]> = {
   "awaiting-video": ["loading-subtitles", "error", "idle", "awaiting-video"],
   "loading-subtitles": ["ready", "error", "awaiting-video", "idle", "loading-subtitles"],
   ready: ["loading-subtitles", "error", "awaiting-video", "idle", "ready"],
-  error: ["awaiting-video", "loading-subtitles", "idle", "error"]
+  error: ["awaiting-video", "loading-subtitles", "idle", "error", "ready"]
 };
 
 function createInitialState(settings: AppSettings): {
@@ -77,7 +79,8 @@ function createInitialState(settings: AppSettings): {
         selectedSessionId: null,
         lastUpdated: null
       },
-      isFullscreen: false
+      isFullscreen: false,
+      transcription: createDefaultTranscriptionState()
     }
   };
 }
@@ -109,6 +112,15 @@ function matchesRule(url: string, rule: ProfileRule): boolean {
     default:
       return source.toLowerCase().includes(rule.pattern.toLowerCase());
   }
+}
+
+function createDefaultTranscriptionState(): TranscriptionState {
+  return {
+    status: "idle",
+    message: null,
+    configName: null,
+    lastFinishedAt: null
+  };
 }
 
 export class StateManager {
@@ -199,6 +211,21 @@ export class StateManager {
     return next;
   }
 
+  setTranscriptionStatus(
+    status: TranscriptionStatus,
+    message: string | null = null,
+    configName: string | null = null
+  ) {
+    return this.updateState((draft) => {
+      draft.transcription.status = status;
+      draft.transcription.message = message;
+      draft.transcription.configName = configName;
+      if (status === "success" || status === "error") {
+        draft.transcription.lastFinishedAt = Date.now();
+      }
+    });
+  }
+
   setSubtitleTrack(trackId: string | null, role: "primary" | "secondary" = "primary") {
     return this.updateState((draft) => {
       const track = trackId ? draft.subtitleTracks.find((t) => t.id === trackId) || null : null;
@@ -208,6 +235,17 @@ export class StateManager {
       } else {
         draft.selectedSecondarySubtitleId = track ? track.id : null;
         draft.secondarySubtitles = track;
+      }
+    });
+  }
+
+  addOrReplaceSubtitleTrack(track: SubtitleTrack, selectAsPrimary = false) {
+    return this.updateState((draft) => {
+      const remaining = draft.subtitleTracks.filter((t) => t.id !== track.id);
+      draft.subtitleTracks = [track, ...remaining];
+      if (selectAsPrimary) {
+        draft.selectedPrimarySubtitleId = track.id;
+        draft.primarySubtitles = track;
       }
     });
   }
@@ -396,6 +434,7 @@ export class StateManager {
     draft.selectedSecondarySubtitleId = null;
     draft.primarySubtitles = null;
     draft.secondarySubtitles = null;
+    draft.transcription = createDefaultTranscriptionState();
     if (clearError) {
       draft.error = null;
     }

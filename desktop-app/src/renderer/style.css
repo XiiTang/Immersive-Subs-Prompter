@@ -94,6 +94,23 @@ body {
   -webkit-app-region: no-drag;
 }
 
+
+.transcription-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transcription-select {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, calc(0.12 * var(--panel-opacity-factor)));
+  background: rgba(0, 0, 0, calc(0.25 * var(--panel-opacity-factor)));
+  color: #e4e4e7;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 .icon-button {
   width: 28px;
   height: 28px;
@@ -113,6 +130,7 @@ body {
   background: rgba(255, 255, 255, calc(0.1 * var(--panel-opacity-factor)));
   border-color: rgba(255, 255, 255, calc(0.3 * var(--panel-opacity-factor)));
 }
+
 
 .icon-button--active {
   background: rgba(103, 232, 249, calc(0.2 * var(--panel-opacity-factor)));
@@ -317,6 +335,18 @@ body {
   color: #bbf7d0;
 }
 
+.status-banner--running {
+  background: rgba(14, 165, 233, calc(0.15 * var(--panel-opacity-factor)));
+  border-color: rgba(14, 165, 233, calc(0.4 * var(--panel-opacity-factor)));
+  color: #bae6fd;
+}
+
+.status-banner--success {
+  background: rgba(163, 230, 53, calc(0.15 * var(--panel-opacity-factor)));
+  border-color: rgba(163, 230, 53, calc(0.4 * var(--panel-opacity-factor)));
+  color: #d9f99d;
+}
+
 .auto-hide-toggle {
   align-self: flex-end;
   flex-shrink: 0;
@@ -449,15 +479,14 @@ body {
 .settings-field__value {
   font-size: 13px;
   color: #a1a1aa;
-  font-weight: 500;
-  min-width: 40px;
-  text-align: right;
+  align-items: center;
 }
 
-.settings-field--inline {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+.settings-field__inline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
 }
 
 .settings-field select,
@@ -528,6 +557,11 @@ body {
 .settings-field textarea {
   min-height: 72px;
   resize: vertical;
+}
+
+.settings-field__error {
+  color: #f97316;
+  font-size: 12px;
 }
 
 .priority-editor {

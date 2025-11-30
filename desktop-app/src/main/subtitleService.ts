@@ -152,7 +152,7 @@ export class SubtitleService {
   }
 }
 
-type CommandResult = {
+export type CommandResult = {
   stdout: string;
   stderr: string;
 };
@@ -163,7 +163,7 @@ type CommandErrorInfo = CommandResult & {
   args: string[];
 };
 
-class CommandExecutionError extends Error {
+export class CommandExecutionError extends Error {
   info: CommandErrorInfo;
   constructor(message: string, info: CommandErrorInfo) {
     super(message);
@@ -172,7 +172,7 @@ class CommandExecutionError extends Error {
   }
 }
 
-async function runCommand(cmd: string, args: string[], cwd: string): Promise<CommandResult> {
+export async function runCommand(cmd: string, args: string[], cwd: string): Promise<CommandResult> {
   return new Promise<CommandResult>((resolve, reject) => {
     const child = spawn(cmd, args, { cwd });
     const info: CommandErrorInfo = {
@@ -268,7 +268,7 @@ export function pickBestTrack(tracks: SubtitleTrack[]): SubtitleTrack {
   );
 }
 
-function splitArgs(input: string): string[] {
+export function splitArgs(input: string): string[] {
   const result: string[] = [];
   let current = "";
   let quote: string | null = null;
@@ -310,7 +310,7 @@ function splitArgs(input: string): string[] {
   return result;
 }
 
-function formatCommandLine(binary: string, args: string[]): string {
+export function formatCommandLine(binary: string, args: string[]): string {
   return [binary, ...args]
     .map((part) => {
       if (/["\s]/.test(part)) {
@@ -321,7 +321,7 @@ function formatCommandLine(binary: string, args: string[]): string {
     .join(" ");
 }
 
-function formatCommandError(
+export function formatCommandError(
   error: unknown,
   commandLine: string,
   fallbackOutput?: CommandResult | null

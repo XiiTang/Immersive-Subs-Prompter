@@ -7,11 +7,13 @@ import { SubtitleLoadResult, SubtitleCacheSettings } from "./types.js";
 
 const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
 
+type CacheSource = "ytdlp" | "jellyfin" | "transcription";
+
 export interface CacheEntry {
   url: string;
   data: SubtitleLoadResult;
   timestamp: number;
-  source: "ytdlp" | "jellyfin";
+  source: CacheSource;
 }
 
 export interface CacheStats {
@@ -35,7 +37,7 @@ export class SubtitleCacheManager {
   /**
    * Get cached subtitles for a URL
    */
-  async get(url: string, source: "ytdlp" | "jellyfin"): Promise<SubtitleLoadResult | null> {
+  async get(url: string, source: CacheSource): Promise<SubtitleLoadResult | null> {
     const settings = this.settingsProvider();
     if (!settings.enabled) {
       return null;
@@ -78,7 +80,7 @@ export class SubtitleCacheManager {
   /**
    * Save subtitles to cache
    */
-  async set(url: string, source: "ytdlp" | "jellyfin", data: SubtitleLoadResult): Promise<void> {
+  async set(url: string, source: CacheSource, data: SubtitleLoadResult): Promise<void> {
     const settings = this.settingsProvider();
     if (!settings.enabled) {
       return;
@@ -268,7 +270,7 @@ export class SubtitleCacheManager {
   /**
    * Generate cache key from URL and source
    */
-  private getCacheKey(url: string, source: "ytdlp" | "jellyfin"): string {
+  private getCacheKey(url: string, source: CacheSource): string {
     const hash = createHash("sha256");
     hash.update(`${source}:${url}`);
     return hash.digest("hex");

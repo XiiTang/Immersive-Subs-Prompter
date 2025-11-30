@@ -19,8 +19,9 @@ import { ConnectionManager } from "./connectionManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
-import { AppSettings, DesktopState, PlaybackState, VideoControlCommand } from "./types.js";
+import { AppSettings, DesktopState, PlaybackState, SubtitleTrack, TranscriptionConfig, VideoControlCommand } from "./types.js";
 import { JellyfinController } from "./jellyfinController.js";
+import { TranscriptionService } from "./transcriptionService.js";
 
 
 
@@ -33,6 +34,7 @@ type WindowControllerOptions = {
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
   jellyfinController: JellyfinController;
+  transcriptionService: TranscriptionService;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
 };
@@ -169,6 +171,91 @@ export class WindowController {
     ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
       return this.updateAppSettings(payload);
     });
+    ipcMain.handle("usp:start-transcription", async () => {
+      const config = this.resolveActiveTranscriptionConfig();
+      if (!config) {
+        const message = "No transcription configuration available.";
+        this.options.stateManager.setTranscriptionStatus("error", message, null);
+        return { ok: false, error: message };
+      }
+
+      const state = this.options.stateManager.getState();
+      if (state.activeSource === "jellyfin") {
+        const message = "当前为 Jellyfin 模式，语音转录暂不支持。";
+        this.options.stateManager.setTranscriptionStatus("error", message, config.name);
+        return { ok: false, error: message };
+      }
+
+      if (!state.videoUrl) {
+        const message = "No active video to transcribe.";
+        this.options.stateManager.setTranscriptionStatus("error", message, config.name);
+        return { ok: false, error: message };
+      }
+
+      const targetVideoUrl = state.videoUrl;
+      this.options.stateManager.setTranscriptionStatus("running", null, config.name);
+
+      const applyTrackToState = (track: SubtitleTrack, message: string) => {
+        this.options.stateManager.addOrReplaceSubtitleTrack(track, true);
+        this.options.stateManager.updateState((draft) => {
+          draft.status = "ready";
+          draft.error = null;
+        });
+        this.options.stateManager.setTranscriptionStatus("success", message, config.name);
+      };
+
+      // Fast-path: reuse cached transcription for the current video
+      const cached = await this.options.cacheManager.get(targetVideoUrl, "transcription");
+      if (cached?.tracks?.length) {
+        const cachedTrack = cached.tracks[0];
+        const latestState = this.options.stateManager.getState();
+        if (latestState.videoUrl === targetVideoUrl) {
+          applyTrackToState(
+            cachedTrack,
+            `Transcription completed (${cachedTrack.cues.length} lines).`
+          );
+          return { ok: true, trackId: cachedTrack.id, cached: true };
+        }
+        await this.options.cacheManager.set(targetVideoUrl, "transcription", { tracks: [cachedTrack] });
+        this.log.info(
+          "Cached transcription available for previous video, storing silently",
+          { videoUrl: targetVideoUrl }
+        );
+        this.options.stateManager.setTranscriptionStatus(
+          "success",
+          `Transcription cached for previous video.`,
+          config.name
+        );
+        return { ok: true, trackId: cachedTrack.id, cached: true };
+      }
+
+      try {
+        const track = await this.options.transcriptionService.transcribe(targetVideoUrl, config);
+        await this.options.cacheManager.set(targetVideoUrl, "transcription", { tracks: [track] });
+
+        const latestState = this.options.stateManager.getState();
+        if (latestState.videoUrl !== targetVideoUrl) {
+          this.log.info("Transcription finished for a previous video, cached silently", {
+            targetVideoUrl,
+            currentVideoUrl: latestState.videoUrl
+          });
+          this.options.stateManager.setTranscriptionStatus(
+            "success",
+            "Transcription cached for previous video.",
+            config.name
+          );
+          return { ok: true, trackId: track.id, cached: true };
+        }
+
+        applyTrackToState(track, `Transcription completed (${track.cues.length} lines).`);
+        return { ok: true, trackId: track.id };
+      } catch (error) {
+        const message =
+          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+        this.options.stateManager.setTranscriptionStatus("error", message, config.name);
+        return { ok: false, error: message };
+      }
+    });
     ipcMain.handle("usp:toggle-display-fullscreen", () => {
       return this.toggleDisplayFullscreenOnCurrentDisplay();
     });
@@ -212,6 +299,17 @@ export class WindowController {
         throw error;
       }
     });
+  }
+
+  private resolveActiveTranscriptionConfig(): TranscriptionConfig | null {
+    const transcription = this.options.getSettings().transcription;
+    if (!transcription || !Array.isArray(transcription.configs) || !transcription.configs.length) {
+      return null;
+    }
+    const active =
+      transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
+      transcription.configs[0];
+    return active;
   }
 
   private ensureTray() {

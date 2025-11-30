@@ -78,6 +78,7 @@ export interface DesktopState {
   pendingJellyfinItemId: string | null; // Used to prevent race conditions when switching between Jellyfin and extension
   jellyfin: JellyfinPanelState;
   isFullscreen: boolean;
+  transcription: TranscriptionState;
 }
 
 export type SubtitleSource = "extension" | "jellyfin";
@@ -121,6 +122,24 @@ export interface JellyfinConfig {
 export interface JellyfinSettings {
   enabled: boolean;
   configs: JellyfinConfig[];
+}
+
+export interface TranscriptionConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  language: string;
+  prompt: string;
+  enableWordTimestamps: boolean;
+  extraParams: Record<string, string>;
+  ytDlpArgs: string;
+}
+
+export interface TranscriptionSettings {
+  activeConfigId: string | null;
+  configs: TranscriptionConfig[];
 }
 
 export interface SubtitleCacheSettings {
@@ -169,6 +188,7 @@ export interface AppSettings {
   defaultProfileId: string;
   rules: ProfileRule[];
   jellyfin: JellyfinSettings;
+  transcription: TranscriptionSettings;
   cache: SubtitleCacheSettings;
 }
 
@@ -223,4 +243,13 @@ export interface JellyfinPlaybackPayload {
   runTimeMs: number | null;
   playbackRate: number;
   isPaused: boolean;
+}
+
+export type TranscriptionStatus = "idle" | "running" | "success" | "error";
+
+export interface TranscriptionState {
+  status: TranscriptionStatus;
+  message: string | null;
+  configName: string | null;
+  lastFinishedAt: number | null;
 }

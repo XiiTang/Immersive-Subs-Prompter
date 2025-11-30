@@ -12,6 +12,8 @@ import {
   ProfileRule,
   ProfileSettings,
   SubtitleCacheSettings,
+  TranscriptionConfig,
+  TranscriptionSettings,
   UrlMatchType
 } from "./types.js";
 import { createLogger } from "./logger.js";
@@ -73,6 +75,29 @@ export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
   configs: []
 };
 
+export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
+  "--extract-audio --audio-format mp3 --audio-quality 0 --cookies-from-browser firefox";
+
+const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
+
+const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
+  id: DEFAULT_TRANSCRIPTION_CONFIG_ID,
+  name: "Default Whisper API",
+  baseUrl: "https://api.openai.com/v1",
+  apiKey: "",
+  model: "whisper-1",
+  language: "",
+  prompt: "",
+  enableWordTimestamps: true,
+  extraParams: {},
+  ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS
+};
+
+export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
+  activeConfigId: DEFAULT_TRANSCRIPTION_CONFIG_ID,
+  configs: [DEFAULT_TRANSCRIPTION_CONFIG]
+};
+
 export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
   enabled: true,
   path: path.join(app.getPath("userData"), "subtitle-cache"),
@@ -84,7 +109,11 @@ const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
   profiles: [createDefaultProfile()],
   defaultProfileId: DEFAULT_PROFILE_ID,
   rules: [],
-  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS },
+  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS, configs: [...DEFAULT_JELLYFIN_SETTINGS.configs] },
+  transcription: {
+    ...DEFAULT_TRANSCRIPTION_SETTINGS,
+    configs: DEFAULT_TRANSCRIPTION_SETTINGS.configs.map((config) => ({ ...config }))
+  },
   cache: { ...DEFAULT_CACHE_SETTINGS }
 });
 
@@ -448,6 +477,120 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
   };
 }
 
+function sanitizeExtraParams(input: unknown): Record<string, string> {
+  if (!input) {
+    return {};
+  }
+
+  let source: Record<string, unknown> | null = null;
+  if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input);
+      if (parsed && typeof parsed === "object") {
+        source = parsed as Record<string, unknown>;
+      }
+    } catch {
+      source = null;
+    }
+  } else if (typeof input === "object") {
+    source = input as Record<string, unknown>;
+  }
+
+  if (!source) {
+    return {};
+  }
+
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (!key || typeof key !== "string") {
+      continue;
+    }
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const normalizedKey = key.trim();
+    if (!normalizedKey) {
+      continue;
+    }
+    result[normalizedKey] = typeof value === "string" ? value : String(value);
+  }
+  return result;
+}
+
+function sanitizeTranscriptionConfig(
+  input: Partial<TranscriptionConfig> | null | undefined,
+  fallbackId?: string
+): TranscriptionConfig {
+  const source = input ?? {};
+  const id =
+    typeof source.id === "string" && source.id.trim()
+      ? source.id.trim()
+      : fallbackId ?? randomUUID();
+  const name = typeof source.name === "string" && source.name.trim() ? source.name.trim() : "Whisper API";
+  const baseUrl =
+    typeof source.baseUrl === "string" && source.baseUrl.trim().length
+      ? source.baseUrl.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.baseUrl;
+  const apiKey = typeof source.apiKey === "string" ? source.apiKey.trim() : "";
+  const model =
+    typeof source.model === "string" && source.model.trim().length
+      ? source.model.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.model;
+  const language = typeof source.language === "string" ? source.language.trim() : "";
+  const prompt = typeof source.prompt === "string" ? source.prompt.trim() : "";
+  const enableWordTimestamps =
+    typeof source.enableWordTimestamps === "boolean"
+      ? source.enableWordTimestamps
+      : DEFAULT_TRANSCRIPTION_CONFIG.enableWordTimestamps;
+  const ytDlpArgs =
+    typeof source.ytDlpArgs === "string" && source.ytDlpArgs.trim().length
+      ? source.ytDlpArgs.trim()
+      : DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
+  const extraParams = sanitizeExtraParams(source.extraParams);
+
+  return {
+    id,
+    name,
+    baseUrl,
+    apiKey,
+    model,
+    language,
+    prompt,
+    enableWordTimestamps,
+    extraParams,
+    ytDlpArgs
+  };
+}
+
+function sanitizeTranscriptionSettings(
+  input: Partial<TranscriptionSettings> | null | undefined
+): TranscriptionSettings {
+  const source = input ?? {};
+  let configs: TranscriptionConfig[] = [];
+  if (Array.isArray(source.configs)) {
+    configs = source.configs.map((config, index) =>
+      sanitizeTranscriptionConfig(config, `transcription-${index + 1}`)
+    );
+  }
+
+  if (!configs.length) {
+    configs = [sanitizeTranscriptionConfig(DEFAULT_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_CONFIG.id)];
+  }
+
+  const requestedActiveId =
+    typeof source.activeConfigId === "string" && source.activeConfigId.trim()
+      ? source.activeConfigId.trim()
+      : configs[0].id;
+  const activeConfigId = configs.some((config) => config.id === requestedActiveId)
+    ? requestedActiveId
+    : configs[0].id;
+
+  return {
+    activeConfigId,
+    configs
+  };
+}
+
 function sanitizeCacheSettings(input: Partial<SubtitleCacheSettings> | null | undefined): SubtitleCacheSettings {
   const source = input ?? {};
   const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_CACHE_SETTINGS.enabled;
@@ -477,7 +620,13 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
   }
 
   const looksModern =
-    "global" in input || "profiles" in input || "rules" in input || "defaultProfileId" in input || "jellyfin" in input || "cache" in input;
+    "global" in input ||
+    "profiles" in input ||
+    "rules" in input ||
+    "defaultProfileId" in input ||
+    "jellyfin" in input ||
+    "transcription" in input ||
+    "cache" in input;
 
   if (looksModern) {
     const raw = input as Partial<AppSettings>;
@@ -492,6 +641,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       : profiles[0].id;
     const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
     const jellyfin = sanitizeJellyfinSettings(raw.jellyfin);
+    const transcription = sanitizeTranscriptionSettings(raw.transcription);
     const cache = sanitizeCacheSettings(raw.cache);
     return {
       global,
@@ -499,6 +649,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       defaultProfileId,
       rules,
       jellyfin,
+      transcription,
       cache
     };
   }
@@ -514,6 +665,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     defaultProfileId: profile.id,
     rules: [],
     jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS },
+    transcription: { ...DEFAULT_TRANSCRIPTION_SETTINGS },
     cache: { ...DEFAULT_CACHE_SETTINGS }
   };
 }
@@ -525,6 +677,7 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     defaultProfileId: base.defaultProfileId,
     rules: base.rules,
     jellyfin: base.jellyfin,
+    transcription: base.transcription,
     cache: base.cache
   };
 
@@ -544,6 +697,12 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     next.jellyfin = {
       ...next.jellyfin,
       ...patch.jellyfin
+    };
+  }
+  if (patch.transcription) {
+    next.transcription = {
+      ...next.transcription,
+      ...patch.transcription
     };
   }
   if (patch.cache) {

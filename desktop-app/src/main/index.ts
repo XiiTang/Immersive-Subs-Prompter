@@ -7,6 +7,7 @@ import { WindowController } from "./windowController.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
+import { TranscriptionService } from "./transcriptionService.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { AppSettings } from "./types.js";
 
@@ -22,6 +23,7 @@ const setSettings = (settings: AppSettings) => {
 const bus = new AppEventBus();
 const cacheManager = new SubtitleCacheManager(() => getSettings().cache);
 const ytDlpManager = new YtDlpManager();
+const transcriptionService = new TranscriptionService(() => ytDlpManager.getBinaryPath());
 
 const stateManager = new StateManager(bus, getSettings);
 const subtitleService = new SubtitleService(
@@ -33,7 +35,8 @@ const connectionManager = new ConnectionManager({
   port: WS_PORT,
   subtitleService,
   stateManager,
-  bus
+  bus,
+  cacheManager
 });
 const jellyfinController = new JellyfinController({
   bus,
@@ -54,6 +57,7 @@ app.whenReady().then(() => {
     settingsStore,
     cacheManager,
     jellyfinController,
+    transcriptionService,
     getSettings,
     setSettings
   });

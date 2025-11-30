@@ -143,7 +143,26 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "primary-track-placeholder": "主字幕",
   "secondary-track-placeholder": "副字幕",
   "secondary-track-none": "无",
-  "priority-remove": "移除优先级"
+  "priority-remove": "移除优先级",
+  "section-transcription": "语音转录",
+  "transcription-active-config": "选择配置",
+  "transcription-name-label": "配置名称",
+  "transcription-base-url-label": "API 基础地址",
+  "transcription-api-key-label": "API 密钥",
+  "transcription-model-label": "模型",
+  "transcription-language-label": "语言",
+  "transcription-prompt-label": "提示词",
+  "transcription-word-timestamps": "词级时间戳",
+  "transcription-extra-params-label": "额外参数（JSON）",
+  "transcription-extra-params-hint": "可选，传递给 Whisper API 的附加参数",
+  "transcription-extra-params-invalid": "请输入有效的 JSON 对象。",
+  "transcription-ytdlp-label": "yt-dlp 音频参数",
+  "transcription-ytdlp-hint": "用于下载音频的命令行参数，留空使用默认值。",
+  "transcription-button-running": "正在转录...",
+  "transcription-button-start": "开始转录",
+  "transcription-status-running": "正在转录...",
+  "transcription-status-success": "转录完成",
+  "transcription-status-error": "转录失败"
 };
 
 export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {

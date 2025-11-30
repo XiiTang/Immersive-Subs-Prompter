@@ -110,6 +110,7 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
+const transcriptionState = computed(() => store.transcriptionState);
 const subtitleListEl = ref<HTMLElement | null>(null);
 const statusRowRef = ref<HTMLElement | null>(null);
 const cueRefs = ref<HTMLElement[]>([]);
@@ -180,10 +181,29 @@ const activeCueIndex = computed(() => {
 });
 
 const statusBanner = computed(() => {
+  // Priority 1: Transcription Status (Active/Error)
+  const transState = transcriptionState.value;
+  if (transState) {
+    if (transState.status === "running") {
+      return {
+        text: transState.message || t("transcription-status-running", "Transcribing..."),
+        modifier: "status-banner--running"
+      };
+    }
+    if (transState.status === "error") {
+      return {
+        text: transState.message || t("transcription-status-error", "Transcription failed"),
+        modifier: "status-banner--error"
+      };
+    }
+  }
+
   const state = store.desktopState;
   if (!state) {
     return { text: t("status-initializing", "Initializing..."), modifier: "" };
   }
+
+  // Priority 2: Main Application Status
   switch (state.status) {
     case "idle":
       return { text: t("status-idle", "Waiting for extension connection..."), modifier: "" };
@@ -192,6 +212,13 @@ const statusBanner = computed(() => {
     case "loading-subtitles":
       return { text: t("status-loading-subtitles", "Downloading subtitles..."), modifier: "" };
     case "ready":
+      // Priority 3: Transcription Success (only if main status is ready)
+      if (transState?.status === "success") {
+        return {
+          text: t("transcription-status-success", "Transcription finished"),
+          modifier: "status-banner--success"
+        };
+      }
       return { text: t("status-ready", "Subtitles loaded"), modifier: "status-banner--ready" };
     case "error":
       return {
