@@ -105,12 +105,19 @@ import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "../stores/desktop";
 import type { CombinedCue } from "../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../i18n.js";
 
+const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
+
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
+const transcriptionConfigNames = computed(() =>
+  (store.settings?.transcription?.configs ?? [])
+    .map((config) => config.name?.trim())
+    .filter((name): name is string => Boolean(name))
+);
 const subtitleListEl = ref<HTMLElement | null>(null);
 const statusRowRef = ref<HTMLElement | null>(null);
 const cueRefs = ref<HTMLElement[]>([]);
@@ -181,11 +188,47 @@ const activeCueIndex = computed(() => {
 });
 
 function formatSourceFile(sourceFile: string): string {
-  const parts = sourceFile.split(".");
-  if (parts.length >= 3) {
-    return parts.slice(-3).join(".");
+  const trimmed = sourceFile?.trim();
+  if (!trimmed) {
+    return sourceFile;
   }
-  return sourceFile;
+
+  const transcriptionLabel = extractTranscriptionLabel(trimmed);
+  if (transcriptionLabel) {
+    return transcriptionLabel;
+  }
+
+  const parts = trimmed.split(".");
+  if (parts.length >= 5 && isUuidLike(parts[0]) && isAudioExtension(parts[1])) {
+    return parts.slice(2).join(".");
+  }
+
+  if (parts.length >= 2 && isUuidLike(parts[0])) {
+    return parts.slice(1).join(".");
+  }
+
+  return trimmed;
+}
+
+function extractTranscriptionLabel(sourceFile: string): string | null {
+  const lower = sourceFile.toLowerCase();
+  for (const name of transcriptionConfigNames.value) {
+    const normalized = name.toLowerCase();
+    const marker = `.${normalized}.`;
+    const idx = lower.indexOf(marker);
+    if (idx !== -1) {
+      return sourceFile.slice(idx + 1);
+    }
+  }
+  return null;
+}
+
+function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isAudioExtension(value: string): boolean {
+  return AUDIO_EXTENSIONS.includes(value.toLowerCase());
 }
 
 const statusBanner = computed(() => {
