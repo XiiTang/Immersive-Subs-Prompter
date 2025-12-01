@@ -176,12 +176,8 @@ export class TranscriptionService {
       throw new Error("Whisper API returned no segments.");
     }
 
-    const language =
-      (typeof payload?.language === "string" && payload.language.trim()) || config.language || "unknown";
-
     return {
       id: randomUUID(),
-      language,
       sourceFile,
       cues
     };
@@ -206,11 +202,8 @@ export class TranscriptionService {
       throw new Error("Unable to parse subtitle content returned by Whisper API.");
     }
 
-    const language = config.language || "unknown";
-
     return {
       id: randomUUID(),
-      language,
       sourceFile,
       cues
     };

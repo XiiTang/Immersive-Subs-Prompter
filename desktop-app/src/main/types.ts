@@ -34,7 +34,6 @@ export interface ExtensionMessage {
 
 export interface SubtitleTrack {
   id: string;
-  language: string;
   sourceFile: string;
   cues: SubtitleCue[];
 }

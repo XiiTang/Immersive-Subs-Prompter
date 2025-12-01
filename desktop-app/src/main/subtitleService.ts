@@ -92,7 +92,6 @@ export class SubtitleService {
 
         tracks.push({
           id: randomUUID(),
-          language: "unknown",
           sourceFile: path.basename(filePath),
           cues
         });

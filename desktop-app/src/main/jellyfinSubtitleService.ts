@@ -734,7 +734,6 @@ class JellyfinConnection {
             const sourceFile = stream.displayTitle ?? cachedTrack.sourceFile ?? fallbackSourceFile;
             tracks.push({
               id: `${workingSummary.id}:${stream.index}`,
-              language: stream.language ?? "unknown",
               sourceFile,
               cues: cachedTrack.cues
             });
@@ -764,7 +763,6 @@ class JellyfinConnection {
         
         const track = {
           id: `${workingSummary.id}:${stream.index}`,
-          language: stream.language ?? "unknown",
           sourceFile: stream.displayTitle ?? fallbackSourceFile,
           cues
         };

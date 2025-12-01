@@ -11,7 +11,7 @@
           <select v-model="primaryTrackId" aria-label="Primary Subtitle">
             <option disabled value="">{{ t("primary-track-placeholder", "Primary Subtitle") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
-              {{ track.sourceFile }}
+              {{ formatSourceFile(track.sourceFile) }}
             </option>
           </select>
         </label>
@@ -19,7 +19,7 @@
           <select v-model="secondaryTrackId" aria-label="Secondary Subtitle">
             <option value="">{{ t("secondary-track-none", "None") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
-              {{ track.sourceFile }}
+              {{ formatSourceFile(track.sourceFile) }}
             </option>
           </select>
         </label>
@@ -179,6 +179,21 @@ const activeCueIndex = computed(() => {
   const index = cues.value.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
   return index === -1 ? null : index;
 });
+
+function formatSourceFile(sourceFile: string): string {
+  const dotIndex = sourceFile.indexOf(".");
+  if (dotIndex === -1) {
+    return sourceFile;
+  }
+  const prefix = sourceFile.slice(0, dotIndex);
+  const trimmed = sourceFile.slice(dotIndex + 1);
+  const cleanPrefix = prefix.replace(/-/g, "");
+  const looksLikeHash = cleanPrefix.length >= 16 && /^[a-f0-9]+$/i.test(cleanPrefix);
+  if (looksLikeHash && trimmed) {
+    return trimmed;
+  }
+  return sourceFile;
+}
 
 const statusBanner = computed(() => {
   // Priority 1: Transcription Status (Active/Error)
