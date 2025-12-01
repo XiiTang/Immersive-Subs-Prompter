@@ -181,16 +181,9 @@ const activeCueIndex = computed(() => {
 });
 
 function formatSourceFile(sourceFile: string): string {
-  const dotIndex = sourceFile.indexOf(".");
-  if (dotIndex === -1) {
-    return sourceFile;
-  }
-  const prefix = sourceFile.slice(0, dotIndex);
-  const trimmed = sourceFile.slice(dotIndex + 1);
-  const cleanPrefix = prefix.replace(/-/g, "");
-  const looksLikeHash = cleanPrefix.length >= 16 && /^[a-f0-9]+$/i.test(cleanPrefix);
-  if (looksLikeHash && trimmed) {
-    return trimmed;
+  const parts = sourceFile.split(".");
+  if (parts.length >= 3) {
+    return parts.slice(-3).join(".");
   }
   return sourceFile;
 }

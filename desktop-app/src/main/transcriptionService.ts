@@ -141,14 +141,23 @@ export class TranscriptionService {
     }
 
     const contentType = response.headers.get("content-type") ?? "";
+    const sourceFile = this.composeSourceFileName(audioPath, config);
 
     if (contentType.includes("application/json")) {
       const data = await response.json();
-      return this.buildTrackFromJson(data, config, fileName);
+      return this.buildTrackFromJson(data, config, sourceFile);
     }
 
     const text = await response.text();
-    return this.buildTrackFromText(text, config, fileName);
+    return this.buildTrackFromText(text, config, sourceFile);
+  }
+
+  private composeSourceFileName(audioPath: string, config: TranscriptionConfig): string {
+    const baseFile = path.basename(audioPath);
+    const configName = (config.name || "Whisper API").trim() || "Whisper API";
+    const modelName = (config.model || "model").trim() || "model";
+    const language = (config.language || "unknown").trim() || "unknown";
+    return `${baseFile}.${configName}.${modelName}.${language}`;
   }
 
   private buildTrackFromJson(payload: any, config: TranscriptionConfig, sourceFile: string): SubtitleTrack {
