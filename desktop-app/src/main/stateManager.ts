@@ -13,7 +13,6 @@ import {
   TranscriptionState,
   TranscriptionStatus
 } from "./types.js";
-import { pickBestTrack } from "./subtitleService.js";
 
 const clone = <T>(value: T): T => {
   if (typeof (globalThis as any).structuredClone === "function") {
@@ -87,10 +86,6 @@ function createInitialState(settings: AppSettings): {
 
 function normalizePriorityEntries(entries: string[]): string[] {
   return entries.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
-}
-
-function createTrackSignature(track: SubtitleTrack): string {
-  return `${track.language}|${track.label}|${track.sourceFile}`.toLowerCase();
 }
 
 function matchesRule(url: string, rule: ProfileRule): boolean {
@@ -260,10 +255,7 @@ export class StateManager {
         return;
       }
 
-      let primary = this.pickTrackByPriority(tracks, profileSettings.primarySubtitlePriority);
-      if (!primary) {
-        primary = pickBestTrack(tracks);
-      }
+      const primary = this.pickTrackByPriority(tracks, profileSettings.primarySubtitlePriority);
 
       draft.primarySubtitles = primary ?? null;
       draft.selectedPrimarySubtitleId = primary?.id ?? null;
@@ -407,25 +399,22 @@ export class StateManager {
     priorities: string[],
     excludeIds: Set<string> = new Set()
   ): SubtitleTrack | null {
-    if (!tracks.length || !priorities.length) {
+    if (!tracks.length) {
       return null;
     }
     const normalized = normalizePriorityEntries(priorities);
-    if (!normalized.length) {
-      return null;
-    }
-    for (const priority of normalized) {
-      const matched = tracks.find((track) => {
-        if (excludeIds.has(track.id)) {
-          return false;
+    const candidates = tracks.filter((track) => !excludeIds.has(track.id));
+    if (normalized.length) {
+      for (const priority of normalized) {
+        const matched = candidates.find((track) =>
+          track.sourceFile.toLowerCase().includes(priority)
+        );
+        if (matched) {
+          return matched;
         }
-        return createTrackSignature(track).includes(priority);
-      });
-      if (matched) {
-        return matched;
       }
     }
-    return null;
+    return candidates[0] ?? null;
   }
 
   private resetSubtitleStateInternal(draft: DesktopState, clearError = false) {

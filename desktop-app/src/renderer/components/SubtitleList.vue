@@ -11,7 +11,7 @@
           <select v-model="primaryTrackId" aria-label="Primary Subtitle">
             <option disabled value="">{{ t("primary-track-placeholder", "Primary Subtitle") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
-              {{ track.label || track.language }}
+              {{ track.sourceFile }}
             </option>
           </select>
         </label>
@@ -19,7 +19,7 @@
           <select v-model="secondaryTrackId" aria-label="Secondary Subtitle">
             <option value="">{{ t("secondary-track-none", "None") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
-              {{ track.label || track.language }}
+              {{ track.sourceFile }}
             </option>
           </select>
         </label>
