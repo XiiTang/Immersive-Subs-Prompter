@@ -28,13 +28,13 @@
   "dependencies": {
     "active-win": "^8.2.1",
     "decompress": "^4.2.1",
-    "decompress-7z": "^1.0.0",
     "iconv-lite": "^0.7.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@types/decompress": "^4.2.7",
     "@types/node": "^20.12.12",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-vue": "^5.0.4",

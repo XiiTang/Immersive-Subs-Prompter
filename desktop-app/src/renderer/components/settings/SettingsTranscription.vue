@@ -122,7 +122,7 @@
             {{ t("transcription-faster-download-cpu", "Download CPU binary") }}
           </button>
           <button type="button" class="text-button" @click="handleDownloadBinary('gpu')" :disabled="isBusy">
-            {{ t("transcription-faster-download-gpu", "Download GPU binary (7z)") }}
+            {{ t("transcription-faster-download-gpu", "Download GPU binary") }}
           </button>
           <button type="button" class="text-button" @click="openPath(paths?.binaryDir)" :disabled="isBusy">
             {{ t("transcription-faster-open-bin", "Open binary folder") }}

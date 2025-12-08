@@ -4,7 +4,10 @@ import path from "path";
 import { Readable } from "stream";
 import { createLogger } from "./logger.js";
 import decompress from "decompress";
-import decompress7z from "decompress-7z";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 export type FasterWhisperBinaryVariant = "cpu" | "gpu";
 
@@ -81,8 +84,8 @@ export class FasterWhisperManager {
     if (asset.needsExtraction) {
       const extractDir = path.dirname(path.join(this.binDir, asset.targetName));
       await fs.mkdir(extractDir, { recursive: true });
-      progress?.(96, "Extracting GPU package (requires 7z)...");
-      await this.extract7z(tempPath, extractDir);
+      progress?.(96, "Extracting GPU package...");
+      await this.extractArchive(tempPath, extractDir);
       await fs.rm(tempPath, { force: true });
     } else {
       await fs.rename(tempPath, targetPath);
@@ -216,11 +219,42 @@ export class FasterWhisperManager {
     }
   }
 
-  private async extract7z(archivePath: string, extractDir: string) {
+  private async extractArchive(archivePath: string, extractDir: string) {
     try {
-      await decompress(archivePath, extractDir, {
-        plugins: [decompress7z()]
-      });
+      // Ensure extraction directory exists
+      await fs.mkdir(extractDir, { recursive: true });
+      
+      if (process.platform === "win32") {
+        // Try multiple extraction methods in order of preference
+        // 1. Try using 7-Zip command line tool (if installed)
+        try {
+          await execAsync(`7z x "${archivePath}" -o"${extractDir}" -y`);
+          return;
+        } catch (e) {
+          this.log.info("7-Zip not found, trying Windows tar...");
+        }
+        
+        // 2. Try using tar (Windows 10+ has built-in tar with 7z support)
+        try {
+          await execAsync(`tar -xf "${archivePath}" -C "${extractDir}"`);
+          return;
+        } catch (tarError) {
+          this.log.info("Windows tar failed, trying PowerShell...");
+        }
+        
+        // 3. Last resort: PowerShell with Expand-Archive (only works for zip files)
+        try {
+          await execAsync(`powershell -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force"`);
+          return;
+        } catch (psError) {
+          throw new Error(
+            `Failed to extract archive. Please install 7-Zip from https://www.7-zip.org/ or ensure you have Windows 10+ with tar support.`
+          );
+        }
+      } else {
+        // On non-Windows platforms, use decompress library
+        await decompress(archivePath, extractDir);
+      }
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
