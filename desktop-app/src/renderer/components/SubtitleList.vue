@@ -23,6 +23,24 @@
             </option>
           </select>
         </label>
+        <div class="transcription-controls">
+          <label class="track-picker transcription-picker">
+            <select v-model="activeTranscriptionId" :title="t('transcription-config-select', 'Transcription Config')">
+              <option v-for="config in transcriptionConfigs" :key="config.id" :value="config.id">
+                {{ config.name || config.id }}
+              </option>
+            </select>
+          </label>
+          <button
+            class="icon-button transcription-btn"
+            type="button"
+            :disabled="!canTranscribe || isTranscribing"
+            :title="isTranscribing ? t('transcription-button-running', 'Transcribing...') : t('transcription-button-start', 'Start Transcription')"
+            @click="startTranscription"
+          >
+            <span aria-hidden="true">{{ isTranscribing ? '⏳' : '▶' }}</span>
+          </button>
+        </div>
         <div class="playback-buttons">
           <button id="play-btn" type="button" @click="handlePlay">
             {{ t("play-button", "Play") }}
@@ -113,8 +131,9 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
+const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
 const transcriptionConfigNames = computed(() =>
-  (store.settings?.transcription?.configs ?? [])
+  transcriptionConfigs.value
     .map((config) => config.name?.trim())
     .filter((name): name is string => Boolean(name))
 );
@@ -171,9 +190,31 @@ const secondaryTrackId = computed({
 
 const cues = computed<CombinedCue[]>(() => store.combinedCues);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
+const loops = computed(() => playback.value?.loopCueIndex ?? null);
 const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
 const autoHideTimestamps = computed(() => store.settings?.global.autoHideTimestamps ?? false);
+
+const activeTranscriptionId = computed({
+  get: () =>
+    store.settings?.transcription.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
+  set: (value: string) => store.setActiveTranscriptionConfig(value)
+});
+const isTranscribing = computed(() => transcriptionState.value?.status === "running");
+const canTranscribe = computed(() => {
+  if (!transcriptionConfigs.value.length) {
+    return false;
+  }
+  const state = store.desktopState;
+  if (!state || !state.videoUrl) {
+    return false;
+  }
+  return state.activeSource !== "jellyfin";
+});
+
+async function startTranscription() {
+  await store.startTranscription();
+}
 
 const activeCueIndex = computed(() => {
   if (playback.value?.isLooping && loopCueIndex.value !== null) {

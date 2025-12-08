@@ -3,23 +3,7 @@
     <div class="window__title">Immersive Subs Prompter</div>
     <div class="window__status">{{ connectionText }}</div>
   <div class="window__header-actions">
-      <div class="transcription-inline">
-        <select class="transcription-select" v-model="activeTranscriptionId">
-          <option v-for="config in transcriptionConfigs" :key="config.id" :value="config.id">
-            {{ config.name || config.id }}
-          </option>
-        </select>
-        <button
-          class="icon-button"
-          type="button"
-          :disabled="!canTranscribe || isTranscribing"
-          :title="isTranscribing ? t('transcription-button-running', 'Transcribing...') : t('transcription-button-start', 'Start Transcription')"
-          @click="startTranscription"
-        >
-          <span aria-hidden="true">{{ isTranscribing ? '⏳' : '▶' }}</span>
-        </button>
 
-      </div>
       <div class="transparency-inline">
         <input
           class="slider header-slider"
@@ -104,24 +88,7 @@ const fullscreenIcon = computed(() =>
   store.desktopState?.isFullscreen ? "🗗" : "⛶"
 );
 
-const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
-const activeTranscriptionId = computed({
-  get: () =>
-    store.settings?.transcription.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
-  set: (value: string) => store.setActiveTranscriptionConfig(value)
-});
-const transcriptionState = computed(() => store.transcriptionState);
-const isTranscribing = computed(() => transcriptionState.value?.status === "running");
-const canTranscribe = computed(() => {
-  if (!transcriptionConfigs.value.length) {
-    return false;
-  }
-  const state = store.desktopState;
-  if (!state || !state.videoUrl) {
-    return false;
-  }
-  return state.activeSource !== "jellyfin";
-});
+
 
 
 function cyclePin() {
@@ -132,7 +99,5 @@ function cyclePin() {
   store.updateGlobalSetting("alwaysOnTop", next);
 }
 
-async function startTranscription() {
-  await store.startTranscription();
-}
+
 </script>

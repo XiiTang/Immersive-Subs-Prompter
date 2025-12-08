@@ -268,7 +268,27 @@ body {
   flex-direction: column;
   gap: 4px;
   flex: 1;
-  min-width: 150px;
+  min-width: 80px;
+}
+
+.transcription-controls {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex: 1;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.transcription-picker {
+  min-width: 80px;
+  flex: 1;
+}
+
+.transcription-btn {
+  /* Match height with selects roughly if possible, or center */
+  margin-bottom: 1px;
+  /* tweaks adjustment */
 }
 
 .track-picker select {
