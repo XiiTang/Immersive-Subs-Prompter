@@ -70,7 +70,7 @@ export class SubtitleService {
         commandLine = formatCommandLine(binaryPath, args);
       }
 
-      commandResult = await runCommand(binaryPath, args, workingDir);
+      commandResult = await runCommand(binaryPath, args, workingDir, "yt-dlp");
       this.log.info("yt-dlp command completed successfully");
       
       const subtitleFiles = (await fs.readdir(workingDir))
@@ -157,8 +157,14 @@ export class CommandExecutionError extends Error {
   }
 }
 
-export async function runCommand(cmd: string, args: string[], cwd: string): Promise<CommandResult> {
+export async function runCommand(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  displayName?: string
+): Promise<CommandResult> {
   return new Promise<CommandResult>((resolve, reject) => {
+    const name = displayName ?? cmd;
     const child = spawn(cmd, args, { cwd });
     const info: CommandErrorInfo = {
       command: cmd,
@@ -192,8 +198,8 @@ export async function runCommand(cmd: string, args: string[], cwd: string): Prom
     child.on("error", (err) => {
       const enoent = (err as NodeJS.ErrnoException).code === "ENOENT";
       const message = enoent
-        ? "yt-dlp executable not found. Please install yt-dlp and ensure it's in your PATH."
-        : err?.message || "yt-dlp invocation failed.";
+        ? `${name} executable not found. Please install ${name} and ensure it's in your PATH.`
+        : err?.message || `${name} invocation failed.`;
       reject(new CommandExecutionError(message, info));
     });
 
@@ -204,7 +210,7 @@ export async function runCommand(cmd: string, args: string[], cwd: string): Prom
         info.exitCode = code ?? null;
         reject(
           new CommandExecutionError(
-            info.stderr || `yt-dlp exited with code ${code}`,
+            info.stderr || `${name} exited with code ${code}`,
             info
           )
         );

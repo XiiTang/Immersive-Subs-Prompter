@@ -83,6 +83,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   id: DEFAULT_TRANSCRIPTION_CONFIG_ID,
   name: "Default Whisper API",
+  provider: "whisper-api",
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
   model: "whisper-1",
@@ -90,7 +91,15 @@ const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   prompt: "",
   enableWordTimestamps: true,
   extraParams: {},
-  ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS
+  ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
+  fasterWhisperBinary: "faster-whisper",
+  fasterWhisperModel: "base",
+  fasterWhisperModelDir: "",
+  fasterWhisperDevice: "cpu",
+  fasterWhisperVadFilter: true,
+  fasterWhisperVadThreshold: 0.5,
+  fasterWhisperVadMethod: "",
+  fasterWhisperUseKim2: false
 };
 
 export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
@@ -526,7 +535,10 @@ function sanitizeTranscriptionConfig(
     typeof source.id === "string" && source.id.trim()
       ? source.id.trim()
       : fallbackId ?? randomUUID();
-  const name = typeof source.name === "string" && source.name.trim() ? source.name.trim() : "Whisper API";
+  const provider: TranscriptionConfig["provider"] =
+    source.provider === "faster-whisper" ? "faster-whisper" : "whisper-api";
+  const defaultName = provider === "faster-whisper" ? "Faster-Whisper" : "Whisper API";
+  const name = typeof source.name === "string" && source.name.trim() ? source.name.trim() : defaultName;
   const baseUrl =
     typeof source.baseUrl === "string" && source.baseUrl.trim().length
       ? source.baseUrl.trim()
@@ -547,10 +559,40 @@ function sanitizeTranscriptionConfig(
       ? source.ytDlpArgs.trim()
       : DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
   const extraParams = sanitizeExtraParams(source.extraParams);
+  const fasterWhisperBinary =
+    typeof source.fasterWhisperBinary === "string" && source.fasterWhisperBinary.trim().length
+      ? source.fasterWhisperBinary.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperBinary;
+  const fasterWhisperModel =
+    typeof source.fasterWhisperModel === "string" && source.fasterWhisperModel.trim().length
+      ? source.fasterWhisperModel.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperModel;
+  const fasterWhisperModelDir =
+    typeof source.fasterWhisperModelDir === "string" ? source.fasterWhisperModelDir.trim() : "";
+  const fasterWhisperDevice: TranscriptionConfig["fasterWhisperDevice"] =
+    source.fasterWhisperDevice === "cuda" ? "cuda" : "cpu";
+  const fasterWhisperVadFilter =
+    typeof source.fasterWhisperVadFilter === "boolean"
+      ? source.fasterWhisperVadFilter
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperVadFilter;
+  let fasterWhisperVadThreshold = Number(source.fasterWhisperVadThreshold);
+  if (!Number.isFinite(fasterWhisperVadThreshold)) {
+    fasterWhisperVadThreshold = DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperVadThreshold;
+  }
+  fasterWhisperVadThreshold = Math.min(1, Math.max(0, fasterWhisperVadThreshold));
+  const fasterWhisperVadMethod =
+    typeof source.fasterWhisperVadMethod === "string"
+      ? source.fasterWhisperVadMethod.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperVadMethod;
+  const fasterWhisperUseKim2 =
+    typeof source.fasterWhisperUseKim2 === "boolean"
+      ? source.fasterWhisperUseKim2
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperUseKim2;
 
   return {
     id,
     name,
+    provider,
     baseUrl,
     apiKey,
     model,
@@ -558,7 +600,15 @@ function sanitizeTranscriptionConfig(
     prompt,
     enableWordTimestamps,
     extraParams,
-    ytDlpArgs
+    ytDlpArgs,
+    fasterWhisperBinary,
+    fasterWhisperModel,
+    fasterWhisperModelDir,
+    fasterWhisperDevice,
+    fasterWhisperVadFilter,
+    fasterWhisperVadThreshold,
+    fasterWhisperVadMethod,
+    fasterWhisperUseKim2
   };
 }
 

@@ -57,6 +57,7 @@ type CacheStats = {
 
 const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
   name: "Whisper API",
+  provider: "whisper-api",
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
   model: "whisper-1",
@@ -64,7 +65,16 @@ const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
   prompt: "",
   enableWordTimestamps: true,
   extraParams: {},
-  ytDlpArgs: '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox'
+  ytDlpArgs:
+    '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox',
+  fasterWhisperBinary: "faster-whisper",
+  fasterWhisperModel: "base",
+  fasterWhisperModelDir: "",
+  fasterWhisperDevice: "cpu",
+  fasterWhisperVadFilter: true,
+  fasterWhisperVadThreshold: 0.5,
+  fasterWhisperVadMethod: "",
+  fasterWhisperUseKim2: false
 };
 
 function createId(prefix: string): string {

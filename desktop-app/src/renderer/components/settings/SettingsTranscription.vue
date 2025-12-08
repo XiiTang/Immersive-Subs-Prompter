@@ -1,7 +1,7 @@
 <template>
   <section class="settings-section">
     <h3 class="settings-section__title">
-      {{ t("section-transcription", "Speech Transcription (Whisper API)") }}
+      {{ t("section-transcription", "Speech Transcription") }}
     </h3>
     <div class="settings-field settings-field--inline settings-field--justify-start">
       <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
@@ -29,19 +29,96 @@
         <span class="settings-field__label">{{ t("transcription-name-label", "Config Name") }}</span>
         <input type="text" v-model="configName" />
       </label>
-      <label class="settings-field">
-        <span class="settings-field__label">{{ t("transcription-base-url-label", "API Base URL") }}</span>
-        <input type="text" v-model="baseUrl" placeholder="https://api.openai.com/v1" />
-      </label>
-      <label class="settings-field">
-        <span class="settings-field__label">{{ t("transcription-api-key-label", "API Key") }}</span>
-        <input type="text" v-model="apiKey" placeholder="sk-..." />
-      </label>
-      <div class="settings-field settings-field--inline">
-        <div class="settings-field__inline">
-          <span class="settings-field__label">{{ t("transcription-model-label", "Model") }}</span>
-          <input type="text" v-model="model" placeholder="whisper-1" />
+      <div class="settings-field settings-field--inline settings-field--justify-start">
+        <span class="settings-field__label">{{ t("transcription-provider-label", "Provider") }}</span>
+        <select v-model="provider">
+          <option value="whisper-api">
+            {{ t("transcription-provider-whisper", "Whisper API (OpenAI-compatible)") }}
+          </option>
+          <option value="faster-whisper">
+            {{ t("transcription-provider-faster", "Faster-Whisper (local CLI)") }}
+          </option>
+        </select>
+      </div>
+      <template v-if="isWhisperApi">
+        <label class="settings-field">
+          <span class="settings-field__label">{{ t("transcription-base-url-label", "API Base URL") }}</span>
+          <input type="text" v-model="baseUrl" placeholder="https://api.openai.com/v1" />
+        </label>
+        <label class="settings-field">
+          <span class="settings-field__label">{{ t("transcription-api-key-label", "API Key") }}</span>
+          <input type="text" v-model="apiKey" placeholder="sk-..." />
+        </label>
+        <div class="settings-field settings-field--inline">
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-model-label", "Model") }}</span>
+            <input type="text" v-model="model" placeholder="whisper-1" />
+          </div>
         </div>
+      </template>
+      <template v-else-if="isFasterWhisper">
+        <label class="settings-field">
+          <div class="settings-field__label-row">
+            <span class="settings-field__label">{{ t("transcription-faster-binary", "Faster-Whisper Binary") }}</span>
+            <small class="settings-field__hint">
+              {{ t("transcription-faster-binary-hint", "Path to faster-whisper / faster-whisper-xxl executable") }}
+            </small>
+          </div>
+          <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" />
+        </label>
+        <label class="settings-field">
+          <div class="settings-field__label-row">
+            <span class="settings-field__label">{{ t("transcription-faster-model", "Model or path") }}</span>
+            <small class="settings-field__hint">
+              {{ t("transcription-faster-model-hint", "e.g. small, medium, large-v3 or local path") }}
+            </small>
+          </div>
+          <input type="text" v-model="fasterWhisperModel" placeholder="medium" />
+        </label>
+        <label class="settings-field">
+          <div class="settings-field__label-row">
+            <span class="settings-field__label">{{ t("transcription-faster-model-dir", "Model directory (optional)") }}</span>
+            <small class="settings-field__hint">
+              {{ t("transcription-faster-model-dir-hint", "Used for cached models, leave blank to use default") }}
+            </small>
+          </div>
+          <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" />
+        </label>
+        <div class="settings-field settings-field--inline">
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-faster-device", "Device") }}</span>
+            <select v-model="fasterWhisperDevice">
+              <option value="cpu">CPU</option>
+              <option value="cuda">CUDA</option>
+            </select>
+          </div>
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-faster-vad-filter", "VAD filter") }}</span>
+            <label class="toggle">
+              <input type="checkbox" v-model="fasterWhisperVadFilter" />
+              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-field settings-field--inline">
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-faster-vad-threshold", "VAD threshold") }}</span>
+            <input type="number" min="0" max="1" step="0.05" v-model.number="fasterWhisperVadThreshold" />
+          </div>
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-faster-vad-method", "VAD method") }}</span>
+            <input type="text" v-model="fasterWhisperVadMethod" placeholder="silero-v3 / silero-v4 ..." />
+          </div>
+        </div>
+        <div class="settings-field settings-field--inline">
+          <span class="settings-field__label">{{ t("transcription-faster-kim2", "Voice separation (ff_mdx_kim2)") }}</span>
+          <label class="toggle">
+            <input type="checkbox" v-model="fasterWhisperUseKim2" />
+            <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+          </label>
+        </div>
+      </template>
+      <div class="settings-field settings-field--inline">
         <div class="settings-field__inline">
           <span class="settings-field__label">{{ t("transcription-language-label", "Language") }}</span>
           <input type="text" v-model="languageField" placeholder="auto" />
@@ -58,7 +135,7 @@
           <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
         </label>
       </div>
-      <label class="settings-field">
+      <label v-if="isWhisperApi" class="settings-field">
         <div class="settings-field__label-row">
           <span class="settings-field__label">
             {{ t("transcription-extra-params-label", "Extra Parameters (JSON)") }}
@@ -107,6 +184,14 @@ const activeConfigId = computed({
 const activeConfig = computed(() =>
   transcriptionConfigs.value.find((config) => config.id === activeConfigId.value) ?? null
 );
+
+const provider = computed({
+  get: () => activeConfig.value?.provider ?? "whisper-api",
+  set: (value: string) => updateConfig({ provider: value })
+});
+
+const isWhisperApi = computed(() => provider.value === "whisper-api");
+const isFasterWhisper = computed(() => provider.value === "faster-whisper");
 
 const extraParamsError = ref<string | null>(null);
 const extraParamsText = computed({
@@ -179,6 +264,50 @@ const apiKey = computed({
 const model = computed({
   get: () => activeConfig.value?.model ?? "",
   set: (value: string) => updateConfig({ model: value })
+});
+
+const fasterWhisperBinary = computed({
+  get: () => activeConfig.value?.fasterWhisperBinary ?? "",
+  set: (value: string) => updateConfig({ fasterWhisperBinary: value })
+});
+
+const fasterWhisperModel = computed({
+  get: () => activeConfig.value?.fasterWhisperModel ?? "",
+  set: (value: string) => updateConfig({ fasterWhisperModel: value })
+});
+
+const fasterWhisperModelDir = computed({
+  get: () => activeConfig.value?.fasterWhisperModelDir ?? "",
+  set: (value: string) => updateConfig({ fasterWhisperModelDir: value })
+});
+
+const fasterWhisperDevice = computed({
+  get: () => activeConfig.value?.fasterWhisperDevice ?? "cpu",
+  set: (value: "cpu" | "cuda") => updateConfig({ fasterWhisperDevice: value })
+});
+
+const fasterWhisperVadFilter = computed({
+  get: () => activeConfig.value?.fasterWhisperVadFilter ?? true,
+  set: (value: boolean) => updateConfig({ fasterWhisperVadFilter: value })
+});
+
+const fasterWhisperVadThreshold = computed({
+  get: () => activeConfig.value?.fasterWhisperVadThreshold ?? 0.5,
+  set: (value: number) => {
+    const current = activeConfig.value?.fasterWhisperVadThreshold ?? 0.5;
+    const normalized = Number.isFinite(value) ? value : current;
+    updateConfig({ fasterWhisperVadThreshold: normalized });
+  }
+});
+
+const fasterWhisperVadMethod = computed({
+  get: () => activeConfig.value?.fasterWhisperVadMethod ?? "",
+  set: (value: string) => updateConfig({ fasterWhisperVadMethod: value })
+});
+
+const fasterWhisperUseKim2 = computed({
+  get: () => activeConfig.value?.fasterWhisperUseKim2 ?? false,
+  set: (value: boolean) => updateConfig({ fasterWhisperUseKim2: value })
 });
 
 const languageField = computed({

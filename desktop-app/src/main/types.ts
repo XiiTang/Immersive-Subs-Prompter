@@ -93,6 +93,9 @@ export type UrlMatchType = "contains" | "exact" | "regex";
 
 export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
 
+export type TranscriptionProvider = "whisper-api" | "faster-whisper";
+export type FasterWhisperDevice = "cpu" | "cuda";
+
 export interface GlobalSettings {
   closeBehavior: CloseBehavior;
   autoLaunch: boolean;
@@ -124,6 +127,7 @@ export interface JellyfinSettings {
 export interface TranscriptionConfig {
   id: string;
   name: string;
+  provider: TranscriptionProvider;
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -132,6 +136,14 @@ export interface TranscriptionConfig {
   enableWordTimestamps: boolean;
   extraParams: Record<string, string>;
   ytDlpArgs: string;
+  fasterWhisperBinary: string;
+  fasterWhisperModel: string;
+  fasterWhisperModelDir: string;
+  fasterWhisperDevice: FasterWhisperDevice;
+  fasterWhisperVadFilter: boolean;
+  fasterWhisperVadThreshold: number;
+  fasterWhisperVadMethod: string;
+  fasterWhisperUseKim2: boolean;
 }
 
 export interface TranscriptionSettings {

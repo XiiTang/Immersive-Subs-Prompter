@@ -10,6 +10,7 @@ import {
   Tray
 } from "electron";
 import activeWindow from "active-win";
+import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -194,6 +195,7 @@ export class WindowController {
 
       const targetVideoUrl = state.videoUrl;
       this.options.stateManager.setTranscriptionStatus("running", null, config.name);
+      const cacheKey = this.buildTranscriptionCacheKey(targetVideoUrl, config);
 
       const applyTrackToState = (track: SubtitleTrack, message: string) => {
         this.options.stateManager.addOrReplaceSubtitleTrack(track, true);
@@ -205,7 +207,7 @@ export class WindowController {
       };
 
       // Fast-path: reuse cached transcription for the current video
-      const cached = await this.options.cacheManager.get(targetVideoUrl, "transcription");
+      const cached = await this.options.cacheManager.get(cacheKey, "transcription");
       if (cached?.tracks?.length) {
         const cachedTrack = cached.tracks[0];
         const latestState = this.options.stateManager.getState();
@@ -216,7 +218,7 @@ export class WindowController {
           );
           return { ok: true, trackId: cachedTrack.id, cached: true };
         }
-        await this.options.cacheManager.set(targetVideoUrl, "transcription", { tracks: [cachedTrack] });
+        await this.options.cacheManager.set(cacheKey, "transcription", { tracks: [cachedTrack] });
         this.log.info(
           "Cached transcription available for previous video, storing silently",
           { videoUrl: targetVideoUrl }
@@ -231,7 +233,7 @@ export class WindowController {
 
       try {
         const track = await this.options.transcriptionService.transcribe(targetVideoUrl, config);
-        await this.options.cacheManager.set(targetVideoUrl, "transcription", { tracks: [track] });
+        await this.options.cacheManager.set(cacheKey, "transcription", { tracks: [track] });
 
         const latestState = this.options.stateManager.getState();
         if (latestState.videoUrl !== targetVideoUrl) {
@@ -310,6 +312,34 @@ export class WindowController {
       transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
       transcription.configs[0];
     return active;
+  }
+
+  private buildTranscriptionCacheKey(videoUrl: string, config: TranscriptionConfig): string {
+    const provider = config.provider === "faster-whisper" ? "faster-whisper" : "whisper-api";
+    const signaturePayload = {
+      id: config.id,
+      provider,
+      model: provider === "faster-whisper" ? config.fasterWhisperModel : config.model,
+      language: config.language,
+      prompt: config.prompt,
+      enableWordTimestamps: config.enableWordTimestamps,
+      ytDlpArgs: config.ytDlpArgs,
+      baseUrl: provider === "whisper-api" ? config.baseUrl : "",
+      extraParams: provider === "whisper-api" ? config.extraParams : undefined,
+      fasterWhisper:
+        provider === "faster-whisper"
+          ? {
+              device: config.fasterWhisperDevice,
+              modelDir: config.fasterWhisperModelDir,
+              vadFilter: config.fasterWhisperVadFilter,
+              vadThreshold: config.fasterWhisperVadThreshold,
+              vadMethod: config.fasterWhisperVadMethod,
+              useKim2: config.fasterWhisperUseKim2
+            }
+          : undefined
+    };
+    const signature = createHash("sha256").update(JSON.stringify(signaturePayload)).digest("hex").slice(0, 12);
+    return `${videoUrl}#${signature}`;
   }
 
   private ensureTray() {
