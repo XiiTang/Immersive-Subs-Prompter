@@ -23,6 +23,7 @@ import { createLogger } from "./logger.js";
 import { AppSettings, DesktopState, PlaybackState, SubtitleTrack, TranscriptionConfig, VideoControlCommand } from "./types.js";
 import { JellyfinController } from "./jellyfinController.js";
 import { TranscriptionService } from "./transcriptionService.js";
+import { FasterWhisperManager } from "./fasterWhisperManager.js";
 
 
 
@@ -36,6 +37,7 @@ type WindowControllerOptions = {
   cacheManager: SubtitleCacheManager;
   jellyfinController: JellyfinController;
   transcriptionService: TranscriptionService;
+  fasterWhisperManager: FasterWhisperManager;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
 };
@@ -171,6 +173,46 @@ export class WindowController {
     ipcMain.handle("usp:get-settings", () => this.options.getSettings());
     ipcMain.handle("usp:update-settings", (_event, payload: Partial<AppSettings>) => {
       return this.updateAppSettings(payload);
+    });
+    ipcMain.handle("usp:faster-whisper-paths", async () => {
+      return this.options.fasterWhisperManager.getPaths();
+    });
+    ipcMain.handle("usp:faster-whisper-download-binary", async (_event, variant: "cpu" | "gpu") => {
+      try {
+        const path = await this.options.fasterWhisperManager.downloadBinary(variant);
+        return { ok: true, path };
+      } catch (error) {
+        const message =
+          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+        this.log.error("Faster-Whisper binary download failed", error);
+        return { ok: false, error: message };
+      }
+    });
+    ipcMain.handle("usp:faster-whisper-download-model", async (_event, model: string) => {
+      try {
+        const result = await this.options.fasterWhisperManager.downloadModel(model);
+        return { ok: true, ...result };
+      } catch (error) {
+        const message =
+          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+        this.log.error("Faster-Whisper model download failed", error);
+        return { ok: false, error: message };
+      }
+    });
+    ipcMain.handle("usp:open-path", async (_event, targetPath: string) => {
+      try {
+        if (!targetPath) {
+          throw new Error("Path is empty");
+        }
+        await fs.promises.mkdir(targetPath, { recursive: true });
+        await shell.openPath(targetPath);
+        return { ok: true };
+      } catch (error) {
+        const message =
+          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+        this.log.error("Failed to open path", error);
+        return { ok: false, error: message };
+      }
     });
     ipcMain.handle("usp:start-transcription", async () => {
       const config = this.resolveActiveTranscriptionConfig();

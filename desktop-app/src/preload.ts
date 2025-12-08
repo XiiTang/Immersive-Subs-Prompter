@@ -21,6 +21,22 @@ const api = {
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
+  getFasterWhisperPaths: (): Promise<{
+    binaryDir: string;
+    modelsDir: string;
+    cpuBinaryPath: string;
+    gpuBinaryPath: string;
+  }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
+  downloadFasterWhisperBinary: (
+    variant: "cpu" | "gpu"
+  ): Promise<{ ok: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-binary", variant),
+  downloadFasterWhisperModel: (
+    model: string
+  ): Promise<{ ok: boolean; path?: string; files?: string[]; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-model", model),
+  openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:open-path", targetPath),
   getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
     ipcRenderer.invoke("usp:cache-stats"),
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),

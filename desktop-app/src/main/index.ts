@@ -10,6 +10,7 @@ import { YtDlpManager } from "./ytDlpManager.js";
 import { TranscriptionService } from "./transcriptionService.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { AppSettings } from "./types.js";
+import { FasterWhisperManager } from "./fasterWhisperManager.js";
 
 const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
 
@@ -24,6 +25,7 @@ const bus = new AppEventBus();
 const cacheManager = new SubtitleCacheManager(() => getSettings().cache);
 const ytDlpManager = new YtDlpManager();
 const transcriptionService = new TranscriptionService(() => ytDlpManager.getBinaryPath());
+const fasterWhisperManager = new FasterWhisperManager();
 
 const stateManager = new StateManager(bus, getSettings);
 const subtitleService = new SubtitleService(
@@ -58,6 +60,7 @@ app.whenReady().then(() => {
     cacheManager,
     jellyfinController,
     transcriptionService,
+    fasterWhisperManager,
     getSettings,
     setSettings
   });

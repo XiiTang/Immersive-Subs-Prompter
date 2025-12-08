@@ -27,6 +27,8 @@
   "license": "MIT",
   "dependencies": {
     "active-win": "^8.2.1",
+    "decompress": "^4.2.1",
+    "decompress-7z": "^1.0.0",
     "iconv-lite": "^0.7.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",

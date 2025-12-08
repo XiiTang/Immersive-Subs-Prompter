@@ -79,6 +79,7 @@ export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
   '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox';
 
 const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
+const DEFAULT_FASTER_WHISPER_MODEL_DIR = path.join(app.getPath("userData"), "faster-whisper", "models");
 
 const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   id: DEFAULT_TRANSCRIPTION_CONFIG_ID,
@@ -94,7 +95,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
   fasterWhisperBinary: "faster-whisper",
   fasterWhisperModel: "base",
-  fasterWhisperModelDir: "",
+  fasterWhisperModelDir: DEFAULT_FASTER_WHISPER_MODEL_DIR,
   fasterWhisperDevice: "cpu",
   fasterWhisperVadFilter: true,
   fasterWhisperVadThreshold: 0.5,

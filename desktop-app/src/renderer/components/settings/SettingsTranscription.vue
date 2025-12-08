@@ -117,6 +117,37 @@
             <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
           </label>
         </div>
+        <div class="settings-field settings-field--inline settings-field--justify-start fast-fw-actions">
+          <button type="button" class="text-button" @click="handleDownloadBinary('cpu')" :disabled="isBusy">
+            {{ t("transcription-faster-download-cpu", "Download CPU binary") }}
+          </button>
+          <button type="button" class="text-button" @click="handleDownloadBinary('gpu')" :disabled="isBusy">
+            {{ t("transcription-faster-download-gpu", "Download GPU binary (7z)") }}
+          </button>
+          <button type="button" class="text-button" @click="openPath(paths?.binaryDir)" :disabled="isBusy">
+            {{ t("transcription-faster-open-bin", "Open binary folder") }}
+          </button>
+        </div>
+        <div class="settings-field settings-field--inline settings-field--justify-start">
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-faster-model-preset", "Model preset") }}</span>
+            <select v-model="selectedModel">
+              <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
+                {{ model.label }}
+              </option>
+            </select>
+          </div>
+          <div class="settings-field__inline">
+            <button type="button" class="text-button" @click="handleDownloadModel" :disabled="isBusy">
+              {{ t("transcription-faster-download-model", "Download model") }}
+            </button>
+            <button type="button" class="text-button" @click="openPath(paths?.modelsDir)" :disabled="isBusy">
+              {{ t("transcription-faster-open-models", "Open models folder") }}
+            </button>
+          </div>
+        </div>
+        <p v-if="downloadMessage" class="settings-field__hint">{{ downloadMessage }}</p>
+        <p v-if="downloadError" class="settings-field__error">{{ downloadError }}</p>
       </template>
       <div class="settings-field settings-field--inline">
         <div class="settings-field__inline">
@@ -166,13 +197,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
+
+const fasterWhisperModels = [
+  { label: "tiny", value: "tiny" },
+  { label: "base", value: "base" },
+  { label: "small", value: "small" },
+  { label: "medium", value: "medium" },
+  { label: "large-v1", value: "large-v1" },
+  { label: "large-v2", value: "large-v2" },
+  { label: "large-v3", value: "large-v3" },
+  { label: "large-v3-turbo", value: "large-v3-turbo" }
+];
 
 const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
 const activeConfigId = computed({
@@ -184,6 +226,17 @@ const activeConfigId = computed({
 const activeConfig = computed(() =>
   transcriptionConfigs.value.find((config) => config.id === activeConfigId.value) ?? null
 );
+
+const paths = ref<{
+  binaryDir: string;
+  modelsDir: string;
+  cpuBinaryPath: string;
+  gpuBinaryPath: string;
+} | null>(null);
+const selectedModel = ref("tiny");
+const isBusy = ref(false);
+const downloadMessage = ref("");
+const downloadError = ref("");
 
 const provider = computed({
   get: () => activeConfig.value?.provider ?? "whisper-api",
@@ -223,6 +276,23 @@ const extraParamsText = computed({
 
 watch(activeConfig, () => {
   extraParamsError.value = null;
+  if (activeConfig.value?.fasterWhisperModel) {
+    selectedModel.value = activeConfig.value.fasterWhisperModel;
+  }
+  if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
+    updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
+  }
+});
+
+onMounted(async () => {
+  try {
+    paths.value = await window.usp.getFasterWhisperPaths();
+    if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
+      updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
+    }
+  } catch (error) {
+    console.error("Failed to load Faster-Whisper paths", error);
+  }
 });
 
 function updateConfig(patch: Record<string, unknown>) {
@@ -329,4 +399,59 @@ const ytDlpArgs = computed({
   get: () => activeConfig.value?.ytDlpArgs ?? "",
   set: (value: string) => updateConfig({ ytDlpArgs: value })
 });
+
+async function handleDownloadBinary(variant: "cpu" | "gpu") {
+  if (isBusy.value) return;
+  downloadMessage.value = "";
+  downloadError.value = "";
+  isBusy.value = true;
+  try {
+    const result = await window.usp.downloadFasterWhisperBinary(variant);
+    if (!result?.ok || !result.path) {
+      throw new Error(result?.error || "Download failed");
+    }
+    downloadMessage.value = t("transcription-faster-download-success", "Download completed: ") + result.path;
+    updateConfig({ fasterWhisperBinary: result.path });
+    paths.value = await window.usp.getFasterWhisperPaths();
+  } catch (error) {
+    downloadError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    isBusy.value = false;
+  }
+}
+
+async function handleDownloadModel() {
+  if (isBusy.value) return;
+  downloadMessage.value = "";
+  downloadError.value = "";
+  isBusy.value = true;
+  try {
+    const model = selectedModel.value;
+    const result = await window.usp.downloadFasterWhisperModel(model);
+    if (!result?.ok || !result.path) {
+      throw new Error(result?.error || "Download failed");
+    }
+    downloadMessage.value =
+      t("transcription-faster-model-success", "Model downloaded to: ") + result.path;
+    updateConfig({
+      fasterWhisperModel: model,
+      fasterWhisperModelDir: paths.value?.modelsDir || "",
+      provider: "faster-whisper"
+    });
+    paths.value = await window.usp.getFasterWhisperPaths();
+  } catch (error) {
+    downloadError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    isBusy.value = false;
+  }
+}
+
+async function openPath(target?: string | null) {
+  if (!target) return;
+  try {
+    await window.usp.openPath(target);
+  } catch (error) {
+    downloadError.value = error instanceof Error ? error.message : String(error);
+  }
+}
 </script>
