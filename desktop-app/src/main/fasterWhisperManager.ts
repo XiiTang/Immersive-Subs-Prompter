@@ -47,7 +47,12 @@ const SUPPORTED_MODEL_SUFFIXES = [
   "large-v3-turbo"
 ] as const;
 
-const MODEL_FILE_WHITELIST = [".bin", ".json", ".txt", ".model", ".yaml"];
+const REQUIRED_MODEL_FILES = ["config.json", "model.bin", "tokenizer.json", "vocabulary.txt"];
+const MODEL_BASES = [
+  "https://hf-mirror.com",
+  "https://huggingface.co",
+  "https://modelscope.cn/models"
+];
 
 export class FasterWhisperManager {
   private readonly log = createLogger("faster-whisper");
@@ -101,8 +106,9 @@ export class FasterWhisperManager {
   async downloadModel(model: string, progress?: ProgressCb): Promise<{ path: string; files: string[] }> {
     await this.ensureDirs();
     const normalized = this.normalizeModel(model);
-    const repoId = `Systran/faster-whisper-${normalized}`;
-    const targetDir = path.join(this.modelsDir, `faster-whisper-${normalized}`);
+    const repoName = `faster-whisper-${normalized}`;
+    const repoId = `Systran/${repoName}`;
+    const targetDir = path.join(this.modelsDir, repoName);
     await fs.mkdir(targetDir, { recursive: true });
 
     const files = await this.listModelFiles(repoId);
@@ -110,28 +116,27 @@ export class FasterWhisperManager {
       throw new Error(`Unable to list model files for ${repoId}`);
     }
 
-    const totalBytes = files.reduce((acc, file) => acc + (file.size ?? 0), 0);
-    let downloadedBytes = 0;
-
     for (const file of files) {
-      const url = `https://huggingface.co/${repoId}/resolve/main/${file.name}`;
       const outPath = path.join(targetDir, file.name);
       await fs.mkdir(path.dirname(outPath), { recursive: true });
       const fileLabel = file.name;
-      await this.downloadFile(url, outPath, (p, currentBytes) => {
-        if (file.size && currentBytes !== undefined) {
-          downloadedBytes = downloadedBytes + currentBytes;
-          if (totalBytes > 0) {
-            const percent = Math.min(
-              99,
-              Math.max(1, Math.round((downloadedBytes / totalBytes) * 100))
-            );
-            progress?.(percent, `Downloading model (${fileLabel})`);
-          }
-        } else {
-          progress?.(p, `Downloading model (${fileLabel})`);
+      const candidates = this.buildModelFileUrls(repoName, file.name);
+      let lastError: unknown = null;
+      for (const candidate of candidates) {
+        try {
+          await this.downloadFile(candidate, outPath, (p) => {
+            progress?.(p, `Downloading model (${fileLabel})`);
+          });
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          this.log.warn(`Failed to download ${fileLabel} from ${candidate}`, error);
         }
-      });
+      }
+      if (lastError) {
+        throw lastError;
+      }
     }
 
     progress?.(100, "Model ready");
@@ -163,22 +168,17 @@ export class FasterWhisperManager {
   }
 
   private async listModelFiles(repoId: string): Promise<ModelFile[]> {
-    const res = await fetch(`https://huggingface.co/api/models/${repoId}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch model metadata: ${res.status} ${res.statusText}`);
-    }
-    const data = await res.json();
-    const siblings = Array.isArray(data?.siblings) ? data.siblings : [];
-    const files: ModelFile[] = [];
-    for (const sibling of siblings) {
-      const name = sibling?.rfilename;
-      if (typeof name !== "string") continue;
-      if (!MODEL_FILE_WHITELIST.some((ext) => name.toLowerCase().endsWith(ext))) {
-        continue;
-      }
-      files.push({ name, size: typeof sibling?.size === "number" ? sibling.size : null });
-    }
-    return files;
+    return REQUIRED_MODEL_FILES.map((name) => ({ name, size: null }));
+  }
+
+  private buildModelFileUrls(repoName: string, fileName: string): string[] {
+    const hfPath = `${repoName}/resolve/main/${fileName}`;
+    const msPath = `pengzhendong/${repoName}/resolve/master/${fileName}`;
+    return [
+      `${MODEL_BASES[0]}/${hfPath}`,
+      `${MODEL_BASES[1]}/${hfPath}`,
+      `${MODEL_BASES[2]}/${msPath}`
+    ];
   }
 
   private async downloadFile(url: string, targetPath: string, progress?: (percent: number, chunkBytes?: number) => void) {
@@ -208,9 +208,7 @@ export class FasterWhisperManager {
       readable.pipe(fileStream);
     });
 
-    if (total > 0) {
-      progress?.(100, 0);
-    }
+    progress?.(100, 0);
   }
 
   private async ensurePermissions(targetPath: string) {
