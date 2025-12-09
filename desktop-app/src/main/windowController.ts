@@ -177,28 +177,83 @@ export class WindowController {
     ipcMain.handle("usp:faster-whisper-paths", async () => {
       return this.options.fasterWhisperManager.getPaths();
     });
-    ipcMain.handle("usp:faster-whisper-download-binary", async (_event, variant: "cpu" | "gpu") => {
+    ipcMain.handle("usp:faster-whisper-list-models", async (_event, modelDir?: string) => {
       try {
-        const path = await this.options.fasterWhisperManager.downloadBinary(variant);
-        return { ok: true, path };
-      } catch (error) {
-        const message =
-          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-        this.log.error("Faster-Whisper binary download failed", error);
-        return { ok: false, error: message };
-      }
-    });
-    ipcMain.handle("usp:faster-whisper-download-model", async (_event, model: string) => {
-      try {
-        const result = await this.options.fasterWhisperManager.downloadModel(model);
+        const result = await this.options.fasterWhisperManager.listDownloadedModels(modelDir);
         return { ok: true, ...result };
       } catch (error) {
         const message =
           error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-        this.log.error("Faster-Whisper model download failed", error);
+        this.log.error("Failed to list Faster-Whisper models", error);
         return { ok: false, error: message };
       }
     });
+    ipcMain.handle(
+      "usp:faster-whisper-download-binary",
+      async (event, payload: { variant: "cpu" | "gpu"; jobId?: string } | "cpu" | "gpu") => {
+        const variant = typeof payload === "string" ? payload : payload.variant;
+        const jobId = typeof payload === "string" ? undefined : payload.jobId;
+        const downloadId = jobId || `fw-bin-${Date.now()}`;
+        const progress = (percent: number, status: string) => {
+          event.sender.send("usp:faster-whisper-download-progress", {
+            id: downloadId,
+            type: "binary",
+            variant,
+            percent,
+            status
+          });
+        };
+        try {
+          const path = await this.options.fasterWhisperManager.downloadBinary(variant, progress);
+          return { ok: true, path, id: downloadId };
+        } catch (error) {
+          const message =
+            error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+          this.log.error("Faster-Whisper binary download failed", error);
+          event.sender.send("usp:faster-whisper-download-progress", {
+            id: downloadId,
+            type: "binary",
+            variant,
+            percent: 0,
+            status: `Error: ${message}`
+          });
+          return { ok: false, error: message };
+        }
+      }
+    );
+    ipcMain.handle(
+      "usp:faster-whisper-download-model",
+      async (event, payload: { model: string; jobId?: string } | string) => {
+        const model = typeof payload === "string" ? payload : payload.model;
+        const jobId = typeof payload === "string" ? undefined : payload.jobId;
+        const downloadId = jobId || `fw-model-${Date.now()}`;
+        const progress = (percent: number, status: string) => {
+          event.sender.send("usp:faster-whisper-download-progress", {
+            id: downloadId,
+            type: "model",
+            model,
+            percent,
+            status
+          });
+        };
+        try {
+          const result = await this.options.fasterWhisperManager.downloadModel(model, progress);
+          return { ok: true, id: downloadId, ...result };
+        } catch (error) {
+          const message =
+            error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+          this.log.error("Faster-Whisper model download failed", error);
+          event.sender.send("usp:faster-whisper-download-progress", {
+            id: downloadId,
+            type: "model",
+            model,
+            percent: 0,
+            status: `Error: ${message}`
+          });
+          return { ok: false, error: message };
+        }
+      }
+    );
     ipcMain.handle("usp:open-path", async (_event, targetPath: string) => {
       try {
         if (!targetPath) {

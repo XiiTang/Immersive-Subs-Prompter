@@ -27,14 +27,28 @@ const api = {
     cpuBinaryPath: string;
     gpuBinaryPath: string;
   }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
+  listFasterWhisperModels: (
+    modelDir?: string
+  ): Promise<{ ok: boolean; models?: Array<{ name: string; path: string; folder: string }>; baseDir?: string; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-list-models", modelDir),
+  onFasterWhisperDownloadProgress: (
+    listener: Listener<{
+      id: string;
+      type: "binary" | "model";
+      variant?: "cpu" | "gpu";
+      model?: string;
+      percent: number;
+      status: string;
+    }>
+  ) => subscribe("usp:faster-whisper-download-progress", listener),
   downloadFasterWhisperBinary: (
-    variant: "cpu" | "gpu"
-  ): Promise<{ ok: boolean; path?: string; error?: string }> =>
-    ipcRenderer.invoke("usp:faster-whisper-download-binary", variant),
+    payload: { variant: "cpu" | "gpu"; jobId?: string }
+  ): Promise<{ ok: boolean; path?: string; id?: string; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-binary", payload),
   downloadFasterWhisperModel: (
-    model: string
-  ): Promise<{ ok: boolean; path?: string; files?: string[]; error?: string }> =>
-    ipcRenderer.invoke("usp:faster-whisper-download-model", model),
+    payload: { model: string; jobId?: string }
+  ): Promise<{ ok: boolean; path?: string; files?: string[]; id?: string; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
   getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>

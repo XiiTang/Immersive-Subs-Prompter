@@ -59,6 +59,10 @@ export class FasterWhisperManager {
   private readonly baseDir = path.join(app.getPath("userData"), "faster-whisper");
   private readonly binDir = path.join(this.baseDir, "bin");
   private readonly modelsDir = path.join(this.baseDir, "models");
+  private readonly normalizeModelName = (name: string) => {
+    const trimmed = name.trim();
+    return trimmed.startsWith("faster-whisper-") ? trimmed.replace(/^faster-whisper-/, "") : trimmed;
+  };
 
   async getPaths() {
     await this.ensureDirs();
@@ -116,7 +120,8 @@ export class FasterWhisperManager {
       throw new Error(`Unable to list model files for ${repoId}`);
     }
 
-    for (const file of files) {
+    const totalFiles = files.length;
+    for (const [index, file] of files.entries()) {
       const outPath = path.join(targetDir, file.name);
       await fs.mkdir(path.dirname(outPath), { recursive: true });
       const fileLabel = file.name;
@@ -125,7 +130,10 @@ export class FasterWhisperManager {
       for (const candidate of candidates) {
         try {
           await this.downloadFile(candidate, outPath, (p) => {
-            progress?.(p, `Downloading model (${fileLabel})`);
+            const base = (index / totalFiles) * 100;
+            const span = 100 / totalFiles;
+            const percent = Math.min(99, Math.round(base + (p / 100) * span));
+            progress?.(percent, `Downloading model (${fileLabel})`);
           });
           lastError = null;
           break;
@@ -257,6 +265,37 @@ export class FasterWhisperManager {
       const message =
         error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
       throw new Error(`Failed to extract GPU package: ${message}`);
+    }
+  }
+
+  async listDownloadedModels(modelDirOverride?: string) {
+    const targetDir = modelDirOverride?.trim() || this.modelsDir;
+    await fs.mkdir(targetDir, { recursive: true });
+    const entries = await fs.readdir(targetDir, { withFileTypes: true });
+    const models: Array<{ name: string; path: string; folder: string }> = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const folder = entry.name;
+      const modelPath = path.join(targetDir, folder);
+      const hasAllFiles = await this.hasRequiredModelFiles(modelPath);
+      if (!hasAllFiles) continue;
+      models.push({
+        name: this.normalizeModelName(folder),
+        path: modelPath,
+        folder
+      });
+    }
+
+    return { models, baseDir: targetDir };
+  }
+
+  private async hasRequiredModelFiles(modelPath: string): Promise<boolean> {
+    try {
+      await Promise.all(REQUIRED_MODEL_FILES.map((file) => fs.access(path.join(modelPath, file))));
+      return true;
+    } catch {
+      return false;
     }
   }
 }
