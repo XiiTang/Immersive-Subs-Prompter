@@ -55,6 +55,16 @@
             <input type="text" v-model="model" placeholder="whisper-1" />
           </div>
         </div>
+        <div class="settings-field settings-field--inline">
+          <div class="settings-field__inline">
+            <span class="settings-field__label">{{ t("transcription-language-label", "Language") }}</span>
+            <input type="text" v-model="languageField" placeholder="auto" />
+          </div>
+        </div>
+        <label class="settings-field">
+          <span class="settings-field__label">{{ t("transcription-prompt-label", "Prompt") }}</span>
+          <input type="text" v-model="prompt" />
+        </label>
       </template>
       <template v-else-if="isFasterWhisper">
         <div class="fw-management-section">
@@ -125,6 +135,11 @@
                     {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
                   </button>
                 </div>
+
+                <div class="fw-folder-input">
+                  <span class="label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
+                  <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" class="fw-input-sm" />
+                </div>
               </div>
             </div>
 
@@ -162,115 +177,108 @@
                     {{ t("transcription-faster-download-model", "Download") }}
                   </button>
                 </div>
-                <small v-if="modelsBaseDir" class="settings-field__hint" style="margin-top: 4px; opacity: 0.6;">
-                  {{ t("transcription-faster-model-dir-hint-short", "Scanning: ") + modelsBaseDir }}
-                </small>
+                
+                <div class="fw-folder-input">
+                   <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
+                   <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" class="fw-input-sm" />
+                </div>
               </div>
             </div>
-          </div>
 
+             <!-- Card 3: Runtime Configuration -->
+            <div class="fw-card fw-card--full-width">
+              <div class="fw-card__header">
+                <div class="fw-card__title">{{ t("transcription-runtime-config", "Runtime Configuration") }}</div>
+              </div>
+
+              <div class="fw-card__content">
+                <!-- Active Model & Device Row -->
+                <div class="fw-row two-col">
+                  <div class="fw-field">
+                    <span class="label">{{ t("transcription-faster-model", "Active Model") }}</span>
+                    <div class="fw-select-group">
+                      <select class="fw-select" v-model="selectedDownloadedModel">
+                         <option v-if="!availableModels.length" value="custom">
+                            {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
+                          </option>
+                          <option v-for="model in availableModels" :key="model.path" :value="model.name">
+                            {{ model.name }}
+                          </option>
+                          <option value="custom">{{ t("transcription-faster-model-custom", "Custom value") }}</option>
+                      </select>
+                      <input
+                        v-if="selectedDownloadedModel === 'custom'"
+                        type="text"
+                        v-model="customModelInput"
+                        placeholder="medium"
+                        class="fw-input-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="fw-field">
+                    <span class="label">{{ t("transcription-faster-device", "Device") }}</span>
+                    <select v-model="fasterWhisperDevice" class="fw-select">
+                      <option value="cpu">CPU</option>
+                      <option value="cuda">CUDA (GPU)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- VAD Settings Row -->
+                <div class="fw-row three-col">
+                   <div class="fw-field">
+                     <div class="fw-field-header">
+                        <span class="label">{{ t("transcription-faster-vad-filter", "VAD Filter") }}</span>
+                         <label class="toggle toggle--sm">
+                            <input type="checkbox" v-model="fasterWhisperVadFilter" />
+                            <span class="toggle__text"></span>
+                          </label>
+                     </div>
+                   </div>
+                   
+                    <div class="fw-field">
+                      <span class="label">{{ t("transcription-faster-vad-threshold", "Threshold") }}</span>
+                      <input type="number" min="0" max="1" step="0.05" v-model.number="fasterWhisperVadThreshold" class="fw-input-sm" />
+                    </div>
+
+                    <div class="fw-field">
+                       <span class="label">{{ t("transcription-faster-vad-method", "VAD Method") }}</span>
+                       <input type="text" v-model="fasterWhisperVadMethod" placeholder="silero" class="fw-input-sm" />
+                    </div>
+                </div>
+
+                <!-- Extra Options Row -->
+                <div class="fw-row two-col">
+                   <div class="fw-field">
+                     <span class="label">{{ t("transcription-language-label", "Language") }}</span>
+                     <input type="text" v-model="languageField" placeholder="auto" class="fw-input-sm" />
+                   </div>
+                   
+                   <div class="fw-field">
+                     <span class="label">{{ t("transcription-prompt-label", "Prompt") }}</span>
+                     <input type="text" v-model="prompt" class="fw-input-sm" />
+                   </div>
+                </div>
+
+                <div class="fw-row">
+                   <div class="fw-field fw-field--inline">
+                     <span class="label">{{ t("transcription-faster-kim2", "Voice Separation (Kim2)") }}</span>
+                      <label class="toggle toggle--sm">
+                        <input type="checkbox" v-model="fasterWhisperUseKim2" />
+                         <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+                      </label>
+                   </div>
+                </div>
+
+              </div>
+            </div>
+            
+          </div>
           <p v-if="downloadMessage" class="fw-message fw-message--info">{{ downloadMessage }}</p>
           <p v-if="downloadError" class="fw-message fw-message--error">{{ downloadError }}</p>
         </div>
-        <label class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">{{ t("transcription-faster-binary", "Faster-Whisper Binary") }}</span>
-            <small class="settings-field__hint">
-              {{ t("transcription-faster-binary-hint", "Path to faster-whisper / faster-whisper-xxl executable") }}
-            </small>
-          </div>
-          <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" />
-        </label>
-        <label class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">{{ t("transcription-faster-model", "Model") }}</span>
-            <small class="settings-field__hint">
-              {{
-                t(
-                  "transcription-faster-model-hint",
-                  "Choose a downloaded model (use the download menu to add more)"
-                )
-              }}
-            </small>
-          </div>
-          <div class="settings-select-row">
-            <select class="settings-field__select" v-model="selectedDownloadedModel">
-              <option v-if="!availableModels.length" value="custom">
-                {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
-              </option>
-              <option v-for="model in availableModels" :key="model.path" :value="model.name">
-                {{ model.name }}
-              </option>
-              <option value="custom">{{ t("transcription-faster-model-custom", "Custom value") }}</option>
-            </select>
-            <input
-              v-if="selectedDownloadedModel === 'custom'"
-              type="text"
-              v-model="customModelInput"
-              placeholder="medium"
-            />
-          </div>
-        </label>
-        <div class="settings-field settings-field--inline">
-          <div class="settings-field__inline">
-            <span class="settings-field__label">{{ t("transcription-faster-device", "Device") }}</span>
-            <select v-model="fasterWhisperDevice">
-              <option value="cpu">CPU</option>
-              <option value="cuda">CUDA</option>
-            </select>
-          </div>
-          <div class="settings-field__inline">
-            <span class="settings-field__label">{{ t("transcription-faster-vad-filter", "VAD filter") }}</span>
-            <label class="toggle">
-              <input type="checkbox" v-model="fasterWhisperVadFilter" />
-              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-            </label>
-          </div>
-        </div>
-        <div class="settings-field settings-field--inline">
-          <div class="settings-field__inline">
-            <span class="settings-field__label">{{ t("transcription-faster-vad-threshold", "VAD threshold") }}</span>
-            <input type="number" min="0" max="1" step="0.05" v-model.number="fasterWhisperVadThreshold" />
-          </div>
-          <div class="settings-field__inline">
-            <span class="settings-field__label">{{ t("transcription-faster-vad-method", "VAD method") }}</span>
-            <input type="text" v-model="fasterWhisperVadMethod" placeholder="silero-v3 / silero-v4 ..." />
-          </div>
-        </div>
-        <div class="settings-field settings-field--inline">
-          <span class="settings-field__label">{{ t("transcription-faster-kim2", "Voice separation (ff_mdx_kim2)") }}</span>
-          <label class="toggle">
-            <input type="checkbox" v-model="fasterWhisperUseKim2" />
-            <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-          </label>
-        </div>
-        <div class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">{{ t("transcription-faster-model-dir", "Model directory (optional)") }}</span>
-            <small class="settings-field__hint">
-              {{ t("transcription-faster-model-dir-hint", "Used for cached models, leave blank to use default") }}
-            </small>
-          </div>
-          <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" />
-        </div>
       </template>
-      <div class="settings-field settings-field--inline">
-        <div class="settings-field__inline">
-          <span class="settings-field__label">{{ t("transcription-language-label", "Language") }}</span>
-          <input type="text" v-model="languageField" placeholder="auto" />
-        </div>
-      </div>
-      <label class="settings-field">
-        <span class="settings-field__label">{{ t("transcription-prompt-label", "Prompt") }}</span>
-        <input type="text" v-model="prompt" />
-      </label>
-      <div class="settings-field settings-field--inline">
-        <span class="settings-field__label">{{ t("transcription-word-timestamps", "Word timestamps") }}</span>
-        <label class="toggle">
-          <input type="checkbox" v-model="enableWordTimestamps" />
-          <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-        </label>
-      </div>
       <label v-if="isWhisperApi" class="settings-field">
         <div class="settings-field__label-row">
           <span class="settings-field__label">
@@ -560,10 +568,7 @@ const prompt = computed({
   set: (value: string) => updateConfig({ prompt: value })
 });
 
-const enableWordTimestamps = computed({
-  get: () => activeConfig.value?.enableWordTimestamps ?? false,
-  set: (value: boolean) => updateConfig({ enableWordTimestamps: value })
-});
+
 
 const ytDlpArgs = computed({
   get: () => activeConfig.value?.ytDlpArgs ?? "",
