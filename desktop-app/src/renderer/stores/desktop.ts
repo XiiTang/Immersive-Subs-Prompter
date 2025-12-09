@@ -63,7 +63,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
   model: "whisper-1",
   language: "",
   prompt: "",
-  enableWordTimestamps: true,
+  enableWordTimestamps: false,
   extraParams: {},
   ytDlpArgs:
     '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox',

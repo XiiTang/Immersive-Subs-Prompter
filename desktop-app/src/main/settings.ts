@@ -90,7 +90,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   model: "whisper-1",
   language: "",
   prompt: "",
-  enableWordTimestamps: true,
+  enableWordTimestamps: false,
   extraParams: {},
   ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
   fasterWhisperBinary: "faster-whisper",
