@@ -244,11 +244,7 @@ export class TranscriptionService {
       args.push("--ff_mdx_kim2");
     }
 
-    if (config.enableWordTimestamps) {
-      args.push("--one_word", "1");
-    } else {
-      args.push("--sentence");
-    }
+    args.push("--sentence");
 
     const prompt = (config.prompt || "").trim();
     if (prompt) {
