@@ -177,6 +177,17 @@ export class WindowController {
     ipcMain.handle("usp:faster-whisper-paths", async () => {
       return this.options.fasterWhisperManager.getPaths();
     });
+    ipcMain.handle("usp:faster-whisper-status", async (_event, modelDir?: string) => {
+      try {
+        const result = await this.options.fasterWhisperManager.getStatus(modelDir);
+        return { ok: true, ...result };
+      } catch (error) {
+        const message =
+          error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
+        this.log.error("Failed to get Faster-Whisper status", error);
+        return { ok: false, error: message };
+      }
+    });
     ipcMain.handle("usp:faster-whisper-list-models", async (_event, modelDir?: string) => {
       try {
         const result = await this.options.fasterWhisperManager.listDownloadedModels(modelDir);

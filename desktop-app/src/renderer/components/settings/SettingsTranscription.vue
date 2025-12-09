@@ -57,6 +57,95 @@
         </div>
       </template>
       <template v-else-if="isFasterWhisper">
+        <div class="settings-subsection">
+          <div class="settings-subsection__header">
+            <div class="settings-subsection__title">
+              {{ t("transcription-faster-downloads", "Downloads & management") }}
+              <small class="settings-field__hint">
+                {{ t("transcription-faster-downloads-hint", "Manage binaries and models") }}
+              </small>
+            </div>
+            <div v-if="downloadProgress" class="download-progress download-progress--compact">
+              <div class="download-progress__labels">
+                <span>{{ downloadProgress.status }}</span>
+                <span>{{ downloadProgress.percent }}%</span>
+              </div>
+              <div class="download-progress__bar">
+                <div class="download-progress__bar-fill" :style="{ width: downloadProgress.percent + '%' }"></div>
+              </div>
+            </div>
+          </div>
+          <div class="download-status-grid">
+            <div class="download-status__group">
+              <div class="settings-field__label">{{ t("transcription-faster-binary-status", "Program status") }}</div>
+              <div class="status-chips">
+                <span
+                  class="status-chip"
+                  :class="{ 'status-chip--ok': binaryStatus.cpu, 'status-chip--warn': !binaryStatus.cpu }"
+                >
+                  CPU · {{ binaryStatus.cpu
+                    ? t("transcription-faster-binary-present", "Downloaded")
+                    : t("transcription-faster-binary-missing", "Missing") }}
+                </span>
+                <span
+                  class="status-chip"
+                  :class="{ 'status-chip--ok': binaryStatus.gpu, 'status-chip--warn': !binaryStatus.gpu }"
+                >
+                  GPU · {{ binaryStatus.gpu
+                    ? t("transcription-faster-binary-present", "Downloaded")
+                    : t("transcription-faster-binary-missing", "Missing") }}
+                </span>
+              </div>
+              <div class="settings-inline-buttons">
+                <button type="button" class="text-button" @click="handleDownloadBinary('cpu')" :disabled="isBusy">
+                  {{ t("transcription-faster-download-cpu", "Download CPU binary") }}
+                </button>
+                <button type="button" class="text-button" @click="handleDownloadBinary('gpu')" :disabled="isBusy">
+                  {{ t("transcription-faster-download-gpu", "Download GPU binary") }}
+                </button>
+                <button type="button" class="text-button" @click="openPath(paths?.binaryDir)" :disabled="isBusy">
+                  {{ t("transcription-faster-open-bin", "Open binary folder") }}
+                </button>
+              </div>
+            </div>
+            <div class="download-status__group">
+              <div class="settings-field__label">{{ t("transcription-faster-models-available", "Downloaded models") }}</div>
+              <div v-if="availableModels.length" class="status-chips status-chips--wrap">
+                <span class="status-chip status-chip--ok" v-for="model in availableModels" :key="model.path">
+                  {{ model.name }}
+                </span>
+              </div>
+              <div v-else class="settings-field__hint">
+                {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
+              </div>
+              <div class="settings-inline-buttons">
+                <div class="settings-field__inline">
+                  <span class="settings-field__label">{{ t("transcription-faster-model-preset", "Model preset") }}</span>
+                  <select v-model="selectedModel">
+                    <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
+                      {{ model.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="settings-field__inline">
+                  <div class="settings-inline-buttons">
+                    <button type="button" class="text-button" @click="handleDownloadModel" :disabled="isBusy">
+                      {{ t("transcription-faster-download-model", "Download model") }}
+                    </button>
+                    <button type="button" class="text-button" @click="openPath(paths?.modelsDir)" :disabled="isBusy">
+                      {{ t("transcription-faster-open-models", "Open models folder") }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <small v-if="modelsBaseDir" class="settings-field__hint">
+                {{ t("transcription-faster-model-dir-hint-short", "Scanning: ") + modelsBaseDir }}
+              </small>
+            </div>
+          </div>
+          <p v-if="downloadMessage" class="settings-field__hint">{{ downloadMessage }}</p>
+          <p v-if="downloadError" class="settings-field__error">{{ downloadError }}</p>
+        </div>
         <label class="settings-field">
           <div class="settings-field__label-row">
             <span class="settings-field__label">{{ t("transcription-faster-binary", "Faster-Whisper Binary") }}</span>
@@ -95,9 +184,6 @@
               placeholder="medium"
             />
           </div>
-          <small v-if="modelsBaseDir" class="settings-field__hint">
-            {{ t("transcription-faster-model-dir-hint-short", "Scanning: ") + modelsBaseDir }}
-          </small>
         </label>
         <div class="settings-field settings-field--inline">
           <div class="settings-field__inline">
@@ -140,66 +226,6 @@
             </small>
           </div>
           <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" />
-        </div>
-        <div class="settings-subsection">
-          <button
-            type="button"
-            class="settings-subsection__toggle"
-            :aria-expanded="showDownloadPanel"
-            @click="toggleDownloadPanel"
-          >
-            <span>{{ t("transcription-faster-downloads", "Downloads & management") }}</span>
-            <span class="settings-subsection__chevron" :class="{ 'is-open': showDownloadPanel }">›</span>
-          </button>
-          <div v-if="showDownloadPanel" class="settings-subsection__content">
-            <div class="settings-field settings-field--inline settings-field--justify-start fast-fw-actions">
-              <div class="settings-field__inline">
-                <span class="settings-field__label">{{ t("transcription-faster-binary", "Faster-Whisper Binary") }}</span>
-                <div class="settings-inline-buttons">
-                  <button type="button" class="text-button" @click="handleDownloadBinary('cpu')" :disabled="isBusy">
-                    {{ t("transcription-faster-download-cpu", "Download CPU binary") }}
-                  </button>
-                  <button type="button" class="text-button" @click="handleDownloadBinary('gpu')" :disabled="isBusy">
-                    {{ t("transcription-faster-download-gpu", "Download GPU binary") }}
-                  </button>
-                  <button type="button" class="text-button" @click="openPath(paths?.binaryDir)" :disabled="isBusy">
-                    {{ t("transcription-faster-open-bin", "Open binary folder") }}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="settings-field settings-field--inline settings-field--justify-start">
-              <div class="settings-field__inline">
-                <span class="settings-field__label">{{ t("transcription-faster-model-preset", "Model preset") }}</span>
-                <select v-model="selectedModel">
-                  <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
-                    {{ model.label }}
-                  </option>
-                </select>
-              </div>
-              <div class="settings-field__inline">
-                <div class="settings-inline-buttons">
-                  <button type="button" class="text-button" @click="handleDownloadModel" :disabled="isBusy">
-                    {{ t("transcription-faster-download-model", "Download model") }}
-                  </button>
-                  <button type="button" class="text-button" @click="openPath(paths?.modelsDir)" :disabled="isBusy">
-                    {{ t("transcription-faster-open-models", "Open models folder") }}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div v-if="downloadProgress" class="download-progress">
-              <div class="download-progress__labels">
-                <span>{{ downloadProgress.status }}</span>
-                <span>{{ downloadProgress.percent }}%</span>
-              </div>
-              <div class="download-progress__bar">
-                <div class="download-progress__bar-fill" :style="{ width: downloadProgress.percent + '%' }"></div>
-              </div>
-            </div>
-            <p v-if="downloadMessage" class="settings-field__hint">{{ downloadMessage }}</p>
-            <p v-if="downloadError" class="settings-field__error">{{ downloadError }}</p>
-          </div>
         </div>
       </template>
       <div class="settings-field settings-field--inline">
@@ -293,7 +319,7 @@ const downloadError = ref("");
 const availableModels = ref<Array<{ name: string; path: string; folder: string }>>([]);
 const modelsBaseDir = ref("");
 const customModelInput = ref("");
-const showDownloadPanel = ref(false);
+const binaryStatus = ref({ cpu: false, gpu: false });
 const downloadProgress = ref<{
   id: string;
   type: "binary" | "model";
@@ -348,7 +374,7 @@ onMounted(async () => {
       updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
     }
     modelsBaseDir.value = paths.value?.modelsDir ?? modelsBaseDir.value;
-    await refreshAvailableModels();
+    await refreshStatus();
   } catch (error) {
     console.error("Failed to load Faster-Whisper paths", error);
   }
@@ -459,19 +485,13 @@ watch(activeConfig, () => {
   if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
     updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
   }
-  refreshAvailableModels();
-});
-
-watch(availableModels, (list) => {
-  if (!list.length) {
-    showDownloadPanel.value = true;
-  }
+  refreshStatus();
 });
 
 watch(
   () => fasterWhisperModelDir.value,
   () => {
-    refreshAvailableModels();
+    refreshStatus();
   }
 );
 
@@ -524,10 +544,6 @@ const ytDlpArgs = computed({
   set: (value: string) => updateConfig({ ytDlpArgs: value })
 });
 
-function toggleDownloadPanel() {
-  showDownloadPanel.value = !showDownloadPanel.value;
-}
-
 function normalizeModelName(name: string) {
   const trimmed = (name || "").trim();
   return trimmed.startsWith("faster-whisper-") ? trimmed.replace(/^faster-whisper-/, "") : trimmed;
@@ -555,7 +571,10 @@ function handleDownloadProgress(payload: {
   if (payload.percent >= 100 && payload.id === activeJobId.value) {
     activeJobId.value = null;
     if (payload.type === "model") {
-      void refreshAvailableModels();
+      void refreshStatus();
+    }
+    if (payload.type === "binary") {
+      void refreshStatus();
     }
     setTimeout(() => {
       if (downloadProgress.value?.id === payload.id) {
@@ -565,32 +584,10 @@ function handleDownloadProgress(payload: {
   }
 }
 
-async function refreshAvailableModels() {
-  const targetDir =
-    (activeConfig.value?.fasterWhisperModelDir || "").trim() ||
-    paths.value?.modelsDir ||
-    modelsBaseDir.value;
-  if (!targetDir) {
-    availableModels.value = [];
-    return;
-  }
-  modelsBaseDir.value = targetDir;
-  try {
-    const result = await window.usp.listFasterWhisperModels(targetDir);
-    if (result?.ok && result.models) {
-      availableModels.value = result.models;
-      modelsBaseDir.value = result.baseDir || targetDir;
-    }
-  } catch (error) {
-    console.error("Failed to list Faster-Whisper models", error);
-  }
-}
-
 async function handleDownloadBinary(variant: "cpu" | "gpu") {
   if (isBusy.value) return;
   downloadMessage.value = "";
   downloadError.value = "";
-  showDownloadPanel.value = true;
   const jobId = createJobId(`fw-${variant}`);
   activeJobId.value = jobId;
   downloadProgress.value = {
@@ -609,6 +606,7 @@ async function handleDownloadBinary(variant: "cpu" | "gpu") {
     downloadMessage.value = t("transcription-faster-download-success", "Download completed: ") + result.path;
     updateConfig({ fasterWhisperBinary: result.path });
     paths.value = await window.usp.getFasterWhisperPaths();
+    await refreshStatus();
   } catch (error) {
     activeJobId.value = null;
     downloadProgress.value = null;
@@ -622,7 +620,6 @@ async function handleDownloadModel() {
   if (isBusy.value) return;
   downloadMessage.value = "";
   downloadError.value = "";
-  showDownloadPanel.value = true;
   const model = selectedModel.value;
   const jobId = createJobId(`fw-${model}`);
   activeJobId.value = jobId;
@@ -647,7 +644,7 @@ async function handleDownloadModel() {
       provider: "faster-whisper"
     });
     paths.value = await window.usp.getFasterWhisperPaths();
-    await refreshAvailableModels();
+    await refreshStatus();
   } catch (error) {
     activeJobId.value = null;
     downloadProgress.value = null;
@@ -663,6 +660,30 @@ async function openPath(target?: string | null) {
     await window.usp.openPath(target);
   } catch (error) {
     downloadError.value = error instanceof Error ? error.message : String(error);
+  }
+}
+
+async function refreshStatus() {
+  const targetDir =
+    (activeConfig.value?.fasterWhisperModelDir || "").trim() ||
+    paths.value?.modelsDir ||
+    modelsBaseDir.value;
+  try {
+    const status = await window.usp.getFasterWhisperStatus(targetDir);
+    if (!status?.ok) return;
+    if (status.paths) {
+      paths.value = status.paths;
+    }
+    binaryStatus.value = {
+      cpu: !!status.binaries?.cpu?.exists,
+      gpu: !!status.binaries?.gpu?.exists
+    };
+    if (status.models) {
+      availableModels.value = status.models;
+    }
+    modelsBaseDir.value = status.modelsBaseDir || status.paths?.modelsDir || targetDir || modelsBaseDir.value;
+  } catch (error) {
+    console.error("Failed to refresh Faster-Whisper status", error);
   }
 }
 </script>

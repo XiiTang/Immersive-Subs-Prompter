@@ -290,6 +290,26 @@ export class FasterWhisperManager {
     return { models, baseDir: targetDir };
   }
 
+  async getStatus(modelDirOverride?: string) {
+    const paths = await this.getPaths();
+    const targetModelDir = modelDirOverride?.trim() || paths.modelsDir;
+    const [cpuExists, gpuExists, modelList] = await Promise.all([
+      this.fileExists(paths.cpuBinaryPath),
+      this.fileExists(paths.gpuBinaryPath),
+      this.listDownloadedModels(targetModelDir)
+    ]);
+
+    return {
+      paths,
+      binaries: {
+        cpu: { exists: cpuExists, path: paths.cpuBinaryPath },
+        gpu: { exists: gpuExists, path: paths.gpuBinaryPath }
+      },
+      models: modelList.models,
+      modelsBaseDir: modelList.baseDir
+    };
+  }
+
   private async hasRequiredModelFiles(modelPath: string): Promise<boolean> {
     try {
       await Promise.all(REQUIRED_MODEL_FILES.map((file) => fs.access(path.join(modelPath, file))));

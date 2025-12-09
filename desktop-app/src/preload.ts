@@ -31,6 +31,16 @@ const api = {
     modelDir?: string
   ): Promise<{ ok: boolean; models?: Array<{ name: string; path: string; folder: string }>; baseDir?: string; error?: string }> =>
     ipcRenderer.invoke("usp:faster-whisper-list-models", modelDir),
+  getFasterWhisperStatus: (
+    modelDir?: string
+  ): Promise<{
+    ok: boolean;
+    paths?: { binaryDir: string; modelsDir: string; cpuBinaryPath: string; gpuBinaryPath: string };
+    binaries?: { cpu: { exists: boolean; path: string }; gpu: { exists: boolean; path: string } };
+    models?: Array<{ name: string; path: string; folder: string }>;
+    modelsBaseDir?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
   onFasterWhisperDownloadProgress: (
     listener: Listener<{
       id: string;
