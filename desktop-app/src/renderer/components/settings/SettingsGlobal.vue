@@ -1,131 +1,162 @@
 <template>
   <section class="settings-section">
     <h3 class="settings-section__title">{{ t("section-global-settings", "Global Settings") }}</h3>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("close-behavior-label", "Close Behavior") }}</span>
-      <select v-model="closeBehavior">
-        <option value="tray">{{ t("close-behavior-tray", "Minimize to tray on close") }}</option>
-        <option value="quit">{{ t("close-behavior-quit", "Quit application") }}</option>
-      </select>
-    </label>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">{{ t("auto-start-label", "Auto Start") }}</span>
-      <label class="toggle">
-        <input type="checkbox" v-model="autoLaunch" />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-      </label>
-    </div>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">Auto-hide Panels</span>
-      <label class="toggle">
-        <input type="checkbox" v-model="autoHidePanels" />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-      </label>
-    </div>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Auto-hide Timestamps") }}</span>
-      <label class="toggle">
-        <input type="checkbox" v-model="autoHideTimestamps" />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-      </label>
-    </div>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("toggle-shortcut-label", "Toggle Window Shortcut") }}</span>
-      <input type="text" v-model="toggleShortcut" placeholder="CommandOrControl+Shift+S" />
-      <span class="settings-field__hint">{{ t("toggle-shortcut-hint", "Use modifiers with keys.") }}</span>
-    </label>
-    <section class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">{{ t("process-blacklist-label", "Process Blacklist") }}</span>
-        <small class="settings-field__hint">
-          {{ t("process-blacklist-hint", "Disable shortcuts when these processes are foregrounded.") }}
-        </small>
-      </div>
-      <div class="game-blacklist-editor__controls">
-        <input
-          type="text"
-          v-model="gameProcessInput"
-          :placeholder="t('primary-priority-placeholder', 'e.g.: cyberpunk2077.exe')"
-          autocomplete="off"
-          @keyup.enter="addGameProcess"
-        />
-        <button type="button" class="text-button" @click="addGameProcess">
-          {{ t("button-add", "Add") }}
-        </button>
-      </div>
-      <div class="game-blacklist-editor__list">
-        <template v-if="gameProcesses.length">
-          <div
-            v-for="process in gameProcesses"
-            :key="process"
-            class="game-blacklist-editor__item"
-          >
-            <span>{{ process }}</span>
-            <button
-              type="button"
-              class="game-blacklist-editor__item-remove"
-              :aria-label="t('game-blacklist-remove', 'Remove')"
-              @click="removeGameProcess(process)"
-            >
-              ✕
-            </button>
+
+    <div class="settings-grid">
+      <!-- Card 1: General Application Settings -->
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <div class="settings-card__title">{{ t("global-general", "General") }}</div>
+        </div>
+        <div class="settings-card__content">
+          <div class="settings-field">
+            <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
+            <select v-model="languageSetting" class="settings-select">
+              <option value="en">{{ t("language-option-en", "English") }}</option>
+              <option value="zh">{{ t("language-option-zh", "中文") }}</option>
+            </select>
+            <small class="settings-field__hint">{{ t("language-hint", "Select interface language.") }}</small>
           </div>
-        </template>
-        <div v-else class="game-blacklist-editor__empty">
-          {{ t("game-blacklist-none", "No processes yet.") }}
+
+          <div class="settings-field">
+            <span class="settings-field__label">{{ t("close-behavior-label", "Close Behavior") }}</span>
+            <select v-model="closeBehavior" class="settings-select">
+              <option value="tray">{{ t("close-behavior-tray", "Minimize to tray on close") }}</option>
+              <option value="quit">{{ t("close-behavior-quit", "Quit application") }}</option>
+            </select>
+          </div>
+
+          <div class="settings-field settings-field--inline">
+            <span class="settings-field__label">{{ t("auto-start-label", "Auto Start") }}</span>
+            <label class="toggle">
+              <input type="checkbox" v-model="autoLaunch" />
+              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+            </label>
+          </div>
         </div>
       </div>
-    </section>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">{{ t("auto-hide-label", "Auto-hide Trigger Area Height") }}</span>
-        <span class="settings-field__value">{{ autoHideHeight }}px</span>
+
+      <!-- Card 2: Auto-Hide Configuration -->
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <div class="settings-card__title">{{ t("global-autohide", "Auto-Hide Behavior") }}</div>
+        </div>
+        <div class="settings-card__content">
+          <div class="settings-row two-col">
+            <div class="settings-field settings-field--inline">
+              <span class="settings-field__label">Auto-hide Panels</span>
+              <label class="toggle">
+                <input type="checkbox" v-model="autoHidePanels" />
+                <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+              </label>
+            </div>
+            <div class="settings-field settings-field--inline">
+              <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Timestamps") }}</span>
+              <label class="toggle">
+                <input type="checkbox" v-model="autoHideTimestamps" />
+                <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-field">
+            <div class="settings-field-header">
+              <span class="settings-field__label">{{ t("auto-hide-label", "Trigger Area Height") }}</span>
+              <span class="value-badge">{{ autoHideHeight }}px</span>
+            </div>
+            <input
+              type="range"
+              min="80"
+              max="600"
+              step="10"
+              class="slider"
+              v-model.number="autoHideHeight"
+              @pointerdown="emit('preview-auto-hide', true)"
+              @pointerup="emit('preview-auto-hide', false)"
+              @pointercancel="emit('preview-auto-hide', false)"
+              @blur="emit('preview-auto-hide', false)"
+            />
+          </div>
+
+          <div class="settings-field">
+            <div class="settings-field-header">
+              <span class="settings-field__label">{{ t("auto-hide-delay-label", "Auto-hide Delay") }}</span>
+              <span class="value-badge">{{ autoHideDelayMs }}ms</span>
+            </div>
+            <input
+              type="range"
+              :min="AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN"
+              :max="AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX"
+              step="50"
+              class="slider"
+              v-model.number="autoHideDelayMs"
+            />
+          </div>
+        </div>
       </div>
-      <input
-        type="range"
-        min="80"
-        max="600"
-        step="10"
-        class="slider"
-        v-model.number="autoHideHeight"
-        @pointerdown="emit('preview-auto-hide', true)"
-        @pointerup="emit('preview-auto-hide', false)"
-        @pointercancel="emit('preview-auto-hide', false)"
-        @blur="emit('preview-auto-hide', false)"
-      />
-      <small class="settings-field__hint">
-        {{ t("auto-hide-hint", "Distance from top that keeps panels expanded while auto-hide is on") }}
-      </small>
-    </label>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">{{ t("auto-hide-delay-label", "Auto-hide Delay (ms)") }}</span>
-        <span class="settings-field__value">{{ autoHideDelayMs }}ms</span>
+
+      <!-- Card 3: Shortcuts & Interactions -->
+      <div class="settings-card settings-card--full-width">
+        <div class="settings-card__header">
+          <div class="settings-card__title">{{ t("global-shortcuts", "Shortcuts & Interaction") }}</div>
+        </div>
+        <div class="settings-card__content">
+          <div class="settings-row two-col">
+            <div class="settings-field">
+              <span class="settings-field__label">{{ t("toggle-shortcut-label", "Toggle Window Shortcut") }}</span>
+              <input type="text" v-model="toggleShortcut" class="settings-input" placeholder="CommandOrControl+Shift+S" />
+              <span class="settings-field__hint">{{ t("toggle-shortcut-hint", "Use modifiers with keys.") }}</span>
+            </div>
+            <!-- Spacer or another setting could go here -->
+             <div></div>
+          </div>
+
+          <div class="settings-field">
+            <div class="settings-field-header">
+              <span class="settings-field__label">{{ t("process-blacklist-label", "Process Blacklist") }}</span>
+              <small class="settings-field__hint">
+                {{ t("process-blacklist-hint", "Disable shortcuts when these processes are foregrounded.") }}
+              </small>
+            </div>
+            
+            <div class="game-blacklist-editor__controls">
+              <input
+                type="text"
+                v-model="gameProcessInput"
+                class="settings-input"
+                :placeholder="t('primary-priority-placeholder', 'e.g.: cyberpunk2077.exe')"
+                autocomplete="off"
+                @keyup.enter="addGameProcess"
+              />
+              <button type="button" class="btn-primary" @click="addGameProcess">
+                {{ t("button-add", "Add") }}
+              </button>
+            </div>
+
+            <div class="priority-editor__list" v-if="gameProcesses.length">
+               <div
+                v-for="process in gameProcesses"
+                :key="process"
+                class="priority-editor__item"
+              >
+                <span>{{ process }}</span>
+                <button
+                  type="button"
+                  class="priority-editor__item-remove"
+                  :aria-label="t('game-blacklist-remove', 'Remove')"
+                  @click="removeGameProcess(process)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+             <div v-else class="priority-editor__empty">
+              {{ t("game-blacklist-none", "No processes yet.") }}
+            </div>
+          </div>
+        </div>
       </div>
-      <input
-        type="number"
-        :min="AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN"
-        :max="AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX"
-        step="50"
-        v-model.number="autoHideDelayMs"
-      />
-      <small class="settings-field__hint">
-        {{
-          t(
-            "auto-hide-delay-hint",
-            "Wait time after the pointer leaves the active area before panels collapse"
-          )
-        }}
-      </small>
-    </label>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
-      <select v-model="languageSetting">
-        <option value="en">{{ t("language-option-en", "English") }}</option>
-        <option value="zh">{{ t("language-option-zh", "中文") }}</option>
-      </select>
-      <small class="settings-field__hint">{{ t("language-hint", "Select interface language.") }}</small>
-    </label>
+    </div>
   </section>
 </template>
 
