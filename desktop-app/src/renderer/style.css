@@ -1146,21 +1146,33 @@ body {
   line-height: var(--subtitle-line-height, 1.45);
 }
 
-.subtitle-list::-webkit-scrollbar {
+.subtitle-list::-webkit-scrollbar,
+.settings-panel__content::-webkit-scrollbar,
+.profile-list::-webkit-scrollbar,
+.jellyfin-config-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.subtitle-list::-webkit-scrollbar-track {
+.subtitle-list::-webkit-scrollbar-track,
+.settings-panel__content::-webkit-scrollbar-track,
+.profile-list::-webkit-scrollbar-track,
+.jellyfin-config-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
   border-radius: 4px;
 }
 
-.subtitle-list::-webkit-scrollbar-thumb {
+.subtitle-list::-webkit-scrollbar-thumb,
+.settings-panel__content::-webkit-scrollbar-thumb,
+.profile-list::-webkit-scrollbar-thumb,
+.jellyfin-config-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, calc(0.15 * var(--panel-opacity-factor)));
   border-radius: 4px;
 }
 
-.subtitle-list::-webkit-scrollbar-thumb:hover {
+.subtitle-list::-webkit-scrollbar-thumb:hover,
+.settings-panel__content::-webkit-scrollbar-thumb:hover,
+.profile-list::-webkit-scrollbar-thumb:hover,
+.jellyfin-config-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, calc(0.25 * var(--panel-opacity-factor)));
 }
 
@@ -1682,8 +1694,8 @@ body {
   align-items: center;
   justify-content: center;
 }
+
 .icon-text-button:hover {
   color: #f5f5f5;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
-
