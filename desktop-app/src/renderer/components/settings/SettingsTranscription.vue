@@ -57,94 +57,120 @@
         </div>
       </template>
       <template v-else-if="isFasterWhisper">
-        <div class="settings-subsection">
-          <div class="settings-subsection__header">
-            <div class="settings-subsection__title">
-              {{ t("transcription-faster-downloads", "Downloads & management") }}
-              <small class="settings-field__hint">
-                {{ t("transcription-faster-downloads-hint", "Manage binaries and models") }}
-              </small>
+        <div class="fw-management-section">
+          <div v-if="downloadProgress" class="fw-download-banner">
+            <div class="fw-download-banner__info">
+              <span class="fw-download-banner__status">{{ downloadProgress.status }}</span>
+              <span class="fw-download-banner__percent">{{ downloadProgress.percent }}%</span>
             </div>
-            <div v-if="downloadProgress" class="download-progress download-progress--compact">
-              <div class="download-progress__labels">
-                <span>{{ downloadProgress.status }}</span>
-                <span>{{ downloadProgress.percent }}%</span>
-              </div>
-              <div class="download-progress__bar">
-                <div class="download-progress__bar-fill" :style="{ width: downloadProgress.percent + '%' }"></div>
-              </div>
+            <div class="fw-progress-bar">
+              <div class="fw-progress-bar__fill" :style="{ width: downloadProgress.percent + '%' }"></div>
             </div>
           </div>
-          <div class="download-status-grid">
-            <div class="download-status__group">
-              <div class="settings-field__label">{{ t("transcription-faster-binary-status", "Program status") }}</div>
-              <div class="status-chips">
-                <span
-                  class="status-chip"
-                  :class="{ 'status-chip--ok': binaryStatus.cpu, 'status-chip--warn': !binaryStatus.cpu }"
+
+          <div class="fw-grid">
+            <!-- Card 1: System Binaries -->
+            <div class="fw-card">
+              <div class="fw-card__header">
+                <div class="fw-card__title">{{ t("transcription-faster-binary-status", "System Integration") }}</div>
+                <button
+                  type="button"
+                  class="icon-text-button"
+                  @click="openPath(paths?.binaryDir)"
+                  :title="t('transcription-faster-open-bin', 'Open folder')"
                 >
-                  CPU · {{ binaryStatus.cpu
-                    ? t("transcription-faster-binary-present", "Downloaded")
-                    : t("transcription-faster-binary-missing", "Missing") }}
-                </span>
-                <span
-                  class="status-chip"
-                  :class="{ 'status-chip--ok': binaryStatus.gpu, 'status-chip--warn': !binaryStatus.gpu }"
-                >
-                  GPU · {{ binaryStatus.gpu
-                    ? t("transcription-faster-binary-present", "Downloaded")
-                    : t("transcription-faster-binary-missing", "Missing") }}
-                </span>
+                  <span class="icon">📂</span>
+                </button>
               </div>
-              <div class="settings-inline-buttons">
-                <button type="button" class="text-button" @click="handleDownloadBinary('cpu')" :disabled="isBusy">
-                  {{ t("transcription-faster-download-cpu", "Download CPU binary") }}
-                </button>
-                <button type="button" class="text-button" @click="handleDownloadBinary('gpu')" :disabled="isBusy">
-                  {{ t("transcription-faster-download-gpu", "Download GPU binary") }}
-                </button>
-                <button type="button" class="text-button" @click="openPath(paths?.binaryDir)" :disabled="isBusy">
-                  {{ t("transcription-faster-open-bin", "Open binary folder") }}
-                </button>
+
+              <div class="fw-card__content">
+                <div class="fw-status-row">
+                  <div class="fw-status-item">
+                    <span class="label">CPU Support</span>
+                    <span class="fw-badge" :class="binaryStatus.cpu ? 'fw-badge--success' : 'fw-badge--error'">
+                      {{
+                        binaryStatus.cpu
+                          ? t("transcription-faster-binary-present", "Ready")
+                          : t("transcription-faster-binary-missing", "Missing")
+                      }}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    @click="handleDownloadBinary('cpu')"
+                    :disabled="isBusy"
+                  >
+                    {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+                  </button>
+                </div>
+
+                <div class="fw-status-row">
+                  <div class="fw-status-item">
+                    <span class="label">GPU (CUDA 12)</span>
+                    <span class="fw-badge" :class="binaryStatus.gpu ? 'fw-badge--success' : 'fw-badge--error'">
+                      {{
+                        binaryStatus.gpu
+                          ? t("transcription-faster-binary-present", "Ready")
+                          : t("transcription-faster-binary-missing", "Missing")
+                      }}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    @click="handleDownloadBinary('gpu')"
+                    :disabled="isBusy"
+                  >
+                    {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="download-status__group">
-              <div class="settings-field__label">{{ t("transcription-faster-models-available", "Downloaded models") }}</div>
-              <div v-if="availableModels.length" class="status-chips status-chips--wrap">
-                <span class="status-chip status-chip--ok" v-for="model in availableModels" :key="model.path">
-                  {{ model.name }}
-                </span>
+
+            <!-- Card 2: AI Models -->
+            <div class="fw-card">
+              <div class="fw-card__header">
+                <div class="fw-card__title">{{ t("transcription-faster-models-available", "AI Models") }}</div>
+                <button
+                  type="button"
+                  class="icon-text-button"
+                  @click="openPath(paths?.modelsDir)"
+                  :title="t('transcription-faster-open-models', 'Open folder')"
+                >
+                  <span class="icon">📂</span>
+                </button>
               </div>
-              <div v-else class="settings-field__hint">
-                {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
-              </div>
-              <div class="settings-inline-buttons">
-                <div class="settings-field__inline">
-                  <span class="settings-field__label">{{ t("transcription-faster-model-preset", "Model preset") }}</span>
-                  <select v-model="selectedModel">
+
+              <div class="fw-card__content">
+                <div class="fw-model-list" v-if="availableModels.length">
+                  <span v-for="model in availableModels" :key="model.path" class="fw-model-chip">
+                    {{ model.name }}
+                  </span>
+                </div>
+                <div v-else class="fw-empty-state">
+                  {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
+                </div>
+
+                <div class="fw-action-row">
+                  <select v-model="selectedModel" class="fw-select">
                     <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
                       {{ model.label }}
                     </option>
                   </select>
+                  <button type="button" class="btn-primary" @click="handleDownloadModel" :disabled="isBusy">
+                    {{ t("transcription-faster-download-model", "Download") }}
+                  </button>
                 </div>
-                <div class="settings-field__inline">
-                  <div class="settings-inline-buttons">
-                    <button type="button" class="text-button" @click="handleDownloadModel" :disabled="isBusy">
-                      {{ t("transcription-faster-download-model", "Download model") }}
-                    </button>
-                    <button type="button" class="text-button" @click="openPath(paths?.modelsDir)" :disabled="isBusy">
-                      {{ t("transcription-faster-open-models", "Open models folder") }}
-                    </button>
-                  </div>
-                </div>
+                <small v-if="modelsBaseDir" class="settings-field__hint" style="margin-top: 4px; opacity: 0.6;">
+                  {{ t("transcription-faster-model-dir-hint-short", "Scanning: ") + modelsBaseDir }}
+                </small>
               </div>
-              <small v-if="modelsBaseDir" class="settings-field__hint">
-                {{ t("transcription-faster-model-dir-hint-short", "Scanning: ") + modelsBaseDir }}
-              </small>
             </div>
           </div>
-          <p v-if="downloadMessage" class="settings-field__hint">{{ downloadMessage }}</p>
-          <p v-if="downloadError" class="settings-field__error">{{ downloadError }}</p>
+
+          <p v-if="downloadMessage" class="fw-message fw-message--info">{{ downloadMessage }}</p>
+          <p v-if="downloadError" class="fw-message fw-message--error">{{ downloadError }}</p>
         </div>
         <label class="settings-field">
           <div class="settings-field__label-row">

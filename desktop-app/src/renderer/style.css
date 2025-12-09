@@ -1443,3 +1443,243 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Faster Whisper Management UI */
+.fw-management-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(0, 0, 0, calc(0.2 * var(--panel-opacity-factor)));
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
+}
+
+.fw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.fw-card {
+  background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, calc(0.06 * var(--panel-opacity-factor)));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fw-card__header {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, calc(0.02 * var(--panel-opacity-factor)));
+  border-bottom: 1px solid rgba(255, 255, 255, calc(0.06 * var(--panel-opacity-factor)));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fw-card__title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #e5e5e5;
+}
+
+.fw-card__content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.fw-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, calc(0.2 * var(--panel-opacity-factor)));
+  border-radius: 8px;
+}
+
+.fw-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fw-status-item .label {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.fw-badge {
+  display: inline-flex;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.fw-badge--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
+.fw-badge--error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.fw-model-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.fw-model-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: rgba(103, 232, 249, 0.1);
+  color: #67e8f9;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  border-radius: 999px;
+}
+
+.fw-empty-state {
+  font-size: 12px;
+  color: #52525b;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.fw-action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.fw-select {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+.fw-download-banner {
+  background: linear-gradient(90deg, rgba(8, 145, 178, 0.15), rgba(6, 182, 212, 0.05));
+  border: 1px solid rgba(8, 145, 178, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fw-download-banner__info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #67e8f9;
+  font-weight: 500;
+}
+
+.fw-progress-bar {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fw-progress-bar__fill {
+  height: 100%;
+  background: #22d3ee;
+  transition: width 0.2s ease;
+}
+
+.btn-primary {
+  background: #0891b2;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #06b6d4;
+}
+
+.btn-primary:active {
+  background: #0e7490;
+}
+
+.btn-primary:disabled {
+  background: #3f3f46;
+  color: #71717a;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fw-message {
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.fw-message--info {
+  background: rgba(34, 197, 94, 0.1);
+  color: #86efac;
+}
+
+.fw-message--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.icon-text-button {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-text-button:hover {
+  color: #f5f5f5;
+  background: rgba(255,255,255,0.1);
+}
+
