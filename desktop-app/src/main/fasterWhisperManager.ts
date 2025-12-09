@@ -172,7 +172,7 @@ export class FasterWhisperManager {
   }
 
   private buildModelFileUrls(repoName: string, fileName: string): string[] {
-    const hfPath = `${repoName}/resolve/main/${fileName}`;
+    const hfPath = `Systran/${repoName}/resolve/main/${fileName}`;
     const msPath = `pengzhendong/${repoName}/resolve/master/${fileName}`;
     return [
       `${MODEL_BASES[0]}/${hfPath}`,
