@@ -78,9 +78,10 @@ body {
   left: 0;
   right: 0;
   height: var(--header-height);
-  z-index: 120;
+  z-index: 500;
   overflow: visible;
   transform: translateZ(0);
+  pointer-events: auto;
 }
 
 .window__title {
@@ -237,7 +238,7 @@ body {
   right: 0;
   background: #121212;
   border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  z-index: 90;
+  z-index: 400;
   transform: translateZ(0);
   padding-top: 2px;
 }
@@ -250,6 +251,7 @@ body {
   min-height: 0;
   overflow: hidden;
   padding-top: 0;
+  z-index: 0;
 }
 
 .video-meta {
