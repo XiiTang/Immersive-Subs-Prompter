@@ -144,36 +144,54 @@
             {{ t("subtitle-line-height-hint", "Control line-height for readability") }}
           </small>
         </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("subtitle-primary-color-label", "Primary Subtitle Text Color") }}</span>
-          <input type="color" v-model="subtitlePrimaryColor" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-primary-color-hint", "Default text color for primary subtitles") }}
-          </small>
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("subtitle-secondary-color-label", "Secondary Subtitle Text Color") }}</span>
-          <input type="color" v-model="subtitleSecondaryColor" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-secondary-color-hint", "Default text color for secondary subtitles") }}
-          </small>
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("subtitle-active-primary-color-label", "Active Primary Subtitle Color") }}</span>
-          <input type="color" v-model="subtitleActivePrimaryColor" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-active-primary-color-hint", "Text color while active") }}
-          </small>
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">
-            {{ t("subtitle-active-secondary-color-label", "Active Secondary Subtitle Color") }}
-          </span>
-          <input type="color" v-model="subtitleActiveSecondaryColor" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-active-secondary-color-hint", "Text color for active secondary subtitles") }}
-          </small>
-        </label>
+        <div class="settings-group">
+          <div class="settings-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</div>
+          <div class="settings-color-grid">
+            <div class="color-swatch-item">
+              <label class="color-swatch-preview">
+                <input type="color" v-model="subtitlePrimaryColor" class="sr-only-input" />
+                <div class="color-swatch-preview__fill" :style="{ backgroundColor: subtitlePrimaryColor }"></div>
+              </label>
+              <div class="color-swatch-info">
+                <span class="color-swatch-label">{{ t("subtitle-primary-color-label", "Primary Text") }}</span>
+                <input type="text" v-model="subtitlePrimaryColor" class="color-swatch-input" spellcheck="false" />
+              </div>
+            </div>
+
+            <div class="color-swatch-item">
+              <label class="color-swatch-preview">
+                <input type="color" v-model="subtitleSecondaryColor" class="sr-only-input" />
+                <div class="color-swatch-preview__fill" :style="{ backgroundColor: subtitleSecondaryColor }"></div>
+              </label>
+              <div class="color-swatch-info">
+                <span class="color-swatch-label">{{ t("subtitle-secondary-color-label", "Secondary Text") }}</span>
+                <input type="text" v-model="subtitleSecondaryColor" class="color-swatch-input" spellcheck="false" />
+              </div>
+            </div>
+
+            <div class="color-swatch-item">
+              <label class="color-swatch-preview">
+                <input type="color" v-model="subtitleActivePrimaryColor" class="sr-only-input" />
+                <div class="color-swatch-preview__fill" :style="{ backgroundColor: subtitleActivePrimaryColor }"></div>
+              </label>
+              <div class="color-swatch-info">
+                <span class="color-swatch-label">{{ t("subtitle-active-primary-color-label", "Active Primary") }}</span>
+                <input type="text" v-model="subtitleActivePrimaryColor" class="color-swatch-input" spellcheck="false" />
+              </div>
+            </div>
+
+            <div class="color-swatch-item">
+              <label class="color-swatch-preview">
+                <input type="color" v-model="subtitleActiveSecondaryColor" class="sr-only-input" />
+                <div class="color-swatch-preview__fill" :style="{ backgroundColor: subtitleActiveSecondaryColor }"></div>
+              </label>
+              <div class="color-swatch-info">
+                <span class="color-swatch-label">{{ t("subtitle-active-secondary-color-label", "Active Secondary") }}</span>
+                <input type="text" v-model="subtitleActiveSecondaryColor" class="color-swatch-input" spellcheck="false" />
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="priority-editor">
           <div class="priority-editor__header">
