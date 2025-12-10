@@ -1,5 +1,9 @@
 <template>
-  <header class="window__header">
+  <header
+    class="window__header"
+    ref="headerRef"
+    @mousedown="handleMouseDown"
+  >
     <div class="window__title">Immersive Subs Prompter</div>
     <div class="window__status">{{ connectionText }}</div>
   <div class="window__header-actions">
@@ -49,13 +53,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useDesktopStore } from "../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../i18n";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
+
+const headerRef = ref<HTMLElement | null>(null);
+
+// ===== 窗口拖拽 (使用 Windows 原生 SC_MOVE 命令) =====
+// Windows 会完全接管拖拽操作，无需轮询，无尺寸漂移
+function handleMouseDown(event: MouseEvent) {
+  // 只处理左键点击
+  if (event.button !== 0) return;
+  
+  // 检查是否点击了可交互元素
+  if (isInteractiveElement(event.target as HTMLElement)) return;
+
+  // 通知主进程启动原生窗口拖拽
+  // Windows 原生 API 会接管后续操作，不需要监听 mouseup
+  window.usp?.startWindowDrag?.();
+  
+  event.preventDefault();
+}
+
+function isInteractiveElement(element: HTMLElement): boolean {
+  const interactiveTags = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A'];
+  const interactiveClasses = ['icon-button', 'slider', 'transparency-inline', 'window__header-actions'];
+  
+  let current: HTMLElement | null = element;
+  while (current && current !== headerRef.value) {
+    if (interactiveTags.includes(current.tagName)) return true;
+    for (const cls of interactiveClasses) {
+      if (current.classList.contains(cls)) return true;
+    }
+    current = current.parentElement;
+  }
+  return false;
+}
+// ===== END 窗口拖拽 =====
 
 const pinLabels: Record<string, string> = {
   off: "Not pinned",
@@ -88,9 +126,6 @@ const fullscreenIcon = computed(() =>
   store.desktopState?.isFullscreen ? "🗗" : "⛶"
 );
 
-
-
-
 function cyclePin() {
   const order = ["off", "floating", "screen-saver"] as const;
   const current = alwaysOnTop.value;
@@ -98,6 +133,4 @@ function cyclePin() {
   const next = order[(index + 1) % order.length];
   store.updateGlobalSetting("alwaysOnTop", next);
 }
-
-
 </script>

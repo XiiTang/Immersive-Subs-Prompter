@@ -24,6 +24,7 @@ import { AppSettings, DesktopState, PlaybackState, SubtitleTrack, TranscriptionC
 import { JellyfinController } from "./jellyfinController.js";
 import { TranscriptionService } from "./transcriptionService.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
+import { startNativeWindowDrag, isNativeDragAvailable, preloadNativeAPIs } from "./nativeWindowDrag.js";
 
 
 
@@ -73,6 +74,11 @@ export class WindowController {
     this.setupBusListeners();
     this.setupIpcHandlers();
     this.createWindow();
+
+    // 预加载原生窗口拖拽 API（仅 Windows）
+    preloadNativeAPIs().catch(err => {
+      this.log.warn("Failed to preload native drag APIs", err);
+    });
   }
 
   handleBeforeQuit() {
@@ -370,6 +376,30 @@ export class WindowController {
       return this.toggleDisplayFullscreenOnCurrentDisplay();
     });
 
+    // 窗口拖拽 IPC 处理 (解决 transparent + frameless 窗口在 Windows 上的 CSS 拖拽失效问题)
+    // 使用 Windows 原生 API (WM_SYSCOMMAND + SC_MOVE) 让系统接管窗口拖拽
+    // 优点：无需轮询、无尺寸漂移、支持边缘吸附等原生功能
+    ipcMain.handle("usp:start-window-drag", async () => {
+      if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+        return { success: false, error: "Window not available" };
+      }
+
+      // 在 Windows 上使用原生拖拽
+      if (isNativeDragAvailable()) {
+        try {
+          const hwnd = this.mainWindow.getNativeWindowHandle();
+          const success = await startNativeWindowDrag(hwnd);
+          return { success, native: true };
+        } catch (error) {
+          this.log.error("Native window drag failed", error);
+          return { success: false, error: String(error) };
+        }
+      }
+
+      // 非 Windows 平台的回退方案（macOS/Linux 的 CSS drag 通常能正常工作）
+      return { success: false, native: false, error: "Native drag not available on this platform" };
+    });
+
     ipcMain.handle("usp:cache-stats", async () => {
       try {
         return await this.options.cacheManager.getStats();
@@ -483,6 +513,7 @@ export class WindowController {
 
   private createWindow() {
     const settings = this.options.getSettings();
+    
     this.mainWindow = new BrowserWindow({
       width: 460,
       height: 640,
@@ -491,7 +522,7 @@ export class WindowController {
       backgroundColor: "#00000000",
       resizable: true,
       fullscreenable: false,
-      titleBarStyle: "hidden",
+      titleBarStyle: "hidden", // 保持原设置，透明度正常工作
       webPreferences: {
         preload: path.join(this.__dirname, "../preload.js"),
         contextIsolation: true,

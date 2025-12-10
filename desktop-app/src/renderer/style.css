@@ -69,7 +69,6 @@ body {
   justify-content: flex-start;
   gap: 8px;
   padding: 10px 16px;
-  -webkit-app-region: drag;
   background: #121212;
   border-bottom: none;
   font-weight: 600;
@@ -101,13 +100,6 @@ body {
   display: flex;
   gap: 6px;
 }
-
-.window__header-actions button,
-.window__header-actions input,
-.window__header-actions select {
-  -webkit-app-region: no-drag;
-}
-
 
 .transcription-inline {
   display: flex;
@@ -170,7 +162,6 @@ body {
   align-items: center;
   width: 60px;
   margin-right: 4px;
-  -webkit-app-region: no-drag;
 }
 
 .header-slider {
@@ -186,11 +177,6 @@ body {
 .header-slider:hover::-webkit-slider-thumb {
   background: #facc15;
   transform: scale(1.2);
-}
-
-.subtitle-list,
-.settings-panel {
-  -webkit-app-region: no-drag;
 }
 
 .window__content {
