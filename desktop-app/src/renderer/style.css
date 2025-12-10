@@ -15,7 +15,6 @@
   --panel-opacity-factor: 1;
   --auto-hide-zone-height: 300px;
   --header-height: 60px;
-  --panel-stack-offset: clamp(160px, 22vh, 230px);
 }
 
 *,
@@ -193,7 +192,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: var(--header-height);
+  padding-top: 0;
   min-height: 0;
 }
 
@@ -244,13 +243,7 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding-top: var(--panel-stack-offset);
-  transition: transform 220ms ease;
-  will-change: transform;
-}
-
-.auto-hide-collapsed .subtitle-scroll-section {
-  transform: translateY(calc(-1 * var(--panel-stack-offset)));
+  padding-top: var(--header-height);
 }
 
 .video-meta {
