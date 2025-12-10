@@ -99,6 +99,11 @@ body {
   margin-left: 8px;
   display: flex;
   gap: 6px;
+}
+
+.window__header-actions button,
+.window__header-actions input,
+.window__header-actions select {
   -webkit-app-region: no-drag;
 }
 
@@ -244,7 +249,7 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding-top: 8px;
+  padding-top: 0;
 }
 
 .video-meta {
