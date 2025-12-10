@@ -197,6 +197,10 @@ body {
   min-height: 0;
 }
 
+.auto-hide-collapsed .window__content {
+  padding-top: 0;
+}
+
 .primary-view {
   flex: 1;
   display: flex;
@@ -245,6 +249,10 @@ body {
   min-height: 0;
   overflow: hidden;
   padding-top: var(--panel-stack-offset);
+}
+
+.auto-hide-collapsed .subtitle-scroll-section {
+  padding-top: 0;
 }
 
 .video-meta {
