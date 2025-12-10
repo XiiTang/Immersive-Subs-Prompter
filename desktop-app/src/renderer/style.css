@@ -71,7 +71,7 @@ body {
   padding: 10px 16px;
   -webkit-app-region: drag;
   background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
-  border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
+  border-bottom: none;
   font-weight: 600;
   position: absolute;
   top: 0;
@@ -226,14 +226,15 @@ body {
 
 .video-info-section {
   position: absolute;
-  top: 0;
+  top: var(--header-height);
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, calc(0.02 * var(--panel-opacity-factor)));
   border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  z-index: 80;
+  z-index: 90;
   backdrop-filter: blur(calc(10px * var(--panel-opacity-factor)));
   transform: translateZ(0);
+  padding-top: 2px;
 }
 
 .subtitle-scroll-section {
@@ -243,7 +244,7 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding-top: var(--header-height);
+  padding-top: 8px;
 }
 
 .video-meta {
@@ -406,6 +407,8 @@ body {
   transition: transform 240ms ease, opacity 180ms ease;
   will-change: transform, opacity;
   transform-origin: top;
+  background: rgba(255, 255, 255, calc(0.025 * var(--panel-opacity-factor)));
+  backdrop-filter: blur(calc(10px * var(--panel-opacity-factor)));
 }
 
 .video-info-section .video-meta,
@@ -419,6 +422,7 @@ body {
   transform: translate3d(0, -100%, 0);
   opacity: 0;
   pointer-events: none;
+  box-shadow: none;
 }
 
 .settings-panel {
