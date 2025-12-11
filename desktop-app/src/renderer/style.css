@@ -1987,15 +1987,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
 .transcription-config-list__item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px 10px;
+  gap: 4px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, calc(0.1 * var(--panel-opacity-factor)));
   background: rgba(0, 0, 0, calc(0.3 * var(--panel-opacity-factor)));
@@ -2017,8 +2019,60 @@ body {
 }
 
 .transcription-config-list__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.transcription-config-list__label {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.transcription-config-list__badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(103, 232, 249, calc(0.22 * var(--panel-opacity-factor)));
+  color: #d8f3ff;
+  border: 1px solid rgba(103, 232, 249, calc(0.35 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  font-size: 11px;
+  color: #cbd5f5;
+}
+
+.transcription-config-list__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, calc(0.16 * var(--panel-opacity-factor)));
+  border: 1px solid rgba(103, 232, 249, calc(0.28 * var(--panel-opacity-factor)));
+  color: #a5b4fc;
+}
+
+.transcription-config-list__muted {
+  color: #9ca3af;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transcription-config-list__empty {
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 6px 2px;
 }

@@ -3,28 +3,56 @@
     <h3 class="settings-section__title">
       {{ t("section-transcription", "Speech Transcription") }}
     </h3>
-    <div class="settings-field settings-field--inline settings-field--justify-start">
-      <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
-      <select v-model="activeConfigId">
-        <option v-for="config in transcriptionConfigs" :key="config.id" :value="config.id">
-          {{ config.name || config.id }}
-        </option>
-      </select>
-      <div class="settings-inline-buttons">
-        <button type="button" class="text-button" @click="handleAddConfig">
-          {{ t("button-add", "Add") }}
-        </button>
-        <button
-          type="button"
-          class="text-button"
-          :disabled="transcriptionConfigs.length <= 1"
-          @click="handleDeleteConfig"
-        >
-          {{ t("button-delete", "Delete") }}
-        </button>
+    <div class="transcription-settings">
+      <div class="transcription-settings__sidebar">
+        <div class="transcription-settings__actions">
+          <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
+          <div class="transcription-settings__buttons">
+            <button type="button" class="text-button" @click="handleAddConfig">
+              {{ t("button-add", "Add") }}
+            </button>
+            <button
+              type="button"
+              class="text-button"
+              :disabled="transcriptionConfigs.length <= 1"
+              @click="handleDeleteConfig"
+            >
+              {{ t("button-delete", "Delete") }}
+            </button>
+          </div>
+        </div>
+        <div class="transcription-config-list">
+          <template v-if="transcriptionConfigs.length">
+            <button
+              v-for="config in transcriptionConfigs"
+              :key="config.id"
+              type="button"
+              class="transcription-config-list__item"
+              :class="{ 'is-selected': config.id === activeConfigId }"
+              @click="activeConfigId = config.id"
+            >
+              <div class="transcription-config-list__name">
+                <span class="transcription-config-list__label">{{ config.name || config.id }}</span>
+                <span v-if="config.id === activeConfigId" class="transcription-config-list__badge">
+                  {{ t("transcription-config-active-badge", "Active") }}
+                </span>
+              </div>
+              <div class="transcription-config-list__meta">
+                <span class="transcription-config-list__pill">
+                  {{ getProviderLabel(config.provider) }}
+                </span>
+                <span class="transcription-config-list__muted">
+                  {{ getModelLabel(config) }}
+                </span>
+              </div>
+            </button>
+          </template>
+          <div v-else class="transcription-config-list__empty">
+            {{ t("transcription-config-empty", "No transcription configs yet") }}
+          </div>
+        </div>
       </div>
-    </div>
-    <template v-if="activeConfig">
+      <div class="transcription-settings__editor" v-if="activeConfig">
       <label class="settings-field">
         <span class="settings-field__label">{{ t("transcription-name-label", "Config Name") }}</span>
         <input type="text" v-model="configName" />
@@ -305,13 +333,15 @@
         </div>
         <input type="text" v-model="ytDlpArgs" placeholder="--extract-audio --audio-format wav --cookies-from-browser firefox ..." />
       </label>
-    </template>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import type { TranscriptionConfig } from "../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 
 const store = useDesktopStore();
@@ -372,6 +402,23 @@ const provider = computed({
 
 const isWhisperApi = computed(() => provider.value === "whisper-api");
 const isFasterWhisper = computed(() => provider.value === "faster-whisper");
+
+function getProviderLabel(provider: TranscriptionConfig["provider"] | undefined) {
+  if (provider === "faster-whisper") {
+    return t("transcription-provider-faster-short", "Faster-Whisper");
+  }
+  return t("transcription-provider-whisper-short", "Whisper API");
+}
+
+function getModelLabel(config: TranscriptionConfig) {
+  const languageLabel = (config.language || "auto").trim() || "auto";
+  if (config.provider === "faster-whisper") {
+    const modelName = (config.fasterWhisperModel || t("transcription-faster-model", "Model")).trim();
+    return `${modelName} · ${languageLabel}`;
+  }
+  const modelName = (config.model || t("transcription-model-label", "Model")).trim();
+  return `${modelName} · ${languageLabel}`;
+}
 
 const extraParamsError = ref<string | null>(null);
 const extraParamsText = computed({
