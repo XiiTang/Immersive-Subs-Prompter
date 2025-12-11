@@ -25,6 +25,7 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "toggle-shortcut-hint": "使用 CommandOrControl、Alt、Shift 等修饰键与按键组合。按 Enter 保存。",
   "process-blacklist-label": "进程黑名单",
   "process-blacklist-hint": "当指定进程处于前台时，快捷键将自动禁用（请输入可执行文件名）。",
+  "process-blacklist-placeholder": "例如：r5apex_dx12.exe, csgo.exe, vlc.exe",
   "button-add": "添加",
   "button-download": "下载",
   "button-redownload": "重新下载",

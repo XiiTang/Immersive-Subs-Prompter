@@ -145,7 +145,7 @@
                 type="text"
                 v-model="gameProcessInput"
                 class="settings-input"
-                :placeholder="t('primary-priority-placeholder', 'e.g.: cyberpunk2077.exe')"
+                :placeholder="t('process-blacklist-placeholder', 'e.g.: r5apex_dx12.exe, csgo.exe, vlc.exe')"
                 autocomplete="off"
                 @keyup.enter="addGameProcess"
               />

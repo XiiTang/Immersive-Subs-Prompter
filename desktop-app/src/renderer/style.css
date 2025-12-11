@@ -14,7 +14,7 @@
   --subtitle-active-secondary-text-color: #fff9c4;
   --panel-opacity-factor: 1;
   --auto-hide-zone-height: 300px;
-  --header-height: 60px;
+  --header-height: 45px;
 }
 
 *,
@@ -68,7 +68,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 5px 16px;
   background: #121212;
   border-bottom: none;
   font-weight: 600;
@@ -241,7 +241,7 @@ body {
 }
 
 .video-meta {
-  padding: 12px 16px 4px;
+  padding: 4px 16px 4px;
   opacity: 0.9;
   user-select: text;
 }
@@ -1943,4 +1943,82 @@ body {
   white-space: nowrap;
   border-width: 0;
   opacity: 0;
+}
+
+/* Transcription Settings Layout */
+.transcription-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.transcription-settings__sidebar {
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transcription-settings__editor {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transcription-settings__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transcription-settings__buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.transcription-settings__buttons .text-button {
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.transcription-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.transcription-config-list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, calc(0.1 * var(--panel-opacity-factor)));
+  background: rgba(0, 0, 0, calc(0.3 * var(--panel-opacity-factor)));
+  color: #e5e5e5;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  gap: 8px;
+}
+
+.transcription-config-list__item:hover {
+  background: rgba(255, 255, 255, calc(0.05 * var(--panel-opacity-factor)));
+  border-color: rgba(255, 255, 255, calc(0.2 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__item.is-selected {
+  border-color: rgba(103, 232, 249, calc(0.6 * var(--panel-opacity-factor)));
+  background: rgba(103, 232, 249, calc(0.12 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
