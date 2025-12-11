@@ -17,13 +17,7 @@ import {
   UrlMatchType
 } from "./types.js";
 import { createLogger } from "./logger.js";
-import {
-  DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
-  DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
-  LEGACY_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
-  clampAutoHideMouseLeaveDelay,
-  clampAutoHideZoneHeight
-} from "../common/autoHide.js";
+import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT, clampAutoHideZoneHeight } from "../common/autoHide.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
@@ -45,7 +39,6 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   gameProcessBlacklist: [],
   autoHidePanels: false,
   autoHideActiveZoneHeight: DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
-  autoHideMouseLeaveDelayMs: DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
   alwaysOnTop: "off",
   panelOpacity: 100,
   autoHideTimestamps: false,
@@ -284,11 +277,6 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
   const autoHidePanels = typeof source.autoHidePanels === "boolean" ? source.autoHidePanels : DEFAULT_GLOBAL_SETTINGS.autoHidePanels;
   const autoHideActiveZoneHeight = clampAutoHideZoneHeight(Number(source.autoHideActiveZoneHeight));
-  const rawAutoHideMouseLeaveDelayMs = Number(source.autoHideMouseLeaveDelayMs);
-  let autoHideMouseLeaveDelayMs = clampAutoHideMouseLeaveDelay(rawAutoHideMouseLeaveDelayMs);
-  if (!Number.isFinite(rawAutoHideMouseLeaveDelayMs) || rawAutoHideMouseLeaveDelayMs === LEGACY_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS) {
-    autoHideMouseLeaveDelayMs = DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS;
-  }
   // Handle legacy boolean values and new string values
   let alwaysOnTop: "off" | "floating" | "screen-saver" = DEFAULT_GLOBAL_SETTINGS.alwaysOnTop;
   if (typeof source.alwaysOnTop === "boolean") {
@@ -315,7 +303,6 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
     gameProcessBlacklist,
     autoHidePanels,
     autoHideActiveZoneHeight,
-    autoHideMouseLeaveDelayMs,
     alwaysOnTop,
     panelOpacity,
     autoHideTimestamps: typeof source.autoHideTimestamps === "boolean" ? source.autoHideTimestamps : false,

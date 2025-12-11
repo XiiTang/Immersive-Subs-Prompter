@@ -77,21 +77,6 @@
               @blur="emit('preview-auto-hide', false)"
             />
           </div>
-
-          <div class="settings-field">
-            <div class="settings-field-header">
-              <span class="settings-field__label">{{ t("auto-hide-delay-label", "Auto-hide Delay") }}</span>
-              <span class="value-badge">{{ autoHideDelayMs }}ms</span>
-            </div>
-            <input
-              type="range"
-              :min="AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN"
-              :max="AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX"
-              step="50"
-              class="slider"
-              v-model.number="autoHideDelayMs"
-            />
-          </div>
         </div>
       </div>
 
@@ -164,10 +149,6 @@
 import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import {
-  AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX,
-  AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN
-} from "../../../common/autoHide.js";
 
 const emit = defineEmits<{
   (e: "preview-auto-hide", visible: boolean): void;
@@ -205,20 +186,6 @@ const autoHideTimestamps = computed({
 const autoHideHeight = computed({
   get: () => store.autoHideZoneHeight,
   set: (value: number) => store.updateGlobalSetting("autoHideActiveZoneHeight", value)
-});
-
-const autoHideDelayMs = computed({
-  get: () => store.autoHideMouseLeaveDelay,
-  set: (value: number) => {
-    if (!Number.isFinite(value)) {
-      return;
-    }
-    const clamped = Math.min(
-      AUTO_HIDE_MOUSE_LEAVE_DELAY_MAX,
-      Math.max(AUTO_HIDE_MOUSE_LEAVE_DELAY_MIN, Math.round(value))
-    );
-    store.updateGlobalSetting("autoHideMouseLeaveDelayMs", clamped);
-  }
 });
 
 const languageSetting = computed({

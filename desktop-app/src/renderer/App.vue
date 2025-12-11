@@ -19,7 +19,6 @@ import SettingsPanel from "./components/SettingsPanel.vue";
 import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "./stores/desktop";
 import type { ProfileSettings } from "./main/types.js";
 import { normalizeLanguage } from "./i18n.js";
-import { DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS } from "../common/autoHide.js";
 
 const store = useDesktopStore();
 
@@ -28,14 +27,12 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
 
 const autoHideCollapsed = ref(false);
 const autoHidePreviewVisible = ref(false);
-const lastPointerY = ref<number | null>(null);
+const lastPointerPosition = ref<{ x: number; y: number } | null>(null);
 const isPointerInWindow = ref(false);
-const autoHideCollapseTimer = ref<number | null>(null);
+const headerElement = ref<HTMLElement | null>(null);
+const videoInfoSectionElement = ref<HTMLElement | null>(null);
 
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
-const autoHideDelayMs = computed(
-  () => store.autoHideMouseLeaveDelay ?? DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS
-);
 const windowClasses = computed(() => ({
   "window--settings-open": store.isSettingsOpen,
   "auto-hide-collapsed": autoHideCollapsed.value
@@ -79,30 +76,50 @@ function applyPanelOpacity(value: number | null | undefined) {
   document.documentElement.style.setProperty("--panel-opacity-factor", (clamped / 100).toFixed(2));
 }
 
-function updateAutoHideState(pointerY?: number | null) {
-  if (!autoHideEnabled.value || store.isSettingsOpen) {
-    clearAutoHideCollapseTimer();
-    autoHideCollapsed.value = false;
-    return;
+function refreshAutoHideElements() {
+  if (!headerElement.value) {
+    headerElement.value = document.querySelector(".window__header");
   }
-  if (typeof pointerY === "number") {
-    lastPointerY.value = pointerY;
+  if (!videoInfoSectionElement.value) {
+    videoInfoSectionElement.value = document.querySelector(".video-info-section");
+  }
+}
+
+function isPointerInsideElement(point: { x: number; y: number } | null, element: HTMLElement | null): boolean {
+  if (!point || !element) {
+    return false;
+  }
+  const rect = element.getBoundingClientRect();
+  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+function shouldShowPanels(pointer: { x: number; y: number } | null): boolean {
+  if (!autoHideEnabled.value || store.isSettingsOpen) {
+    return true;
+  }
+  refreshAutoHideElements();
+  if (!isPointerInWindow.value || !pointer) {
+    return false;
+  }
+  const inTriggerZone = pointer.y <= store.autoHideZoneHeight;
+  const inPanelArea =
+    isPointerInsideElement(pointer, headerElement.value) ||
+    isPointerInsideElement(pointer, videoInfoSectionElement.value);
+  return inTriggerZone || inPanelArea;
+}
+
+function updateAutoHideState(pointer?: { x: number; y: number }) {
+  if (pointer) {
+    lastPointerPosition.value = pointer;
     isPointerInWindow.value = true;
   }
-  const lastPointerValue = lastPointerY.value;
-  const pointerKnown = isPointerInWindow.value && typeof lastPointerValue === "number";
-  const shouldCollapse = !pointerKnown || lastPointerValue > store.autoHideZoneHeight;
-  if (shouldCollapse) {
-    scheduleAutoHideCollapse();
-  } else {
-    clearAutoHideCollapseTimer();
-    autoHideCollapsed.value = false;
-  }
+  const activePointer = isPointerInWindow.value ? lastPointerPosition.value : null;
+  autoHideCollapsed.value = !shouldShowPanels(activePointer);
 }
 
 function handlePointerMove(event: PointerEvent) {
   isPointerInWindow.value = true;
-  updateAutoHideState(event.clientY);
+  updateAutoHideState({ x: event.clientX, y: event.clientY });
 }
 
 function handlePointerLeave() {
@@ -121,30 +138,8 @@ function handleWindowBlur() {
 
 function markPointerLeftWindow() {
   isPointerInWindow.value = false;
-  lastPointerY.value = null;
-  updateAutoHideState(null);
-}
-
-function clearAutoHideCollapseTimer() {
-  if (autoHideCollapseTimer.value !== null) {
-    window.clearTimeout(autoHideCollapseTimer.value);
-    autoHideCollapseTimer.value = null;
-  }
-}
-
-function scheduleAutoHideCollapse() {
-  if (autoHideCollapseTimer.value !== null) {
-    return;
-  }
-  const delay = Math.max(0, autoHideDelayMs.value);
-  if (delay === 0) {
-    autoHideCollapsed.value = true;
-    return;
-  }
-  autoHideCollapseTimer.value = window.setTimeout(() => {
-    autoHideCollapsed.value = true;
-    autoHideCollapseTimer.value = null;
-  }, delay);
+  lastPointerPosition.value = null;
+  updateAutoHideState();
 }
 
 function setAutoHidePreview(visible: boolean) {
@@ -153,6 +148,8 @@ function setAutoHidePreview(visible: boolean) {
 
 onMounted(() => {
   store.initialize();
+  headerElement.value = document.querySelector(".window__header");
+  videoInfoSectionElement.value = document.querySelector(".video-info-section");
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
   window.addEventListener("pointerleave", handlePointerLeave, { passive: true });
   window.addEventListener("pointerout", handlePointerOut, { passive: true });
@@ -164,7 +161,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointerleave", handlePointerLeave);
   window.removeEventListener("pointerout", handlePointerOut);
   window.removeEventListener("blur", handleWindowBlur);
-  clearAutoHideCollapseTimer();
 });
 
 watch(
@@ -190,7 +186,6 @@ watch(
 
 watch(autoHideEnabled, (enabled) => {
   if (!enabled) {
-    clearAutoHideCollapseTimer();
     autoHideCollapsed.value = false;
     return;
   }
@@ -201,22 +196,12 @@ watch(
   () => store.isSettingsOpen,
   (open) => {
     if (open) {
-      clearAutoHideCollapseTimer();
       autoHideCollapsed.value = false;
     } else {
       updateAutoHideState();
     }
   }
 );
-
-watch(autoHideDelayMs, () => {
-  if (!autoHideEnabled.value || store.isSettingsOpen) {
-    clearAutoHideCollapseTimer();
-    return;
-  }
-  clearAutoHideCollapseTimer();
-  updateAutoHideState();
-});
 
 watch(
   () => store.settings?.global.language,

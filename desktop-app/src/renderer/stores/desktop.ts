@@ -18,7 +18,6 @@ import type {
   VideoControlCommand
 } from "../main/types.js";
 import {
-  DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS,
   DEFAULT_AUTO_HIDE_ZONE_HEIGHT
 } from "../../common/autoHide.js";
 
@@ -215,9 +214,6 @@ export const useDesktopStore = defineStore("desktop", {
     },
     autoHideZoneHeight(state): number {
       return state.settings?.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ZONE_HEIGHT;
-    },
-    autoHideMouseLeaveDelay(state): number {
-      return state.settings?.global.autoHideMouseLeaveDelayMs ?? DEFAULT_AUTO_HIDE_MOUSE_LEAVE_DELAY_MS;
     },
     transcriptionState(state): TranscriptionState | null {
       return state.desktopState?.transcription ?? null;
