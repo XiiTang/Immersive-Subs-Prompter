@@ -2,6 +2,7 @@ const DASHBOARD_PORT = "usp-dashboard";
 const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
+const serverRoot = document.getElementById("server-root");
 const template = document.getElementById("media-card-template");
 const blacklistPanel = document.getElementById("blacklist-panel");
 const blacklistButton = document.getElementById("blacklist-btn");
@@ -12,11 +13,193 @@ const addBlacklistRuleButton = document.getElementById("add-blacklist-rule");
 
 let port;
 let blacklistRules = [];
+let serverEndpoints = [];
+let connectionStatuses = [];
+let serverError = "";
+let serverInputEl = null;
 
 function setStatus(text) {
   if (statusEl) {
     statusEl.textContent = text;
   }
+}
+
+function normalizeEndpoint(input) {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (!/^wss?:\/\//i.test(trimmed)) {
+    if (/^[a-z0-9.-]+(:\d+)?$/i.test(trimmed)) {
+      return `ws://${trimmed}`;
+    }
+    return null;
+  }
+  return trimmed;
+}
+
+function normalizeConnections(input) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const endpoint = typeof entry.endpoint === "string" ? entry.endpoint : null;
+      if (!endpoint) return null;
+      const state = typeof entry.state === "string" ? entry.state : "disconnected";
+      const lastError = typeof entry.lastError === "string" ? entry.lastError : null;
+      return { endpoint, state, lastError };
+    })
+    .filter(Boolean);
+}
+
+function getConnectionInfo(endpoint) {
+  return connectionStatuses.find((entry) => entry.endpoint === endpoint) || null;
+}
+
+function connectionStatusLabel(state, hasError) {
+  const base =
+    state === "connected"
+      ? "Connected"
+      : state === "connecting"
+      ? "Connecting"
+      : state === "idle"
+      ? "Idle"
+      : "Disconnected";
+  return hasError ? `${base} · Error` : base;
+}
+
+function connectionStatusClass(state, hasError) {
+  let cls = "server-status";
+  if (state === "connected") {
+    cls += " server-status--connected";
+  } else if (state === "connecting") {
+    cls += " server-status--connecting";
+  } else if (hasError) {
+    cls += " server-status--error";
+  }
+  return cls;
+}
+
+function setServerError(message = "") {
+  serverError = message || "";
+  renderServers();
+}
+
+function addServerEndpoint(rawValue) {
+  const normalized = normalizeEndpoint(rawValue);
+  if (!normalized) {
+    setServerError("Enter a valid ws:// or wss:// address");
+    return;
+  }
+  setServerError("");
+  if (serverInputEl) {
+    serverInputEl.value = "";
+  }
+  try {
+    port?.postMessage({ type: "server-endpoints:add", endpoint: normalized });
+  } catch (error) {
+    console.error("[USP] Failed to add endpoint", error);
+  }
+}
+
+function removeServerEndpoint(endpoint) {
+  try {
+    port?.postMessage({ type: "server-endpoints:remove", endpoint });
+  } catch (error) {
+    console.error("[USP] Failed to remove endpoint", error);
+  }
+}
+
+function renderServers() {
+  if (!serverRoot) return;
+
+  const previousValue = serverInputEl?.value ?? "";
+  const card = document.createElement("div");
+  card.className = "server-card";
+
+  const header = document.createElement("div");
+  header.className = "server-card__header";
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("div");
+  title.className = "server-card__title";
+  title.textContent = "Desktop Apps";
+  const subtitle = document.createElement("div");
+  subtitle.className = "server-card__subtitle";
+  const total = serverEndpoints.length || connectionStatuses.length;
+  const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
+  subtitle.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(subtitle);
+  header.appendChild(titleWrap);
+  card.appendChild(header);
+
+  const addRow = document.createElement("div");
+  addRow.className = "server-add";
+  serverInputEl = document.createElement("input");
+  serverInputEl.type = "text";
+  serverInputEl.className = "server-input";
+  serverInputEl.placeholder = "ws://192.168.1.10:44501";
+  serverInputEl.autocomplete = "off";
+  serverInputEl.value = previousValue;
+  serverInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      addServerEndpoint(serverInputEl.value);
+    }
+  });
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.textContent = "Add";
+  addBtn.addEventListener("click", () => addServerEndpoint(serverInputEl.value));
+  addRow.appendChild(serverInputEl);
+  addRow.appendChild(addBtn);
+  card.appendChild(addRow);
+
+  if (serverError) {
+    const errorEl = document.createElement("div");
+    errorEl.className = "server-error";
+    errorEl.textContent = serverError;
+    card.appendChild(errorEl);
+  }
+
+  const list = document.createElement("div");
+  list.className = "server-list";
+  if (!serverEndpoints.length) {
+    const empty = document.createElement("div");
+    empty.className = "server-empty";
+    empty.textContent = "No servers configured.";
+    list.appendChild(empty);
+  } else {
+    serverEndpoints.forEach((endpoint) => {
+      const row = document.createElement("div");
+      row.className = "server-row";
+
+      const endpointEl = document.createElement("div");
+      endpointEl.className = "server-endpoint";
+      endpointEl.textContent = endpoint;
+
+      const info = getConnectionInfo(endpoint);
+      const state = info?.state || "disconnected";
+      const statusEl = document.createElement("div");
+      statusEl.className = connectionStatusClass(state, !!info?.lastError);
+      statusEl.title = info?.lastError || "";
+      statusEl.innerHTML = `<span class="server-status__dot"></span><span>${connectionStatusLabel(
+        state,
+        !!info?.lastError
+      )}</span>`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "server-remove";
+      removeBtn.textContent = "Remove";
+      removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
+
+      row.appendChild(endpointEl);
+      row.appendChild(statusEl);
+      row.appendChild(removeBtn);
+      list.appendChild(row);
+    });
+  }
+  card.appendChild(list);
+  serverRoot.replaceChildren(card);
 }
 
 function formatTime(value) {
@@ -318,7 +501,18 @@ function renderCards(items) {
   });
 }
 
+function syncServersFromPayload(payload) {
+  if (payload && Array.isArray(payload.endpoints)) {
+    serverEndpoints = payload.endpoints;
+  }
+  if (payload && payload.connections) {
+    connectionStatuses = normalizeConnections(payload.connections);
+  }
+  renderServers();
+}
+
 function handleSnapshot(payload) {
+  syncServersFromPayload(payload);
   const items = Array.isArray(payload?.items) ? payload.items : [];
   if (!items.length) {
     renderEmptyState();
@@ -327,17 +521,24 @@ function handleSnapshot(payload) {
   }
   const delta = payload?.generatedAt ? Date.now() - payload.generatedAt : null;
   const playing = items.filter((item) => item.isPlaying).length;
-  const label = playing
-    ? `${playing} playing`
-    : `${items.length || 0} tracked`;
-  setStatus(`${label} · updated ${formatRelative(delta)}`);
+  const totalServers = serverEndpoints.length || connectionStatuses.length;
+  const connectedServers = connectionStatuses.filter((entry) => entry.state === "connected").length;
+  const parts = [];
+  parts.push(totalServers ? `${connectedServers}/${totalServers} servers` : "No servers");
+  parts.push(playing ? `${playing} playing` : `${items.length || 0} tracked`);
+  parts.push(`updated ${formatRelative(delta)}`);
+  setStatus(parts.filter(Boolean).join(" · "));
 }
 
 function handleMessage(message) {
   if (message?.type === "media-state-snapshot") {
     handleSnapshot(message.payload);
+  } else if (message?.type === "server-endpoints") {
+    syncServersFromPayload(message.payload);
   }
 }
+
+renderServers();
 
 try {
   port = chrome.runtime.connect({ name: DASHBOARD_PORT });
@@ -345,8 +546,11 @@ try {
   port.onMessage.addListener(handleMessage);
   port.onDisconnect.addListener(() => {
     setStatus("Disconnected");
+    connectionStatuses = [];
+    renderServers();
     renderEmptyState();
   });
+  port.postMessage({ type: "server-endpoints:get" });
 } catch (err) {
   console.error("[USP] Failed to connect to dashboard port", err);
   setStatus("Unavailable");

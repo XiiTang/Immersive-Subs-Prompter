@@ -70,7 +70,7 @@ npm install
 npm run start   # Build TypeScript and start Electron
 ```
 
-The app will listen on `ws://127.0.0.1:44501` locally, waiting for the extension to connect.
+By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address and port under **Settings → Network** if you want phones/tablets on your LAN to connect.
 
 ### Load Browser Extension
 
@@ -79,6 +79,7 @@ The app will listen on `ws://127.0.0.1:44501` locally, waiting for the extension
 3. Select "Load unpacked", pointing to the `extension/` directory in the repository
 
 Then playing any video on Bilibili / YouTube / Douyin will allow you to see the desktop app window download subtitles and sync highlighting.
+Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback updates will broadcast to every connected desktop app.
 
 ## Feature Overview
 

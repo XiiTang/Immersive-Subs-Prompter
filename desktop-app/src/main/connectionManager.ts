@@ -8,6 +8,7 @@ import {
   ExtensionMessage,
   ExtensionMessageType,
   ExtensionPayload,
+  NetworkSettings,
   SubtitleTrack,
   VideoControlCommand
 } from "./types.js";
@@ -15,7 +16,7 @@ import {
 const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
 
 type ConnectionManagerOptions = {
-  port: number;
+  getNetworkSettings: () => NetworkSettings;
   subtitleService: SubtitleService;
   stateManager: StateManager;
   bus: AppEventBus;
@@ -33,19 +34,25 @@ export class ConnectionManager {
   private readonly socketTabs = new Map<WebSocket, Set<number>>();
   private subtitleRequestToken = 0;
   private server: WebSocketServer | null = null;
+  private currentNetwork: NetworkSettings | null = null;
 
   constructor(private readonly options: ConnectionManagerOptions) {}
 
   start() {
-    if (this.server) {
-      return;
-    }
-    this.server = this.bootstrapWebSocketServer();
+    this.applyNetworkSettings(true);
   }
 
   stop() {
-    this.server?.close();
-    this.server = null;
+    this.shutdownServer();
+  }
+
+  applyNetworkSettings(forceRestart = false) {
+    const target = this.options.getNetworkSettings();
+    if (!forceRestart && this.server && this.currentNetwork && this.isSameNetwork(target, this.currentNetwork)) {
+      return;
+    }
+    this.log.info("Applying network settings", target);
+    this.restartServer(target);
   }
 
   sendControlCommand(command: VideoControlCommand): boolean {
@@ -99,9 +106,44 @@ export class ConnectionManager {
     return true;
   }
 
-  private bootstrapWebSocketServer() {
-    const wss = new WebSocketServer({ port: this.options.port });
-    this.log.info(`WebSocket server listening on ws://127.0.0.1:${this.options.port}`);
+  private restartServer(target: NetworkSettings) {
+    this.shutdownServer();
+    try {
+      this.server = this.bootstrapWebSocketServer(target);
+      this.currentNetwork = { ...target };
+    } catch (error) {
+      this.log.error("Failed to start WebSocket server with new settings", { target, error });
+      this.currentNetwork = null;
+    }
+  }
+
+  private shutdownServer() {
+    if (!this.server) {
+      return;
+    }
+    try {
+      for (const client of this.server.clients) {
+        try {
+          client.close();
+        } catch (error) {
+          this.log.warn("Failed to close WebSocket client during shutdown", error);
+        }
+      }
+    } catch (error) {
+      this.log.warn("Failed to iterate WebSocket clients during shutdown", error);
+    }
+    this.server.close();
+    this.server = null;
+    this.currentNetwork = null;
+  }
+
+  private isSameNetwork(a: NetworkSettings, b: NetworkSettings): boolean {
+    return a.host === b.host && a.port === b.port;
+  }
+
+  private bootstrapWebSocketServer(network: NetworkSettings) {
+    const wss = new WebSocketServer({ port: network.port, host: network.host });
+    this.log.info(`WebSocket server listening on ws://${network.host}:${network.port}`);
 
     const connectedClients = new Set<WebSocket>();
 

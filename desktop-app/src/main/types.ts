@@ -156,6 +156,11 @@ export interface SubtitleCacheSettings {
   retentionDays: number;
 }
 
+export interface NetworkSettings {
+  host: string;
+  port: number;
+}
+
 export interface ProfileSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
@@ -192,6 +197,7 @@ export interface ProfileRule {
 
 export interface AppSettings {
   global: GlobalSettings;
+  network: NetworkSettings;
   profiles: ProfileDefinition[];
   defaultProfileId: string;
   rules: ProfileRule[];

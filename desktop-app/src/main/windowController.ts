@@ -767,6 +767,7 @@ export class WindowController {
   private updateAppSettings(partial: Partial<AppSettings>) {
     const previous = this.options.getSettings();
     const previousGlobal = previous.global;
+    const previousNetwork = previous.network;
     const appSettings = this.options.settingsStore.update(partial);
     this.options.setSettings(appSettings);
     this.options.stateManager.handleSettingsUpdated(previous, appSettings);
@@ -795,6 +796,13 @@ export class WindowController {
       } else {
         this.mainWindow.setAlwaysOnTop(true, level);
       }
+    }
+
+    if (
+      previousNetwork.host !== appSettings.network.host ||
+      previousNetwork.port !== appSettings.network.port
+    ) {
+      this.options.connectionManager.applyNetworkSettings();
     }
 
     this.options.bus.emit("state:changed", this.options.stateManager.getState());

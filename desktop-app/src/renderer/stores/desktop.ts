@@ -6,6 +6,7 @@ import type {
   GlobalSettings,
   JellyfinConfig,
   JellyfinSettings,
+  NetworkSettings,
   PlaybackState,
   ProfileDefinition,
   ProfileRule,
@@ -307,6 +308,13 @@ export const useDesktopStore = defineStore("desktop", {
       }
       const nextGlobal = { ...this.settings.global, [key]: value } as GlobalSettings;
       this.updateSettings({ global: nextGlobal });
+    },
+    updateNetworkSetting<Key extends keyof NetworkSettings>(key: Key, value: NetworkSettings[Key]) {
+      if (!this.settings) {
+        return;
+      }
+      const nextNetwork = { ...this.settings.network, [key]: value } as NetworkSettings;
+      this.updateSettings({ network: nextNetwork });
     },
     updateProfileSetting<Key extends keyof ProfileSettings>(key: Key, value: ProfileSettings[Key]) {
       if (!this.settings || !this.editingProfileId) {

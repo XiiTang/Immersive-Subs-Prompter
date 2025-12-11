@@ -36,6 +36,42 @@
         </div>
       </div>
 
+      <!-- Card 1.5: Network Configuration -->
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <div class="settings-card__title">{{ t("global-network", "Network & Connections") }}</div>
+        </div>
+        <div class="settings-card__content">
+          <div class="settings-field">
+            <span class="settings-field__label">{{ t("network-host-label", "Bind Address") }}</span>
+            <input
+              type="text"
+              v-model="serverHost"
+              class="settings-input"
+              spellcheck="false"
+              placeholder="0.0.0.0"
+            />
+            <small class="settings-field__hint">
+              {{ t("network-host-hint", "Use 0.0.0.0 to allow phones/tablets on your LAN to connect.") }}
+            </small>
+          </div>
+
+          <div class="settings-field">
+            <span class="settings-field__label">{{ t("network-port-label", "Port") }}</span>
+            <input
+              type="number"
+              min="1"
+              max="65535"
+              v-model.number="serverPort"
+              class="settings-input"
+            />
+            <small class="settings-field__hint">
+              {{ t("network-port-hint", "Changing host/port restarts the desktop WebSocket server.") }}
+            </small>
+          </div>
+        </div>
+      </div>
+
       <!-- Card 2: Auto-Hide Configuration -->
       <div class="settings-card">
         <div class="settings-card__header">
@@ -176,6 +212,16 @@ const toggleShortcut = computed({
 const autoHidePanels = computed({
   get: () => store.settings?.global.autoHidePanels ?? false,
   set: (value: boolean) => store.updateGlobalSetting("autoHidePanels", value)
+});
+
+const serverHost = computed({
+  get: () => store.settings?.network.host ?? "127.0.0.1",
+  set: (value: string) => store.updateNetworkSetting("host", value)
+});
+
+const serverPort = computed({
+  get: () => store.settings?.network.port ?? 44501,
+  set: (value: number) => store.updateNetworkSetting("port", value)
 });
 
 const autoHideTimestamps = computed({

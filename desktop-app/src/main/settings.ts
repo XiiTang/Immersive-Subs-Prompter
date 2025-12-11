@@ -14,6 +14,7 @@ import {
   SubtitleCacheSettings,
   TranscriptionConfig,
   TranscriptionSettings,
+  NetworkSettings,
   UrlMatchType
 } from "./types.js";
 import { createLogger } from "./logger.js";
@@ -43,6 +44,14 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   panelOpacity: 100,
   autoHideTimestamps: false,
   language: DEFAULT_LANGUAGE
+};
+
+const DEFAULT_WS_HOST = (process.env.USP_WS_HOST ?? "127.0.0.1").trim() || "127.0.0.1";
+const DEFAULT_WS_PORT = clampPort(Number(process.env.USP_WS_PORT ?? 44501));
+
+const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
+  host: DEFAULT_WS_HOST,
+  port: DEFAULT_WS_PORT
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
@@ -109,6 +118,7 @@ export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
 
 const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
   global: { ...DEFAULT_GLOBAL_SETTINGS },
+  network: { ...DEFAULT_NETWORK_SETTINGS },
   profiles: [createDefaultProfile()],
   defaultProfileId: DEFAULT_PROFILE_ID,
   rules: [],
@@ -166,6 +176,17 @@ function sanitizeProcessList(value: unknown): string[] {
     }
     seen.add(lowercase);
     normalized.push(trimmed);
+  }
+  return normalized;
+}
+
+function clampPort(value: number, fallback = 44501): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  const normalized = Math.round(value);
+  if (normalized < 1 || normalized > 65535) {
+    return fallback;
   }
   return normalized;
 }
@@ -647,6 +668,14 @@ function sanitizeCacheSettings(input: Partial<SubtitleCacheSettings> | null | un
   };
 }
 
+function sanitizeNetworkSettings(input: Partial<NetworkSettings> | null | undefined): NetworkSettings {
+  const source = input ?? {};
+  const host =
+    typeof source.host === "string" && source.host.trim().length ? source.host.trim() : DEFAULT_NETWORK_SETTINGS.host;
+  const port = clampPort(Number(source.port), DEFAULT_NETWORK_SETTINGS.port);
+  return { host, port };
+}
+
 type LegacySettingsShape = Partial<ProfileSettings> &
   Partial<GlobalSettings> & {
     closeBehavior?: CloseBehavior;
@@ -659,6 +688,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
 
   const looksModern =
     "global" in input ||
+    "network" in input ||
     "profiles" in input ||
     "rules" in input ||
     "defaultProfileId" in input ||
@@ -669,6 +699,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
   if (looksModern) {
     const raw = input as Partial<AppSettings>;
     const global = sanitizeGlobalSettings(raw.global);
+    const network = sanitizeNetworkSettings(raw.network);
     const profiles = sanitizeProfiles(raw.profiles);
     const requestedDefaultId =
       typeof raw.defaultProfileId === "string" && raw.defaultProfileId.trim().length
@@ -683,6 +714,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     const cache = sanitizeCacheSettings(raw.cache);
     return {
       global,
+      network,
       profiles,
       defaultProfileId,
       rules,
@@ -699,6 +731,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
   const global = sanitizeGlobalSettings(legacy);
   return {
     global,
+    network: { ...DEFAULT_NETWORK_SETTINGS },
     profiles: [profile],
     defaultProfileId: profile.id,
     rules: [],
@@ -711,6 +744,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
 function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSettings {
   const next: AppSettings = {
     global: base.global,
+    network: base.network,
     profiles: base.profiles,
     defaultProfileId: base.defaultProfileId,
     rules: base.rules,
@@ -721,6 +755,9 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
 
   if (patch.global) {
     next.global = { ...base.global, ...patch.global };
+  }
+  if (patch.network) {
+    next.network = { ...base.network, ...patch.network };
   }
   if (patch.profiles) {
     next.profiles = patch.profiles;

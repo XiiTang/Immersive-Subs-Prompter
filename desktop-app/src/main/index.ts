@@ -12,8 +12,6 @@ import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { AppSettings } from "./types.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
 
-const WS_PORT = Number(process.env.USP_WS_PORT ?? 44501);
-
 let appSettings: AppSettings = DEFAULT_SETTINGS;
 
 const getSettings = () => appSettings;
@@ -34,7 +32,7 @@ const subtitleService = new SubtitleService(
   cacheManager
 );
 const connectionManager = new ConnectionManager({
-  port: WS_PORT,
+  getNetworkSettings: () => getSettings().network,
   subtitleService,
   stateManager,
   bus,

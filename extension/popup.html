@@ -13,11 +13,14 @@
         <button type="button" class="usp-header__button" id="blacklist-btn">Blacklist</button>
       </div>
     </header>
-    <main id="media-root" class="media-root">
-      <div class="empty-state">
-        <strong>No media detected</strong>
-        <p>Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
-      </div>
+    <main class="usp-main">
+      <section id="server-root" class="server-root"></section>
+      <section id="media-root" class="media-root">
+        <div class="empty-state">
+          <strong>No media detected</strong>
+          <p>Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
+        </div>
+      </section>
     </main>
 
     <section class="blacklist-panel" id="blacklist-panel" aria-hidden="true">
