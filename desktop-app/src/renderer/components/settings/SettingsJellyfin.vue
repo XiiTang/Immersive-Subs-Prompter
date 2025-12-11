@@ -40,7 +40,9 @@
               }"
               @click="selectedJellyfinConfigId = config.id"
             >
-              <div class="jellyfin-config-list__name">{{ config.name || config.serverUrl || "Untitled" }}</div>
+              <div class="jellyfin-config-list__name">
+                {{ config.name || config.serverUrl || t("jellyfin-untitled", "Untitled") }}
+              </div>
               <div class="jellyfin-config-list__toggle">
                 <span>{{ config.enabled ? t("jellyfin-config-enabled", "Enabled") : t("jellyfin-config-disabled", "Disabled") }}</span>
               </div>

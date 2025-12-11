@@ -104,7 +104,7 @@ async function refreshCacheStats() {
 
 async function cleanupCache() {
   cacheBusy.value = true;
-  cacheMessage.value = "Cleaning up...";
+  cacheMessage.value = t("cache-cleanup-progress", "Cleaning up...");
   try {
     const result = await store.cleanupCache();
     cacheMessage.value = t("cache-cleanup-success", "Cleanup complete. Removed {count} entries.", {
@@ -122,7 +122,7 @@ async function clearCache() {
     return;
   }
   cacheBusy.value = true;
-  cacheMessage.value = "Clearing cache...";
+  cacheMessage.value = t("cache-clear-progress", "Clearing cache...");
   try {
     await store.clearCache();
     cacheMessage.value = t("cache-clear-success", "Cache cleared.");

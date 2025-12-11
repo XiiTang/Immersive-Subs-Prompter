@@ -80,7 +80,7 @@
         <div class="settings-card__content">
           <div class="settings-row two-col">
             <div class="settings-field settings-field--inline">
-              <span class="settings-field__label">Auto-hide Panels</span>
+              <span class="settings-field__label">{{ t("auto-hide-panels-label", "Auto-hide Panels") }}</span>
               <label class="toggle">
                 <input type="checkbox" v-model="autoHidePanels" />
                 <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>

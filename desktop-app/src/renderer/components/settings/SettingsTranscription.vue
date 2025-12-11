@@ -96,7 +96,7 @@
               <div class="fw-card__content">
                 <div class="fw-status-row">
                   <div class="fw-status-item">
-                    <span class="label">CPU Support</span>
+                    <span class="label">{{ t("transcription-faster-cpu-support", "CPU Support") }}</span>
                     <span class="fw-badge" :class="binaryStatus.cpu ? 'fw-badge--success' : 'fw-badge--error'">
                       {{
                         binaryStatus.cpu
@@ -117,7 +117,7 @@
 
                 <div class="fw-status-row">
                   <div class="fw-status-item">
-                    <span class="label">GPU (CUDA 12)</span>
+                    <span class="label">{{ t("transcription-faster-gpu-cuda", "GPU (CUDA 12)") }}</span>
                     <span class="fw-badge" :class="binaryStatus.gpu ? 'fw-badge--success' : 'fw-badge--error'">
                       {{
                         binaryStatus.gpu
