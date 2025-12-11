@@ -8,11 +8,11 @@
     </div>
     <div class="settings-panel__content" v-if="store.settings">
       <SettingsGlobal @preview-auto-hide="emit('preview-auto-hide', $event)" />
-      <SettingsTranscription />
       <SettingsProfiles />
+      <SettingsRules />
+      <SettingsTranscription />
       <SettingsJellyfin />
       <SettingsCache />
-      <SettingsRules />
     </div>
   </section>
 </template>
@@ -23,11 +23,11 @@ import { useDesktopStore } from "../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../i18n";
 
 import SettingsGlobal from "./settings/SettingsGlobal.vue";
-import SettingsTranscription from "./settings/SettingsTranscription.vue";
 import SettingsProfiles from "./settings/SettingsProfiles.vue";
+import SettingsRules from "./settings/SettingsRules.vue";
+import SettingsTranscription from "./settings/SettingsTranscription.vue";
 import SettingsJellyfin from "./settings/SettingsJellyfin.vue";
 import SettingsCache from "./settings/SettingsCache.vue";
-import SettingsRules from "./settings/SettingsRules.vue";
 
 const emit = defineEmits<{
   (e: "preview-auto-hide", visible: boolean): void;
