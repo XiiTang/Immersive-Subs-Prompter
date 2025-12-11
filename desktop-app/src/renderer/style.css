@@ -418,7 +418,7 @@ body {
 
 .settings-panel {
   position: absolute;
-  top: 0;
+  top: var(--header-height);
   left: 0;
   right: 0;
   bottom: 0;

@@ -6,7 +6,7 @@
         <p class="video-meta__profile">{{ profileLabel }}</p>
         <p class="video-meta__url">{{ displayUrl }}</p>
       </section>
-      <section class="control-panel" v-if="subtitleTracks.length">
+      <section class="control-panel" v-if="store.desktopState?.videoUrl">
         <label class="track-picker">
           <select v-model="primaryTrackId" aria-label="Primary Subtitle">
             <option disabled value="">{{ t("primary-track-placeholder", "Primary Subtitle") }}</option>
