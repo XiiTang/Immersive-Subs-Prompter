@@ -15,13 +15,13 @@ import {
   guessSubtitleFormatFromStream
 } from "./jellyfinUtils.js";
 import {
-  JellyfinPlaybackPayload,
-  JellyfinSessionSummary,
-  JellyfinSettings,
-  JellyfinConfig,
-  JellyfinStatusPayload,
-  JellyfinSubtitlesPayload,
-  JellyfinSubtitleStream,
+  MediaServerPlaybackPayload,
+  MediaServerSessionSummary,
+  MediaServerSettings,
+  MediaServerConfig,
+  MediaServerStatusPayload,
+  MediaServerSubtitlesPayload,
+  MediaServerSubtitleStream,
   SubtitleTrack
 } from "./types.js";
 
@@ -34,10 +34,10 @@ const DEFAULT_DEVICE_NAME = "Immersive Subs Prompter Desktop";
 const FALLBACK_VERSION = "0.1.0";
 
 type JellyfinEventMap = {
-  status: JellyfinStatusPayload;
-  sessions: JellyfinSessionSummary[];
-  playback: JellyfinPlaybackPayload;
-  subtitles: JellyfinSubtitlesPayload;
+  status: MediaServerStatusPayload;
+  sessions: MediaServerSessionSummary[];
+  playback: MediaServerPlaybackPayload;
+  subtitles: MediaServerSubtitlesPayload;
   error: Error;
 };
 
@@ -56,15 +56,15 @@ function createListenerMap(): { [K in JellyfinEventName]: Set<JellyfinListener<K
 
 type RawSessionRecord = Record<string, unknown>;
 
-type SettingsProvider = () => JellyfinSettings;
+type SettingsProvider = () => MediaServerSettings;
 
 type SessionSubscriptionMode = "idle" | "burst" | "continuous";
 
 type ConnectionHooks = {
-  onStatus: (payload: JellyfinStatusPayload) => void;
-  onSessions: (sessions: JellyfinSessionSummary[]) => void;
-  onPlayback: (payload: JellyfinPlaybackPayload) => void;
-  onSubtitles: (payload: JellyfinSubtitlesPayload) => void;
+  onStatus: (payload: MediaServerStatusPayload) => void;
+  onSessions: (sessions: MediaServerSessionSummary[]) => void;
+  onPlayback: (payload: MediaServerPlaybackPayload) => void;
+  onSubtitles: (payload: MediaServerSubtitlesPayload) => void;
   onError: (error: Error) => void;
 };
 
@@ -76,7 +76,7 @@ class JellyfinConnection {
   private sessionStreamActive = false;
   private sessionBurstTimer: NodeJS.Timeout | null = null;
   private pendingBurstDuration: number | null = null;
-  private sessions = new Map<string, JellyfinSessionSummary>();
+  private sessions = new Map<string, MediaServerSessionSummary>();
   private activeSessionId: string | null = null;
   private subtitleRequestToken = 0;
   private lastSubtitleItemKey: string | null = null;
@@ -88,7 +88,7 @@ class JellyfinConnection {
   private disposed = false;
 
   constructor(
-    private config: JellyfinConfig,
+    private config: MediaServerConfig,
     private readonly identity: JellyfinIdentity,
     private readonly hooks: ConnectionHooks,
     private readonly cacheManager?: SubtitleCacheManager
@@ -115,11 +115,11 @@ class JellyfinConnection {
     this.disconnect();
   }
 
-  updateConfig(nextConfig: JellyfinConfig) {
+  updateConfig(nextConfig: MediaServerConfig) {
     this.config = nextConfig;
   }
 
-  getConfigSnapshot(): JellyfinConfig {
+  getConfigSnapshot(): MediaServerConfig {
     return this.config;
   }
 
@@ -163,6 +163,7 @@ class JellyfinConnection {
         this.emitPlayback(summary);
       } else {
         this.hooks.onPlayback({
+          serverType: "jellyfin",
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -180,8 +181,9 @@ class JellyfinConnection {
     this.itemPositionHistory.clear();
 
     if (!normalizedId) {
-      this.hooks.onSubtitles({ sessionId: null, itemName: null, tracks: [] });
+      this.hooks.onSubtitles({ serverType: "jellyfin", sessionId: null, itemName: null, tracks: [] });
       this.hooks.onPlayback({
+        serverType: "jellyfin",
         sessionId: null,
         itemName: null,
         isPaused: true,
@@ -205,6 +207,7 @@ class JellyfinConnection {
           client: summary.client
         });
         this.hooks.onSubtitles({
+          serverType: "jellyfin",
           sessionId: summary.id,
           itemName: null,
           tracks: []
@@ -213,7 +216,7 @@ class JellyfinConnection {
     }
   }
 
-  getCurrentSessions(): JellyfinSessionSummary[] {
+  getCurrentSessions(): MediaServerSessionSummary[] {
     return Array.from(this.sessions.values());
   }
 
@@ -338,7 +341,7 @@ class JellyfinConnection {
 
     this.socket.on("open", () => {
       this.log.info(`[${this.config.name}] Jellyfin WebSocket connected`);
-      this.hooks.onStatus({ connected: true });
+      this.hooks.onStatus({ connected: true, serverType: "jellyfin" });
       this.startKeepAlive();
       this.syncSessionSubscriptionState();
     });
@@ -348,7 +351,7 @@ class JellyfinConnection {
       this.stopKeepAlive();
       this.socket = null;
       this.sessionStreamActive = false;
-      this.hooks.onStatus({ connected: false });
+      this.hooks.onStatus({ connected: false, serverType: "jellyfin" });
       this.scheduleReconnect();
     });
     this.socket.on("error", (error) => {
@@ -436,7 +439,7 @@ class JellyfinConnection {
       return;
     }
     
-    const nextSessions = new Map<string, JellyfinSessionSummary>();
+    const nextSessions = new Map<string, MediaServerSessionSummary>();
     for (const record of data as RawSessionRecord[]) {
       // Skip our own session - we don't want to monitor ourselves
       const deviceId = (record as any)?.DeviceId;
@@ -516,6 +519,7 @@ class JellyfinConnection {
           void this.loadSubtitlesForSession(summary);
         } else if (!effectiveItemId) {
           this.hooks.onSubtitles({
+            serverType: "jellyfin",
             sessionId: summary.id,
             itemName: null,
             tracks: []
@@ -525,6 +529,7 @@ class JellyfinConnection {
         this.lastActiveSessionItemId = null;
         this.itemPositionHistory.clear();
         this.hooks.onPlayback({
+          serverType: "jellyfin",
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -536,7 +541,7 @@ class JellyfinConnection {
     }
   }
 
-  private toSessionSummary(record: RawSessionRecord): JellyfinSessionSummary | null {
+  private toSessionSummary(record: RawSessionRecord): MediaServerSessionSummary | null {
     if (!record || typeof record !== "object") {
       return null;
     }
@@ -565,6 +570,7 @@ class JellyfinConnection {
       id: this.composeSessionId(rawId),
       serverConfigId: this.config.id,
       serverName: this.config.name,
+      serverType: "jellyfin",
       deviceName: typeof record.DeviceName === "string" ? record.DeviceName : null,
       client: typeof record.Client === "string" ? record.Client : null,
       userName: typeof record.UserName === "string" ? record.UserName : null,
@@ -586,12 +592,12 @@ class JellyfinConnection {
   private extractSubtitleStreams(
     mediaSource: RawSessionRecord | null,
     nowPlayingItem: RawSessionRecord | null
-  ): JellyfinSubtitleStream[] {
+  ): MediaServerSubtitleStream[] {
     return this.collectSubtitleStreams(mediaSource?.MediaStreams, nowPlayingItem?.MediaStreams);
   }
 
-  private collectSubtitleStreams(...collections: unknown[]): JellyfinSubtitleStream[] {
-    const byIndex = new Map<number, JellyfinSubtitleStream>();
+  private collectSubtitleStreams(...collections: unknown[]): MediaServerSubtitleStream[] {
+    const byIndex = new Map<number, MediaServerSubtitleStream>();
     for (const streams of collections) {
       if (!Array.isArray(streams)) {
         continue;
@@ -609,7 +615,7 @@ class JellyfinConnection {
     return Array.from(byIndex.values()).sort((a, b) => a.index - b.index);
   }
 
-  private toSubtitleStream(stream: RawSessionRecord | null): JellyfinSubtitleStream | null {
+  private toSubtitleStream(stream: RawSessionRecord | null): MediaServerSubtitleStream | null {
     if (!stream || typeof stream !== "object") {
       return null;
     }
@@ -633,9 +639,10 @@ class JellyfinConnection {
     };
   }
 
-  private emitPlayback(summary: JellyfinSessionSummary) {
+  private emitPlayback(summary: MediaServerSessionSummary) {
     const positionMs = ticksToMilliseconds(summary.positionTicks);
     this.hooks.onPlayback({
+      serverType: summary.serverType,
       sessionId: summary.id,
       itemName: summary.nowPlayingItemName ?? null,
       isPaused: summary.isPaused,
@@ -645,13 +652,14 @@ class JellyfinConnection {
     });
   }
 
-  private async loadSubtitlesForSession(summary: JellyfinSessionSummary, force = false) {
+  private async loadSubtitlesForSession(summary: MediaServerSessionSummary, force = false) {
     if (!this.config.serverUrl || !this.config.apiKey) {
       this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing server configuration`, {
         serverUrl: this.config.serverUrl,
         hasApiKey: Boolean(this.config.apiKey)
       });
       this.hooks.onSubtitles({
+        serverType: "jellyfin",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -664,6 +672,7 @@ class JellyfinConnection {
         sessionId: summary.id
       });
       this.hooks.onSubtitles({
+        serverType: "jellyfin",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -678,6 +687,7 @@ class JellyfinConnection {
         `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
       );
       this.hooks.onSubtitles({
+        serverType: "jellyfin",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -685,7 +695,7 @@ class JellyfinConnection {
       return;
     }
 
-    const workingSummary: JellyfinSessionSummary = {
+    const workingSummary: MediaServerSessionSummary = {
       ...summary,
       mediaSourceId: resolvedStreams.mediaSourceId ?? summary.mediaSourceId,
       subtitleStreams: resolvedStreams.streams
@@ -696,6 +706,7 @@ class JellyfinConnection {
         itemId: workingSummary.nowPlayingItemId
       });
       this.hooks.onSubtitles({
+        serverType: "jellyfin",
         sessionId: summary.id,
         itemName: workingSummary.nowPlayingItemName ?? null,
         tracks: []
@@ -728,7 +739,7 @@ class JellyfinConnection {
         // Check cache first
         let content: string | null = null;
         if (this.cacheManager) {
-          const cached = await this.cacheManager.get(url, "jellyfin");
+          const cached = await this.cacheManager.get(url, "mediaserver");
           if (cached && cached.tracks.length > 0) {
             const cachedTrack = cached.tracks[0];
             const sourceFile = stream.displayTitle ?? cachedTrack.sourceFile ?? fallbackSourceFile;
@@ -769,7 +780,7 @@ class JellyfinConnection {
         tracks.push(track);
         
         if (this.cacheManager && content) {
-          await this.cacheManager.set(url, "jellyfin", { tracks: [track] });
+          await this.cacheManager.set(url, "mediaserver", { tracks: [track] });
         }
       } catch (error) {
         this.log.warn(`[${this.config.name}] Failed to fetch Jellyfin subtitle stream`, {
@@ -785,6 +796,7 @@ class JellyfinConnection {
     }
 
     this.hooks.onSubtitles({
+      serverType: "jellyfin",
       sessionId: workingSummary.id,
       itemName: workingSummary.nowPlayingItemName ?? null,
       tracks
@@ -801,10 +813,10 @@ class JellyfinConnection {
    * @returns Object containing resolved streams and mediaSourceId
    */
   private async resolveSubtitleStreams(
-    summary: JellyfinSessionSummary,
-    config: JellyfinConfig,
+    summary: MediaServerSessionSummary,
+    config: MediaServerConfig,
     allowRefresh: boolean
-  ): Promise<{ streams: JellyfinSubtitleStream[]; mediaSourceId: string | null }> {
+  ): Promise<{ streams: MediaServerSubtitleStream[]; mediaSourceId: string | null }> {
     // 1. First, try to use streams from session
     if (summary.subtitleStreams.length > 0 && summary.mediaSourceId) {
       this.log.debug("Using subtitle streams from session", {
@@ -855,7 +867,7 @@ class JellyfinConnection {
     };
   }
 
-  private async refreshSubtitleMetadata(summary: JellyfinSessionSummary): Promise<JellyfinSessionSummary | null> {
+  private async refreshSubtitleMetadata(summary: MediaServerSessionSummary): Promise<MediaServerSessionSummary | null> {
     const metadata = await this.fetchNowPlayingMetadata(summary);
     if (!metadata) {
       return null;
@@ -874,7 +886,7 @@ class JellyfinConnection {
     };
   }
 
-  private async fetchNowPlayingMetadata(summary: JellyfinSessionSummary, config?: JellyfinConfig) {
+  private async fetchNowPlayingMetadata(summary: MediaServerSessionSummary, config?: MediaServerConfig) {
     const activeConfig = config ?? this.config;
     if (!activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
       return null;
@@ -927,7 +939,7 @@ class JellyfinConnection {
    * Get preferred subtitle extension with intelligent format detection
    * Enhanced version using guessSubtitleFormatFromStream from jellyfin-desktop-client
    */
-  private getPreferredExtension(stream: JellyfinSubtitleStream): string {
+  private getPreferredExtension(stream: MediaServerSubtitleStream): string {
     return guessSubtitleFormatFromStream(stream);
   }
 }
@@ -936,11 +948,11 @@ export class JellyfinSubtitleService {
   private readonly log = createLogger("jellyfin");
   private readonly listeners = createListenerMap();
   private readonly identity = createJellyfinIdentity();
-  private settings: JellyfinSettings;
+  private settings: MediaServerSettings;
   private connections = new Map<string, JellyfinConnection>();
   private connectionStatuses = new Map<string, boolean>();
-  private sessionsByConfig = new Map<string, JellyfinSessionSummary[]>();
-  private sessions = new Map<string, JellyfinSessionSummary>();
+  private sessionsByConfig = new Map<string, MediaServerSessionSummary[]>();
+  private sessions = new Map<string, MediaServerSessionSummary>();
   private activeSessionId: string | null = null;
   private continuousSessionPolling = false;
 
@@ -1032,15 +1044,15 @@ export class JellyfinSubtitleService {
     }
   }
 
-  getCurrentSessions(): JellyfinSessionSummary[] {
+  getCurrentSessions(): MediaServerSessionSummary[] {
     return Array.from(this.sessions.values());
   }
 
-  private applySettings(next: JellyfinSettings) {
+  private applySettings(next: MediaServerSettings) {
     this.settings = next;
     if (!next.enabled) {
       this.teardownAllConnections();
-      this.emit("status", { connected: false });
+      this.emit("status", { connected: false, serverType: "jellyfin" });
       this.emit("sessions", []);
       this.activeSessionId = null;
       return;
@@ -1050,7 +1062,9 @@ export class JellyfinSubtitleService {
 
   private syncConnections() {
     const enabledConfigs = new Map(
-      this.settings.configs.filter((config) => config.enabled).map((config) => [config.id, config])
+      this.settings.configs
+        .filter((config) => config.enabled && config.type === "jellyfin")
+        .map((config) => [config.id, config])
     );
 
     for (const [configId, connection] of Array.from(this.connections.entries())) {
@@ -1078,7 +1092,7 @@ export class JellyfinSubtitleService {
     }
   }
 
-  private createConnection(config: JellyfinConfig) {
+  private createConnection(config: MediaServerConfig) {
     const hooks: ConnectionHooks = {
       onStatus: (payload) => {
         this.log.debug("Connection status update", {
@@ -1142,7 +1156,7 @@ export class JellyfinSubtitleService {
     this.activeSessionId = null;
   }
 
-  private handleConnectionStatus(configId: string, payload: JellyfinStatusPayload) {
+  private handleConnectionStatus(configId: string, payload: MediaServerStatusPayload) {
     this.connectionStatuses.set(configId, payload.connected);
     this.emitAggregatedStatus();
   }
@@ -1150,10 +1164,10 @@ export class JellyfinSubtitleService {
   private emitAggregatedStatus() {
     const anyConnected =
       this.settings.enabled && Array.from(this.connectionStatuses.values()).some(Boolean);
-    this.emit("status", { connected: anyConnected });
+    this.emit("status", { connected: anyConnected, serverType: "jellyfin" });
   }
 
-  private handleConnectionSessions(configId: string, sessions: JellyfinSessionSummary[]) {
+  private handleConnectionSessions(configId: string, sessions: MediaServerSessionSummary[]) {
     this.log.debug("Connection sessions update", {
       configId,
       count: sessions.length,

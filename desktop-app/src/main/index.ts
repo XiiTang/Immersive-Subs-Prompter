@@ -2,7 +2,7 @@ import { app } from "electron";
 import { AppEventBus } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { ConnectionManager } from "./connectionManager.js";
-import { JellyfinController } from "./jellyfinController.js";
+import { MediaServerController } from "./mediaServerController.js";
 import { WindowController } from "./windowController.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
@@ -38,7 +38,7 @@ const connectionManager = new ConnectionManager({
   bus,
   cacheManager
 });
-const jellyfinController = new JellyfinController({
+const mediaServerController = new MediaServerController({
   bus,
   stateManager,
   getSettings,
@@ -56,7 +56,7 @@ app.whenReady().then(() => {
     connectionManager,
     settingsStore,
     cacheManager,
-    jellyfinController,
+    mediaServerController,
     transcriptionService,
     fasterWhisperManager,
     getSettings,
@@ -65,7 +65,7 @@ app.whenReady().then(() => {
 
   windowController.initialize();
   connectionManager.start();
-  jellyfinController.start();
+  mediaServerController.start();
 
   app.on("activate", () => {
     windowController?.showMainWindow();

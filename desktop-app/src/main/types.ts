@@ -72,13 +72,13 @@ export interface DesktopState {
   appliedRuleName: string | null;
   appliedRulePattern: string | null;
   appliedRuleMatchType: UrlMatchType | null;
-  pendingJellyfinItemId: string | null; // Used to prevent race conditions when switching between Jellyfin and extension
-  jellyfin: JellyfinPanelState;
+  pendingMediaServerItemId: string | null; // Used to prevent race conditions when switching between MediaServer and extension
+  mediaServer: MediaServerPanelState;
   isFullscreen: boolean;
   transcription: TranscriptionState;
 }
 
-export type SubtitleSource = "extension" | "jellyfin";
+export type SubtitleSource = "extension" | "mediaserver";
 
 export type VideoControlCommand =
   | { type: "seek"; time: number } // milliseconds
@@ -109,18 +109,21 @@ export interface GlobalSettings {
   language: string;
 }
 
-export interface JellyfinConfig {
+export type MediaServerType = "jellyfin";
+
+export interface MediaServerConfig {
   id: string;
   name: string;
+  type: MediaServerType;
   serverUrl: string;
   apiKey: string;
   webSocketPath: string;
   enabled: boolean;
 }
 
-export interface JellyfinSettings {
+export interface MediaServerSettings {
   enabled: boolean;
-  configs: JellyfinConfig[];
+  configs: MediaServerConfig[];
 }
 
 export interface TranscriptionConfig {
@@ -201,12 +204,12 @@ export interface AppSettings {
   profiles: ProfileDefinition[];
   defaultProfileId: string;
   rules: ProfileRule[];
-  jellyfin: JellyfinSettings;
+  mediaServer: MediaServerSettings;
   transcription: TranscriptionSettings;
   cache: SubtitleCacheSettings;
 }
 
-export interface JellyfinSubtitleStream {
+export interface MediaServerSubtitleStream {
   index: number;
   codec: string | null;
   language: string | null;
@@ -216,10 +219,11 @@ export interface JellyfinSubtitleStream {
   isText: boolean;
 }
 
-export interface JellyfinSessionSummary {
+export interface MediaServerSessionSummary {
   id: string;
   serverConfigId: string;
   serverName: string;
+  serverType: MediaServerType;
   deviceName: string | null;
   client: string | null;
   userName: string | null;
@@ -230,33 +234,36 @@ export interface JellyfinSessionSummary {
   positionTicks: number | null;
   isPaused: boolean;
   playbackRate: number | null;
-  subtitleStreams: JellyfinSubtitleStream[];
+  subtitleStreams: MediaServerSubtitleStream[];
 }
 
-export interface JellyfinPanelState {
+export interface MediaServerPanelState {
   connected: boolean;
-  sessions: JellyfinSessionSummary[];
+  sessions: MediaServerSessionSummary[];
   selectedSessionId: string | null;
   lastUpdated: number | null; // timestamp in milliseconds
 }
 
-export interface JellyfinStatusPayload {
+export interface MediaServerStatusPayload {
   connected: boolean;
+  serverType: MediaServerType;
 }
 
-export interface JellyfinSubtitlesPayload {
+export interface MediaServerSubtitlesPayload {
   sessionId: string | null;
   itemName: string | null;
   tracks: SubtitleTrack[];
+  serverType: MediaServerType;
 }
 
-export interface JellyfinPlaybackPayload {
+export interface MediaServerPlaybackPayload {
   sessionId: string | null;
   itemName: string | null;
   positionMs: number | null;
   runTimeMs: number | null;
   playbackRate: number;
   isPaused: boolean;
+  serverType: MediaServerType;
 }
 
 export type TranscriptionStatus = "idle" | "running" | "success" | "error";

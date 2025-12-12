@@ -421,7 +421,7 @@ export class ConnectionManager {
           break;
         }
 
-        if (state.activeSource === "jellyfin") {
+        if (state.activeSource === "mediaserver") {
           this.options.stateManager.updateState((draft) => {
             draft.playback = {
               currentTime: 0,

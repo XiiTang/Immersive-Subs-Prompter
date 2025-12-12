@@ -4,8 +4,8 @@ import type {
   AppSettings,
   DesktopState,
   GlobalSettings,
-  JellyfinConfig,
-  JellyfinSettings,
+  MediaServerConfig,
+  MediaServerSettings,
   NetworkSettings,
   PlaybackState,
   ProfileDefinition,
@@ -187,8 +187,8 @@ export const useDesktopStore = defineStore("desktop", {
         return "Connecting...";
       }
       const browser = state.desktopState.connectionCount;
-      const jellyfin = state.desktopState.jellyfin.sessions.length;
-      return `Extension: ${browser} · Jellyfin: ${jellyfin}`;
+      const mediaServer = state.desktopState.mediaServer.sessions.length;
+      return `Extension: ${browser} · Media Server: ${mediaServer}`;
     },
     activeProfileId(state): string | null {
       return state.desktopState?.appliedProfileId ?? state.settings?.defaultProfileId ?? null;
@@ -485,65 +485,66 @@ export const useDesktopStore = defineStore("desktop", {
         console.error("[Renderer] Failed to toggle fullscreen", error);
       }
     },
-    addJellyfinConfig(): string | null {
+    addMediaServerConfig(): string | null {
       if (!this.settings) {
         return null;
       }
-      const newConfig: JellyfinConfig = {
-        id: createId("jellyfin"),
-        name: `Server ${this.settings.jellyfin.configs.length + 1}`,
+      const newConfig: MediaServerConfig = {
+        id: createId("mediaserver"),
+        name: `Server ${this.settings.mediaServer.configs.length + 1}`,
+        type: "jellyfin",
         serverUrl: "",
         apiKey: "",
         webSocketPath: "",
         enabled: true
       };
-      const nextConfigs = [...this.settings.jellyfin.configs, newConfig];
+      const nextConfigs = [...this.settings.mediaServer.configs, newConfig];
       this.updateSettings({
-        jellyfin: {
-          ...this.settings.jellyfin,
+        mediaServer: {
+          ...this.settings.mediaServer,
           configs: nextConfigs
         }
       });
       return newConfig.id;
     },
-    updateJellyfinConfig(configId: string, patch: Partial<JellyfinConfig>) {
+    updateMediaServerConfig(configId: string, patch: Partial<MediaServerConfig>) {
       if (!this.settings) {
         return;
       }
-      const nextConfigs = this.settings.jellyfin.configs.map((config) =>
+      const nextConfigs = this.settings.mediaServer.configs.map((config) =>
         config.id === configId ? mergePartial(config, patch) : config
       );
       this.updateSettings({
-        jellyfin: {
-          ...this.settings.jellyfin,
+        mediaServer: {
+          ...this.settings.mediaServer,
           configs: nextConfigs
         }
       });
     },
-    deleteJellyfinConfig(configId: string) {
+    deleteMediaServerConfig(configId: string) {
       if (!this.settings) {
         return;
       }
-      const configs = this.settings.jellyfin.configs;
-      if (configs.length <= 1 && this.settings.jellyfin.enabled) {
-        console.warn("[Renderer] Cannot delete the last Jellyfin server while Jellyfin is enabled.");
+      const configs = this.settings.mediaServer.configs;
+      if (configs.length <= 1 && this.settings.mediaServer.enabled) {
+        console.warn("[Renderer] Cannot delete the last media server configuration while MediaServer is enabled.");
         return;
       }
       const nextConfigs = configs.filter((config) => config.id !== configId);
       this.updateSettings({
-        jellyfin: {
-          ...this.settings.jellyfin,
+        mediaServer: {
+          ...this.settings.mediaServer,
           configs: nextConfigs
         }
       });
     },
-    setJellyfinEnabled(enabled: boolean) {
+    setMediaServerEnabled(enabled: boolean) {
       if (!this.settings) {
         return;
       }
       this.updateSettings({
-        jellyfin: {
-          ...this.settings.jellyfin,
+        mediaServer: {
+          ...this.settings.mediaServer,
           enabled
         }
       });

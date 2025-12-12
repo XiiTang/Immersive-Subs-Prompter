@@ -809,8 +809,8 @@ body {
   transition: width 0.2s ease;
 }
 
-/* Jellyfin Session Panel in Settings */
-.jellyfin-session-panel {
+/* MediaServer Session Panel in Settings */
+.mediaserver-session-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -820,7 +820,7 @@ body {
   border: 1px solid rgba(59, 130, 246, calc(0.2 * var(--panel-opacity-factor)));
 }
 
-.jellyfin-session-status {
+.mediaserver-session-status {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -828,13 +828,13 @@ body {
   color: #e5e7eb;
 }
 
-.jellyfin-session-status__indicator {
+.mediaserver-session-status__indicator {
   font-size: 16px;
   line-height: 1;
   transition: color 0.3s ease;
 }
 
-.jellyfin-session-status__text {
+.mediaserver-session-status__text {
   font-weight: 500;
 }
 
@@ -1142,14 +1142,14 @@ body {
 .subtitle-list::-webkit-scrollbar,
 .settings-panel__content::-webkit-scrollbar,
 .profile-list::-webkit-scrollbar,
-.jellyfin-config-list::-webkit-scrollbar {
+.mediaserver-config-list::-webkit-scrollbar {
   width: 8px;
 }
 
 .subtitle-list::-webkit-scrollbar-track,
 .settings-panel__content::-webkit-scrollbar-track,
 .profile-list::-webkit-scrollbar-track,
-.jellyfin-config-list::-webkit-scrollbar-track {
+.mediaserver-config-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
   border-radius: 4px;
 }
@@ -1157,7 +1157,7 @@ body {
 .subtitle-list::-webkit-scrollbar-thumb,
 .settings-panel__content::-webkit-scrollbar-thumb,
 .profile-list::-webkit-scrollbar-thumb,
-.jellyfin-config-list::-webkit-scrollbar-thumb {
+.mediaserver-config-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, calc(0.15 * var(--panel-opacity-factor)));
   border-radius: 4px;
 }
@@ -1165,7 +1165,7 @@ body {
 .subtitle-list::-webkit-scrollbar-thumb:hover,
 .settings-panel__content::-webkit-scrollbar-thumb:hover,
 .profile-list::-webkit-scrollbar-thumb:hover,
-.jellyfin-config-list::-webkit-scrollbar-thumb:hover {
+.mediaserver-config-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, calc(0.25 * var(--panel-opacity-factor)));
 }
 
@@ -1310,22 +1310,22 @@ body {
   font-weight: 600;
 }
 
-/* Jellyfin Config Manager */
-.jellyfin-config-manager {
+/* MediaServer Config Manager */
+.mediaserver-config-manager {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 12px;
 }
 
-.jellyfin-config-manager__sidebar {
+.mediaserver-config-manager__sidebar {
   flex: 0 0 160px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.jellyfin-config-manager__editor {
+.mediaserver-config-manager__editor {
   flex: 1;
   min-width: 220px;
   display: flex;
@@ -1333,23 +1333,23 @@ body {
   gap: 10px;
 }
 
-.jellyfin-config-manager__actions {
+.mediaserver-config-manager__actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.jellyfin-config-manager__buttons {
+.mediaserver-config-manager__buttons {
   display: flex;
   gap: 4px;
 }
 
-.jellyfin-config-manager__buttons .text-button {
+.mediaserver-config-manager__buttons .text-button {
   padding: 2px 6px;
   font-size: 12px;
 }
 
-.jellyfin-config-list {
+.mediaserver-config-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1357,7 +1357,7 @@ body {
   overflow-y: auto;
 }
 
-.jellyfin-config-list__item {
+.mediaserver-config-list__item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1372,31 +1372,31 @@ body {
   gap: 8px;
 }
 
-.jellyfin-config-list__item.is-selected {
+.mediaserver-config-list__item.is-selected {
   border-color: rgba(103, 232, 249, calc(0.6 * var(--panel-opacity-factor)));
   background: rgba(103, 232, 249, calc(0.12 * var(--panel-opacity-factor)));
 }
 
-.jellyfin-config-list__item.is-disabled {
+.mediaserver-config-list__item.is-disabled {
   opacity: 0.7;
 }
 
-.jellyfin-config-list__name {
+.mediaserver-config-list__name {
   flex: 1;
 }
 
-.jellyfin-config-list__empty {
+.mediaserver-config-list__empty {
   font-size: 12px;
   color: #9ca3af;
   padding: 6px 0;
 }
 
-.jellyfin-config-list__toggle {
+.mediaserver-config-list__toggle {
   margin-left: auto;
   gap: 4px;
 }
 
-.jellyfin-config-list__toggle .toggle__text {
+.mediaserver-config-list__toggle .toggle__text {
   font-size: 11px;
   color: #9ca3af;
 }

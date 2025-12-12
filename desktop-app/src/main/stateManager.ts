@@ -3,7 +3,7 @@ import { createLogger } from "./logger.js";
 import {
   AppSettings,
   DesktopState,
-  JellyfinSessionSummary,
+  MediaServerSessionSummary,
   PlaybackState,
   ProfileDefinition,
   ProfileRule,
@@ -71,8 +71,8 @@ function createInitialState(settings: AppSettings): {
       appliedRuleName: null,
       appliedRulePattern: null,
       appliedRuleMatchType: null,
-      pendingJellyfinItemId: null,
-      jellyfin: {
+      pendingMediaServerItemId: null,
+      mediaServer: {
         connected: false,
         sessions: [],
         selectedSessionId: null,
@@ -177,12 +177,12 @@ export class StateManager {
   changeConnectionCount(delta: number) {
     return this.updateState((draft) => {
       draft.connectionCount = Math.max(0, draft.connectionCount + delta);
-      if (draft.connectionCount === 0 && draft.activeSource !== "jellyfin") {
+      if (draft.connectionCount === 0 && draft.activeSource !== "mediaserver") {
         draft.status = "idle";
         draft.activeTabId = null;
         this.resetSubtitleStateInternal(draft);
         this.applyProfileSelectionInternal(getDefaultProfile(this.getSettings()), null, draft);
-      } else if (draft.connectionCount > 0 && draft.status === "idle" && draft.activeSource !== "jellyfin") {
+      } else if (draft.connectionCount > 0 && draft.status === "idle" && draft.activeSource !== "mediaserver") {
         draft.status = "awaiting-video";
       }
     });
@@ -338,22 +338,22 @@ export class StateManager {
     }
   }
 
-  setJellyfinSessions(sessions: JellyfinSessionSummary[]) {
+  setMediaServerSessions(sessions: MediaServerSessionSummary[]) {
     return this.updateState((draft) => {
-      draft.jellyfin.sessions = sessions;
-      draft.jellyfin.lastUpdated = Date.now();
+      draft.mediaServer.sessions = sessions;
+      draft.mediaServer.lastUpdated = Date.now();
     });
   }
 
-  setJellyfinSelectedSession(sessionId: string | null) {
+  setMediaServerSelectedSession(sessionId: string | null) {
     return this.updateState((draft) => {
-      draft.jellyfin.selectedSessionId = sessionId;
+      draft.mediaServer.selectedSessionId = sessionId;
     });
   }
 
-  setPendingJellyfinItemId(itemId: string | null) {
+  setPendingMediaServerItemId(itemId: string | null) {
     return this.updateState((draft) => {
-      draft.pendingJellyfinItemId = itemId;
+      draft.pendingMediaServerItemId = itemId;
     });
   }
 
@@ -390,7 +390,7 @@ export class StateManager {
     next: SubtitleSource | null,
     fallback: SubtitleSource | null
   ): SubtitleSource | null {
-    if (next === null || next === "extension" || next === "jellyfin") {
+    if (next === null || next === "extension" || next === "mediaserver") {
       return next;
     }
     this.log.warn(`Invalid activeSource "${next}", reverting to previous`);

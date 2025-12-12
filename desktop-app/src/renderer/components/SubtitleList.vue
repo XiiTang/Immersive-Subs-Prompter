@@ -209,7 +209,7 @@ const canTranscribe = computed(() => {
   if (!state || !state.videoUrl) {
     return false;
   }
-  return state.activeSource !== "jellyfin";
+  return state.activeSource !== "mediaserver";
 });
 
 async function startTranscription() {

@@ -11,7 +11,7 @@
       <SettingsProfiles />
       <SettingsRules />
       <SettingsTranscription />
-      <SettingsJellyfin />
+      <SettingsMediaServer />
       <SettingsCache />
     </div>
   </section>
@@ -26,7 +26,7 @@ import SettingsGlobal from "./settings/SettingsGlobal.vue";
 import SettingsProfiles from "./settings/SettingsProfiles.vue";
 import SettingsRules from "./settings/SettingsRules.vue";
 import SettingsTranscription from "./settings/SettingsTranscription.vue";
-import SettingsJellyfin from "./settings/SettingsJellyfin.vue";
+import SettingsMediaServer from "./settings/SettingsMediaServer.vue";
 import SettingsCache from "./settings/SettingsCache.vue";
 
 const emit = defineEmits<{

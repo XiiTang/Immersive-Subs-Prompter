@@ -21,7 +21,7 @@ import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import { AppSettings, DesktopState, PlaybackState, SubtitleTrack, TranscriptionConfig, VideoControlCommand } from "./types.js";
-import { JellyfinController } from "./jellyfinController.js";
+import { MediaServerController } from "./mediaServerController.js";
 import { TranscriptionService } from "./transcriptionService.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
 import { startNativeWindowDrag, isNativeDragAvailable, preloadNativeAPIs } from "./nativeWindowDrag.js";
@@ -36,7 +36,7 @@ type WindowControllerOptions = {
   connectionManager: ConnectionManager;
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
-  jellyfinController: JellyfinController;
+  mediaServerController: MediaServerController;
   transcriptionService: TranscriptionService;
   fasterWhisperManager: FasterWhisperManager;
   getSettings: () => AppSettings;
@@ -295,8 +295,8 @@ export class WindowController {
       }
 
       const state = this.options.stateManager.getState();
-      if (state.activeSource === "jellyfin") {
-        const message = "当前为 Jellyfin 模式，语音转录暂不支持。";
+      if (state.activeSource === "mediaserver") {
+        const message = "当前为 MediaServer 模式，语音转录暂不支持。";
         this.options.stateManager.setTranscriptionStatus("error", message, config.name);
         return { ok: false, error: message };
       }
@@ -771,7 +771,7 @@ export class WindowController {
     const appSettings = this.options.settingsStore.update(partial);
     this.options.setSettings(appSettings);
     this.options.stateManager.handleSettingsUpdated(previous, appSettings);
-    this.options.jellyfinController.handleSettingsUpdated();
+    this.options.mediaServerController.handleSettingsUpdated();
 
     if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
       this.applyAutoLaunch(appSettings.global.autoLaunch);

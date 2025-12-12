@@ -6,8 +6,8 @@ import {
   AppSettings,
   CloseBehavior,
   GlobalSettings,
-  JellyfinConfig,
-  JellyfinSettings,
+  MediaServerConfig,
+  MediaServerSettings,
   ProfileDefinition,
   ProfileRule,
   ProfileSettings,
@@ -72,7 +72,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   secondarySubtitlePriority: []
 };
 
-export const DEFAULT_JELLYFIN_SETTINGS: JellyfinSettings = {
+export const DEFAULT_MEDIA_SERVER_SETTINGS: MediaServerSettings = {
   enabled: false,
   configs: []
 };
@@ -122,7 +122,7 @@ const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
   profiles: [createDefaultProfile()],
   defaultProfileId: DEFAULT_PROFILE_ID,
   rules: [],
-  jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS, configs: [...DEFAULT_JELLYFIN_SETTINGS.configs] },
+  mediaServer: { ...DEFAULT_MEDIA_SERVER_SETTINGS, configs: [...DEFAULT_MEDIA_SERVER_SETTINGS.configs] },
   transcription: {
     ...DEFAULT_TRANSCRIPTION_SETTINGS,
     configs: DEFAULT_TRANSCRIPTION_SETTINGS.configs.map((config) => ({ ...config }))
@@ -410,16 +410,17 @@ function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallbackProf
   return rules;
 }
 
-function sanitizeJellyfinConfig(
-  input: Partial<JellyfinConfig> | null | undefined,
+function sanitizeMediaServerConfig(
+  input: Partial<MediaServerConfig> | null | undefined,
   fallbackId?: string,
   fallbackEnabled?: boolean
-): JellyfinConfig {
+): MediaServerConfig {
   const id = typeof input?.id === "string" && input.id.trim() ? input.id.trim() : (fallbackId || randomUUID());
-  const name = typeof input?.name === "string" ? input.name.trim() : "Jellyfin Server";
+  const name = typeof input?.name === "string" ? input.name.trim() : "Media Server";
   const serverUrl = typeof input?.serverUrl === "string" ? input.serverUrl.trim() : "";
   const apiKey = typeof input?.apiKey === "string" ? input.apiKey.trim() : "";
   let webSocketPath = typeof input?.webSocketPath === "string" ? input.webSocketPath.trim() : "/socket";
+  const type: MediaServerConfig["type"] = "jellyfin";
 
   if (!webSocketPath.length) {
     webSocketPath = "/socket";
@@ -437,6 +438,7 @@ function sanitizeJellyfinConfig(
   return {
     id,
     name,
+    type,
     serverUrl,
     apiKey,
     webSocketPath,
@@ -444,14 +446,14 @@ function sanitizeJellyfinConfig(
   };
 }
 
-function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | undefined): JellyfinSettings {
+function sanitizeMediaServerSettings(input: Partial<MediaServerSettings> | null | undefined): MediaServerSettings {
   const source = input ?? {};
-  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_JELLYFIN_SETTINGS.enabled;
+  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_MEDIA_SERVER_SETTINGS.enabled;
 
-  let configs: JellyfinConfig[] = [];
+  let configs: MediaServerConfig[] = [];
   const hasExplicitEnabledFlags =
     Array.isArray(source.configs) &&
-    source.configs.some((config) => typeof (config as Partial<JellyfinConfig> | undefined)?.enabled === "boolean");
+    source.configs.some((config) => typeof (config as Partial<MediaServerConfig> | undefined)?.enabled === "boolean");
 
   // Migration: check if old format exists (serverUrl, apiKey, webSocketPath directly in settings)
   const hasOldFormat = 'serverUrl' in source || 'apiKey' in source || 'webSocketPath' in source;
@@ -463,9 +465,10 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
     const oldWebSocketPath = typeof (source as any).webSocketPath === "string" ? (source as any).webSocketPath.trim() : "/socket";
 
     if (oldServerUrl || oldApiKey) {
-      configs.push(sanitizeJellyfinConfig({
+      configs.push(sanitizeMediaServerConfig({
         id: 'jellyfin-config-migrated',
         name: 'Jellyfin Server',
+        type: "jellyfin",
         serverUrl: oldServerUrl,
         apiKey: oldApiKey,
         webSocketPath: oldWebSocketPath,
@@ -474,7 +477,7 @@ function sanitizeJellyfinSettings(input: Partial<JellyfinSettings> | null | unde
     }
   } else if (Array.isArray(source.configs)) {
     configs = source.configs.map((config, index) =>
-      sanitizeJellyfinConfig(config, `jellyfin-config-${index}`)
+      sanitizeMediaServerConfig(config, `jellyfin-config-${index}`)
     );
   }
 
@@ -692,6 +695,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     "profiles" in input ||
     "rules" in input ||
     "defaultProfileId" in input ||
+    "mediaServer" in input ||
     "jellyfin" in input ||
     "transcription" in input ||
     "cache" in input;
@@ -709,7 +713,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       ? requestedDefaultId
       : profiles[0].id;
     const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
-    const jellyfin = sanitizeJellyfinSettings(raw.jellyfin);
+    const mediaServer = sanitizeMediaServerSettings((raw as any).mediaServer ?? (raw as any).jellyfin);
     const transcription = sanitizeTranscriptionSettings(raw.transcription);
     const cache = sanitizeCacheSettings(raw.cache);
     return {
@@ -718,7 +722,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       profiles,
       defaultProfileId,
       rules,
-      jellyfin,
+      mediaServer,
       transcription,
       cache
     };
@@ -735,7 +739,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     profiles: [profile],
     defaultProfileId: profile.id,
     rules: [],
-    jellyfin: { ...DEFAULT_JELLYFIN_SETTINGS },
+    mediaServer: { ...DEFAULT_MEDIA_SERVER_SETTINGS },
     transcription: { ...DEFAULT_TRANSCRIPTION_SETTINGS },
     cache: { ...DEFAULT_CACHE_SETTINGS }
   };
@@ -746,12 +750,12 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     global: base.global,
     network: base.network,
     profiles: base.profiles,
-    defaultProfileId: base.defaultProfileId,
-    rules: base.rules,
-    jellyfin: base.jellyfin,
-    transcription: base.transcription,
-    cache: base.cache
-  };
+  defaultProfileId: base.defaultProfileId,
+  rules: base.rules,
+  mediaServer: base.mediaServer,
+  transcription: base.transcription,
+  cache: base.cache
+};
 
   if (patch.global) {
     next.global = { ...base.global, ...patch.global };
@@ -768,10 +772,16 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
   if (typeof patch.defaultProfileId === "string") {
     next.defaultProfileId = patch.defaultProfileId;
   }
-  if (patch.jellyfin) {
-    next.jellyfin = {
-      ...next.jellyfin,
-      ...patch.jellyfin
+  if ((patch as any).mediaServer) {
+    next.mediaServer = {
+      ...next.mediaServer,
+      ...(patch as any).mediaServer
+    };
+  }
+  if ((patch as any).jellyfin) {
+    next.mediaServer = {
+      ...next.mediaServer,
+      ...(patch as any).jellyfin
     };
   }
   if (patch.transcription) {

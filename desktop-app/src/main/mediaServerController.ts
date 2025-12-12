@@ -8,34 +8,34 @@ import {
   AppSettings,
   ExtensionMessage,
   ExtensionPayload,
-  JellyfinConfig,
-  JellyfinPlaybackPayload,
-  JellyfinSessionSummary,
-  JellyfinStatusPayload,
-  JellyfinSubtitlesPayload
+  MediaServerConfig,
+  MediaServerPlaybackPayload,
+  MediaServerSessionSummary,
+  MediaServerStatusPayload,
+  MediaServerSubtitlesPayload
 } from "./types.js";
 
-type TabJellyfinContext = {
+type TabMediaServerContext = {
   itemId: string | null;
   sessionId: string | null;
   serverConfigId: string | null;
 };
 
-type JellyfinControllerOptions = {
+type MediaServerControllerOptions = {
   bus: AppEventBus;
   stateManager: StateManager;
   getSettings: () => AppSettings;
   cacheManager: SubtitleCacheManager;
 };
 
-export class JellyfinController {
-  private readonly log = createLogger("jellyfin-controller");
-  private readonly tabJellyfinContexts = new Map<number, TabJellyfinContext>();
-  private readonly jellyfinService: JellyfinSubtitleService;
+export class MediaServerController {
+  private readonly log = createLogger("mediaserver-controller");
+  private readonly tabMediaServerContexts = new Map<number, TabMediaServerContext>();
+  private readonly mediaServerService: JellyfinSubtitleService;
 
-  constructor(private readonly options: JellyfinControllerOptions) {
-    this.jellyfinService = new JellyfinSubtitleService(
-      () => this.options.getSettings().jellyfin,
+  constructor(private readonly options: MediaServerControllerOptions) {
+    this.mediaServerService = new JellyfinSubtitleService(
+      () => this.options.getSettings().mediaServer,
       this.options.cacheManager
     );
   }
@@ -43,29 +43,29 @@ export class JellyfinController {
   start() {
     this.registerBusListeners();
     this.registerServiceListeners();
-    this.jellyfinService.start();
+    this.mediaServerService.start();
   }
 
   handleSettingsUpdated() {
-    this.jellyfinService.refresh();
+    this.mediaServerService.refresh();
   }
 
   private registerBusListeners() {
     this.options.bus.on("connection:message", (event) => this.handleConnectionMessage(event));
-    this.options.bus.on("connection:tab-removed", ({ tabId }) => this.clearTabJellyfinContext(tabId));
+    this.options.bus.on("connection:tab-removed", ({ tabId }) => this.clearTabMediaServerContext(tabId));
     this.options.bus.on("state:connection-count", ({ count }) => {
       const continuous = count === 0;
-      this.jellyfinService.setContinuousSessionPolling(continuous);
+      this.mediaServerService.setContinuousSessionPolling(continuous);
     });
   }
 
   private registerServiceListeners() {
-    this.jellyfinService.on("status", ({ connected }) => this.handleJellyfinStatusUpdate({ connected }));
-    this.jellyfinService.on("sessions", (sessions) => this.handleJellyfinSessionsUpdate(sessions));
-    this.jellyfinService.on("subtitles", (payload) => this.handleJellyfinSubtitlesUpdate(payload));
-    this.jellyfinService.on("playback", (payload) => this.handleJellyfinPlaybackUpdate(payload));
-    this.jellyfinService.on("error", (error) => {
-      this.log.error("Jellyfin service error", error);
+    this.mediaServerService.on("status", (payload) => this.handleMediaServerStatusUpdate(payload));
+    this.mediaServerService.on("sessions", (sessions) => this.handleMediaServerSessionsUpdate(sessions));
+    this.mediaServerService.on("subtitles", (payload) => this.handleMediaServerSubtitlesUpdate(payload));
+    this.mediaServerService.on("playback", (payload) => this.handleMediaServerPlaybackUpdate(payload));
+    this.mediaServerService.on("error", (error) => {
+      this.log.error("Media server service error", error);
     });
   }
 
@@ -74,17 +74,17 @@ export class JellyfinController {
       return;
     }
     const url = event.resolvedUrl;
-    const configId = this.resolveJellyfinConfigIdFromUrls([
+    const configId = this.resolveMediaServerConfigIdFromUrls([
       url,
       event.message.payload.pageUrl ?? null,
       event.message.payload.videoSrc ?? null
     ]);
-    const existingTabContext = this.getTabJellyfinContext(event.message.tabId);
-    const jellyfinConfigId = configId ?? existingTabContext?.serverConfigId ?? null;
-    const isJellyfin = Boolean(jellyfinConfigId);
+    const existingTabContext = this.getTabMediaServerContext(event.message.tabId);
+    const mediaServerConfigId = configId ?? existingTabContext?.serverConfigId ?? null;
+    const isMediaServer = Boolean(mediaServerConfigId);
 
-    if (!isJellyfin) {
-      this.handleNonJellyfinSwitch(event.message.tabId);
+    if (!isMediaServer) {
+      this.handleNonMediaServerSwitch(event.message.tabId);
       return;
     }
 
@@ -94,8 +94,8 @@ export class JellyfinController {
       title: event.message.payload.title ?? null
     });
 
-    if (jellyfinConfigId) {
-      this.updateTabJellyfinContext(event.message.tabId, { serverConfigId: jellyfinConfigId });
+    if (mediaServerConfigId) {
+      this.updateTabMediaServerContext(event.message.tabId, { serverConfigId: mediaServerConfigId });
     }
 
     if (!url) {
@@ -103,40 +103,40 @@ export class JellyfinController {
     }
 
     event.markHandled();
-    void this.processJellyfinVideoContext(event.message, url);
+    void this.processMediaServerVideoContext(event.message, url);
   }
 
-  private handleNonJellyfinSwitch(tabId: number) {
+  private handleNonMediaServerSwitch(tabId: number) {
     const state = this.options.stateManager.getState();
-    this.clearTabJellyfinContext(tabId);
+    this.clearTabMediaServerContext(tabId);
     if (state.activeSource !== "extension") {
       this.options.stateManager.updateState((draft) => {
         draft.activeSource = "extension";
-        draft.pendingJellyfinItemId = null;
-        if (draft.jellyfin.selectedSessionId) {
-          draft.jellyfin.selectedSessionId = null;
+        draft.pendingMediaServerItemId = null;
+        if (draft.mediaServer.selectedSessionId) {
+          draft.mediaServer.selectedSessionId = null;
         }
       });
-      this.jellyfinService.setActiveSession(null);
+      this.mediaServerService.setActiveSession(null);
     }
   }
 
-  private async processJellyfinVideoContext(message: ExtensionMessage, url: string) {
+  private async processMediaServerVideoContext(message: ExtensionMessage, url: string) {
     const state = this.options.stateManager.getState();
     const itemId = this.extractItemId(message.payload, url);
     if (itemId) {
-      this.updateTabJellyfinContext(message.tabId, { itemId });
+      this.updateTabMediaServerContext(message.tabId, { itemId });
     }
 
-    const tabContext = this.getTabJellyfinContext(message.tabId);
+    const tabContext = this.getTabMediaServerContext(message.tabId);
     const storedSession =
       tabContext?.sessionId
-        ? state.jellyfin.sessions.find((session) => session.id === tabContext.sessionId) ?? null
+        ? state.mediaServer.sessions.find((session) => session.id === tabContext.sessionId) ?? null
         : null;
 
-    if (itemId && this.options.getSettings().jellyfin.enabled) {
+    if (itemId && this.options.getSettings().mediaServer.enabled) {
       this.options.stateManager.updateState((draft) => {
-        draft.activeSource = "jellyfin";
+        draft.activeSource = "mediaserver";
         draft.videoUrl = url;
         draft.site = "jellyfin";
       });
@@ -144,8 +144,8 @@ export class JellyfinController {
       this.options.stateManager.applyProfileSelection(selection.profile, selection.rule);
 
       const latestState = this.options.stateManager.getState();
-      const currentSession = latestState.jellyfin.selectedSessionId
-        ? latestState.jellyfin.sessions.find((s) => s.id === latestState.jellyfin.selectedSessionId) ?? null
+      const currentSession = latestState.mediaServer.selectedSessionId
+        ? latestState.mediaServer.sessions.find((s) => s.id === latestState.mediaServer.selectedSessionId) ?? null
         : null;
       const currentItemId = currentSession?.nowPlayingItemId;
 
@@ -153,18 +153,18 @@ export class JellyfinController {
         return;
       }
 
-      const trackedItemId = latestState.pendingJellyfinItemId ?? currentItemId ?? null;
+      const trackedItemId = latestState.pendingMediaServerItemId ?? currentItemId ?? null;
       if (trackedItemId !== itemId) {
-        this.jellyfinService.requestSessionsBurst(`jellyfin-video-change:${itemId}`);
+        this.mediaServerService.requestSessionsBurst(`mediaserver-video-change:${itemId}`);
       }
 
-      let matchingSession: JellyfinSessionSummary | null = null;
+      let matchingSession: MediaServerSessionSummary | null = null;
       if (storedSession && storedSession.nowPlayingItemId === itemId) {
         matchingSession = storedSession;
       }
       if (!matchingSession) {
         matchingSession =
-          latestState.jellyfin.sessions.find(
+          latestState.mediaServer.sessions.find(
             (session) =>
               session.nowPlayingItemId === itemId &&
               (!tabContext?.serverConfigId || session.serverConfigId === tabContext.serverConfigId)
@@ -173,24 +173,24 @@ export class JellyfinController {
 
       if (matchingSession) {
         this.options.stateManager.updateState((draft) => {
-          draft.jellyfin.selectedSessionId = matchingSession.id;
+          draft.mediaServer.selectedSessionId = matchingSession.id;
           draft.status = "loading-subtitles";
-          draft.pendingJellyfinItemId = itemId;
+          draft.pendingMediaServerItemId = itemId;
         });
         this.options.stateManager.resetSubtitleState();
-        this.jellyfinService.setActiveSession(matchingSession.id);
-        this.updateTabJellyfinContext(message.tabId, {
+        this.mediaServerService.setActiveSession(matchingSession.id);
+        this.updateTabMediaServerContext(message.tabId, {
           sessionId: matchingSession.id,
           serverConfigId: matchingSession.serverConfigId,
           itemId: matchingSession.nowPlayingItemId ?? itemId
         });
       } else {
         this.options.stateManager.updateState((draft) => {
-          draft.pendingJellyfinItemId = itemId;
+          draft.pendingMediaServerItemId = itemId;
           draft.status = "loading-subtitles";
         });
         this.options.stateManager.resetSubtitleState();
-        this.updateTabJellyfinContext(message.tabId, {
+        this.updateTabMediaServerContext(message.tabId, {
           itemId
         });
       }
@@ -198,8 +198,8 @@ export class JellyfinController {
     }
 
     this.options.stateManager.updateState((draft) => {
-      if (draft.activeSource !== "jellyfin") {
-        draft.activeSource = "jellyfin";
+      if (draft.activeSource !== "mediaserver") {
+        draft.activeSource = "mediaserver";
       }
       if (draft.site !== "jellyfin") {
         draft.site = "jellyfin";
@@ -213,42 +213,42 @@ export class JellyfinController {
     this.options.stateManager.applyProfileSelection(selection.profile, selection.rule);
 
     if (storedSession) {
-      if (this.options.stateManager.getState().jellyfin.selectedSessionId !== storedSession.id) {
+      if (this.options.stateManager.getState().mediaServer.selectedSessionId !== storedSession.id) {
         this.options.stateManager.updateState((draft) => {
-          draft.jellyfin.selectedSessionId = storedSession.id;
-          draft.pendingJellyfinItemId = storedSession.nowPlayingItemId ?? draft.pendingJellyfinItemId;
+          draft.mediaServer.selectedSessionId = storedSession.id;
+          draft.pendingMediaServerItemId = storedSession.nowPlayingItemId ?? draft.pendingMediaServerItemId;
         });
-        this.jellyfinService.setActiveSession(storedSession.id);
+        this.mediaServerService.setActiveSession(storedSession.id);
       }
-      this.updateTabJellyfinContext(message.tabId, {
+      this.updateTabMediaServerContext(message.tabId, {
         sessionId: storedSession.id,
         serverConfigId: storedSession.serverConfigId,
         ...(storedSession.nowPlayingItemId ? { itemId: storedSession.nowPlayingItemId } : {})
       });
-      if (!this.options.stateManager.getState().pendingJellyfinItemId && storedSession.nowPlayingItemId) {
-        this.options.stateManager.setPendingJellyfinItemId(storedSession.nowPlayingItemId);
+      if (!this.options.stateManager.getState().pendingMediaServerItemId && storedSession.nowPlayingItemId) {
+        this.options.stateManager.setPendingMediaServerItemId(storedSession.nowPlayingItemId);
       }
     }
 
-    this.jellyfinService.requestSessionsBurst("jellyfin-video-context-no-itemid");
+    this.mediaServerService.requestSessionsBurst("mediaserver-video-context-no-itemid");
   }
 
-  private handleJellyfinStatusUpdate(payload: JellyfinStatusPayload) {
-    const current = this.options.stateManager.getState().jellyfin.connected;
+  private handleMediaServerStatusUpdate(payload: MediaServerStatusPayload) {
+    const current = this.options.stateManager.getState().mediaServer.connected;
     if (current === payload.connected) {
       return;
     }
     this.options.stateManager.updateState((draft) => {
-      draft.jellyfin.connected = payload.connected;
+      draft.mediaServer.connected = payload.connected;
     });
-    this.log.debug("Jellyfin status changed", payload);
+    this.log.debug("Media server status changed", payload);
 
     if (!payload.connected) {
       this.options.stateManager.updateState((draft) => {
-        draft.jellyfin.sessions = [];
-        draft.jellyfin.selectedSessionId = null;
-        draft.pendingJellyfinItemId = null;
-        if (draft.activeSource === "jellyfin") {
+        draft.mediaServer.sessions = [];
+        draft.mediaServer.selectedSessionId = null;
+        draft.pendingMediaServerItemId = null;
+        if (draft.activeSource === "mediaserver") {
           draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
           draft.status = draft.connectionCount > 0 ? draft.status : "idle";
           draft.title = null;
@@ -257,29 +257,29 @@ export class JellyfinController {
           draft.site = null;
         }
       });
-      if (this.options.stateManager.getState().activeSource !== "jellyfin") {
+      if (this.options.stateManager.getState().activeSource !== "mediaserver") {
         this.options.stateManager.resetSubtitleState();
       }
-      this.jellyfinService.setActiveSession(null);
+      this.mediaServerService.setActiveSession(null);
       return;
     }
 
-    this.jellyfinService.requestSessionsBurst("ws-status-connected");
+    this.mediaServerService.requestSessionsBurst("ws-status-connected");
   }
 
-  private handleJellyfinSessionsUpdate(sessions: JellyfinSessionSummary[]) {
+  private handleMediaServerSessionsUpdate(sessions: MediaServerSessionSummary[]) {
     const state = this.options.stateManager.getState();
-    this.log.debug("Received Jellyfin sessions update", {
+    this.log.debug("Received media server sessions update", {
       count: sessions.length,
-      previousSelected: state.jellyfin.selectedSessionId
+      previousSelected: state.mediaServer.selectedSessionId
     });
 
-    this.options.stateManager.setJellyfinSessions(sessions);
+    this.options.stateManager.setMediaServerSessions(sessions);
 
-    for (const [tabId, context] of this.tabJellyfinContexts.entries()) {
+    for (const [tabId, context] of this.tabMediaServerContexts.entries()) {
       const sessionById = context.sessionId && sessions.find((session) => session.id === context.sessionId);
       if (sessionById) {
-        this.updateTabJellyfinContext(tabId, {
+        this.updateTabMediaServerContext(tabId, {
           sessionId: sessionById.id,
           serverConfigId: sessionById.serverConfigId,
           itemId: sessionById.nowPlayingItemId ?? context.itemId
@@ -295,7 +295,7 @@ export class JellyfinController {
           (!context.serverConfigId || session.serverConfigId === context.serverConfigId)
       );
       if (matchingByItem) {
-        this.updateTabJellyfinContext(tabId, {
+        this.updateTabMediaServerContext(tabId, {
           sessionId: matchingByItem.id,
           serverConfigId: matchingByItem.serverConfigId,
           itemId: matchingByItem.nowPlayingItemId ?? context.itemId
@@ -304,49 +304,49 @@ export class JellyfinController {
     }
 
     const currentState = this.options.stateManager.getState();
-    if (currentState.pendingJellyfinItemId && currentState.activeSource === "jellyfin") {
+    if (currentState.pendingMediaServerItemId && currentState.activeSource === "mediaserver") {
       const matchingSession = sessions.find(
-        (session) => session.nowPlayingItemId === currentState.pendingJellyfinItemId
+        (session) => session.nowPlayingItemId === currentState.pendingMediaServerItemId
       );
 
       if (matchingSession) {
         this.options.stateManager.updateState((draft) => {
-          draft.jellyfin.selectedSessionId = matchingSession.id;
+          draft.mediaServer.selectedSessionId = matchingSession.id;
         });
-        this.jellyfinService.setActiveSession(matchingSession.id);
+        this.mediaServerService.setActiveSession(matchingSession.id);
         if (currentState.activeTabId !== null) {
-          this.updateTabJellyfinContext(currentState.activeTabId, {
+          this.updateTabMediaServerContext(currentState.activeTabId, {
             sessionId: matchingSession.id,
             serverConfigId: matchingSession.serverConfigId,
             ...(matchingSession.nowPlayingItemId ? { itemId: matchingSession.nowPlayingItemId } : {})
           });
         }
-        this.options.stateManager.setPendingJellyfinItemId(null);
+        this.options.stateManager.setPendingMediaServerItemId(null);
       }
     }
 
     this.handleSessionSelectionAfterUpdate(sessions);
   }
 
-  private handleSessionSelectionAfterUpdate(sessions: JellyfinSessionSummary[]) {
+  private handleSessionSelectionAfterUpdate(sessions: MediaServerSessionSummary[]) {
     const state = this.options.stateManager.getState();
 
-    if (state.jellyfin.selectedSessionId) {
-      const selected = sessions.find((item) => item.id === state.jellyfin.selectedSessionId) ?? null;
+    if (state.mediaServer.selectedSessionId) {
+      const selected = sessions.find((item) => item.id === state.mediaServer.selectedSessionId) ?? null;
       if (!selected) {
-        this.log.warn("Previously selected Jellyfin session vanished", {
-          previousSessionId: state.jellyfin.selectedSessionId,
+        this.log.warn("Previously selected media server session vanished", {
+          previousSessionId: state.mediaServer.selectedSessionId,
           activeSource: state.activeSource,
           connectionCount: state.connectionCount
         });
         this.options.stateManager.updateState((draft) => {
-          draft.jellyfin.selectedSessionId = null;
+          draft.mediaServer.selectedSessionId = null;
         });
 
-        if (state.activeSource === "jellyfin" && sessions.length > 0) {
-          this.options.stateManager.setJellyfinSelectedSession(sessions[0].id);
-          this.jellyfinService.setActiveSession(sessions[0].id);
-        } else if (state.activeSource === "jellyfin") {
+        if (state.activeSource === "mediaserver" && sessions.length > 0) {
+          this.options.stateManager.setMediaServerSelectedSession(sessions[0].id);
+          this.mediaServerService.setActiveSession(sessions[0].id);
+        } else if (state.activeSource === "mediaserver") {
           this.options.stateManager.updateState((draft) => {
             draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
             draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
@@ -356,15 +356,15 @@ export class JellyfinController {
             draft.site = null;
           });
           this.options.stateManager.resetSubtitleState();
-          this.jellyfinService.setActiveSession(null);
+          this.mediaServerService.setActiveSession(null);
         }
-      } else if (state.activeSource === "jellyfin") {
-        const activeTabContext = this.getTabJellyfinContext(state.activeTabId);
+      } else if (state.activeSource === "mediaserver") {
+        const activeTabContext = this.getTabMediaServerContext(state.activeTabId);
         const activeTabItemId = activeTabContext?.itemId ?? null;
         const sessionItemId = selected.nowPlayingItemId;
 
         if (state.activeTabId) {
-          this.updateTabJellyfinContext(state.activeTabId, {
+          this.updateTabMediaServerContext(state.activeTabId, {
             sessionId: selected.id,
             serverConfigId: selected.serverConfigId,
             ...(sessionItemId ? { itemId: sessionItemId } : {})
@@ -378,12 +378,12 @@ export class JellyfinController {
 
         this.options.stateManager.updateState((draft) => {
           draft.title = selected.nowPlayingItemName ?? draft.title;
-          draft.pageUrl = this.buildJellyfinPageUrl(selected);
-          draft.videoUrl = this.buildJellyfinItemUrl(selected) ?? draft.videoUrl;
+          draft.pageUrl = this.buildMediaServerPageUrl(selected);
+          draft.videoUrl = this.buildMediaServerItemUrl(selected) ?? draft.videoUrl;
         });
       }
-    } else if (state.activeSource === "jellyfin" && sessions.length > 0) {
-      const activeTabContext = this.getTabJellyfinContext(state.activeTabId);
+    } else if (state.activeSource === "mediaserver" && sessions.length > 0) {
+      const activeTabContext = this.getTabMediaServerContext(state.activeTabId);
       const activeTabItemId = activeTabContext?.itemId ?? null;
       const activeTabSessionId = activeTabContext?.sessionId ?? null;
       const activeServerId = activeTabContext?.serverConfigId ?? null;
@@ -411,33 +411,33 @@ export class JellyfinController {
       }
 
       if (state.activeTabId) {
-        this.updateTabJellyfinContext(state.activeTabId, {
+        this.updateTabMediaServerContext(state.activeTabId, {
           sessionId: sessionToSelect.id,
           serverConfigId: sessionToSelect.serverConfigId,
           ...(sessionToSelect.nowPlayingItemId ? { itemId: sessionToSelect.nowPlayingItemId } : {})
         });
       }
 
-      this.log.debug("Auto-selecting Jellyfin session", {
+      this.log.debug("Auto-selecting media server session", {
         sessionId: sessionToSelect.id,
         serverConfigId: sessionToSelect.serverConfigId,
         serverName: sessionToSelect.serverName,
         nowPlayingItemId: sessionToSelect.nowPlayingItemId,
         activeTabItemId
       });
-      this.options.stateManager.setJellyfinSelectedSession(sessionToSelect.id);
-      this.jellyfinService.setActiveSession(sessionToSelect.id);
+      this.options.stateManager.setMediaServerSelectedSession(sessionToSelect.id);
+      this.mediaServerService.setActiveSession(sessionToSelect.id);
     }
 
     this.options.stateManager.emitCurrentState();
   }
 
-  private handleJellyfinSubtitlesUpdate(payload: JellyfinSubtitlesPayload) {
+  private handleMediaServerSubtitlesUpdate(payload: MediaServerSubtitlesPayload) {
     const state = this.options.stateManager.getState();
-    if (state.activeSource !== "jellyfin" || !payload.sessionId) {
+    if (state.activeSource !== "mediaserver" || !payload.sessionId) {
       return;
     }
-    if (payload.sessionId !== state.jellyfin.selectedSessionId) {
+    if (payload.sessionId !== state.mediaServer.selectedSessionId) {
       return;
     }
     this.options.stateManager.setSubtitleTracks(payload.tracks);
@@ -455,23 +455,23 @@ export class JellyfinController {
       this.options.stateManager.resetSubtitleState();
       this.options.stateManager.updateState((draft) => {
         draft.status = "error";
-        draft.error = "No Jellyfin subtitles available for this session";
+        draft.error = "No media server subtitles available for this session";
       });
     }
   }
 
-  private handleJellyfinPlaybackUpdate(payload: JellyfinPlaybackPayload) {
+  private handleMediaServerPlaybackUpdate(payload: MediaServerPlaybackPayload) {
     const state = this.options.stateManager.getState();
-    if (state.activeSource !== "jellyfin") {
+    if (state.activeSource !== "mediaserver") {
       return;
     }
-    if (!payload.sessionId || payload.sessionId !== state.jellyfin.selectedSessionId) {
+    if (!payload.sessionId || payload.sessionId !== state.mediaServer.selectedSessionId) {
       return;
     }
 
-    const activeTabContext = this.getTabJellyfinContext(state.activeTabId);
+    const activeTabContext = this.getTabMediaServerContext(state.activeTabId);
     const activeTabItemId = activeTabContext?.itemId ?? null;
-    const selectedSession = state.jellyfin.sessions.find((session) => session.id === payload.sessionId) ?? null;
+    const selectedSession = state.mediaServer.sessions.find((session) => session.id === payload.sessionId) ?? null;
     const sessionItemId = selectedSession?.nowPlayingItemId ?? null;
     const extensionControlsSession =
       Boolean(activeTabItemId && sessionItemId && activeTabItemId === sessionItemId);
@@ -502,53 +502,54 @@ export class JellyfinController {
         itemId = urlObj.searchParams.get("mediaSourceId");
       }
     } catch (error) {
-      this.log.error(`Failed to parse Jellyfin URL for itemId`, error);
+      this.log.error(`Failed to parse media server URL for itemId`, error);
     }
     return itemId;
   }
 
-  private getTabJellyfinContext(tabId: number | null): TabJellyfinContext | null {
+  private getTabMediaServerContext(tabId: number | null): TabMediaServerContext | null {
     if (tabId === null) {
       return null;
     }
-    return this.tabJellyfinContexts.get(tabId) ?? null;
+    return this.tabMediaServerContexts.get(tabId) ?? null;
   }
 
-  private updateTabJellyfinContext(
+  private updateTabMediaServerContext(
     tabId: number,
-    updates: Partial<TabJellyfinContext>
-  ): TabJellyfinContext {
-    const previous = this.tabJellyfinContexts.get(tabId) ?? {
+    updates: Partial<TabMediaServerContext>
+  ): TabMediaServerContext {
+    const previous = this.tabMediaServerContexts.get(tabId) ?? {
       itemId: null,
       sessionId: null,
       serverConfigId: null
     };
-    const next: TabJellyfinContext = {
+    const next: TabMediaServerContext = {
       ...previous,
       ...updates
     };
-    this.tabJellyfinContexts.set(tabId, next);
+    this.tabMediaServerContexts.set(tabId, next);
     return next;
   }
 
-  private clearTabJellyfinContext(tabId: number) {
-    this.tabJellyfinContexts.delete(tabId);
+  private clearTabMediaServerContext(tabId: number) {
+    this.tabMediaServerContexts.delete(tabId);
   }
 
-  private resolveJellyfinConfig(configId?: string | null): JellyfinConfig | null {
-    const settings = this.options.getSettings().jellyfin;
+  private resolveMediaServerConfig(configId?: string | null): MediaServerConfig | null {
+    const settings = this.options.getSettings().mediaServer;
+    const configs = settings.configs.filter((config) => config.type === "jellyfin");
     if (configId) {
-      return settings.configs.find((config) => config.id === configId) ?? null;
+      return configs.find((config) => config.id === configId) ?? null;
     }
-    const enabled = settings.configs.find((config) => config.enabled);
+    const enabled = configs.find((config) => config.enabled);
     if (enabled) {
       return enabled;
     }
-    return settings.configs[0] ?? null;
+    return configs[0] ?? null;
   }
 
-  private getJellyfinBaseUrl(configId?: string | null): string | null {
-    const config = this.resolveJellyfinConfig(configId);
+  private getMediaServerBaseUrl(configId?: string | null): string | null {
+    const config = this.resolveMediaServerConfig(configId);
     if (!config) {
       return null;
     }
@@ -556,42 +557,43 @@ export class JellyfinController {
     return base.length ? base : null;
   }
 
-  private buildJellyfinItemUrl(session: JellyfinSessionSummary | null): string | null {
+  private buildMediaServerItemUrl(session: MediaServerSessionSummary | null): string | null {
     if (!session?.nowPlayingItemId) {
       return null;
     }
-    const base = this.getJellyfinBaseUrl(session.serverConfigId);
+    const base = this.getMediaServerBaseUrl(session.serverConfigId);
     if (!base) {
       return `jellyfin://${session.nowPlayingItemId}`;
     }
     return `${base}/Items/${session.nowPlayingItemId}`;
   }
 
-  private buildJellyfinPageUrl(session: JellyfinSessionSummary | null): string | null {
+  private buildMediaServerPageUrl(session: MediaServerSessionSummary | null): string | null {
     if (!session) {
-      return this.getJellyfinBaseUrl();
+      return this.getMediaServerBaseUrl();
     }
     if (!session.nowPlayingItemId) {
-      return this.getJellyfinBaseUrl(session.serverConfigId);
+      return this.getMediaServerBaseUrl(session.serverConfigId);
     }
-    const base = this.getJellyfinBaseUrl(session.serverConfigId);
+    const base = this.getMediaServerBaseUrl(session.serverConfigId);
     if (!base) {
       return null;
     }
     return `${base}/web/index.html#!/details?id=${session.nowPlayingItemId}`;
   }
 
-  private resolveJellyfinConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
+  private resolveMediaServerConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
     const settings = this.options.getSettings();
-    if (!settings.jellyfin.enabled || !settings.jellyfin.configs.length) {
+    if (!settings.mediaServer.enabled || !settings.mediaServer.configs.length) {
       return null;
     }
+    const configs = settings.mediaServer.configs.filter((config) => config.type === "jellyfin");
     for (const candidate of urls) {
       const origin = this.extractOrigin(candidate);
       if (!origin) {
         continue;
       }
-      for (const config of settings.jellyfin.configs) {
+      for (const config of configs) {
         if (!config.serverUrl) {
           continue;
         }

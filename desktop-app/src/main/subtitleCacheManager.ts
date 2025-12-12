@@ -7,7 +7,7 @@ import { SubtitleLoadResult, SubtitleCacheSettings } from "./types.js";
 
 const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
 
-type CacheSource = "ytdlp" | "jellyfin" | "transcription";
+type CacheSource = "ytdlp" | "mediaserver" | "transcription";
 
 export interface CacheEntry {
   url: string;

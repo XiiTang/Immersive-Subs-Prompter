@@ -3,14 +3,14 @@ import { WebSocket } from "ws";
 import {
   DesktopState,
   ExtensionMessage,
-  JellyfinPlaybackPayload,
-  JellyfinSessionSummary,
-  JellyfinStatusPayload,
-  JellyfinSubtitlesPayload,
+  MediaServerPlaybackPayload,
+  MediaServerSessionSummary,
+  MediaServerStatusPayload,
+  MediaServerSubtitlesPayload,
   PlaybackState
 } from "./types.js";
 
-type JellyfinSessions = JellyfinSessionSummary[];
+type MediaServerSessions = MediaServerSessionSummary[];
 
 export interface ConnectionMessageEvent {
   message: ExtensionMessage;
@@ -28,10 +28,10 @@ export interface AppEventMap {
   "connection:client-disconnected": { socket: WebSocket };
   "connection:tab-removed": { tabId: number };
   "connection:message": ConnectionMessageEvent;
-  "jellyfin:status": JellyfinStatusPayload;
-  "jellyfin:sessions": JellyfinSessions;
-  "jellyfin:subtitles": JellyfinSubtitlesPayload;
-  "jellyfin:playback": JellyfinPlaybackPayload;
+  "mediaserver:status": MediaServerStatusPayload;
+  "mediaserver:sessions": MediaServerSessions;
+  "mediaserver:subtitles": MediaServerSubtitlesPayload;
+  "mediaserver:playback": MediaServerPlaybackPayload;
 }
 
 type AppEvent = keyof AppEventMap;

@@ -1,4 +1,4 @@
-import { JellyfinSessionSummary, JellyfinSettings, JellyfinConfig, JellyfinSubtitleStream } from "./types.js";
+import { MediaServerSessionSummary, MediaServerConfig, MediaServerSubtitleStream } from "./types.js";
 
 const TICKS_PER_MILLISECOND = 10_000;
 const DEFAULT_WS_PATH = "/socket";
@@ -41,7 +41,7 @@ export function resolveWebSocketPath(path?: string | null): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-export function buildWebSocketUrl(config: JellyfinConfig): string {
+export function buildWebSocketUrl(config: MediaServerConfig): string {
   if (!config.serverUrl) {
     throw new Error("Missing Jellyfin server URL");
   }
@@ -67,7 +67,7 @@ export function ticksToSeconds(ticks: number | null | undefined): number | null 
   return ms / 1000;
 }
 
-export function pickSubtitleExtension(stream: JellyfinSubtitleStream): string {
+export function pickSubtitleExtension(stream: MediaServerSubtitleStream): string {
   if (!stream.codec) {
     return "vtt";
   }
@@ -82,7 +82,7 @@ export function pickSubtitleExtension(stream: JellyfinSubtitleStream): string {
  * @param stream - The Jellyfin subtitle stream
  * @returns 'srt' or 'vtt' format identifier
  */
-export function guessSubtitleFormatFromStream(stream: JellyfinSubtitleStream): 'srt' | 'vtt' {
+export function guessSubtitleFormatFromStream(stream: MediaServerSubtitleStream): 'srt' | 'vtt' {
   const normalizedTitle = (stream.displayTitle ?? '').toLowerCase();
   const normalizedCodec = (stream.codec ?? '').toLowerCase();
 
@@ -105,9 +105,9 @@ export function guessSubtitleFormatFromStream(stream: JellyfinSubtitleStream): '
 }
 
 export function buildSubtitleUrl(
-  config: JellyfinConfig,
-  session: JellyfinSessionSummary,
-  stream: JellyfinSubtitleStream,
+  config: MediaServerConfig,
+  session: MediaServerSessionSummary,
+  stream: MediaServerSubtitleStream,
   extensionOverride?: string
 ): string {
   if (!config.serverUrl) {
