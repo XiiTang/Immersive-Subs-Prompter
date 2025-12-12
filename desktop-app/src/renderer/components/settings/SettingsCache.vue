@@ -1,54 +1,82 @@
 <template>
   <section class="settings-section">
     <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">{{ t("enable-cache-label", "Enable Cache") }}</span>
-      <label class="toggle">
-        <input type="checkbox" v-model="cacheEnabled" />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-      </label>
-    </div>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("cache-path-label", "Cache Path") }}</span>
-      <input type="text" v-model="cachePath" />
-      <small class="settings-field__hint">{{ t("cache-path-hint", "Leave blank to use default location") }}</small>
-    </label>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("cache-retention-label", "Retention (days)") }}</span>
-      <input type="number" min="1" max="365" step="1" v-model.number="cacheRetentionDays" />
-      <small class="settings-field__hint">
-        {{ t("cache-retention-hint", "How long cached subtitles are kept (1-365)") }}
-      </small>
-    </label>
-    <div class="cache-stats">
-      <div class="cache-stats__item">
-        <span class="cache-stats__label">{{ t("cache-stats-entries", "Total entries:") }}</span>
-        <span class="cache-stats__value">{{ cacheStatsDisplay.entries }}</span>
+    
+    <div class="fw-management-section">
+      <div class="fw-card">
+        <div class="fw-card__header">
+          <div class="fw-card__title">{{ t("section-settings", "Settings") }}</div>
+          <button
+            type="button"
+            class="icon-text-button"
+            @click="openCacheFolder"
+            :title="t('button-open-cache', 'Open Folder')"
+          >
+            <span class="icon">📂</span>
+          </button>
+        </div>
+        
+        <div class="fw-card__content">
+          <div class="fw-field fw-field--inline">
+            <span class="label">{{ t("enable-cache-label", "Enable Cache") }}</span>
+            <label class="toggle toggle--sm">
+              <input type="checkbox" v-model="cacheEnabled" />
+              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+            </label>
+          </div>
+
+          <div class="fw-folder-input">
+            <span class="label">{{ t("cache-path-label", "Cache Path") }}</span>
+            <input 
+              type="text" 
+              v-model="cachePath" 
+              class="fw-input-sm" 
+              :placeholder="t('cache-path-hint', 'Leave blank to use default location')"
+            />
+          </div>
+
+          <div class="fw-field">
+            <span class="label">{{ t("cache-retention-label", "Retention (days)") }}</span>
+            <input type="number" min="1" max="365" step="1" v-model.number="cacheRetentionDays" class="fw-input-sm" />
+            <small class="settings-field__hint" style="margin-top: 4px;">
+              {{ t("cache-retention-hint", "How long cached subtitles are kept (1-365)") }}
+            </small>
+          </div>
+        </div>
       </div>
-      <div class="cache-stats__item">
-        <span class="cache-stats__label">{{ t("cache-stats-size", "Total size:") }}</span>
-        <span class="cache-stats__value">{{ cacheStatsDisplay.size }}</span>
-      </div>
-      <div class="cache-stats__item">
-        <span class="cache-stats__label">{{ t("cache-stats-oldest", "Oldest entry:") }}</span>
-        <span class="cache-stats__value">{{ cacheStatsDisplay.oldest }}</span>
+
+      <div class="fw-card">
+        <div class="fw-card__header">
+          <div class="fw-card__title">{{ t("section-stats", "Statistics") }}</div>
+          <button 
+            type="button" 
+            class="icon-text-button" 
+            :disabled="cacheBusy" 
+            @click="refreshCacheStats"
+            :title="t('button-refresh-stats', 'Refresh Stats')"
+          >
+            <span class="icon">🔄</span>
+          </button>
+        </div>
+        
+        <div class="fw-card__content">
+           <div class="fw-status-row">
+             <div class="fw-status-item">
+               <span class="label">{{ t("cache-stats-entries", "Total entries") }}</span>
+               <span class="fw-badge">{{ cacheStatsDisplay.entries }}</span>
+             </div>
+             <div class="fw-status-item">
+               <span class="label">{{ t("cache-stats-size", "Total size") }}</span>
+               <span class="fw-badge">{{ cacheStatsDisplay.size }}</span>
+             </div>
+             <div class="fw-status-item">
+               <span class="label">{{ t("cache-stats-oldest", "Oldest entry") }}</span>
+               <span class="fw-badge">{{ cacheStatsDisplay.oldest }}</span>
+             </div>
+           </div>
+        </div>
       </div>
     </div>
-    <div class="cache-actions">
-      <button type="button" class="text-button" :disabled="cacheBusy" @click="openCacheFolder">
-        {{ t("button-open-cache", "Open Folder") }}
-      </button>
-      <button type="button" class="text-button" :disabled="cacheBusy" @click="refreshCacheStats">
-        {{ t("button-refresh-stats", "Refresh Stats") }}
-      </button>
-      <button type="button" class="text-button" :disabled="cacheBusy" @click="cleanupCache">
-        {{ t("button-cleanup", "Cleanup expired") }}
-      </button>
-      <button type="button" class="text-button" :disabled="cacheBusy" @click="clearCache">
-        {{ t("button-clear-cache", "Clear all") }}
-      </button>
-    </div>
-    <div v-if="cacheMessage" class="settings-field__hint">{{ cacheMessage }}</div>
   </section>
 </template>
 
@@ -62,7 +90,6 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 
 const cacheBusy = ref(false);
-const cacheMessage = ref("");
 
 const cacheEnabled = computed({
   get: () => store.settings?.cache.enabled ?? true,
@@ -102,36 +129,6 @@ async function refreshCacheStats() {
   }
 }
 
-async function cleanupCache() {
-  cacheBusy.value = true;
-  cacheMessage.value = t("cache-cleanup-progress", "Cleaning up...");
-  try {
-    const result = await store.cleanupCache();
-    cacheMessage.value = t("cache-cleanup-success", "Cleanup complete. Removed {count} entries.", {
-      count: result.removedCount
-    });
-  } catch (error) {
-    cacheMessage.value = t("cache-cleanup-error", "Cleanup failed.");
-  } finally {
-    cacheBusy.value = false;
-  }
-}
-
-async function clearCache() {
-  if (!confirm(t("cache-clear-confirm", "Are you sure you want to clear all cached subtitles?"))) {
-    return;
-  }
-  cacheBusy.value = true;
-  cacheMessage.value = t("cache-clear-progress", "Clearing cache...");
-  try {
-    await store.clearCache();
-    cacheMessage.value = t("cache-clear-success", "Cache cleared.");
-  } catch (error) {
-    cacheMessage.value = t("cache-clear-error", "Failed to clear cache.");
-  } finally {
-    cacheBusy.value = false;
-  }
-}
 
 function openCacheFolder() {
   store.openCacheFolder();
