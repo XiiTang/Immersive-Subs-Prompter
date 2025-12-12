@@ -72,9 +72,7 @@
             {{ t("subtitle-autoscroll-label", "Auto-scroll Restore Time (seconds)") }}
           </span>
           <input type="number" min="1" max="60" step="1" v-model.number="subtitleAutoScrollTimeout" />
-          <span class="settings-field__hint">
-            {{ t("subtitle-autoscroll-hint", "How long to wait before auto-scroll resumes") }}
-          </span>
+
         </label>
         <label class="settings-field">
           <div class="settings-field__label-row">
@@ -101,9 +99,7 @@
             <span class="settings-field__value">{{ subtitleLineSpacing }}px</span>
           </div>
           <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleLineSpacing" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-line-spacing-hint", "Adjust vertical spacing between lines") }}
-          </small>
+
         </label>
         <label class="settings-field">
           <div class="settings-field__label-row">
@@ -111,9 +107,7 @@
             <span class="settings-field__value">{{ subtitleTimeTextGap }}px</span>
           </div>
           <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleTimeTextGap" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-time-gap-hint", "Distance between timestamp and subtitle text") }}
-          </small>
+
         </label>
         <label class="settings-field">
           <div class="settings-field__label-row">
@@ -130,9 +124,7 @@
             class="slider"
             v-model.number="subtitlePrimarySecondaryGap"
           />
-          <small class="settings-field__hint">
-            {{ t("subtitle-primary-secondary-gap-hint", "Vertical distance between primary and secondary subtitle") }}
-          </small>
+
         </label>
         <label class="settings-field">
           <div class="settings-field__label-row">
@@ -140,9 +132,7 @@
             <span class="settings-field__value">{{ subtitleLineHeight }}</span>
           </div>
           <input type="range" min="1" max="3" step="0.05" class="slider" v-model.number="subtitleLineHeight" />
-          <small class="settings-field__hint">
-            {{ t("subtitle-line-height-hint", "Control line-height for readability") }}
-          </small>
+
         </label>
         <div class="settings-group">
           <div class="settings-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</div>
