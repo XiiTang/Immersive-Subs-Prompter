@@ -420,7 +420,7 @@ function sanitizeMediaServerConfig(
   const serverUrl = typeof input?.serverUrl === "string" ? input.serverUrl.trim() : "";
   const apiKey = typeof input?.apiKey === "string" ? input.apiKey.trim() : "";
   let webSocketPath = typeof input?.webSocketPath === "string" ? input.webSocketPath.trim() : "/socket";
-  const type: MediaServerConfig["type"] = "jellyfin";
+  const type: MediaServerConfig["type"] = "jellyfinemby";
 
   if (!webSocketPath.length) {
     webSocketPath = "/socket";
@@ -466,9 +466,9 @@ function sanitizeMediaServerSettings(input: Partial<MediaServerSettings> | null 
 
     if (oldServerUrl || oldApiKey) {
       configs.push(sanitizeMediaServerConfig({
-        id: 'jellyfin-config-migrated',
-        name: 'Jellyfin Server',
-        type: "jellyfin",
+        id: 'jellyfinemby-config-migrated',
+        name: 'Jellyfinemby Server',
+        type: "jellyfinemby",
         serverUrl: oldServerUrl,
         apiKey: oldApiKey,
         webSocketPath: oldWebSocketPath,
@@ -477,7 +477,7 @@ function sanitizeMediaServerSettings(input: Partial<MediaServerSettings> | null 
     }
   } else if (Array.isArray(source.configs)) {
     configs = source.configs.map((config, index) =>
-      sanitizeMediaServerConfig(config, `jellyfin-config-${index}`)
+      sanitizeMediaServerConfig(config, `jellyfinemby-config-${index}`)
     );
   }
 
@@ -696,7 +696,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
     "rules" in input ||
     "defaultProfileId" in input ||
     "mediaServer" in input ||
-    "jellyfin" in input ||
+    "jellyfinemby" in input ||
     "transcription" in input ||
     "cache" in input;
 
@@ -713,7 +713,7 @@ function sanitizeSettings(input: Partial<AppSettings> | LegacySettingsShape | nu
       ? requestedDefaultId
       : profiles[0].id;
     const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
-    const mediaServer = sanitizeMediaServerSettings((raw as any).mediaServer ?? (raw as any).jellyfin);
+    const mediaServer = sanitizeMediaServerSettings((raw as any).mediaServer ?? (raw as any).jellyfinemby);
     const transcription = sanitizeTranscriptionSettings(raw.transcription);
     const cache = sanitizeCacheSettings(raw.cache);
     return {
@@ -778,10 +778,10 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
       ...(patch as any).mediaServer
     };
   }
-  if ((patch as any).jellyfin) {
+  if ((patch as any).jellyfinemby) {
     next.mediaServer = {
       ...next.mediaServer,
-      ...(patch as any).jellyfin
+      ...(patch as any).jellyfinemby
     };
   }
   if (patch.transcription) {

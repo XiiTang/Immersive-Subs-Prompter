@@ -1,26 +1,26 @@
 import { createLogger } from "./logger.js";
-import { JellyfinIdentity, createAuthHeaders, normalizeServerUrl } from "./jellyfinUtils.js";
+import { JellyfinembyIdentity, createAuthHeaders, normalizeServerUrl } from "./jellyfinembyUtils.js";
 
-const log = createLogger("jellyfin-api");
+const log = createLogger("jellyfinemby-api");
 
-export interface JellyfinApiClientOptions {
+export interface JellyfinembyApiClientOptions {
   serverUrl: string;
   apiKey: string;
-  identity: JellyfinIdentity;
+  identity: JellyfinembyIdentity;
   timeoutMs?: number;
 }
 
-export class JellyfinRequestError extends Error {
+export class JellyfinembyRequestError extends Error {
   public status: number;
 
   constructor(message: string, status: number) {
     super(message);
-    this.name = "JellyfinRequestError";
+    this.name = "JellyfinembyRequestError";
     this.status = status;
   }
 }
 
-interface JellyfinMediaStream {
+interface JellyfinembyMediaStream {
   Index?: number;
   Type?: string;
   DisplayTitle?: string;
@@ -32,16 +32,16 @@ interface JellyfinMediaStream {
   IsForced?: boolean;
 }
 
-interface JellyfinMediaSource {
+interface JellyfinembyMediaSource {
   Id?: string;
   Path?: string;
   Name?: string;
   RunTimeTicks?: number;
-  MediaStreams?: JellyfinMediaStream[];
+  MediaStreams?: JellyfinembyMediaStream[];
   Container?: string;
 }
 
-export interface JellyfinNowPlayingItem {
+export interface JellyfinembyNowPlayingItem {
   Id: string;
   Name?: string;
   RunTimeTicks?: number;
@@ -53,8 +53,8 @@ export interface JellyfinNowPlayingItem {
   Artists?: string[];
   Type?: string;
   MediaType?: string;
-  MediaSources?: JellyfinMediaSource[];
-  MediaStreams?: JellyfinMediaStream[];
+  MediaSources?: JellyfinembyMediaSource[];
+  MediaStreams?: JellyfinembyMediaStream[];
 }
 
 export interface SubtitleStreamDescriptor {
@@ -70,13 +70,13 @@ export interface SubtitleStreamDescriptor {
 
 const TICKS_PER_MILLISECOND = 10_000;
 
-export class JellyfinApiClient {
+export class JellyfinembyApiClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
-  private readonly identity: JellyfinIdentity;
+  private readonly identity: JellyfinembyIdentity;
   private readonly timeoutMs: number;
 
-  constructor(options: JellyfinApiClientOptions) {
+  constructor(options: JellyfinembyApiClientOptions) {
     this.baseUrl = normalizeServerUrl(options.serverUrl);
     this.apiKey = options.apiKey;
     this.identity = options.identity;
@@ -90,13 +90,13 @@ export class JellyfinApiClient {
   /**
    * Get full item details including media sources and subtitle streams
    */
-  async getItem(itemId: string, signal?: AbortSignal): Promise<JellyfinNowPlayingItem | null> {
+  async getItem(itemId: string, signal?: AbortSignal): Promise<JellyfinembyNowPlayingItem | null> {
     if (!itemId) {
       return null;
     }
 
     try {
-      const item = await this.getJson<JellyfinNowPlayingItem>(
+      const item = await this.getJson<JellyfinembyNowPlayingItem>(
         `/Items/${encodeURIComponent(itemId)}`,
         {},
         signal
@@ -109,7 +109,7 @@ export class JellyfinApiClient {
   }
 
   /**
-   * Download subtitle content from Jellyfin
+   * Download subtitle content from Jellyfinemby
    */
   async getSubtitleContent(
     descriptor: SubtitleStreamDescriptor,
@@ -213,19 +213,19 @@ export class JellyfinApiClient {
       });
 
       if (!response.ok) {
-        const message = `Jellyfin request failed (${response.status})`;
+        const message = `Jellyfinemby request failed (${response.status})`;
         log.error("Request error", {
           url: input,
           status: response.status,
           statusText: response.statusText,
         });
-        throw new JellyfinRequestError(message, response.status);
+        throw new JellyfinembyRequestError(message, response.status);
       }
 
       return response;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new Error("Request to Jellyfin timed out.");
+        throw new Error("Request to Jellyfinemby timed out.");
       }
 
       throw error;
@@ -251,9 +251,9 @@ export class JellyfinApiClient {
  * Resolve the media source for an item
  */
 export function resolveMediaSource(
-  item: JellyfinNowPlayingItem | null | undefined,
+  item: JellyfinembyNowPlayingItem | null | undefined,
   mediaSourceId?: string
-): JellyfinMediaSource | null {
+): JellyfinembyMediaSource | null {
   if (!item) {
     return null;
   }
@@ -289,7 +289,7 @@ export function guessSubtitleFormatFromStream(
 /**
  * Check if a stream is a text subtitle stream
  */
-export function isSubtitleStream(stream?: JellyfinMediaStream | null): boolean {
+export function isSubtitleStream(stream?: JellyfinembyMediaStream | null): boolean {
   if (!stream) {
     return false;
   }
@@ -306,9 +306,9 @@ export function isSubtitleStream(stream?: JellyfinMediaStream | null): boolean {
  * Collect subtitle streams from multiple sources
  */
 export function collectSubtitleStreams(
-  ...collections: (JellyfinMediaStream[] | null | undefined)[]
-): JellyfinMediaStream[] {
-  const byIndex = new Map<number, JellyfinMediaStream>();
+  ...collections: (JellyfinembyMediaStream[] | null | undefined)[]
+): JellyfinembyMediaStream[] {
+  const byIndex = new Map<number, JellyfinembyMediaStream>();
 
   collections.forEach((streams) => {
     streams?.forEach((stream) => {

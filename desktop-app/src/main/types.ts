@@ -109,7 +109,7 @@ export interface GlobalSettings {
   language: string;
 }
 
-export type MediaServerType = "jellyfin";
+export type MediaServerType = "jellyfinemby";
 
 export interface MediaServerConfig {
   id: string;

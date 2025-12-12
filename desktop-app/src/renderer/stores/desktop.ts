@@ -492,7 +492,7 @@ export const useDesktopStore = defineStore("desktop", {
       const newConfig: MediaServerConfig = {
         id: createId("mediaserver"),
         name: `Server ${this.settings.mediaServer.configs.length + 1}`,
-        type: "jellyfin",
+        type: "jellyfinemby",
         serverUrl: "",
         apiKey: "",
         webSocketPath: "",

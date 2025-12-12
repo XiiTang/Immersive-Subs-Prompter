@@ -8,7 +8,7 @@
 
 **A cross-platform subtitle enhancement tool for language learners and immersive viewing.** 🌐🎧
 
-This project combines a browser extension with an Electron desktop app. It extracts subtitles from streaming services — YouTube, Bilibili, Douyin, and even Jellyfin — and displays them on your desktop in a standalone, scrollable "teleprompter" panel. 🖥️📜
+This project combines a browser extension with an Electron desktop app. It extracts subtitles from streaming services — YouTube, Bilibili, Douyin, and even Jellyfinemby — and displays them on your desktop in a standalone, scrollable "teleprompter" panel. 🖥️📜
 
 It unlocks the full potential of video subtitles and delivers an exceptional experience for both watching and learning. ✨
 
@@ -21,8 +21,8 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
   - **A–B repeat (single-sentence loop) 🔁:** Spot a tricky sentence? Click the "loop" button beside a subtitle line and the corresponding segment will replay continuously — perfect for listening drills and shadowing.
   - **Precise seeking 🎯:** Click any line in the subtitle panel to jump the video to that exact timestamp for quick review.
 
-- **Jellyfin media-library enhancements 🏠:**
-  - **Unified experience:** Not limited to web players — deep Jellyfin integration brings the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
+- **Jellyfinemby media-library enhancements 🏠:**
+  - **Unified experience:** Not limited to web players — deep Jellyfinemby integration brings the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
 
 - **Transcription & note-taking 📝:**
   - **Scrollable transcript:** Present the entire video's subtitles as a searchable, scrollable transcript for fast browsing, locating, and copying.
@@ -41,7 +41,7 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
 The extension (`extension/`) runs in the page and continuously collects playback information (URL, play state, timestamp), pushing updates via WebSocket to the local desktop app (`desktop-app/`). The desktop application is the control center and is responsible for:
 
 1. (For web pages) invoking `yt-dlp` to obtain all subtitle tracks for a given URL.
-2. (For Jellyfin) synchronizing session and subtitle information in real time via a WebSocket API.
+2. (For Jellyfinemby) synchronizing session and subtitle information in real time via a WebSocket API.
 3. Parsing and merging subtitle tracks (e.g., primary + secondary) and displaying them in a scrollable teleprompter panel.
 4. Enabling bidirectional control so clicking to seek, looping a segment, or sending play/pause commands from the subtitle panel can control the browser video.
 

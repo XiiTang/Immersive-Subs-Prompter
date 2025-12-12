@@ -1,9 +1,9 @@
 import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
-import { JellyfinSubtitleService } from "./jellyfinSubtitleService.js";
+import { JellyfinembySubtitleService } from "./jellyfinembySubtitleService.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
-import { normalizeServerUrl } from "./jellyfinUtils.js";
+import { normalizeServerUrl } from "./jellyfinembyUtils.js";
 import {
   AppSettings,
   ExtensionMessage,
@@ -31,10 +31,10 @@ type MediaServerControllerOptions = {
 export class MediaServerController {
   private readonly log = createLogger("mediaserver-controller");
   private readonly tabMediaServerContexts = new Map<number, TabMediaServerContext>();
-  private readonly mediaServerService: JellyfinSubtitleService;
+  private readonly mediaServerService: JellyfinembySubtitleService;
 
   constructor(private readonly options: MediaServerControllerOptions) {
-    this.mediaServerService = new JellyfinSubtitleService(
+    this.mediaServerService = new JellyfinembySubtitleService(
       () => this.options.getSettings().mediaServer,
       this.options.cacheManager
     );
@@ -138,7 +138,7 @@ export class MediaServerController {
       this.options.stateManager.updateState((draft) => {
         draft.activeSource = "mediaserver";
         draft.videoUrl = url;
-        draft.site = "jellyfin";
+        draft.site = "jellyfinemby";
       });
       const selection = this.options.stateManager.selectProfileForUrl(url);
       this.options.stateManager.applyProfileSelection(selection.profile, selection.rule);
@@ -201,8 +201,8 @@ export class MediaServerController {
       if (draft.activeSource !== "mediaserver") {
         draft.activeSource = "mediaserver";
       }
-      if (draft.site !== "jellyfin") {
-        draft.site = "jellyfin";
+      if (draft.site !== "jellyfinemby") {
+        draft.site = "jellyfinemby";
       }
       if (draft.videoUrl !== url) {
         draft.videoUrl = url;
@@ -537,7 +537,7 @@ export class MediaServerController {
 
   private resolveMediaServerConfig(configId?: string | null): MediaServerConfig | null {
     const settings = this.options.getSettings().mediaServer;
-    const configs = settings.configs.filter((config) => config.type === "jellyfin");
+    const configs = settings.configs.filter((config) => config.type === "jellyfinemby");
     if (configId) {
       return configs.find((config) => config.id === configId) ?? null;
     }
@@ -563,7 +563,7 @@ export class MediaServerController {
     }
     const base = this.getMediaServerBaseUrl(session.serverConfigId);
     if (!base) {
-      return `jellyfin://${session.nowPlayingItemId}`;
+      return `jellyfinemby://${session.nowPlayingItemId}`;
     }
     return `${base}/Items/${session.nowPlayingItemId}`;
   }
@@ -587,7 +587,7 @@ export class MediaServerController {
     if (!settings.mediaServer.enabled || !settings.mediaServer.configs.length) {
       return null;
     }
-    const configs = settings.mediaServer.configs.filter((config) => config.type === "jellyfin");
+    const configs = settings.mediaServer.configs.filter((config) => config.type === "jellyfinemby");
     for (const candidate of urls) {
       const origin = this.extractOrigin(candidate);
       if (!origin) {

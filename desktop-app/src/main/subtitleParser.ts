@@ -12,7 +12,7 @@ const YOUTUBE_SHORT_CUE_THRESHOLD = 150; // milliseconds (was 0.15 seconds)
 
 /**
  * Enhanced sanitization for subtitle text - removes HTML tags and entities
- * Migrated from jellyfin-desktop-client for better compatibility
+ * Migrated from jellyfinemby-desktop-client for better compatibility
  */
 function sanitizeCueText(text: string): string {
   return text

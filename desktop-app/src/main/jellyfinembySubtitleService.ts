@@ -9,11 +9,11 @@ import {
   buildSubtitleUrl,
   buildWebSocketUrl,
   createAuthHeaders,
-  JellyfinIdentity,
+  JellyfinembyIdentity,
   normalizeServerUrl,
   ticksToMilliseconds,
   guessSubtitleFormatFromStream
-} from "./jellyfinUtils.js";
+} from "./jellyfinembyUtils.js";
 import {
   MediaServerPlaybackPayload,
   MediaServerSessionSummary,
@@ -33,7 +33,7 @@ const CLIENT_NAME = "Immersive Subs Prompter";
 const DEFAULT_DEVICE_NAME = "Immersive Subs Prompter Desktop";
 const FALLBACK_VERSION = "0.1.0";
 
-type JellyfinEventMap = {
+type JellyfinembyEventMap = {
   status: MediaServerStatusPayload;
   sessions: MediaServerSessionSummary[];
   playback: MediaServerPlaybackPayload;
@@ -41,10 +41,10 @@ type JellyfinEventMap = {
   error: Error;
 };
 
-type JellyfinEventName = keyof JellyfinEventMap;
-type JellyfinListener<K extends JellyfinEventName> = (payload: JellyfinEventMap[K]) => void;
+type JellyfinembyEventName = keyof JellyfinembyEventMap;
+type JellyfinembyListener<K extends JellyfinembyEventName> = (payload: JellyfinembyEventMap[K]) => void;
 
-function createListenerMap(): { [K in JellyfinEventName]: Set<JellyfinListener<K>> } {
+function createListenerMap(): { [K in JellyfinembyEventName]: Set<JellyfinembyListener<K>> } {
   return {
     status: new Set(),
     sessions: new Set(),
@@ -68,7 +68,7 @@ type ConnectionHooks = {
   onError: (error: Error) => void;
 };
 
-class JellyfinConnection {
+class JellyfinembyConnection {
   private socket: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private keepAliveTimer: NodeJS.Timeout | null = null;
@@ -89,11 +89,11 @@ class JellyfinConnection {
 
   constructor(
     private config: MediaServerConfig,
-    private readonly identity: JellyfinIdentity,
+    private readonly identity: JellyfinembyIdentity,
     private readonly hooks: ConnectionHooks,
     private readonly cacheManager?: SubtitleCacheManager
   ) {
-    this.log = createLogger(`jellyfin:${config.id}`);
+    this.log = createLogger(`jellyfinemby:${config.id}`);
     this.sessionIdPrefix = `${config.id}:`;
   }
 
@@ -131,7 +131,7 @@ class JellyfinConnection {
       return;
     }
 
-    this.log.debug(`[${this.config.name}] Requesting Jellyfin session burst (${reason}) for ${durationMs}ms`);
+    this.log.debug(`[${this.config.name}] Requesting Jellyfinemby session burst (${reason}) for ${durationMs}ms`);
     this.setSessionSubscriptionMode("burst");
     this.scheduleBurstStop(durationMs);
   }
@@ -141,14 +141,14 @@ class JellyfinConnection {
       if (this.sessionSubscriptionMode === "continuous") {
         return;
       }
-      this.log.info(`[${this.config.name}] Enabling continuous Jellyfin session polling`);
+      this.log.info(`[${this.config.name}] Enabling continuous Jellyfinemby session polling`);
       this.clearBurstTimer();
       this.setSessionSubscriptionMode("continuous");
       return;
     }
 
     if (this.sessionSubscriptionMode === "continuous") {
-      this.log.info(`[${this.config.name}] Disabling continuous Jellyfin session polling`);
+      this.log.info(`[${this.config.name}] Disabling continuous Jellyfinemby session polling`);
       this.setSessionSubscriptionMode("idle");
     }
   }
@@ -163,7 +163,7 @@ class JellyfinConnection {
         this.emitPlayback(summary);
       } else {
         this.hooks.onPlayback({
-          serverType: "jellyfin",
+          serverType: "jellyfinemby",
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -181,9 +181,9 @@ class JellyfinConnection {
     this.itemPositionHistory.clear();
 
     if (!normalizedId) {
-      this.hooks.onSubtitles({ serverType: "jellyfin", sessionId: null, itemName: null, tracks: [] });
+      this.hooks.onSubtitles({ serverType: "jellyfinemby", sessionId: null, itemName: null, tracks: [] });
       this.hooks.onPlayback({
-        serverType: "jellyfin",
+        serverType: "jellyfinemby",
         sessionId: null,
         itemName: null,
         isPaused: true,
@@ -207,7 +207,7 @@ class JellyfinConnection {
           client: summary.client
         });
         this.hooks.onSubtitles({
-          serverType: "jellyfin",
+          serverType: "jellyfinemby",
           sessionId: summary.id,
           itemName: null,
           tracks: []
@@ -253,7 +253,7 @@ class JellyfinConnection {
     this.sessionBurstTimer = setTimeout(() => {
       this.sessionBurstTimer = null;
       if (this.sessionSubscriptionMode === "burst") {
-        this.log.debug("Jellyfin session burst window elapsed, stopping session polling");
+        this.log.debug("Jellyfinemby session burst window elapsed, stopping session polling");
         this.setSessionSubscriptionMode("idle");
       }
     }, durationMs);
@@ -273,11 +273,11 @@ class JellyfinConnection {
 
     this.connect();
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      this.log.debug("Deferring Jellyfin SessionsStart until WebSocket is ready");
+      this.log.debug("Deferring Jellyfinemby SessionsStart until WebSocket is ready");
       return;
     }
 
-    this.log.debug("Starting Jellyfin session polling");
+    this.log.debug("Starting Jellyfinemby session polling");
     this.sendMessage({
       MessageType: "SessionsStart",
       Data: SESSION_POLL_CONFIG
@@ -297,7 +297,7 @@ class JellyfinConnection {
     }
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.log.debug("Stopping Jellyfin session polling");
+      this.log.debug("Stopping Jellyfinemby session polling");
       this.sendMessage({ MessageType: "SessionsStop" });
     }
     this.sessionStreamActive = false;
@@ -317,7 +317,7 @@ class JellyfinConnection {
     }
 
     if (!this.config.serverUrl || !this.config.apiKey) {
-      this.log.warn(`[${this.config.name}] Jellyfin server URL or API key missing, skipping connection`);
+      this.log.warn(`[${this.config.name}] Jellyfinemby server URL or API key missing, skipping connection`);
       return;
     }
 
@@ -331,31 +331,31 @@ class JellyfinConnection {
       const headers = {
         ...createAuthHeaders(this.config.apiKey, this.identity)
       };
-      this.log.info(`[${this.config.name}] Connecting to Jellyfin WebSocket ${wsUrl.toString()}`);
+      this.log.info(`[${this.config.name}] Connecting to Jellyfinemby WebSocket ${wsUrl.toString()}`);
       this.socket = new WebSocket(wsUrl.toString(), { headers });
     } catch (error) {
-      this.log.error(`[${this.config.name}] Failed to create Jellyfin WebSocket`, error);
+      this.log.error(`[${this.config.name}] Failed to create Jellyfinemby WebSocket`, error);
       this.scheduleReconnect();
       return;
     }
 
     this.socket.on("open", () => {
-      this.log.info(`[${this.config.name}] Jellyfin WebSocket connected`);
-      this.hooks.onStatus({ connected: true, serverType: "jellyfin" });
+      this.log.info(`[${this.config.name}] Jellyfinemby WebSocket connected`);
+      this.hooks.onStatus({ connected: true, serverType: "jellyfinemby" });
       this.startKeepAlive();
       this.syncSessionSubscriptionState();
     });
     this.socket.on("message", (raw) => this.handleSocketMessage(raw));
     this.socket.on("close", () => {
-      this.log.warn(`[${this.config.name}] Jellyfin WebSocket closed`);
+      this.log.warn(`[${this.config.name}] Jellyfinemby WebSocket closed`);
       this.stopKeepAlive();
       this.socket = null;
       this.sessionStreamActive = false;
-      this.hooks.onStatus({ connected: false, serverType: "jellyfin" });
+      this.hooks.onStatus({ connected: false, serverType: "jellyfinemby" });
       this.scheduleReconnect();
     });
     this.socket.on("error", (error) => {
-      this.log.error(`[${this.config.name}] Jellyfin WebSocket error`, error);
+      this.log.error(`[${this.config.name}] Jellyfinemby WebSocket error`, error);
       this.hooks.onError(error instanceof Error ? error : new Error(String(error)));
     });
   }
@@ -392,7 +392,7 @@ class JellyfinConnection {
     try {
       payload = JSON.parse(raw.toString());
     } catch (error) {
-      this.log.error("Failed to parse Jellyfin message", error);
+      this.log.error("Failed to parse Jellyfinemby message", error);
       return;
     }
     const type = payload?.MessageType;
@@ -414,7 +414,7 @@ class JellyfinConnection {
     try {
       this.socket.send(JSON.stringify(message));
     } catch (error) {
-      this.log.error("Failed to send Jellyfin message", error);
+      this.log.error("Failed to send Jellyfinemby message", error);
     }
   }
 
@@ -455,7 +455,7 @@ class JellyfinConnection {
       nextSessions.set(summary.id, summary);
     }
     this.sessions = nextSessions;
-    this.log.info(`[${this.config.name}] Received ${this.sessions.size} Jellyfin session(s)`);
+    this.log.info(`[${this.config.name}] Received ${this.sessions.size} Jellyfinemby session(s)`);
     this.hooks.onSessions(Array.from(this.sessions.values()));
 
     if (this.activeSessionId) {
@@ -519,7 +519,7 @@ class JellyfinConnection {
           void this.loadSubtitlesForSession(summary);
         } else if (!effectiveItemId) {
           this.hooks.onSubtitles({
-            serverType: "jellyfin",
+            serverType: "jellyfinemby",
             sessionId: summary.id,
             itemName: null,
             tracks: []
@@ -529,7 +529,7 @@ class JellyfinConnection {
         this.lastActiveSessionItemId = null;
         this.itemPositionHistory.clear();
         this.hooks.onPlayback({
-          serverType: "jellyfin",
+          serverType: "jellyfinemby",
           sessionId: null,
           itemName: null,
           isPaused: true,
@@ -570,7 +570,7 @@ class JellyfinConnection {
       id: this.composeSessionId(rawId),
       serverConfigId: this.config.id,
       serverName: this.config.name,
-      serverType: "jellyfin",
+      serverType: "jellyfinemby",
       deviceName: typeof record.DeviceName === "string" ? record.DeviceName : null,
       client: typeof record.Client === "string" ? record.Client : null,
       userName: typeof record.UserName === "string" ? record.UserName : null,
@@ -654,12 +654,12 @@ class JellyfinConnection {
 
   private async loadSubtitlesForSession(summary: MediaServerSessionSummary, force = false) {
     if (!this.config.serverUrl || !this.config.apiKey) {
-      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing server configuration`, {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing server configuration`, {
         serverUrl: this.config.serverUrl,
         hasApiKey: Boolean(this.config.apiKey)
       });
       this.hooks.onSubtitles({
-        serverType: "jellyfin",
+        serverType: "jellyfinemby",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -668,11 +668,11 @@ class JellyfinConnection {
     }
 
     if (!summary.nowPlayingItemId) {
-      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing item ID`, {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing item ID`, {
         sessionId: summary.id
       });
       this.hooks.onSubtitles({
-        serverType: "jellyfin",
+        serverType: "jellyfinemby",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -687,7 +687,7 @@ class JellyfinConnection {
         `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
       );
       this.hooks.onSubtitles({
-        serverType: "jellyfin",
+        serverType: "jellyfinemby",
         sessionId: summary.id,
         itemName: summary.nowPlayingItemName ?? null,
         tracks: []
@@ -702,11 +702,11 @@ class JellyfinConnection {
     };
 
     if (!workingSummary.mediaSourceId) {
-      this.log.warn(`[${this.config.name}] Skipping Jellyfin subtitles due to missing media source ID`, {
+      this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing media source ID`, {
         itemId: workingSummary.nowPlayingItemId
       });
       this.hooks.onSubtitles({
-        serverType: "jellyfin",
+        serverType: "jellyfinemby",
         sessionId: summary.id,
         itemName: workingSummary.nowPlayingItemName ?? null,
         tracks: []
@@ -783,7 +783,7 @@ class JellyfinConnection {
           await this.cacheManager.set(url, "mediaserver", { tracks: [track] });
         }
       } catch (error) {
-        this.log.warn(`[${this.config.name}] Failed to fetch Jellyfin subtitle stream`, {
+        this.log.warn(`[${this.config.name}] Failed to fetch Jellyfinemby subtitle stream`, {
           sessionId: workingSummary.id,
           streamIndex: stream.index,
           error
@@ -796,7 +796,7 @@ class JellyfinConnection {
     }
 
     this.hooks.onSubtitles({
-      serverType: "jellyfin",
+      serverType: "jellyfinemby",
       sessionId: workingSummary.id,
       itemName: workingSummary.nowPlayingItemName ?? null,
       tracks
@@ -805,10 +805,10 @@ class JellyfinConnection {
 
   /**
    * Resolve subtitle streams with recursive retry mechanism
-   * Migrated from jellyfin-desktop-client for robust metadata fetching
+   * Migrated from jellyfinemby-desktop-client for robust metadata fetching
    * 
    * @param summary - Current session summary
-   * @param config - Active Jellyfin configuration
+   * @param config - Active Jellyfinemby configuration
    * @param allowRefresh - Whether to allow API refresh on missing data
    * @returns Object containing resolved streams and mediaSourceId
    */
@@ -832,7 +832,7 @@ class JellyfinConnection {
 
     // 2. If streams are missing and refresh is allowed, fetch from API
     if (allowRefresh && summary.nowPlayingItemId) {
-      this.log.info("Subtitle metadata missing from session, fetching from Jellyfin API", {
+      this.log.info("Subtitle metadata missing from session, fetching from Jellyfinemby API", {
         sessionId: summary.id,
         itemId: summary.nowPlayingItemId,
         hasMediaSourceId: Boolean(summary.mediaSourceId),
@@ -926,7 +926,7 @@ class JellyfinConnection {
         itemName
       };
     } catch (error) {
-      this.log.warn("Failed to refresh Jellyfin item metadata", {
+      this.log.warn("Failed to refresh Jellyfinemby item metadata", {
         sessionId: summary.id,
         itemId: summary.nowPlayingItemId,
         error
@@ -937,19 +937,19 @@ class JellyfinConnection {
 
   /**
    * Get preferred subtitle extension with intelligent format detection
-   * Enhanced version using guessSubtitleFormatFromStream from jellyfin-desktop-client
+   * Enhanced version using guessSubtitleFormatFromStream from jellyfinemby-desktop-client
    */
   private getPreferredExtension(stream: MediaServerSubtitleStream): string {
     return guessSubtitleFormatFromStream(stream);
   }
 }
 
-export class JellyfinSubtitleService {
-  private readonly log = createLogger("jellyfin");
+export class JellyfinembySubtitleService {
+  private readonly log = createLogger("jellyfinemby");
   private readonly listeners = createListenerMap();
-  private readonly identity = createJellyfinIdentity();
+  private readonly identity = createJellyfinembyIdentity();
   private settings: MediaServerSettings;
-  private connections = new Map<string, JellyfinConnection>();
+  private connections = new Map<string, JellyfinembyConnection>();
   private connectionStatuses = new Map<string, boolean>();
   private sessionsByConfig = new Map<string, MediaServerSessionSummary[]>();
   private sessions = new Map<string, MediaServerSessionSummary>();
@@ -963,9 +963,9 @@ export class JellyfinSubtitleService {
     this.settings = this.settingsProvider();
   }
 
-  on<K extends JellyfinEventName>(event: K, listener: JellyfinListener<K>) {
-    this.listeners[event].add(listener as JellyfinListener<any>);
-    return () => this.listeners[event].delete(listener as JellyfinListener<any>);
+  on<K extends JellyfinembyEventName>(event: K, listener: JellyfinembyListener<K>) {
+    this.listeners[event].add(listener as JellyfinembyListener<any>);
+    return () => this.listeners[event].delete(listener as JellyfinembyListener<any>);
   }
 
   start() {
@@ -987,7 +987,7 @@ export class JellyfinSubtitleService {
       return;
     }
     if (!this.connections.size) {
-      this.log.debug(`Skipping Jellyfin session burst (${reason}): no active connections`);
+      this.log.debug(`Skipping Jellyfinemby session burst (${reason}): no active connections`);
       return;
     }
     for (const connection of this.connections.values()) {
@@ -997,7 +997,7 @@ export class JellyfinSubtitleService {
 
   setContinuousSessionPolling(enabled: boolean) {
     if (!this.settings.enabled && enabled) {
-      this.log.debug("Ignoring continuous polling request: Jellyfin disabled");
+      this.log.debug("Ignoring continuous polling request: Jellyfinemby disabled");
       return;
     }
     this.continuousSessionPolling = enabled;
@@ -1023,13 +1023,13 @@ export class JellyfinSubtitleService {
     }
     const configId = this.extractConfigId(sessionId);
     if (!configId) {
-      this.log.warn(`Invalid Jellyfin session identifier ${sessionId}, clearing selection`);
+      this.log.warn(`Invalid Jellyfinemby session identifier ${sessionId}, clearing selection`);
       this.setActiveSession(null);
       return;
     }
     const target = this.connections.get(configId);
     if (!target) {
-      this.log.warn(`No Jellyfin connection for session ${sessionId}, clearing selection`);
+      this.log.warn(`No Jellyfinemby connection for session ${sessionId}, clearing selection`);
       this.setActiveSession(null);
       return;
     }
@@ -1052,7 +1052,7 @@ export class JellyfinSubtitleService {
     this.settings = next;
     if (!next.enabled) {
       this.teardownAllConnections();
-      this.emit("status", { connected: false, serverType: "jellyfin" });
+      this.emit("status", { connected: false, serverType: "jellyfinemby" });
       this.emit("sessions", []);
       this.activeSessionId = null;
       return;
@@ -1063,7 +1063,7 @@ export class JellyfinSubtitleService {
   private syncConnections() {
     const enabledConfigs = new Map(
       this.settings.configs
-        .filter((config) => config.enabled && config.type === "jellyfin")
+        .filter((config) => config.enabled && config.type === "jellyfinemby")
         .map((config) => [config.id, config])
     );
 
@@ -1104,7 +1104,7 @@ export class JellyfinSubtitleService {
       },
       onSessions: (sessions) => this.handleConnectionSessions(config.id, sessions),
       onPlayback: (payload) => {
-        this.log.debug("Forwarding Jellyfin playback payload", {
+        this.log.debug("Forwarding Jellyfinemby playback payload", {
           configId: config.id,
           sessionId: payload.sessionId,
           itemName: payload.itemName,
@@ -1113,7 +1113,7 @@ export class JellyfinSubtitleService {
         this.emit("playback", payload);
       },
       onSubtitles: (payload) => {
-        this.log.debug("Forwarding Jellyfin subtitles payload", {
+        this.log.debug("Forwarding Jellyfinemby subtitles payload", {
           configId: config.id,
           sessionId: payload.sessionId,
           trackCount: payload.tracks.length
@@ -1122,7 +1122,7 @@ export class JellyfinSubtitleService {
       },
       onError: (error) => this.emit("error", error)
     };
-    const connection = new JellyfinConnection(config, this.identity, hooks, this.cacheManager);
+    const connection = new JellyfinembyConnection(config, this.identity, hooks, this.cacheManager);
     this.connections.set(config.id, connection);
     connection.start();
     connection.setContinuousSessionPolling(this.continuousSessionPolling);
@@ -1131,7 +1131,7 @@ export class JellyfinSubtitleService {
     }
   }
 
-  private disposeConnection(configId: string, connection: JellyfinConnection) {
+  private disposeConnection(configId: string, connection: JellyfinembyConnection) {
     connection.setActiveSession(null);
     connection.dispose();
     this.connections.delete(configId);
@@ -1164,7 +1164,7 @@ export class JellyfinSubtitleService {
   private emitAggregatedStatus() {
     const anyConnected =
       this.settings.enabled && Array.from(this.connectionStatuses.values()).some(Boolean);
-    this.emit("status", { connected: anyConnected, serverType: "jellyfin" });
+    this.emit("status", { connected: anyConnected, serverType: "jellyfinemby" });
   }
 
   private handleConnectionSessions(configId: string, sessions: MediaServerSessionSummary[]) {
@@ -1192,18 +1192,18 @@ export class JellyfinSubtitleService {
     return globalSessionId.slice(0, separator);
   }
 
-  private emit<K extends JellyfinEventName>(event: K, payload: JellyfinEventMap[K]) {
+  private emit<K extends JellyfinembyEventName>(event: K, payload: JellyfinembyEventMap[K]) {
     for (const listener of this.listeners[event]) {
       try {
         listener(payload);
       } catch (error) {
-        this.log.error(`Error in Jellyfin listener for ${String(event)}`, error);
+        this.log.error(`Error in Jellyfinemby listener for ${String(event)}`, error);
       }
     }
   }
 }
 
-function createJellyfinIdentity(): JellyfinIdentity {
+function createJellyfinembyIdentity(): JellyfinembyIdentity {
   return {
     clientName: CLIENT_NAME,
     deviceName: deriveDeviceName(),

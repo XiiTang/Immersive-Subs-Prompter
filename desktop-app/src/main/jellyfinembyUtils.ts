@@ -14,7 +14,7 @@ const CODEC_EXTENSION_MAP: Record<string, string> = {
   sami: "smi"
 };
 
-export interface JellyfinIdentity {
+export interface JellyfinembyIdentity {
   clientName: string;
   deviceName: string;
   deviceId: string;
@@ -43,7 +43,7 @@ export function resolveWebSocketPath(path?: string | null): string {
 
 export function buildWebSocketUrl(config: MediaServerConfig): string {
   if (!config.serverUrl) {
-    throw new Error("Missing Jellyfin server URL");
+    throw new Error("Missing jellyfinemby server URL");
   }
   const normalized = normalizeServerUrl(config.serverUrl);
   const url = new URL(normalized || config.serverUrl);
@@ -77,9 +77,9 @@ export function pickSubtitleExtension(stream: MediaServerSubtitleStream): string
 
 /**
  * Intelligently guess subtitle format from stream metadata
- * Migrated from jellyfin-desktop-client for better format detection
+ * Migrated from jellyfinemby-desktop-client for better format detection
  * 
- * @param stream - The Jellyfin subtitle stream
+ * @param stream - The jellyfinemby subtitle stream
  * @returns 'srt' or 'vtt' format identifier
  */
 export function guessSubtitleFormatFromStream(stream: MediaServerSubtitleStream): 'srt' | 'vtt' {
@@ -111,10 +111,10 @@ export function buildSubtitleUrl(
   extensionOverride?: string
 ): string {
   if (!config.serverUrl) {
-    throw new Error("Missing Jellyfin server URL");
+    throw new Error("Missing jellyfinemby server URL");
   }
   if (!config.apiKey) {
-    throw new Error("Missing Jellyfin API key");
+    throw new Error("Missing jellyfinemby API key");
   }
   if (!session.nowPlayingItemId || !session.mediaSourceId) {
     throw new Error("Session is missing media identifiers");
@@ -128,7 +128,7 @@ export function buildSubtitleUrl(
   return url.toString();
 }
 
-export function buildAuthorizationHeader(identity: JellyfinIdentity, apiKey: string): string {
+export function buildAuthorizationHeader(identity: JellyfinembyIdentity, apiKey: string): string {
   const escapeValue = (value: string): string => value.replace(/"/g, '\\"');
   const segments = [
     `MediaBrowser Client="${escapeValue(identity.clientName)}"`,
@@ -140,7 +140,7 @@ export function buildAuthorizationHeader(identity: JellyfinIdentity, apiKey: str
   return segments.join(", ");
 }
 
-export function createAuthHeaders(apiKey: string | null | undefined, identity?: JellyfinIdentity) {
+export function createAuthHeaders(apiKey: string | null | undefined, identity?: JellyfinembyIdentity) {
   if (!apiKey) {
     return {};
   }
