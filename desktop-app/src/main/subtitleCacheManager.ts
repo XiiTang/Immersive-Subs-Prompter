@@ -44,32 +44,43 @@ export class SubtitleCacheManager {
     }
 
     const key = this.getCacheKey(url, source);
+    const cacheDir = settings.path || DEFAULT_CACHE_DIR;
+    const cacheFile = path.join(cacheDir, `${key}.json`);
+
+    const refreshTimestamp = async (entry: CacheEntry): Promise<SubtitleLoadResult> => {
+      const refreshed: CacheEntry = { ...entry, timestamp: Date.now() };
+      this.memoryCache.set(key, refreshed);
+      try {
+        await fs.writeFile(cacheFile, JSON.stringify(refreshed, null, 2), "utf-8");
+      } catch (error) {
+        this.log.warn(`Failed to refresh cache timestamp for ${source}: ${url}`, error);
+      }
+      return refreshed.data;
+    };
 
     // Check memory cache first
     const memEntry = this.memoryCache.get(key);
-    if (memEntry && !this.isExpired(memEntry.timestamp, settings.retentionDays)) {
+    if (memEntry) {
+      if (this.isExpired(memEntry.timestamp, settings.retentionDays)) {
+        this.log.debug(`Cache expired for ${source}: ${url}`);
+        return null;
+      }
       this.log.debug(`Memory cache hit for ${source}: ${url}`);
-      return memEntry.data;
+      return refreshTimestamp(memEntry);
     }
 
     // Check disk cache
     try {
-      const cacheDir = settings.path || DEFAULT_CACHE_DIR;
-      const cacheFile = path.join(cacheDir, `${key}.json`);
       const content = await fs.readFile(cacheFile, "utf-8");
       const entry: CacheEntry = JSON.parse(content);
 
       if (this.isExpired(entry.timestamp, settings.retentionDays)) {
         this.log.debug(`Cache expired for ${source}: ${url}`);
-        await fs.unlink(cacheFile).catch(() => {});
-        this.memoryCache.delete(key);
         return null;
       }
 
       this.log.debug(`Disk cache hit for ${source}: ${url}`);
-      // Populate memory cache
-      this.memoryCache.set(key, entry);
-      return entry.data;
+      return refreshTimestamp(entry);
     } catch (error) {
       // Cache miss or error reading cache
       this.log.debug(`Cache miss for ${source}: ${url}`);
