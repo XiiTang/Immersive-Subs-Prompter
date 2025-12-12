@@ -278,7 +278,10 @@ export class StateManager {
   }
 
   resetSubtitleState(clearError = false) {
-    return this.updateState((draft) => this.resetSubtitleStateInternal(draft, clearError));
+    const result = this.updateState((draft) => this.resetSubtitleStateInternal(draft, clearError));
+    // Emit playback state change separately to ensure renderer stops prediction loop
+    this.bus.emit("state:playback", this.state.playback);
+    return result;
   }
 
   getActiveProfileSettings(): ProfileSettings {
@@ -424,6 +427,13 @@ export class StateManager {
     draft.primarySubtitles = null;
     draft.secondarySubtitles = null;
     draft.transcription = createDefaultTranscriptionState();
+    draft.playback = {
+      currentTime: 0,
+      playbackRate: 0,
+      lastUpdate: null,
+      isLooping: false,
+      loopCueIndex: null
+    };
     if (clearError) {
       draft.error = null;
     }

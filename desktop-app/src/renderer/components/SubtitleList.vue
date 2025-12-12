@@ -568,15 +568,16 @@ function startPredictionLoop() {
   stopPredictionLoop();
   const step = () => {
     predictedTime.value = computePredictedTime();
-    if (playback.value?.playbackRate && playback.value.playbackRate !== 0) {
+    const rate = playback.value?.playbackRate;
+    if (rate && rate !== 0) {
       predictionFrame = requestAnimationFrame(step);
     } else {
       predictionFrame = null;
     }
   };
-  // Seed the initial prediction immediately
   predictedTime.value = computePredictedTime();
-  if (playback.value?.playbackRate && playback.value.playbackRate !== 0) {
+  const rate = playback.value?.playbackRate;
+  if (rate && rate !== 0) {
     predictionFrame = requestAnimationFrame(step);
   }
 }

@@ -417,7 +417,22 @@ export class ConnectionManager {
 
       case "video-ended": {
         const state = this.options.stateManager.getState();
-        if (state.activeTabId === message.tabId && state.activeSource !== "jellyfin") {
+        if (state.activeTabId !== message.tabId) {
+          break;
+        }
+
+        if (state.activeSource === "jellyfin") {
+          this.options.stateManager.updateState((draft) => {
+            draft.playback = {
+              currentTime: 0,
+              playbackRate: 0,
+              lastUpdate: null,
+              isLooping: false,
+              loopCueIndex: null
+            };
+          });
+          this.options.bus.emit("state:playback", this.options.stateManager.getState().playback);
+        } else {
           this.options.stateManager.updateState((draft) => {
             draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
             draft.primarySubtitles = null;
@@ -426,7 +441,15 @@ export class ConnectionManager {
             draft.selectedPrimarySubtitleId = null;
             draft.selectedSecondarySubtitleId = null;
             draft.videoUrl = null;
+            draft.playback = {
+              currentTime: 0,
+              playbackRate: 0,
+              lastUpdate: null,
+              isLooping: false,
+              loopCueIndex: null
+            };
           });
+          this.options.bus.emit("state:playback", this.options.stateManager.getState().playback);
           const profile = this.options.stateManager.selectProfileForUrl(null).profile;
           this.options.stateManager.applyProfileSelection(profile, null);
         }

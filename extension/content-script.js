@@ -39,14 +39,14 @@ const log = new Logger('content-script');
   let urlMonitorTimer = null;
   const regexCache = new Map();
   let lastReportedPlayback = null;
-  
+
   // Loop control variables (stored in milliseconds for precision)
   let loopStartMs = null;
   let loopEndMs = null;
   let isLooping = false;
   let programmaticSeek = false; // Track if seek is triggered by program, not user
   let loopCheckTimer = null; // Timer for checking loop condition
-  
+
   // Helper function to clear loop state and notify desktop-app
   function clearLoopState() {
     if (isLooping) {
@@ -57,20 +57,20 @@ const log = new Logger('content-script');
         clearInterval(loopCheckTimer);
         loopCheckTimer = null;
       }
-      
+
       // Notify desktop-app to update UI
       send("loop-cleared", {});
     } else {
       log.debug('loop', 'clearLoopState called but not looping');
     }
   }
-  
+
   // Start loop check timer
   function startLoopCheck() {
     if (loopCheckTimer) {
       clearInterval(loopCheckTimer);
     }
-    
+
     loopCheckTimer = setInterval(() => {
       if (!isLooping || !activeVideo || loopStartMs === null || loopEndMs === null) {
         if (loopCheckTimer) {
@@ -79,9 +79,9 @@ const log = new Logger('content-script');
         }
         return;
       }
-      
+
       const currentTimeMs = activeVideo.currentTime * 1000;
-      
+
       // Check if we've exceeded the loop end point
       if (currentTimeMs >= loopEndMs) {
         // Seek back to loop start
@@ -125,7 +125,13 @@ const log = new Logger('content-script');
         driftMonitorTimer = null;
         return;
       }
-      
+
+      if (!activeVideo.isConnected) {
+        endActiveVideoSession("removed-from-dom");
+        driftMonitorTimer = null;
+        return;
+      }
+
       if (lastReportedPlayback) {
         const predicted = predictPlaybackTime();
         if (predicted !== null) {
@@ -149,6 +155,17 @@ const log = new Logger('content-script');
       clearTimeout(driftMonitorTimer);
       driftMonitorTimer = null;
     }
+  }
+
+  function endActiveVideoSession(reason = "ended") {
+    if (!activeVideo) {
+      return;
+    }
+    const src = activeVideo.currentSrc || activeVideo.src || "(no src)";
+    clearLoopState();
+    log.info('video', `Video ${reason}`, { src });
+    send("video-ended", { pageUrl: location.href });
+    setActiveVideo(null);
   }
 
   function normalizeBlacklistRules(input) {
@@ -391,8 +408,8 @@ const log = new Logger('content-script');
   function detectSite() {
     const host = location.hostname;
     const site = host.includes("youtube.com") ? "youtube" :
-                 host.includes("bilibili.com") ? "bilibili" :
-                 host.includes("douyin.com") ? "douyin" : "unknown";
+      host.includes("bilibili.com") ? "bilibili" :
+        host.includes("douyin.com") ? "douyin" : "unknown";
     log.debug('site', `Detected: ${site}`, { hostname: host });
     return site;
   }
@@ -422,12 +439,12 @@ const log = new Logger('content-script');
     if (!monitoringActive) {
       return;
     }
-    
+
     const state = gatherVideoState(video);
     if (!state) {
       return;
     }
-    
+
     send("time-update", state);
     recordPlaybackSample(state);
   }
@@ -463,11 +480,12 @@ const log = new Logger('content-script');
     }
     if (hooked.has(video)) return;
     hooked.add(video);
-    log.info('video', 'Video detected', { 
+    log.info('video', 'Video detected', {
       src: video.currentSrc || video.src || '(no src)',
       duration: video.duration,
       readyState: video.readyState
     });
+    handleTimeUpdate(video);
   }
 
   function applyControl(action, payload) {
@@ -503,8 +521,8 @@ const log = new Logger('content-script');
         }
         break;
       case "loop":
-        if (typeof payload.start === "number" && typeof payload.end === "number" && 
-            Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
+        if (typeof payload.start === "number" && typeof payload.end === "number" &&
+          Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
           log.debug('ctrl', 'loop requested', { start: payload.start, end: payload.end, before: Math.round(target.currentTime * 1000) });
           loopStartMs = payload.start;
           loopEndMs = payload.end;
@@ -518,10 +536,10 @@ const log = new Logger('content-script');
               log.error('ctrl', 'Auto-play after loop enabled failed', err);
             });
           }
-          
+
           // Start loop check timer
           startLoopCheck();
-          
+
           // Notify desktop that loop started
           send("loop-started", {});
         } else {
@@ -570,13 +588,13 @@ const log = new Logger('content-script');
     }
     const target = event?.target;
     if (!(target instanceof HTMLVideoElement)) return;
-    
-    log.debug('event', event.type, { 
-      time: target.currentTime?.toFixed(1), 
+
+    log.debug('event', event.type, {
+      time: target.currentTime?.toFixed(1),
       paused: target.paused,
-      active: target === activeVideo 
+      active: target === activeVideo
     });
-    
+
     watchVideo(target);
     switch (event.type) {
       case "play":
@@ -633,10 +651,7 @@ const log = new Logger('content-script');
         break;
       case "ended":
         if (activeVideo === target) {
-          clearLoopState();
-          log.info('video', 'Playback ended');
-          send("video-ended", { pageUrl: location.href });
-          setActiveVideo(null);
+          endActiveVideoSession("playback-ended");
         }
         break;
       default:
@@ -661,7 +676,7 @@ const log = new Logger('content-script');
   // Recursively scan for Shadow DOMs
   function scanForShadowRoots(root = document.body) {
     if (!root) return;
-    
+
     const elements = root.querySelectorAll('*');
     elements.forEach(element => {
       const shadowRoot = getShadowRoot(element);
@@ -674,12 +689,50 @@ const log = new Logger('content-script');
     });
   }
 
+  function findVideosInNode(node) {
+    const videos = [];
+    if (!node) return videos;
+    if (node instanceof HTMLVideoElement) {
+      videos.push(node);
+    }
+    if (typeof node.querySelectorAll === "function") {
+      node.querySelectorAll("video").forEach((video) => videos.push(video));
+    }
+    if (node instanceof Element) {
+      const shadowRoot = getShadowRoot(node);
+      if (shadowRoot && typeof shadowRoot.querySelectorAll === "function") {
+        shadowRoot.querySelectorAll("video").forEach((video) => videos.push(video));
+      }
+    }
+    return videos;
+  }
+
+  function handleRemovedNode(node) {
+    if (!(node instanceof Element) && !(node instanceof DocumentFragment)) {
+      return;
+    }
+
+    const videos = findVideosInNode(node);
+    videos.forEach((video) => {
+      const schedule = typeof requestAnimationFrame === "function"
+        ? (fn) => requestAnimationFrame(fn)
+        : (fn) => setTimeout(fn, 0);
+      schedule(() => {
+        if (video === activeVideo && !video.isConnected) {
+          endActiveVideoSession("removed-from-dom");
+        }
+      });
+    });
+  }
+
   // Set up MutationObserver to detect dynamically added elements
   function setupDOMMutationObserver() {
     const observer = new MutationObserver((mutations) => {
       if (!monitoringActive) return;
-      
+
       mutations.forEach(mutation => {
+        mutation.removedNodes.forEach((node) => handleRemovedNode(node));
+
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if added node has shadow root
@@ -750,11 +803,11 @@ const log = new Logger('content-script');
     connectPort();
     ensureDocListeners(document);
     startKeepAlive();
-    
+
     // Scan for existing Shadow DOMs that may have been created before script injection
     log.info('shadow', 'Scanning for existing Shadow DOMs...');
     scanForShadowRoots();
-    
+
     // Set up mutation observer to detect new shadow roots
     domObserver = setupDOMMutationObserver();
   }
@@ -768,13 +821,13 @@ const log = new Logger('content-script');
     resetPlaybackPrediction();
     activeVideo = null;
     stopKeepAlive();
-    
+
     // Disconnect mutation observer
     if (domObserver) {
       domObserver.disconnect();
       domObserver = null;
     }
-    
+
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
