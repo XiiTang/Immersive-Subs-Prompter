@@ -88,6 +88,13 @@ export class MediaServerController {
       return;
     }
 
+    const serverChanged =
+      Boolean(
+        mediaServerConfigId &&
+        existingTabContext?.serverConfigId &&
+        existingTabContext.serverConfigId !== mediaServerConfigId
+      );
+
     this.options.stateManager.setPageContext(event.message.tabId, {
       pageUrl: event.message.payload.pageUrl ?? null,
       site: event.message.payload.site ?? null,
@@ -95,7 +102,31 @@ export class MediaServerController {
     });
 
     if (mediaServerConfigId) {
-      this.updateTabMediaServerContext(event.message.tabId, { serverConfigId: mediaServerConfigId });
+      this.updateTabMediaServerContext(event.message.tabId, {
+        serverConfigId: mediaServerConfigId,
+        sessionId: serverChanged ? null : existingTabContext?.sessionId ?? null,
+        itemId: serverChanged ? null : existingTabContext?.itemId ?? null
+      });
+    }
+
+    if (serverChanged) {
+      const currentState = this.options.stateManager.getState();
+      const selectedSessionId = currentState.mediaServer.selectedSessionId;
+      const selectedSession = selectedSessionId
+        ? currentState.mediaServer.sessions.find((session) => session.id === selectedSessionId)
+        : null;
+
+      if (selectedSession && selectedSession.serverConfigId !== mediaServerConfigId) {
+        this.options.stateManager.resetSubtitleState();
+        this.options.stateManager.updateState((draft) => {
+          draft.mediaServer.selectedSessionId = null;
+          draft.pendingMediaServerItemId = null;
+          if (draft.activeSource === "mediaserver") {
+            draft.status = "loading-subtitles";
+          }
+        });
+        this.mediaServerService.setActiveSession(null);
+      }
     }
 
     if (!url) {
@@ -489,22 +520,28 @@ export class MediaServerController {
   }
 
   private extractItemId(payload: ExtensionPayload, fallbackUrl: string): string | null {
-    let itemId: string | null = null;
-    try {
-      const videoSrc = payload.videoSrc;
-      if (videoSrc && typeof videoSrc === "string") {
-        const videoUrlObj = new URL(videoSrc);
-        itemId = videoUrlObj.searchParams.get("mediaSourceId");
+    const extractFromUrl = (candidate: string | null | undefined): string | null => {
+      if (!candidate || typeof candidate !== "string") {
+        return null;
       }
+      try {
+        const urlObj = new URL(candidate);
+        for (const [key, value] of urlObj.searchParams.entries()) {
+          if (key.toLowerCase() === "mediasourceid") {
+            return value;
+          }
+        }
+        const pathMatch = urlObj.pathname.match(/\/(?:videos|items)\/([^/]+)/i);
+        if (pathMatch?.[1]) {
+          return pathMatch[1];
+        }
+      } catch (error) {
+        this.log.error(`Failed to parse media server URL for itemId`, error);
+      }
+      return null;
+    };
 
-      if (!itemId) {
-        const urlObj = new URL(fallbackUrl);
-        itemId = urlObj.searchParams.get("mediaSourceId");
-      }
-    } catch (error) {
-      this.log.error(`Failed to parse media server URL for itemId`, error);
-    }
-    return itemId;
+    return extractFromUrl(payload.videoSrc) ?? extractFromUrl(fallbackUrl);
   }
 
   private getTabMediaServerContext(tabId: number | null): TabMediaServerContext | null {
