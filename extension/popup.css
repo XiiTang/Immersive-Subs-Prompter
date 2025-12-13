@@ -49,9 +49,9 @@ body {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--usp-border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
-  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+  color: #fff;
 }
 
 .usp-header__meta {
@@ -82,6 +82,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.usp-header .usp-status {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .usp-pill-button {
