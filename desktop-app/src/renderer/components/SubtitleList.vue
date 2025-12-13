@@ -41,14 +41,6 @@
             <span aria-hidden="true">{{ isTranscribing ? '⏳' : '▶' }}</span>
           </button>
         </div>
-        <div class="playback-buttons">
-          <button id="play-btn" type="button" @click="handlePlay">
-            {{ t("play-button", "Play") }}
-          </button>
-          <button id="pause-btn" type="button" @click="handlePause">
-            {{ t("pause-button", "Pause") }}
-          </button>
-        </div>
       </section>
       <div
         class="status-row"
@@ -60,6 +52,15 @@
         </section>
       </div>
       <div class="playback-row">
+        <button
+          type="button"
+          class="playback-toggle-btn"
+          :disabled="!hasActiveVideo"
+          :aria-label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
+          @click="togglePlayback"
+        >
+          {{ isPlaying ? "⏸" : "▶" }}
+        </button>
         <div class="playback-progress">
           <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
           <input
@@ -215,6 +216,8 @@ const cues = computed<CombinedCue[]>(() => store.combinedCues);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
 const loops = computed(() => playback.value?.loopCueIndex ?? null);
 const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
+const hasActiveVideo = computed(() => Boolean(store.desktopState?.videoUrl));
+const isPlaying = computed(() => Math.abs(playback.value?.playbackRate ?? 0) > 0);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
 const autoHideTimestamps = computed(() => store.settings?.global.autoHideTimestamps ?? false);
 const playbackDuration = computed(() => {
@@ -430,12 +433,12 @@ function formatTime(milliseconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function handlePlay() {
-  store.controlVideo({ type: "play" });
-}
-
-function handlePause() {
-  store.controlVideo({ type: "pause" });
+function togglePlayback() {
+  if (!hasActiveVideo.value) {
+    return;
+  }
+  const nextCommand = isPlaying.value ? "pause" : "play";
+  store.controlVideo({ type: nextCommand });
 }
 
 function seekToCue(index: number) {
