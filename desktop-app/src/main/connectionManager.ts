@@ -141,6 +141,13 @@ export class ConnectionManager {
     return a.host === b.host && a.port === b.port;
   }
 
+  private normalizeDuration(value: unknown): number | null {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(0, value);
+  }
+
   private bootstrapWebSocketServer(network: NetworkSettings) {
     const wss = new WebSocketServer({ port: network.port, host: network.host });
     this.log.info(`WebSocket server listening on ws://${network.host}:${network.port}`);
@@ -283,6 +290,17 @@ export class ConnectionManager {
           title: message.payload.title ?? null
         });
 
+        const initialDuration = this.normalizeDuration(message.payload.duration);
+        const initialPlaybackRate = message.payload.paused
+          ? 0
+          : message.payload.playbackRate ?? this.options.stateManager.getState().playback.playbackRate;
+        const initialCurrentTime = message.payload.currentTime ?? 0;
+        this.options.stateManager.updatePlayback({
+          currentTime: initialCurrentTime,
+          duration: initialDuration,
+          playbackRate: initialPlaybackRate
+        });
+
         if (!resolvedUrl) {
           this.options.stateManager.updateState((draft) => {
             draft.status = "error";
@@ -380,10 +398,13 @@ export class ConnectionManager {
         const currentTime = message.payload.currentTime ?? state.playback.currentTime;
         const rawPlaybackRate = message.payload.playbackRate ?? state.playback.playbackRate;
         const playbackRate = message.payload.paused ? 0 : rawPlaybackRate;
+        const durationUpdate = this.normalizeDuration(message.payload.duration);
+        const duration = durationUpdate !== null ? durationUpdate : state.playback.duration ?? null;
 
         this.options.stateManager.updatePlayback({
           currentTime,
-          playbackRate
+          playbackRate,
+          duration
         });
         break;
       }
@@ -425,6 +446,7 @@ export class ConnectionManager {
           this.options.stateManager.updateState((draft) => {
             draft.playback = {
               currentTime: 0,
+              duration: null,
               playbackRate: 0,
               lastUpdate: null,
               isLooping: false,
@@ -443,6 +465,7 @@ export class ConnectionManager {
             draft.videoUrl = null;
             draft.playback = {
               currentTime: 0,
+              duration: null,
               playbackRate: 0,
               lastUpdate: null,
               isLooping: false,

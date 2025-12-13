@@ -513,9 +513,11 @@ export class MediaServerController {
 
     const currentTime = payload.positionMs ?? 0;
     const playbackRate = payload.isPaused ? 0 : payload.playbackRate || 1;
+    const duration = typeof payload.runTimeMs === "number" && payload.runTimeMs >= 0 ? payload.runTimeMs : state.playback.duration ?? null;
     this.options.stateManager.updatePlayback({
       currentTime,
-      playbackRate
+      playbackRate,
+      duration
     });
   }
 

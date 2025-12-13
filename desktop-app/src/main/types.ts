@@ -44,6 +44,7 @@ export interface SubtitleLoadResult {
 
 export interface PlaybackState {
   currentTime: number; // milliseconds
+  duration: number | null; // milliseconds
   playbackRate: number;
   lastUpdate: number | null; // timestamp in milliseconds
   isLooping: boolean; // whether currently in loop mode

@@ -58,6 +58,26 @@
         <section class="status-banner" :class="statusBanner.modifier">
           <span>{{ statusBanner.text }}</span>
         </section>
+      </div>
+      <div class="playback-row">
+        <div class="playback-progress">
+          <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
+          <input
+            class="playback-slider"
+            type="range"
+            min="0"
+            :max="sliderMax"
+            :step="sliderStep"
+            :value="sliderValue"
+            :disabled="!sliderEnabled"
+            :style="sliderFillStyle"
+            @pointerdown="handleScrubStart"
+            @pointercancel="handleScrubCancel"
+            @input="handleScrubInput"
+            @change="handleScrubEnd"
+          />
+          <span class="playback-progress__time">{{ formatTime(playbackDuration || 0) }}</span>
+        </div>
         <button
           type="button"
           class="auto-hide-toggle"
@@ -145,8 +165,11 @@ const isPointerDown = ref(false);
 const hasSubtitleSelection = ref(false);
 let autoScrollTimer: number | null = null;
 let predictionFrame: number | null = null;
+let manualSeekBaseline: { time: number; setAt: number; rate: number } | null = null;
 const predictedTime = ref<number | null>(null);
 const statusRowMaxHeight = ref("100vh");
+const isScrubbing = ref(false);
+const scrubbedTime = ref<number | null>(null);
 
 onBeforeUpdate(() => {
   cueRefs.value = [];
@@ -194,6 +217,50 @@ const loops = computed(() => playback.value?.loopCueIndex ?? null);
 const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
 const autoHideTimestamps = computed(() => store.settings?.global.autoHideTimestamps ?? false);
+const playbackDuration = computed(() => {
+  const duration = playback.value?.duration;
+  if (typeof duration === "number" && duration > 0) {
+    return duration;
+  }
+  const primaryCues = store.desktopState?.primarySubtitles?.cues ?? [];
+  const secondaryCues = store.desktopState?.secondarySubtitles?.cues ?? [];
+  const primaryEnd = primaryCues.length ? primaryCues[primaryCues.length - 1]?.end ?? 0 : 0;
+  const secondaryEnd = secondaryCues.length ? secondaryCues[secondaryCues.length - 1]?.end ?? 0 : 0;
+  const fallback = Math.max(primaryEnd, secondaryEnd);
+  return fallback > 0 ? fallback : null;
+});
+const sliderMax = computed(() => (playbackDuration.value && playbackDuration.value > 0 ? playbackDuration.value : 1));
+const sliderStep = computed(() => {
+  const duration = playbackDuration.value;
+  if (!duration || duration <= 0) {
+    return 1000;
+  }
+  return Math.max(40, Math.round(duration / 1500));
+});
+const sliderEnabled = computed(() => Boolean(playbackDuration.value && playbackDuration.value > 0));
+const displayedPlaybackTime = computed(() => {
+  const baseTime =
+    isScrubbing.value && scrubbedTime.value !== null
+      ? scrubbedTime.value
+      : predictedTime.value ?? playback.value?.currentTime ?? 0;
+  const safeBase = Number.isFinite(baseTime) ? baseTime : 0;
+  const duration = playbackDuration.value;
+  if (!duration || duration <= 0) {
+    return Math.max(0, safeBase);
+  }
+  return clamp(safeBase, 0, duration);
+});
+const sliderValue = computed(() => displayedPlaybackTime.value);
+const sliderFillStyle = computed(() => {
+  const percent =
+    sliderEnabled.value && sliderMax.value > 0
+      ? clamp((sliderValue.value / sliderMax.value) * 100, 0, 100)
+      : 0;
+  const stop = Number.isFinite(percent) ? percent : 0;
+  return {
+    "--slider-progress": `${stop}%`
+  };
+});
 
 const activeTranscriptionId = computed({
   get: () =>
@@ -392,6 +459,58 @@ function toggleAutoHide() {
   store.updateGlobalSetting("autoHidePanels", !autoHideEnabled.value);
 }
 
+function handleScrubStart() {
+  if (!sliderEnabled.value) {
+    return;
+  }
+  isScrubbing.value = true;
+}
+
+function handleScrubInput(event: Event) {
+  if (!sliderEnabled.value) {
+    return;
+  }
+  const target = event.target as HTMLInputElement | null;
+  const rawValue = target ? Number(target.value) : NaN;
+  if (!Number.isFinite(rawValue)) {
+    return;
+  }
+  const clamped = clamp(rawValue, 0, sliderMax.value || 1);
+  scrubbedTime.value = clamped;
+  if (!isScrubbing.value) {
+    isScrubbing.value = true;
+  }
+}
+
+function handleScrubEnd(event?: Event) {
+  if (!sliderEnabled.value) {
+    handleScrubCancel();
+    return;
+  }
+  if (event) {
+    handleScrubInput(event);
+  }
+  const time = scrubbedTime.value;
+  isScrubbing.value = false;
+  scrubbedTime.value = null;
+  if (typeof time === "number" && Number.isFinite(time)) {
+    manualSeekBaseline = {
+      time,
+      setAt: Date.now(),
+      rate: playback.value?.playbackRate ?? 0
+    };
+    predictedTime.value = time;
+    startPredictionLoop();
+    store.controlVideo({ type: "seek", time });
+  }
+}
+
+function handleScrubCancel() {
+  isScrubbing.value = false;
+  scrubbedTime.value = null;
+  manualSeekBaseline = null;
+}
+
 function updateStatusRowMaxHeight() {
   nextTick(() => {
     const el = statusRowRef.value;
@@ -547,14 +666,22 @@ watch(
 
 function computePredictedTime(now = Date.now()): number | null {
   const state = playback.value;
+  const manual = manualSeekBaseline;
+  const activeRate = manual ? manual.rate : state?.playbackRate ?? 0;
+
+  if (manual) {
+    const elapsed = Math.max(0, now - manual.setAt);
+    return manual.time + elapsed * activeRate;
+  }
+
   if (!state || state.currentTime === undefined || state.currentTime === null) {
     return null;
   }
-  if (!state.lastUpdate || state.playbackRate === 0) {
+  if (!state.lastUpdate || activeRate === 0) {
     return state.currentTime;
   }
   const elapsed = Math.max(0, now - state.lastUpdate);
-  return state.currentTime + elapsed * state.playbackRate;
+  return state.currentTime + elapsed * activeRate;
 }
 
 function stopPredictionLoop() {
@@ -585,6 +712,7 @@ function startPredictionLoop() {
 watch(
   playback,
   () => {
+    manualSeekBaseline = null;
     startPredictionLoop();
   },
   { immediate: true }

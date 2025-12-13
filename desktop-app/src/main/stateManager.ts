@@ -55,6 +55,7 @@ function createInitialState(settings: AppSettings): {
       error: null,
       playback: {
         currentTime: 0,
+        duration: null,
         playbackRate: 1,
         lastUpdate: null,
         isLooping: false,
@@ -429,6 +430,7 @@ export class StateManager {
     draft.transcription = createDefaultTranscriptionState();
     draft.playback = {
       currentTime: 0,
+      duration: null,
       playbackRate: 0,
       lastUpdate: null,
       isLooping: false,
