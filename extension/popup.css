@@ -48,33 +48,13 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--usp-border);
   background: var(--usp-bg);
 }
 
 .usp-header__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   min-width: 0;
-}
-
-.usp-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.15px;
-}
-
-.usp-brand__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--usp-playing);
-  box-shadow: 0 0 0 6px rgba(30, 136, 229, 0.12);
 }
 
 .usp-header__actions {
