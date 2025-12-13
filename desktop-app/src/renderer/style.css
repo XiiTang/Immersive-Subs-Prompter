@@ -372,13 +372,13 @@ body {
 .playback-progress {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
 .playback-progress__time {
-  width: 58px;
+  width: 52px;
   text-align: center;
   font-size: 12px;
   color: #cbd5f5;
