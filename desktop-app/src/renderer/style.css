@@ -269,7 +269,7 @@ body {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 12px;
+  gap: 4px;
   padding: 0 16px 3px;
 }
 
@@ -283,7 +283,7 @@ body {
 
 .transcription-controls {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: flex-end;
   flex: 1;
   min-width: 120px;
