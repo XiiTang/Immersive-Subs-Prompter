@@ -3,6 +3,9 @@ const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
 const serverRoot = document.getElementById("server-root");
+const connectionsPanel = document.getElementById("connections-panel");
+const connectionsButton = document.getElementById("connections-btn");
+const connectionsBackButton = document.getElementById("connections-back");
 const template = document.getElementById("media-card-template");
 const blacklistPanel = document.getElementById("blacklist-panel");
 const blacklistButton = document.getElementById("blacklist-btn");
@@ -17,6 +20,7 @@ let serverEndpoints = [];
 let connectionStatuses = [];
 let serverError = "";
 let serverInputEl = null;
+let activePanel = null;
 
 function setStatus(text) {
   if (statusEl) {
@@ -422,15 +426,34 @@ function addBlacklistRule() {
   saveBlacklistRules(nextRules);
 }
 
-function setBlacklistOpen(open) {
-  document.body.classList.toggle("blacklist-open", open);
+function setActivePanel(nextPanel) {
+  const prevPanel = activePanel;
+  activePanel = nextPanel;
+  const isDrawerOpen = Boolean(nextPanel);
+  document.body.classList.toggle("drawer-open", isDrawerOpen);
+  document.body.classList.toggle("blacklist-open", nextPanel === "blacklist");
+  document.body.classList.toggle("connections-open", nextPanel === "connections");
+
   if (blacklistPanel) {
-    blacklistPanel.setAttribute("aria-hidden", String(!open));
+    blacklistPanel.setAttribute("aria-hidden", String(nextPanel !== "blacklist"));
   }
-  if (open) {
+  if (connectionsPanel) {
+    connectionsPanel.setAttribute("aria-hidden", String(nextPanel !== "connections"));
+  }
+
+  if (!nextPanel) {
+    if (prevPanel === "blacklist") {
+      blacklistButton?.focus();
+    } else if (prevPanel === "connections") {
+      connectionsButton?.focus();
+    }
+    return;
+  }
+
+  if (nextPanel === "blacklist") {
     (addBlacklistRuleButton || blacklistPanel)?.focus();
-  } else {
-    blacklistButton?.focus();
+  } else if (nextPanel === "connections") {
+    (serverInputEl || connectionsPanel)?.focus();
   }
 }
 
@@ -557,13 +580,15 @@ try {
   renderEmptyState();
 }
 
-blacklistButton?.addEventListener("click", () => setBlacklistOpen(true));
-blacklistBackButton?.addEventListener("click", () => setBlacklistOpen(false));
+blacklistButton?.addEventListener("click", () => setActivePanel("blacklist"));
+blacklistBackButton?.addEventListener("click", () => setActivePanel(null));
+connectionsButton?.addEventListener("click", () => setActivePanel("connections"));
+connectionsBackButton?.addEventListener("click", () => setActivePanel(null));
 addBlacklistRuleButton?.addEventListener("click", () => addBlacklistRule());
 
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && document.body.classList.contains("blacklist-open")) {
-    setBlacklistOpen(false);
+  if (event.key === "Escape" && document.body.classList.contains("drawer-open")) {
+    setActivePanel(null);
   }
 });
 

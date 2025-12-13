@@ -8,13 +8,26 @@
   </head>
   <body>
     <header class="usp-header">
-      <div class="usp-header__actions">
+      <div class="usp-header__meta">
+        <div class="usp-brand">
+          <span class="usp-brand__dot"></span>
+          <span class="usp-brand__title">Immersive Subs</span>
+        </div>
         <span class="usp-status" id="status-indicator">Connecting…</span>
+      </div>
+      <div class="usp-header__actions">
+        <button type="button" class="usp-header__button" id="connections-btn">Connections</button>
         <button type="button" class="usp-header__button" id="blacklist-btn">Blacklist</button>
       </div>
     </header>
     <main class="usp-main">
-      <section id="server-root" class="server-root"></section>
+      <section class="hero">
+        <div>
+          <p class="hero__eyebrow">Live monitor</p>
+          <h1 class="hero__title">Now Playing</h1>
+          <p class="hero__copy">Supported sites: YouTube, Bilibili, Douyin, and more.</p>
+        </div>
+      </section>
       <section id="media-root" class="media-root">
         <div class="empty-state">
           <strong>No media detected</strong>
@@ -23,15 +36,28 @@
       </section>
     </main>
 
-    <section class="blacklist-panel" id="blacklist-panel" aria-hidden="true">
-      <div class="blacklist-panel__header">
-        <button type="button" class="blacklist-back" id="blacklist-back">← Back</button>
+    <section class="drawer-panel connections-panel" id="connections-panel" aria-hidden="true">
+      <div class="drawer-panel__header">
+        <button type="button" class="drawer-back" id="connections-back">← Back</button>
+        <div>
+          <h2>Connections</h2>
+          <p>Manage desktop endpoints for syncing.</p>
+        </div>
+      </div>
+      <div class="drawer-panel__body">
+        <section id="server-root" class="server-root"></section>
+      </div>
+    </section>
+
+    <section class="drawer-panel blacklist-panel" id="blacklist-panel" aria-hidden="true">
+      <div class="drawer-panel__header">
+        <button type="button" class="drawer-back" id="blacklist-back">← Back</button>
         <div>
           <h2>Blacklist</h2>
           <p>URLs matching these rules will not be detected.</p>
         </div>
       </div>
-      <div class="blacklist-panel__actions">
+      <div class="drawer-panel__actions">
         <button type="button" class="blacklist-add" id="add-blacklist-rule">Add rule</button>
       </div>
       <div class="blacklist-empty" id="blacklist-empty-state">
