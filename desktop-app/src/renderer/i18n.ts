@@ -87,7 +87,7 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "cache-path-label": "缓存路径",
   "cache-path-hint": "留空则使用默认位置",
   "cache-retention-label": "保留天数",
-  "cache-retention-hint": "缓存字幕保留的天数（1-365）",
+
   "cache-stats-entries": "条目总数：",
   "cache-stats-size": "总大小：",
   "cache-stats-oldest": "最早条目：",

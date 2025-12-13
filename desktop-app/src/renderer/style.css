@@ -893,7 +893,7 @@ body {
 
 .profile-settings__editor {
   flex: 1;
-  min-width: 220px;
+  min-width: 340px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1852,7 +1852,7 @@ body {
 
 .settings-color-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -1961,7 +1961,7 @@ body {
 
 .transcription-settings__editor {
   flex: 1;
-  min-width: 220px;
+  min-width: 340px;
   display: flex;
   flex-direction: column;
   gap: 10px;

@@ -31,16 +31,12 @@
               type="text" 
               v-model="cachePath" 
               class="fw-input-sm" 
-              :placeholder="t('cache-path-hint', 'Leave blank to use default location')"
             />
           </div>
 
           <div class="fw-field">
             <span class="label">{{ t("cache-retention-label", "Retention (days)") }}</span>
-            <input type="number" min="1" max="365" step="1" v-model.number="cacheRetentionDays" class="fw-input-sm" />
-            <small class="settings-field__hint" style="margin-top: 4px;">
-              {{ t("cache-retention-hint", "How long cached subtitles are kept (1-365)") }}
-            </small>
+            <input type="number" min="1" max="9999" step="1" v-model.number="cacheRetentionDays" class="fw-input-sm" />
           </div>
         </div>
       </div>
@@ -97,8 +93,8 @@ const cacheEnabled = computed({
 });
 
 const cachePath = computed({
-  get: () => store.settings?.cache.customPath ?? "",
-  set: (value: string) => store.updateCacheSetting("customPath", value)
+  get: () => store.settings?.cache.path ?? "",
+  set: (value: string) => store.updateCacheSetting("path", value)
 });
 
 const cacheRetentionDays = computed({
