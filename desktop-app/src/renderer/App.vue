@@ -71,11 +71,6 @@ function applySubtitleStyles(settings: ProfileSettings | null) {
   );
 }
 
-function applyPanelOpacity(value: number | null | undefined) {
-  const clamped = Number.isFinite(value) ? Math.max(0, Math.min(100, Number(value))) : 100;
-  document.documentElement.style.setProperty("--panel-opacity-factor", (clamped / 100).toFixed(2));
-}
-
 function refreshAutoHideElements() {
   if (!headerElement.value) {
     headerElement.value = document.querySelector(".window__header");
@@ -167,12 +162,6 @@ watch(
   () => store.editingProfileSettings,
   (settings) => applySubtitleStyles(settings),
   { deep: true, immediate: true }
-);
-
-watch(
-  () => store.panelOpacity,
-  (value) => applyPanelOpacity(value),
-  { immediate: true }
 );
 
 watch(

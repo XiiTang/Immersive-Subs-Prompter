@@ -26,7 +26,7 @@
 body {
   margin: 0;
   padding: 0;
-  background: rgba(12, 12, 12, calc(0.9 * var(--panel-opacity-factor)));
+  background: transparent;
   color: #f5f5f5;
   user-select: none;
 }
@@ -36,9 +36,8 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: rgba(18, 18, 18, calc(0.95 * var(--panel-opacity-factor)));
-  border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  backdrop-filter: blur(calc(12px * var(--panel-opacity-factor)));
+  background: transparent;
+  border: none;
   position: relative;
   overflow: hidden;
 }
@@ -64,6 +63,7 @@ body {
 }
 
 .window__header {
+  --panel-opacity-factor: 1;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -218,6 +218,7 @@ body {
 }
 
 .video-info-section {
+  --panel-opacity-factor: 1;
   position: absolute;
   top: var(--header-height);
   left: 0;
@@ -238,6 +239,7 @@ body {
   overflow: hidden;
   padding-top: 0;
   z-index: 0;
+  background: rgba(18, 18, 18, var(--panel-opacity-factor));
 }
 
 .video-meta {

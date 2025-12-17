@@ -90,7 +90,7 @@
         </button>
       </div>
     </section>
-    <section class="subtitle-scroll-section">
+    <section class="subtitle-scroll-section" :style="subtitlePanelStyle">
       <section class="subtitle-list" ref="subtitleListEl">
         <template v-if="cues.length">
           <div
@@ -158,6 +158,14 @@ const transcriptionConfigNames = computed(() =>
     .map((config) => config.name?.trim())
     .filter((name): name is string => Boolean(name))
 );
+const subtitlePanelOpacity = computed(() => {
+  const value = store.panelOpacity;
+  const clamped = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 100;
+  return (clamped / 100).toFixed(2);
+});
+const subtitlePanelStyle = computed(() => ({
+  "--panel-opacity-factor": subtitlePanelOpacity.value
+}));
 const subtitleListEl = ref<HTMLElement | null>(null);
 const statusRowRef = ref<HTMLElement | null>(null);
 const cueRefs = ref<HTMLElement[]>([]);
