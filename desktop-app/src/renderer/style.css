@@ -394,13 +394,11 @@ body {
   appearance: none;
   height: 8px;
   border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    rgba(103, 232, 249, 0.3) 0%,
-    rgba(59, 130, 246, 0.6) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(103, 232, 249, 0.3) 0%,
+      rgba(59, 130, 246, 0.6) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, calc(0.12 * var(--panel-opacity-factor)));
   outline: none;
   cursor: pointer;
@@ -409,13 +407,11 @@ body {
 
 .playback-slider:not(:disabled):hover {
   box-shadow: inset 0 0 0 1px rgba(103, 232, 249, calc(0.28 * var(--panel-opacity-factor)));
-  background: linear-gradient(
-    90deg,
-    rgba(45, 212, 191, 0.28) 0%,
-    rgba(59, 130, 246, 0.7) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(45, 212, 191, 0.28) 0%,
+      rgba(59, 130, 246, 0.7) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) 100%);
 }
 
 .playback-slider:disabled {
@@ -453,13 +449,11 @@ body {
 .playback-slider::-moz-range-track {
   height: 8px;
   border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    rgba(103, 232, 249, 0.3) 0%,
-    rgba(59, 130, 246, 0.6) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
-    rgba(255, 255, 255, 0.12) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(103, 232, 249, 0.3) 0%,
+      rgba(59, 130, 246, 0.6) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) var(--slider-progress, 0%),
+      rgba(255, 255, 255, 0.12) 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, calc(0.12 * var(--panel-opacity-factor)));
 }
 
@@ -548,14 +542,15 @@ body {
 }
 
 .settings-panel {
+  --panel-opacity-factor: 1 !important;
   position: absolute;
   top: var(--header-height);
   left: 0;
   right: 0;
   bottom: 0;
   padding: 16px 18px 20px;
-  background: rgba(12, 12, 12, calc(0.96 * var(--panel-opacity-factor)));
-  border-left: 1px solid rgba(255, 255, 255, calc(0.06 * var(--panel-opacity-factor)));
+  background: #0c0c0c;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -563,6 +558,7 @@ body {
   pointer-events: none;
   transform: translateX(24px);
   transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 600;
 }
 
 .settings-panel__header {
