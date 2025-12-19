@@ -101,24 +101,7 @@
             </div>
           </div>
 
-          <div class="settings-field">
-            <div class="settings-field-header">
-              <span class="settings-field__label">{{ t("auto-hide-label", "Trigger Area Height") }}</span>
-              <span class="value-badge">{{ autoHideHeight }}px</span>
-            </div>
-            <input
-              type="range"
-              min="80"
-              max="600"
-              step="10"
-              class="slider"
-              v-model.number="autoHideHeight"
-              @pointerdown="emit('preview-auto-hide', true)"
-              @pointerup="emit('preview-auto-hide', false)"
-              @pointercancel="emit('preview-auto-hide', false)"
-              @blur="emit('preview-auto-hide', false)"
-            />
-          </div>
+
         </div>
       </div>
 
@@ -191,8 +174,11 @@ import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 
 const emit = defineEmits<{
-  (e: "preview-auto-hide", visible: boolean): void;
+  (e: "preview-auto-hide", visible: boolean): void; // Leaving this for now to match interface but will remove usage
 }>();
+// actually I should remove the emit definition too if I remove the usage. 
+// But let's check if strict typing requires me to remove it from parent first? 
+// No, Vue is flexible. But better to remove it all.
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -231,11 +217,6 @@ const serverPort = computed({
 const autoHideTimestamps = computed({
   get: () => store.settings?.global.autoHideTimestamps ?? false,
   set: (value: boolean) => store.updateGlobalSetting("autoHideTimestamps", value)
-});
-
-const autoHideHeight = computed({
-  get: () => store.autoHideZoneHeight,
-  set: (value: number) => store.updateGlobalSetting("autoHideActiveZoneHeight", value)
 });
 
 const languageSetting = computed({

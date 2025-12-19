@@ -18,9 +18,7 @@ import type {
   TranscriptionState,
   VideoControlCommand
 } from "../main/types.js";
-import {
-  DEFAULT_AUTO_HIDE_ZONE_HEIGHT
-} from "../../common/autoHide.js";
+
 
 export type CombinedCue = {
   start: number;
@@ -213,9 +211,7 @@ export const useDesktopStore = defineStore("desktop", {
     panelOpacity(state): number {
       return state.settings?.global.panelOpacity ?? DEFAULT_PANEL_OPACITY;
     },
-    autoHideZoneHeight(state): number {
-      return state.settings?.global.autoHideActiveZoneHeight ?? DEFAULT_AUTO_HIDE_ZONE_HEIGHT;
-    },
+
     transcriptionState(state): TranscriptionState | null {
       return state.desktopState?.transcription ?? null;
     },

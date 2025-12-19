@@ -13,7 +13,6 @@
   --subtitle-active-primary-text-color: #fff8dc;
   --subtitle-active-secondary-text-color: #fff9c4;
   --panel-opacity-factor: 1;
-  --auto-hide-zone-height: 300px;
   --header-height: 45px;
 }
 
@@ -40,26 +39,6 @@ body {
   border: none;
   position: relative;
   overflow: hidden;
-}
-
-.auto-hide-preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--auto-hide-zone-height, 300px);
-  pointer-events: none;
-  border: 2px dashed rgba(103, 232, 249, 0.7);
-  border-radius: 0 0 12px 12px;
-  background: rgba(8, 145, 178, 0.08);
-  opacity: 0;
-  transform: translateZ(0);
-  transition: opacity 120ms ease;
-  z-index: 400;
-}
-
-.auto-hide-preview.is-visible {
-  opacity: 1;
 }
 
 .window__header {

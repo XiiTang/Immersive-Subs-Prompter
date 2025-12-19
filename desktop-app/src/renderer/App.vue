@@ -5,9 +5,8 @@
       <div class="primary-view">
         <SubtitleList />
       </div>
-      <SettingsPanel v-show="store.isSettingsOpen" @preview-auto-hide="setAutoHidePreview" />
+      <SettingsPanel v-show="store.isSettingsOpen" />
     </div>
-    <div class="auto-hide-preview" :class="{ 'is-visible': autoHidePreviewVisible }"></div>
   </div>
 </template>
 
@@ -26,7 +25,6 @@ const DEFAULT_SUBTITLE_FONT_FAMILY =
   '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
 
 const autoHideCollapsed = ref(false);
-const autoHidePreviewVisible = ref(false);
 const lastPointerPosition = ref<{ x: number; y: number } | null>(null);
 const isPointerInWindow = ref(false);
 const headerElement = ref<HTMLElement | null>(null);
@@ -96,7 +94,8 @@ function shouldShowPanels(pointer: { x: number; y: number } | null): boolean {
   if (!isPointerInWindow.value || !pointer) {
     return false;
   }
-  const inTriggerZone = pointer.y <= store.autoHideZoneHeight;
+  // Fixed trigger zone height to header height (45px)
+  const inTriggerZone = pointer.y <= 45;
   const inPanelArea =
     isPointerInsideElement(pointer, headerElement.value) ||
     isPointerInsideElement(pointer, videoInfoSectionElement.value);
@@ -137,10 +136,6 @@ function markPointerLeftWindow() {
   updateAutoHideState();
 }
 
-function setAutoHidePreview(visible: boolean) {
-  autoHidePreviewVisible.value = visible;
-}
-
 onMounted(() => {
   store.initialize();
   headerElement.value = document.querySelector(".window__header");
@@ -164,14 +159,7 @@ watch(
   { deep: true, immediate: true }
 );
 
-watch(
-  () => store.autoHideZoneHeight,
-  (height) => {
-    document.documentElement.style.setProperty("--auto-hide-zone-height", `${height}px`);
-    updateAutoHideState();
-  },
-  { immediate: true }
-);
+
 
 watch(autoHideEnabled, (enabled) => {
   if (!enabled) {

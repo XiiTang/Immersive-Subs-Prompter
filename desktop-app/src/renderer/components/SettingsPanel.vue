@@ -7,7 +7,7 @@
       <div class="settings-panel__title">{{ t("settings-title", "Settings") }}</div>
     </div>
     <div class="settings-panel__content" v-if="store.settings">
-      <SettingsGlobal @preview-auto-hide="emit('preview-auto-hide', $event)" />
+      <SettingsGlobal />
       <SettingsProfiles />
       <SettingsRules />
       <SettingsTranscription />
@@ -30,7 +30,7 @@ import SettingsMediaServer from "./settings/SettingsMediaServer.vue";
 import SettingsCache from "./settings/SettingsCache.vue";
 
 const emit = defineEmits<{
-  (e: "preview-auto-hide", visible: boolean): void;
+
 }>();
 
 const store = useDesktopStore();
