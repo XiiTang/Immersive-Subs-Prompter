@@ -19,6 +19,7 @@ import {
 } from "./types.js";
 import { createLogger } from "./logger.js";
 import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT, clampAutoHideZoneHeight } from "../common/autoHide.js";
+import defaultSettings from "./default-settings.json" with { type: "json" };
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
@@ -116,19 +117,9 @@ export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
   retentionDays: 7
 };
 
-const DEFAULT_SETTINGS_FACTORY = (): AppSettings => ({
-  global: { ...DEFAULT_GLOBAL_SETTINGS },
-  network: { ...DEFAULT_NETWORK_SETTINGS },
-  profiles: [createDefaultProfile()],
-  defaultProfileId: DEFAULT_PROFILE_ID,
-  rules: [],
-  mediaServer: { ...DEFAULT_MEDIA_SERVER_SETTINGS, configs: [...DEFAULT_MEDIA_SERVER_SETTINGS.configs] },
-  transcription: {
-    ...DEFAULT_TRANSCRIPTION_SETTINGS,
-    configs: DEFAULT_TRANSCRIPTION_SETTINGS.configs.map((config) => ({ ...config }))
-  },
-  cache: { ...DEFAULT_CACHE_SETTINGS }
-});
+const DEFAULT_SETTINGS_FACTORY = (): AppSettings => {
+  return sanitizeSettings(defaultSettings as any);
+};
 
 export const DEFAULT_SETTINGS: AppSettings = DEFAULT_SETTINGS_FACTORY();
 
@@ -580,7 +571,9 @@ function sanitizeTranscriptionConfig(
       ? source.fasterWhisperModel.trim()
       : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperModel;
   const fasterWhisperModelDir =
-    typeof source.fasterWhisperModelDir === "string" ? source.fasterWhisperModelDir.trim() : "";
+    typeof source.fasterWhisperModelDir === "string" && source.fasterWhisperModelDir.trim()
+      ? source.fasterWhisperModelDir.trim()
+      : DEFAULT_TRANSCRIPTION_CONFIG.fasterWhisperModelDir;
   const fasterWhisperDevice: TranscriptionConfig["fasterWhisperDevice"] =
     source.fasterWhisperDevice === "cuda" ? "cuda" : "cpu";
   const fasterWhisperVadFilter =
@@ -750,12 +743,12 @@ function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSetti
     global: base.global,
     network: base.network,
     profiles: base.profiles,
-  defaultProfileId: base.defaultProfileId,
-  rules: base.rules,
-  mediaServer: base.mediaServer,
-  transcription: base.transcription,
-  cache: base.cache
-};
+    defaultProfileId: base.defaultProfileId,
+    rules: base.rules,
+    mediaServer: base.mediaServer,
+    transcription: base.transcription,
+    cache: base.cache
+  };
 
   if (patch.global) {
     next.global = { ...base.global, ...patch.global };
