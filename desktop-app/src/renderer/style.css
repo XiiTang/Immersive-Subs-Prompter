@@ -1266,14 +1266,39 @@ body {
   line-height: var(--subtitle-line-height, 1.45);
 }
 
-.subtitle-list::-webkit-scrollbar,
+/* Custom scrollbar for subtitle list - opaque by default, auto-hides fixedly via JS class */
+.subtitle-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.subtitle-list::-webkit-scrollbar-track,
+.subtitle-list::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+/* JS adds this class when scrolling or hovering the scrollbar area */
+.subtitle-list--scrollbar-active::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.subtitle-list--scrollbar-active::-webkit-scrollbar-thumb,
+.subtitle-list::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.subtitle-list--scrollbar-active::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Other scrollbars still use transparency factor */
 .settings-panel__content::-webkit-scrollbar,
 .profile-list::-webkit-scrollbar,
 .mediaserver-config-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.subtitle-list::-webkit-scrollbar-track,
 .settings-panel__content::-webkit-scrollbar-track,
 .profile-list::-webkit-scrollbar-track,
 .mediaserver-config-list::-webkit-scrollbar-track {
@@ -1281,7 +1306,6 @@ body {
   border-radius: 4px;
 }
 
-.subtitle-list::-webkit-scrollbar-thumb,
 .settings-panel__content::-webkit-scrollbar-thumb,
 .profile-list::-webkit-scrollbar-thumb,
 .mediaserver-config-list::-webkit-scrollbar-thumb {
@@ -1289,7 +1313,6 @@ body {
   border-radius: 4px;
 }
 
-.subtitle-list::-webkit-scrollbar-thumb:hover,
 .settings-panel__content::-webkit-scrollbar-thumb:hover,
 .profile-list::-webkit-scrollbar-thumb:hover,
 .mediaserver-config-list::-webkit-scrollbar-thumb:hover {

@@ -91,7 +91,11 @@
       </div>
     </section>
     <section class="subtitle-scroll-section" :style="subtitlePanelStyle">
-      <section class="subtitle-list" ref="subtitleListEl">
+      <section
+        class="subtitle-list"
+        :class="{ 'subtitle-list--scrollbar-active': isScrollbarActive }"
+        ref="subtitleListEl"
+      >
         <template v-if="cues.length">
           <div
             v-for="(cue, index) in cues"
@@ -155,8 +159,8 @@ const transcriptionState = computed(() => store.transcriptionState);
 const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
 const transcriptionConfigNames = computed(() =>
   transcriptionConfigs.value
-    .map((config) => config.name?.trim())
-    .filter((name): name is string => Boolean(name))
+    .map((config: any) => config.name?.trim())
+    .filter((name: any): name is string => Boolean(name))
 );
 const subtitlePanelOpacity = computed(() => {
   const value = store.panelOpacity;
@@ -179,6 +183,8 @@ const predictedTime = ref<number | null>(null);
 const statusRowMaxHeight = ref("100vh");
 const isScrubbing = ref(false);
 const scrubbedTime = ref<number | null>(null);
+const isScrollbarActive = ref(false);
+let scrollbarTimer: number | null = null;
 
 onBeforeUpdate(() => {
   cueRefs.value = [];
@@ -560,9 +566,31 @@ function scheduleAutoScrollRestore() {
   }, autoScrollDelayMs.value);
 }
 
+function triggerScrollbar() {
+  isScrollbarActive.value = true;
+  if (scrollbarTimer) {
+    window.clearTimeout(scrollbarTimer);
+  }
+  scrollbarTimer = window.setTimeout(() => {
+    isScrollbarActive.value = false;
+    scrollbarTimer = null;
+  }, 1500);
+}
+
+function handleMouseMove(e: MouseEvent) {
+  const el = subtitleListEl.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  // If mouse is within 12px of the right edge, trigger scrollbar
+  if (e.clientX >= rect.right - 12 && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+    triggerScrollbar();
+  }
+}
+
 function pauseAutoScrollTemporarily() {
   pauseAutoScroll();
   scheduleAutoScrollRestore();
+  triggerScrollbar();
 }
 
 function hasSelectionInsideList(): boolean {
@@ -733,6 +761,7 @@ onMounted(() => {
   const list = subtitleListEl.value;
   list?.addEventListener("wheel", pauseAutoScrollTemporarily, { passive: true });
   list?.addEventListener("touchmove", pauseAutoScrollTemporarily, { passive: true });
+  list?.addEventListener("mousemove", handleMouseMove, { passive: true });
   list?.addEventListener("mousedown", handlePointerDown);
   window.addEventListener("mouseup", handlePointerUp);
   document.addEventListener("selectionchange", handleSelectionChange);
@@ -744,6 +773,7 @@ onBeforeUnmount(() => {
   const list = subtitleListEl.value;
   list?.removeEventListener("wheel", pauseAutoScrollTemporarily);
   list?.removeEventListener("touchmove", pauseAutoScrollTemporarily);
+  list?.removeEventListener("mousemove", handleMouseMove);
   list?.removeEventListener("mousedown", handlePointerDown);
   window.removeEventListener("mouseup", handlePointerUp);
   document.removeEventListener("selectionchange", handleSelectionChange);
