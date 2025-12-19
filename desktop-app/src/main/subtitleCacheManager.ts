@@ -185,7 +185,7 @@ export class SubtitleCacheManager {
           }
         } catch (error) {
           // Invalid or corrupted cache file, remove it
-          await fs.unlink(path.join(cacheDir, file)).catch(() => {});
+          await fs.unlink(path.join(cacheDir, file)).catch(() => { });
           removedCount++;
         }
       }
@@ -260,12 +260,19 @@ export class SubtitleCacheManager {
    * Start periodic cleanup task
    */
   private startPeriodicCleanup() {
-    // Run cleanup once per hour
+    // Run cleanup shortly after startup (30 seconds)
+    setTimeout(() => {
+      this.cleanup().catch((error) => {
+        this.log.error("Initial cleanup failed", error);
+      });
+    }, 30 * 1000);
+
+    // Run cleanup every 12 hours
     this.cleanupTimer = setInterval(() => {
       this.cleanup().catch((error) => {
         this.log.error("Periodic cleanup failed", error);
       });
-    }, 60 * 60 * 1000);
+    }, 12 * 60 * 60 * 1000);
   }
 
   /**

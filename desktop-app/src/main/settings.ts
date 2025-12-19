@@ -655,7 +655,7 @@ function sanitizeCacheSettings(input: Partial<SubtitleCacheSettings> | null | un
   if (!Number.isFinite(retentionDays) || retentionDays < 1) {
     retentionDays = DEFAULT_CACHE_SETTINGS.retentionDays;
   }
-  retentionDays = Math.min(365, Math.max(1, Math.round(retentionDays)));
+  retentionDays = Math.min(9999, Math.max(1, Math.round(retentionDays)));
 
   return {
     enabled,
