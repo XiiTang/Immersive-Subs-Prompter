@@ -12,7 +12,7 @@ import {
 } from "./subtitleService.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { createLogger } from "./logger.js";
-import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "./settings.js";
+import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "./settings/index.js";
 import { SubtitleTrack, TranscriptionConfig } from "./types.js";
 
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];

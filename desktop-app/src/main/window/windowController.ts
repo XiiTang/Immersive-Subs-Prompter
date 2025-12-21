@@ -3,7 +3,7 @@ import path from "path";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
-import { SettingsStore, DEFAULT_SETTINGS } from "../settings.js";
+import { SettingsStore, DEFAULT_SETTINGS } from "../settings/index.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
 import { AppSettings, DesktopState, PlaybackState } from "../types.js";

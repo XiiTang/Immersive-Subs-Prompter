@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import { ConnectionManager } from "../connectionManager.js";
 import { FasterWhisperManager } from "../fasterWhisperManager.js";
 import { StateManager } from "../stateManager.js";
-import { SettingsStore } from "../settings.js";
+import { SettingsStore } from "../settings/index.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { TranscriptionService } from "../transcriptionService.js";
 import { AppSettings } from "../types.js";

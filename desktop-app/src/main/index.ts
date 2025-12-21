@@ -8,7 +8,7 @@ import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { TranscriptionService } from "./transcriptionService.js";
-import { SettingsStore, DEFAULT_SETTINGS } from "./settings.js";
+import { SettingsStore, DEFAULT_SETTINGS } from "./settings/index.js";
 import { AppSettings } from "./types.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
 

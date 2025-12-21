@@ -5,7 +5,7 @@ import iconvLite from "iconv-lite";
 const iconv = iconvLite.default ?? iconvLite;
 import { tmpdir } from "os";
 import path from "path";
-import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings.js";
+import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings/index.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
