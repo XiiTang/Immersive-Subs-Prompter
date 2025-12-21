@@ -1,6 +1,6 @@
 import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
-import { JellyfinembySubtitleService } from "./jellyfinembySubtitleService.js";
+import { JellyfinembySubtitleService } from "./jellyfinemby/index.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import { normalizeServerUrl } from "./jellyfinembyUtils.js";
