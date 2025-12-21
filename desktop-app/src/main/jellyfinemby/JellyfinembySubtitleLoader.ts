@@ -259,25 +259,6 @@ export class JellyfinembySubtitleLoader {
     };
   }
 
-  private async refreshSubtitleMetadata(summary: MediaServerSessionSummary): Promise<MediaServerSessionSummary | null> {
-    const metadata = await this.fetchNowPlayingMetadata(summary);
-    if (!metadata) {
-      return null;
-    }
-    const subtitleStreams = metadata.subtitleStreams.length ? metadata.subtitleStreams : summary.subtitleStreams;
-    const mediaSourceId = metadata.mediaSourceId ?? summary.mediaSourceId;
-    const itemName = metadata.itemName ?? summary.nowPlayingItemName;
-    if (!mediaSourceId && !subtitleStreams.length) {
-      return null;
-    }
-    return {
-      ...summary,
-      mediaSourceId: mediaSourceId ?? null,
-      nowPlayingItemName: itemName ?? null,
-      subtitleStreams
-    };
-  }
-
   private async fetchNowPlayingMetadata(summary: MediaServerSessionSummary, config?: MediaServerConfig) {
     const activeConfig = config ?? this.config;
     if (!activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
