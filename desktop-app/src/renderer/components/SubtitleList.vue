@@ -7,7 +7,7 @@
         <p class="video-meta__url">{{ displayUrl }}</p>
       </section>
       <section class="control-panel" v-if="store.desktopState?.videoUrl">
-        <label class="track-picker">
+        <label class="track-picker" :class="{ 'track-picker--grow': !transcriptionEnabled }">
           <select v-model="primaryTrackId" aria-label="Primary Subtitle">
             <option disabled value="">{{ t("primary-track-placeholder", "Primary Subtitle") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
@@ -15,7 +15,7 @@
             </option>
           </select>
         </label>
-        <label class="track-picker">
+        <label class="track-picker" :class="{ 'track-picker--grow': !transcriptionEnabled }">
           <select v-model="secondaryTrackId" aria-label="Secondary Subtitle">
             <option value="">{{ t("secondary-track-none", "None") }}</option>
             <option v-for="track in subtitleTracks" :key="track.id" :value="track.id">
@@ -23,7 +23,7 @@
             </option>
           </select>
         </label>
-        <div class="transcription-controls">
+        <div class="transcription-controls" v-if="transcriptionEnabled">
           <label class="track-picker transcription-picker">
             <select v-model="activeTranscriptionId" :title="t('transcription-config-select', 'Transcription Config')">
               <option v-for="config in transcriptionConfigs" :key="config.id" :value="config.id">
@@ -156,6 +156,7 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
+const transcriptionEnabled = computed(() => store.settings?.transcription.enabled ?? true);
 const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
 const transcriptionConfigNames = computed(() =>
   transcriptionConfigs.value
@@ -233,7 +234,7 @@ const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
 const hasActiveVideo = computed(() => Boolean(store.desktopState?.videoUrl));
 const isPlaying = computed(() => Math.abs(playback.value?.playbackRate ?? 0) > 0);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
-const autoHideTimestamps = computed(() => store.settings?.global.autoHideTimestamps ?? false);
+const autoHideTimestamps = computed(() => store.activeProfile?.settings.autoHideTimestamps ?? false);
 const playbackDuration = computed(() => {
   const duration = playback.value?.duration;
   if (typeof duration === "number" && duration > 0) {

@@ -106,7 +106,6 @@ export interface GlobalSettings {
   autoHideActiveZoneHeight: number;
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
-  autoHideTimestamps: boolean;
   language: string;
 }
 
@@ -150,6 +149,7 @@ export interface TranscriptionConfig {
 }
 
 export interface TranscriptionSettings {
+  enabled: boolean;
   activeConfigId: string | null;
   configs: TranscriptionConfig[];
 }
@@ -181,6 +181,7 @@ export interface ProfileSettings {
   subtitleScrollPosition: number;
   primarySubtitlePriority: string[];
   secondarySubtitlePriority: string[];
+  autoHideTimestamps: boolean;
 }
 
 export interface ProfileDefinition {

@@ -1,15 +1,14 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">{{ t("section-mediaserver", "Media Server Integration") }}</h3>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">{{ t("mediaserver-enable-label", "Enable Media Server") }}</span>
-      <label class="toggle">
+    <h3 class="settings-section__title">
+      {{ t("section-mediaserver", "Media Server Integration") }}
+      <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="mediaServerEnabled" />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+        <span class="toggle__text">{{ t("mediaserver-enable-label", "Enable Media Server") }}</span>
       </label>
-    </div>
+    </h3>
 
-    <div class="mediaserver-config-manager">
+    <div class="mediaserver-config-manager" v-if="mediaServerEnabled">
       <div class="mediaserver-config-manager__sidebar">
         <div class="mediaserver-config-manager__actions">
           <span class="settings-field__label">{{ t("server-list-label", "Server List") }}</span>
@@ -71,7 +70,7 @@
           <input type="text" v-model="mediaServerWsPath" />
         </label>
         <div class="settings-field settings-field--inline">
-          <span class="settings-field__label">{{ t("mediaserver-enable-label", "Enable Media Server") }}</span>
+          <span class="settings-field__label">{{ t("mediaserver-config-enable-label", "Enable This Server") }}</span>
           <label class="toggle">
             <input type="checkbox" v-model="mediaServerConfigEnabled" />
             <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>

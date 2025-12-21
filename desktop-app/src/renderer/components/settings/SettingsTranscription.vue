@@ -2,8 +2,12 @@
   <section class="settings-section">
     <h3 class="settings-section__title">
       {{ t("section-transcription", "Speech Transcription") }}
+      <label class="toggle toggle--sm settings-section__toggle">
+        <input type="checkbox" v-model="transcriptionEnabled" />
+        <span class="toggle__text">{{ t("transcription-enable-label", "Enable Transcription") }}</span>
+      </label>
     </h3>
-    <div class="transcription-settings">
+    <div class="transcription-settings" v-if="transcriptionEnabled">
       <div class="transcription-settings__sidebar">
         <div class="transcription-settings__actions">
           <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
@@ -186,24 +190,25 @@
               </div>
 
               <div class="fw-card__content">
-                <div class="fw-model-list" v-if="availableModels.length">
-                  <span v-for="model in availableModels" :key="model.path" class="fw-model-chip">
-                    {{ model.name }}
+                <div class="fw-model-row">
+                  <template v-if="availableModels.length">
+                    <span v-for="model in availableModels" :key="model.path" class="fw-model-chip">
+                      {{ model.name }}
+                    </span>
+                  </template>
+                  <span v-else class="fw-model-empty-hint">
+                    {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
                   </span>
-                </div>
-                <div v-else class="fw-empty-state">
-                  {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
-                </div>
-
-                <div class="fw-action-row">
-                  <select v-model="selectedModel" class="fw-select">
-                    <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
-                      {{ model.label }}
-                    </option>
-                  </select>
-                  <button type="button" class="btn-primary" @click="handleDownloadModel" :disabled="isBusy">
-                    {{ t("transcription-faster-download-model", "Download") }}
-                  </button>
+                  <div class="fw-model-download">
+                    <select v-model="selectedModel" class="fw-select">
+                      <option v-for="model in fasterWhisperModels" :key="model.value" :value="model.value">
+                        {{ model.label }}
+                      </option>
+                    </select>
+                    <button type="button" class="btn-primary" @click="handleDownloadModel" :disabled="isBusy">
+                      {{ t("transcription-faster-download-model", "Download") }}
+                    </button>
+                  </div>
                 </div>
                 
                 <div class="fw-folder-input">
@@ -358,6 +363,11 @@ const fasterWhisperModels = [
   { label: "large-v3", value: "large-v3" },
   { label: "large-v3-turbo", value: "large-v3-turbo" }
 ];
+
+const transcriptionEnabled = computed({
+  get: () => store.settings?.transcription.enabled ?? true,
+  set: (value: boolean) => store.setTranscriptionEnabled(value)
+});
 
 const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
 const activeConfigId = computed({

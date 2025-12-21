@@ -10,7 +10,6 @@
     "autoHideActiveZoneHeight": 80,
     "alwaysOnTop": "screen-saver",
     "panelOpacity": 0,
-    "autoHideTimestamps": true,
     "language": "zh"
   },
   "network": {
@@ -44,7 +43,8 @@
           "zh-Hans",
           "ai-zh",
           "zh"
-        ]
+        ],
+        "autoHideTimestamps": true
       }
     },
     {
@@ -72,7 +72,8 @@
         "secondarySubtitlePriority": [
           "zh",
           "zh-Hans"
-        ]
+        ],
+        "autoHideTimestamps": true
       }
     },
     {
@@ -103,7 +104,8 @@
           "zh",
           "ai-zh",
           "zh-Hans"
-        ]
+        ],
+        "autoHideTimestamps": true
       }
     },
     {
@@ -132,7 +134,8 @@
           "zh",
           "ai-zh",
           "zh-Hans"
-        ]
+        ],
+        "autoHideTimestamps": true
       }
     }
   ],
@@ -196,6 +199,7 @@
     ]
   },
   "transcription": {
+    "enabled": true,
     "activeConfigId": "transcription-670ca887-46f4-4fc5-90e7-b854e0e66981",
     "configs": [
       {

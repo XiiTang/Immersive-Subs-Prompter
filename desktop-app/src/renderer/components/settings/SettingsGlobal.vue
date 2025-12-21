@@ -78,32 +78,6 @@
         </div>
       </div>
 
-      <!-- Card 2: Auto-Hide Configuration -->
-      <div class="settings-card">
-        <div class="settings-card__header">
-          <div class="settings-card__title">{{ t("global-autohide", "Auto-Hide Behavior") }}</div>
-        </div>
-        <div class="settings-card__content">
-          <div class="settings-row two-col">
-            <div class="settings-field settings-field--inline">
-              <span class="settings-field__label">{{ t("auto-hide-panels-label", "Auto-hide Panels") }}</span>
-              <label class="toggle">
-                <input type="checkbox" v-model="autoHidePanels" />
-                <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-              </label>
-            </div>
-            <div class="settings-field settings-field--inline">
-              <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Timestamps") }}</span>
-              <label class="toggle">
-                <input type="checkbox" v-model="autoHideTimestamps" />
-                <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-              </label>
-            </div>
-          </div>
-
-
-        </div>
-      </div>
 
       <!-- Card 3: Shortcuts & Interactions -->
       <div class="settings-card settings-card--full-width">
@@ -199,10 +173,6 @@ const toggleShortcut = computed({
   set: (value: string) => store.updateGlobalSetting("toggleWindowShortcut", value)
 });
 
-const autoHidePanels = computed({
-  get: () => store.settings?.global.autoHidePanels ?? false,
-  set: (value: boolean) => store.updateGlobalSetting("autoHidePanels", value)
-});
 
 const serverHost = computed({
   get: () => store.settings?.network.host ?? "127.0.0.1",
@@ -214,10 +184,6 @@ const serverPort = computed({
   set: (value: number) => store.updateNetworkSetting("port", value)
 });
 
-const autoHideTimestamps = computed({
-  get: () => store.settings?.global.autoHideTimestamps ?? false,
-  set: (value: boolean) => store.updateGlobalSetting("autoHideTimestamps", value)
-});
 
 const languageSetting = computed({
   get: () => language.value,

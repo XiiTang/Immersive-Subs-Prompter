@@ -42,7 +42,8 @@ export const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
   primarySubtitlePriority: [],
-  secondarySubtitlePriority: []
+  secondarySubtitlePriority: [],
+  autoHideTimestamps: false
 };
 
 const DEFAULT_PANEL_OPACITY = 100;
@@ -185,8 +186,12 @@ export const useDesktopStore = defineStore("desktop", {
         return "Connecting...";
       }
       const browser = state.desktopState.connectionCount;
-      const enabledServers = state.settings?.mediaServer.configs.filter((c) => c.enabled).length ?? 0;
-      return `Extension: ${browser} · Media Server: ${enabledServers}`;
+      const mediaServerEnabled = state.settings?.mediaServer.enabled ?? false;
+      if (mediaServerEnabled) {
+        const enabledServers = state.settings?.mediaServer.configs.filter((c) => c.enabled).length ?? 0;
+        return `Extension: ${browser} · Media Server: ${enabledServers}`;
+      }
+      return `Extension: ${browser}`;
     },
     activeProfileId(state): string | null {
       return state.desktopState?.appliedProfileId ?? state.settings?.defaultProfileId ?? null;
@@ -541,6 +546,17 @@ export const useDesktopStore = defineStore("desktop", {
       this.updateSettings({
         mediaServer: {
           ...this.settings.mediaServer,
+          enabled
+        }
+      });
+    },
+    setTranscriptionEnabled(enabled: boolean) {
+      if (!this.settings) {
+        return;
+      }
+      this.updateSettings({
+        transcription: {
+          ...this.settings.transcription,
           enabled
         }
       });

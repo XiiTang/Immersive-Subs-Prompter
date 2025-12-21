@@ -67,6 +67,13 @@
           <span class="settings-field__label">{{ t("subtitle-font-size-label", "Subtitle Font Size") }}</span>
           <input type="number" min="10" max="48" step="1" v-model.number="subtitleFontSize" />
         </label>
+        <div class="settings-field settings-field--inline">
+          <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Hide Timestamps") }}</span>
+          <label class="toggle">
+            <input type="checkbox" v-model="autoHideTimestamps" />
+            <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+          </label>
+        </div>
         <label class="settings-field">
           <span class="settings-field__label">
             {{ t("subtitle-autoscroll-label", "Auto-scroll Restore Time (seconds)") }}
@@ -385,6 +392,11 @@ const subtitleActiveSecondaryColor = computed({
 const ytDlpArgs = computed({
   get: () => store.editingProfileSettings.ytDlpArgs,
   set: (value: string) => store.updateProfileSetting("ytDlpArgs", value)
+});
+
+const autoHideTimestamps = computed({
+  get: () => store.editingProfileSettings.autoHideTimestamps,
+  set: (value: boolean) => store.updateProfileSetting("autoHideTimestamps", value)
 });
 
 const primaryPriority = computed(() => store.editingProfileSettings.primarySubtitlePriority ?? []);

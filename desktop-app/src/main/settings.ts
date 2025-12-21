@@ -43,7 +43,6 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoHideActiveZoneHeight: DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
   alwaysOnTop: "off",
   panelOpacity: 100,
-  autoHideTimestamps: false,
   language: DEFAULT_LANGUAGE
 };
 
@@ -70,7 +69,8 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
   primarySubtitlePriority: [],
-  secondarySubtitlePriority: []
+  secondarySubtitlePriority: [],
+  autoHideTimestamps: false
 };
 
 export const DEFAULT_MEDIA_SERVER_SETTINGS: MediaServerSettings = {
@@ -107,6 +107,7 @@ const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
 };
 
 export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
+  enabled: true,
   activeConfigId: DEFAULT_TRANSCRIPTION_CONFIG_ID,
   configs: [DEFAULT_TRANSCRIPTION_CONFIG]
 };
@@ -274,7 +275,8 @@ function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefi
     subtitleAutoScrollTimeout,
     subtitleScrollPosition,
     primarySubtitlePriority,
-    secondarySubtitlePriority
+    secondarySubtitlePriority,
+    autoHideTimestamps: typeof source.autoHideTimestamps === "boolean" ? source.autoHideTimestamps : DEFAULT_PROFILE_SETTINGS.autoHideTimestamps
   };
 }
 
@@ -317,7 +319,6 @@ function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefine
     autoHideActiveZoneHeight,
     alwaysOnTop,
     panelOpacity,
-    autoHideTimestamps: typeof source.autoHideTimestamps === "boolean" ? source.autoHideTimestamps : false,
     language
   };
 }
@@ -621,6 +622,7 @@ function sanitizeTranscriptionSettings(
   input: Partial<TranscriptionSettings> | null | undefined
 ): TranscriptionSettings {
   const source = input ?? {};
+  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_TRANSCRIPTION_SETTINGS.enabled;
   let configs: TranscriptionConfig[] = [];
   if (Array.isArray(source.configs)) {
     configs = source.configs.map((config, index) =>
@@ -641,6 +643,7 @@ function sanitizeTranscriptionSettings(
     : configs[0].id;
 
   return {
+    enabled,
     activeConfigId,
     configs
   };
