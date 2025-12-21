@@ -155,6 +155,11 @@ export class MediaServerController {
   private async processMediaServerVideoContext(message: ExtensionMessage, url: string) {
     const state = this.options.stateManager.getState();
     const itemId = this.extractItemId(message.payload, url);
+
+    // Get the current server config ID from the URL (freshly resolved)
+    const currentServerConfigId = this.resolveMediaServerConfigIdFromUrls([url, message.payload.pageUrl, message.payload.videoSrc]);
+
+
     if (itemId) {
       this.updateTabMediaServerContext(message.tabId, { itemId });
     }
@@ -190,15 +195,29 @@ export class MediaServerController {
       }
 
       let matchingSession: MediaServerSessionSummary | null = null;
-      if (storedSession && storedSession.nowPlayingItemId === itemId) {
+
+      // Check if stored session is still valid for this itemId AND same server
+      if (storedSession && storedSession.nowPlayingItemId === itemId &&
+        (!currentServerConfigId || storedSession.serverConfigId === currentServerConfigId)) {
         matchingSession = storedSession;
       }
+
+      // Try to find a matching session, preferring the current server
       if (!matchingSession) {
+        // First, try to match on both itemId AND the current server
         matchingSession =
           latestState.mediaServer.sessions.find(
             (session) =>
               session.nowPlayingItemId === itemId &&
-              (!tabContext?.serverConfigId || session.serverConfigId === tabContext.serverConfigId)
+              currentServerConfigId && session.serverConfigId === currentServerConfigId
+          ) ?? null;
+      }
+
+      // Fallback: match any session with the same itemId (for cases where server detection failed)
+      if (!matchingSession) {
+        matchingSession =
+          latestState.mediaServer.sessions.find(
+            (session) => session.nowPlayingItemId === itemId
           ) ?? null;
       }
 
@@ -320,11 +339,20 @@ export class MediaServerController {
       if (!context.itemId) {
         continue;
       }
-      const matchingByItem = sessions.find(
+      // First try to match with server preference
+      let matchingByItem = sessions.find(
         (session) =>
           session.nowPlayingItemId === context.itemId &&
-          (!context.serverConfigId || session.serverConfigId === context.serverConfigId)
+          context.serverConfigId && session.serverConfigId === context.serverConfigId
       );
+
+      // Fallback: match any session with the same itemId (allows cross-server switching)
+      if (!matchingByItem) {
+        matchingByItem = sessions.find(
+          (session) => session.nowPlayingItemId === context.itemId
+        );
+      }
+
       if (matchingByItem) {
         this.updateTabMediaServerContext(tabId, {
           sessionId: matchingByItem.id,
@@ -426,11 +454,18 @@ export class MediaServerController {
           sessionToSelect = matchingBySession;
         }
       } else if (activeTabItemId) {
-        const matchingSession = sessions.find(
+        // First try to match with server preference
+        let matchingSession = sessions.find(
           (session) =>
             session.nowPlayingItemId === activeTabItemId &&
-            (!activeServerId || session.serverConfigId === activeServerId)
+            activeServerId && session.serverConfigId === activeServerId
         );
+        // Fallback: match any session with the same itemId
+        if (!matchingSession) {
+          matchingSession = sessions.find(
+            (session) => session.nowPlayingItemId === activeTabItemId
+          );
+        }
         if (matchingSession) {
           sessionToSelect = matchingSession;
         }
@@ -528,14 +563,21 @@ export class MediaServerController {
       }
       try {
         const urlObj = new URL(candidate);
-        for (const [key, value] of urlObj.searchParams.entries()) {
-          if (key.toLowerCase() === "mediasourceid") {
-            return value;
-          }
-        }
+
+        // First, try to extract from URL path (e.g., /videos/302/... or /items/302/...)
+        // This matches what Emby/Jellyfin report as nowPlayingItemId
         const pathMatch = urlObj.pathname.match(/\/(?:videos|items)\/([^/]+)/i);
         if (pathMatch?.[1]) {
           return pathMatch[1];
+        }
+
+        // Fallback: try MediaSourceId parameter (but strip 'mediasource_' prefix if present)
+        for (const [key, value] of urlObj.searchParams.entries()) {
+          if (key.toLowerCase() === "mediasourceid") {
+            // Strip 'mediasource_' prefix if present to match server-reported ID
+            const cleanedValue = value.replace(/^mediasource_/i, "");
+            return cleanedValue;
+          }
         }
       } catch (error) {
         this.log.error(`Failed to parse media server URL for itemId`, error);
@@ -638,9 +680,8 @@ export class MediaServerController {
         }
         try {
           const serverUrl = new URL(normalizeServerUrl(config.serverUrl));
-          const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${
-            serverUrl.port ? ":" + serverUrl.port : ""
-          }`;
+          const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ":" + serverUrl.port : ""
+            }`;
           if (serverOrigin === origin) {
             return config.id;
           }
