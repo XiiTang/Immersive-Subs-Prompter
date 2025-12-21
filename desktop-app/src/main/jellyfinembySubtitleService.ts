@@ -438,7 +438,7 @@ class JellyfinembyConnection {
     if (!Array.isArray(data)) {
       return;
     }
-    
+
     const nextSessions = new Map<string, MediaServerSessionSummary>();
     for (const record of data as RawSessionRecord[]) {
       // Skip our own session - we don't want to monitor ourselves
@@ -446,16 +446,15 @@ class JellyfinembyConnection {
       if (typeof deviceId === "string" && deviceId === this.identity.deviceId) {
         continue;
       }
-      
+
       const summary = this.toSessionSummary(record);
       if (!summary) {
         continue;
       }
-      
+
       nextSessions.set(summary.id, summary);
     }
     this.sessions = nextSessions;
-    this.log.info(`[${this.config.name}] Received ${this.sessions.size} Jellyfinemby session(s)`);
     this.hooks.onSessions(Array.from(this.sessions.values()));
 
     if (this.activeSessionId) {
@@ -463,10 +462,10 @@ class JellyfinembyConnection {
       if (summary) {
         const reportedItemId = summary.nowPlayingItemId;
         const reportedPositionTicks = summary.positionTicks;
-        
+
         // Determine if we should switch to the reported itemId
         let shouldSwitchItem = false;
-        
+
         if (!this.lastActiveSessionItemId) {
           // No previous item, accept the reported one
           shouldSwitchItem = true;
@@ -482,12 +481,12 @@ class JellyfinembyConnection {
         } else {
           // Different itemId reported - check if it's actually active
           const lastKnownPosition = this.itemPositionHistory.get(reportedItemId) ?? null;
-          const positionChanged = lastKnownPosition !== null && 
-                                   reportedPositionTicks !== null &&
-                                   reportedPositionTicks !== lastKnownPosition;
-          
+          const positionChanged = lastKnownPosition !== null &&
+            reportedPositionTicks !== null &&
+            reportedPositionTicks !== lastKnownPosition;
+
           const isPlaying = !summary.isPaused;
-          
+
           // Only switch if the new item shows signs of activity:
           // 1. Position has changed from its own last known position (indicates playback progress or user seeking)
           // 2. OR the item is actively playing
@@ -495,10 +494,10 @@ class JellyfinembyConnection {
             shouldSwitchItem = true;
           }
         }
-        
+
         // Use the sticky itemId for playback emission
         const effectiveItemId = shouldSwitchItem ? reportedItemId : this.lastActiveSessionItemId;
-        
+
         // Update tracking if we switched
         if (shouldSwitchItem && reportedItemId) {
           this.lastActiveSessionItemId = reportedItemId;
@@ -506,14 +505,14 @@ class JellyfinembyConnection {
             this.itemPositionHistory.set(reportedItemId, reportedPositionTicks);
           }
         }
-        
+
         // Emit playback using the effective (sticky) itemId
         // Only emit if the reported item matches our effective item
         if (reportedItemId === effectiveItemId) {
           // This is the active item, emit its playback state
           this.emitPlayback(summary);
         }
-        
+
         // Only try to load subtitles if there's actually a playing item and we switched
         if (effectiveItemId && shouldSwitchItem) {
           void this.loadSubtitlesForSession(summary);
@@ -553,17 +552,17 @@ class JellyfinembyConnection {
     const playState: Record<string, unknown> = (record as any).PlayState ?? {};
     const nowPlayingItem: Record<string, unknown> | null = (record as any).NowPlayingItem ?? null;
     const mediaSources = (nowPlayingItem?.MediaSources as RawSessionRecord[] | undefined) ?? [];
-    
+
     // Extract mediaSourceId directly from PlayState first, then fallback to MediaSources
     const mediaSourceIdFromPlayState = typeof playState?.MediaSourceId === "string" ? playState.MediaSourceId : null;
     const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
     const resolvedMediaSourceId = mediaSourceIdFromPlayState ?? mediaSourceIdFromSources;
-    
+
     // Find the matching media source
     const mediaSource = resolvedMediaSourceId
       ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
       : mediaSources[0] ?? null;
-    
+
     const subtitleStreams = this.extractSubtitleStreams(mediaSource, nowPlayingItem);
 
     return {
@@ -681,7 +680,7 @@ class JellyfinembyConnection {
     }
 
     const resolvedStreams = await this.resolveSubtitleStreams(summary, this.config, true);
-    
+
     if (!resolvedStreams.streams.length) {
       this.log.info(
         `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
@@ -721,7 +720,7 @@ class JellyfinembyConnection {
       );
       return;
     }
-    
+
     this.lastSubtitleItemKey = subtitleKey;
 
     const currentToken = ++this.subtitleRequestToken;
@@ -735,7 +734,7 @@ class JellyfinembyConnection {
         const extension = this.getPreferredExtension(stream);
         const url = buildSubtitleUrl(this.config, workingSummary, stream, extension);
         const fallbackSourceFile = `${workingSummary.nowPlayingItemId ?? "item"}#${stream.index}.${extension}`;
-        
+
         // Check cache first
         let content: string | null = null;
         if (this.cacheManager) {
@@ -752,7 +751,7 @@ class JellyfinembyConnection {
             continue;
           }
         }
-        
+
         this.log.info(
           `[${this.config.name}] Downloading subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
         );
@@ -771,14 +770,14 @@ class JellyfinembyConnection {
           this.log.warn(`[${this.config.name}] Parsed subtitle stream #${stream.index} but found no cues`);
           continue;
         }
-        
+
         const track = {
           id: `${workingSummary.id}:${stream.index}`,
           sourceFile: stream.displayTitle ?? fallbackSourceFile,
           cues
         };
         tracks.push(track);
-        
+
         if (this.cacheManager && content) {
           await this.cacheManager.set(url, "mediaserver", { tracks: [track] });
         }
@@ -846,7 +845,7 @@ class JellyfinembyConnection {
           streamCount: metadata.subtitleStreams.length,
           mediaSourceId: metadata.mediaSourceId
         });
-        
+
         // Recursively call with allowRefresh=false to avoid infinite loop
         return this.resolveSubtitleStreams(
           {
@@ -906,20 +905,20 @@ class JellyfinembyConnection {
       }
       const item = await response.json();
       const mediaSources = Array.isArray(item?.MediaSources) ? (item.MediaSources as RawSessionRecord[]) : [];
-      
+
       // Use mediaSourceId from summary first, then fallback to first source
       const mediaSourceIdFromSummary = summary.mediaSourceId;
       const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
       const resolvedMediaSourceId = mediaSourceIdFromSummary ?? mediaSourceIdFromSources;
-      
+
       // Find matching media source
       const mediaSource = resolvedMediaSourceId
         ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
         : mediaSources[0] ?? null;
-      
+
       const subtitleStreams = this.extractSubtitleStreams(mediaSource, item);
       const itemName = typeof item?.Name === "string" ? item.Name : null;
-      
+
       return {
         subtitleStreams,
         mediaSourceId: resolvedMediaSourceId,

@@ -185,9 +185,8 @@ export const useDesktopStore = defineStore("desktop", {
         return "Connecting...";
       }
       const browser = state.desktopState.connectionCount;
-      const mediaServerSessions = state.desktopState.mediaServer.sessions.length;
       const enabledServers = state.settings?.mediaServer.configs.filter((c) => c.enabled).length ?? 0;
-      return `Extension: ${browser} · Media Server: ${enabledServers} (${mediaServerSessions})`;
+      return `Extension: ${browser} · Media Server: ${enabledServers}`;
     },
     activeProfileId(state): string | null {
       return state.desktopState?.appliedProfileId ?? state.settings?.defaultProfileId ?? null;
