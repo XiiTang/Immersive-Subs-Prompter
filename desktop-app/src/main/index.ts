@@ -3,7 +3,7 @@ import { AppEventBus } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { ConnectionManager } from "./connectionManager.js";
 import { MediaServerController } from "./mediaServerController.js";
-import { WindowController } from "./windowController.js";
+import { WindowController } from "./window/windowController.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
