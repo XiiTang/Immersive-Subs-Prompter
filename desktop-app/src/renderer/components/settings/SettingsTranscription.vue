@@ -115,61 +115,65 @@
             <div class="fw-card">
               <div class="fw-card__header">
                 <div class="fw-card__title">{{ t("transcription-faster-binary-status", "System Integration") }}</div>
-                <button
-                  type="button"
-                  class="icon-text-button"
-                  @click="openPath(paths?.binaryDir)"
-                  :title="t('transcription-faster-open-bin', 'Open folder')"
-                >
-                  <span class="icon">📂</span>
-                </button>
               </div>
 
               <div class="fw-card__content">
-                <div class="fw-status-row">
-                  <div class="fw-status-item">
-                    <span class="label">{{ t("transcription-faster-cpu-support", "CPU Support") }}</span>
-                    <span class="fw-badge" :class="binaryStatus.cpu ? 'fw-badge--success' : 'fw-badge--error'">
-                      {{
-                        binaryStatus.cpu
-                          ? t("transcription-faster-binary-present", "Ready")
-                          : t("transcription-faster-binary-missing", "Missing")
-                      }}
-                    </span>
+                <div class="fw-row two-col">
+                  <div class="fw-status-row">
+                    <div class="fw-status-item">
+                      <span class="label">{{ t("transcription-faster-cpu-support", "CPU") }}</span>
+                      <span class="fw-badge" :class="binaryStatus.cpu ? 'fw-badge--success' : 'fw-badge--error'">
+                        {{
+                          binaryStatus.cpu
+                            ? t("transcription-faster-binary-present", "Ready")
+                            : t("transcription-faster-binary-missing", "Missing")
+                        }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      @click="handleDownloadBinary('cpu')"
+                      :disabled="isBusy"
+                    >
+                      {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="handleDownloadBinary('cpu')"
-                    :disabled="isBusy"
-                  >
-                    {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
-                  </button>
-                </div>
 
-                <div class="fw-status-row">
-                  <div class="fw-status-item">
-                    <span class="label">{{ t("transcription-faster-gpu-cuda", "GPU (CUDA 12)") }}</span>
-                    <span class="fw-badge" :class="binaryStatus.gpu ? 'fw-badge--success' : 'fw-badge--error'">
-                      {{
-                        binaryStatus.gpu
-                          ? t("transcription-faster-binary-present", "Ready")
-                          : t("transcription-faster-binary-missing", "Missing")
-                      }}
-                    </span>
+                  <div class="fw-status-row">
+                    <div class="fw-status-item">
+                      <span class="label">{{ t("transcription-faster-gpu-cuda", "GPU") }}</span>
+                      <span class="fw-badge" :class="binaryStatus.gpu ? 'fw-badge--success' : 'fw-badge--error'">
+                        {{
+                          binaryStatus.gpu
+                            ? t("transcription-faster-binary-present", "Ready")
+                            : t("transcription-faster-binary-missing", "Missing")
+                        }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      @click="handleDownloadBinary('gpu')"
+                      :disabled="isBusy"
+                    >
+                      {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="handleDownloadBinary('gpu')"
-                    :disabled="isBusy"
-                  >
-                    {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
-                  </button>
                 </div>
 
                 <div class="fw-folder-input">
-                  <span class="label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
+                  <div class="fw-field-header">
+                    <span class="label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
+                    <button
+                      type="button"
+                      class="icon-text-button"
+                      @click="openPath(paths?.binaryDir)"
+                      :title="t('transcription-faster-open-bin', 'Open folder')"
+                    >
+                      <span class="icon">📂</span>
+                    </button>
+                  </div>
                   <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" class="fw-input-sm" />
                 </div>
               </div>
@@ -179,14 +183,6 @@
             <div class="fw-card">
               <div class="fw-card__header">
                 <div class="fw-card__title">{{ t("transcription-faster-models-available", "AI Models") }}</div>
-                <button
-                  type="button"
-                  class="icon-text-button"
-                  @click="openPath(paths?.modelsDir)"
-                  :title="t('transcription-faster-open-models', 'Open folder')"
-                >
-                  <span class="icon">📂</span>
-                </button>
               </div>
 
               <div class="fw-card__content">
@@ -212,7 +208,17 @@
                 </div>
                 
                 <div class="fw-folder-input">
-                   <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
+                   <div class="fw-field-header">
+                      <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
+                      <button
+                        type="button"
+                        class="icon-text-button"
+                        @click="openPath(paths?.modelsDir)"
+                        :title="t('transcription-faster-open-models', 'Open folder')"
+                      >
+                        <span class="icon">📂</span>
+                      </button>
+                   </div>
                    <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" class="fw-input-sm" />
                 </div>
               </div>

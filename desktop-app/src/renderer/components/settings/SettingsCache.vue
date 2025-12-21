@@ -1,76 +1,76 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
+    <h3 class="settings-section__title">
+      {{ t("section-cache", "Subtitle Cache") }}
+      <label class="toggle toggle--sm settings-section__toggle">
+        <input type="checkbox" v-model="cacheEnabled" />
+        <span class="toggle__text">{{ t("enable-cache-label", "Enable Cache") }}</span>
+      </label>
+    </h3>
     
-    <div class="fw-management-section">
-      <div class="fw-card">
-        <div class="fw-card__header">
-          <div class="fw-card__title">{{ t("section-settings", "Settings") }}</div>
-          <button
-            type="button"
-            class="icon-text-button"
-            @click="openCacheFolder"
-            :title="t('button-open-cache', 'Open Folder')"
-          >
-            <span class="icon">📂</span>
-          </button>
-        </div>
-        
-        <div class="fw-card__content">
-          <div class="fw-field fw-field--inline">
-            <span class="label">{{ t("enable-cache-label", "Enable Cache") }}</span>
-            <label class="toggle toggle--sm">
-              <input type="checkbox" v-model="cacheEnabled" />
-              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-            </label>
-          </div>
-
-          <div class="fw-folder-input">
+    <div v-if="cacheEnabled" style="display: flex; flex-direction: column; gap: 16px; margin-top: 8px;">
+      <!-- Settings Row -->
+      <div class="fw-row">
+        <div class="fw-field" style="flex: 1; min-width: 0;">
+          <div class="fw-field-header">
             <span class="label">{{ t("cache-path-label", "Cache Path") }}</span>
-            <input 
-              type="text" 
-              v-model="cachePath" 
-              class="fw-input-sm" 
-            />
+            <button
+              type="button"
+              class="icon-text-button"
+              @click="openCacheFolder"
+              :title="t('button-open-cache', 'Open Folder')"
+              style="padding: 0; opacity: 0.8;"
+            >
+              <span class="icon">📂</span>
+            </button>
           </div>
-
-          <div class="fw-field">
-            <span class="label">{{ t("cache-retention-label", "Retention (days)") }}</span>
-            <input type="number" min="1" max="9999" step="1" v-model.number="cacheRetentionDays" class="fw-input-sm" />
-          </div>
+          <input 
+            type="text" 
+            v-model="cachePath" 
+            class="fw-input-sm" 
+          />
+        </div>
+        <div class="fw-field" style="flex: 0 0 auto;">
+          <span class="label">{{ t("cache-retention-label", "Retention (days)") }}</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="9999" 
+            step="1" 
+            v-model.number="cacheRetentionDays" 
+            class="fw-input-sm" 
+            style="width: 75px;"
+          />
         </div>
       </div>
 
-      <div class="fw-card">
-        <div class="fw-card__header">
-          <div class="fw-card__title">{{ t("section-stats", "Statistics") }}</div>
-          <button 
-            type="button" 
-            class="icon-text-button" 
-            :disabled="cacheBusy" 
-            @click="refreshCacheStats"
-            :title="t('button-refresh-stats', 'Refresh Stats')"
-          >
-            <span class="icon">🔄</span>
-          </button>
-        </div>
-        
-        <div class="fw-card__content">
-           <div class="fw-status-row">
-             <div class="fw-status-item">
-               <span class="label">{{ t("cache-stats-entries", "Total entries") }}</span>
-               <span class="fw-badge">{{ cacheStatsDisplay.entries }}</span>
-             </div>
-             <div class="fw-status-item">
-               <span class="label">{{ t("cache-stats-size", "Total size") }}</span>
-               <span class="fw-badge">{{ cacheStatsDisplay.size }}</span>
-             </div>
-             <div class="fw-status-item">
-               <span class="label">{{ t("cache-stats-oldest", "Oldest entry") }}</span>
-               <span class="fw-badge">{{ cacheStatsDisplay.oldest }}</span>
-             </div>
+      <!-- Statistics Summary -->
+      <div class="fw-status-row" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+         <div class="fw-status-item">
+           <span class="label">{{ t("cache-stats-entries", "Total entries") }}</span>
+           <span class="fw-badge">{{ cacheStatsDisplay.entries }}</span>
+         </div>
+         <div class="fw-status-item">
+           <span class="label">{{ t("cache-stats-size", "Total size") }}</span>
+           <span class="fw-badge">{{ cacheStatsDisplay.size }}</span>
+         </div>
+         <div class="fw-status-item">
+           <div style="display: flex; align-items: center; gap: 4px;">
+             <span class="label">{{ t("cache-stats-oldest", "Oldest entry").replace("：", "").replace(":", "") }}</span>
+             <button 
+               type="button" 
+               class="icon-text-button" 
+               style="padding: 0; min-height: 0; width: 14px; height: 14px; font-size: 11px; opacity: 0.8;" 
+               :disabled="cacheBusy"
+               @click="refreshCacheStats"
+               :title="t('button-refresh-stats', 'Refresh Stats')"
+             >
+               <span class="icon" :style="{ display: 'inline-block', transform: cacheBusy ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s ease' }">🔄</span>
+             </button>
+             <span class="label">{{ language === "zh" ? "：" : ":" }}</span>
            </div>
-        </div>
+           <span class="fw-badge">{{ cacheStatsDisplay.oldest }}</span>
+         </div>
       </div>
     </div>
   </section>

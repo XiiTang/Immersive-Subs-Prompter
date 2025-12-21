@@ -1645,18 +1645,17 @@ body {
 }
 
 .fw-card__content {
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  /* Increased gap for better spacing */
+  gap: 12px;
   flex: 1;
 }
 
 /* Row & Field Layouts */
 .fw-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -1668,7 +1667,7 @@ body {
 .fw-row.three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .fw-field {
@@ -1711,7 +1710,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: rgba(0, 0, 0, calc(0.2 * var(--panel-opacity-factor)));
   border: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 8px;
@@ -2004,7 +2003,7 @@ body {
 
 .settings-color-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
