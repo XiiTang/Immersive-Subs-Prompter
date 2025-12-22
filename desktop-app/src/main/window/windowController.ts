@@ -50,6 +50,7 @@ export class WindowController {
     this.trayManager = new TrayManager({
       getIconPath: () => this.getIconPath(),
       onShow: () => this.showMainWindow(),
+      onQuickShow: () => this.quickShowMainWindow(),
       onQuit: () => {
         this.isQuitting = true;
       }
@@ -121,6 +122,23 @@ export class WindowController {
 
   toggleMainWindow() {
     this.windowManager.toggleWindow();
+  }
+
+  /**
+   * Quick show: Show window, lock to top, and set opacity to 100%
+   */
+  quickShowMainWindow() {
+    // Show the window first
+    this.windowManager.showWindow();
+
+    // Update settings: always on top to highest level and panel opacity to 100%
+    this.updateAppSettings({
+      global: {
+        ...this.options.getSettings().global,
+        alwaysOnTop: "screen-saver",
+        panelOpacity: 100
+      }
+    });
   }
 
   toggleDisplayFullscreenOnCurrentDisplay(): boolean {

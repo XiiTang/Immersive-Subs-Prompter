@@ -3,13 +3,14 @@ import { app, Menu, nativeImage, Tray } from "electron";
 type TrayManagerOptions = {
   getIconPath: () => string;
   onShow: () => void;
+  onQuickShow: () => void;
   onQuit: () => void;
 };
 
 export class TrayManager {
   private tray: Tray | null = null;
 
-  constructor(private readonly options: TrayManagerOptions) {}
+  constructor(private readonly options: TrayManagerOptions) { }
 
   ensureTray() {
     if (this.tray) {
@@ -25,6 +26,10 @@ export class TrayManager {
         {
           label: "Show Window",
           click: () => this.options.onShow()
+        },
+        {
+          label: "Quick Show",
+          click: () => this.options.onQuickShow()
         },
         { type: "separator" },
         {
