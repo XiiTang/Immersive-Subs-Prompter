@@ -1,4 +1,4 @@
-import { clampAutoHideZoneHeight } from "../../common/autoHide.js";
+import { clampAutoHideZoneHeight } from "../../../common/autoHide.js";
 import { CloseBehavior, GlobalSettings } from "../../types.js";
 import { DEFAULT_GLOBAL_SETTINGS, SUPPORTED_LANGUAGES } from "../constants.js";
 import { sanitizeProcessList } from "../utils.js";

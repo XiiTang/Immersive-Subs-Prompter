@@ -10,7 +10,7 @@ import {
   TranscriptionSettings,
   UrlMatchType
 } from "../types.js";
-import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../common/autoHide.js";
+import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
 import { clampPort } from "./utils.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
