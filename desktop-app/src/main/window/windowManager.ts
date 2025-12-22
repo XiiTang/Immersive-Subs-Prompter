@@ -17,7 +17,7 @@ export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
   private readonly __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  constructor(private readonly options: WindowManagerOptions) {}
+  constructor(private readonly options: WindowManagerOptions) { }
 
   getWindow(): BrowserWindow | null {
     return this.mainWindow;
@@ -40,7 +40,7 @@ export class WindowManager {
       fullscreenable: false,
       titleBarStyle: "hidden",
       webPreferences: {
-        preload: path.join(this.__dirname, "../preload.js"),
+        preload: path.join(this.__dirname, "../../preload.js"),
         contextIsolation: true,
         nodeIntegration: false
       },
@@ -54,7 +54,7 @@ export class WindowManager {
       this.mainWindow.setAlwaysOnTop(true, level);
     }
 
-    this.mainWindow.loadFile(path.join(this.__dirname, "../renderer/index.html"));
+    this.mainWindow.loadFile(path.join(this.__dirname, "../../renderer/index.html"));
 
     this.mainWindow.on("close", (event) => {
       const currentSettings = this.options.getSettings();
