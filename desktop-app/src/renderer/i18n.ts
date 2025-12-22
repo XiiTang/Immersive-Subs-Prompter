@@ -9,9 +9,7 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "settings-title": "设置",
   "section-global-settings": "全局设置",
   "global-general": "常规",
-  "close-behavior-label": "关闭行为",
-  "close-behavior-tray": "关闭时最小化到托盘",
-  "close-behavior-quit": "退出应用",
+
   "auto-start-label": "开机启动",
   "global-autohide": "自动隐藏行为",
   "global-network": "网络与连接",

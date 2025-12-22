@@ -1,7 +1,9 @@
 import { app, Menu, nativeImage, Tray } from "electron";
+import { translate, normalizeLanguage, type SupportedLanguage } from "../i18n.js";
 
 type TrayManagerOptions = {
   getIconPath: () => string;
+  getLanguage: () => string;
   onShow: () => void;
   onQuickShow: () => void;
   onQuit: () => void;
@@ -9,6 +11,7 @@ type TrayManagerOptions = {
 
 export class TrayManager {
   private tray: Tray | null = null;
+  private currentLanguage: SupportedLanguage = "en";
 
   constructor(private readonly options: TrayManagerOptions) { }
 
@@ -21,19 +24,42 @@ export class TrayManager {
     const icon = nativeImage.createFromPath(iconPath);
     this.tray = new Tray(icon);
     this.tray.setToolTip("Immersive Subs Prompter");
+    this.currentLanguage = normalizeLanguage(this.options.getLanguage());
+    this.updateContextMenu();
+    this.tray.on("click", () => {
+      this.options.onShow();
+    });
+  }
+
+  /**
+   * Update tray menu language. Call this when language setting changes.
+   */
+  updateLanguage() {
+    const newLanguage = normalizeLanguage(this.options.getLanguage());
+    if (this.tray && newLanguage !== this.currentLanguage) {
+      this.currentLanguage = newLanguage;
+      this.updateContextMenu();
+    }
+  }
+
+  private updateContextMenu() {
+    if (!this.tray) {
+      return;
+    }
+    const lang = this.currentLanguage;
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: "Show Window",
+          label: translate("tray-show-window", "Show Window", lang),
           click: () => this.options.onShow()
         },
         {
-          label: "Quick Show",
+          label: translate("tray-quick-show", "Quick Show", lang),
           click: () => this.options.onQuickShow()
         },
         { type: "separator" },
         {
-          label: "Quit",
+          label: translate("tray-quit", "Quit", lang),
           click: () => {
             this.options.onQuit();
             this.destroy();
@@ -42,9 +68,6 @@ export class TrayManager {
         }
       ])
     );
-    this.tray.on("click", () => {
-      this.options.onShow();
-    });
   }
 
   destroy() {

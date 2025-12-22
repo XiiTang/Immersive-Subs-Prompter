@@ -9,22 +9,12 @@
           <div class="settings-card__title">{{ t("global-general", "General") }}</div>
         </div>
         <div class="settings-card__content">
-          <div class="settings-row two-col">
-            <div class="settings-field">
-              <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
-              <select v-model="languageSetting" class="settings-select">
-                <option value="en">{{ t("language-option-en", "English") }}</option>
-                <option value="zh">{{ t("language-option-zh", "中文") }}</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <span class="settings-field__label">{{ t("close-behavior-label", "Close Behavior") }}</span>
-              <select v-model="closeBehavior" class="settings-select">
-                <option value="tray">{{ t("close-behavior-tray", "Minimize to tray on close") }}</option>
-                <option value="quit">{{ t("close-behavior-quit", "Quit application") }}</option>
-              </select>
-            </div>
+          <div class="settings-field">
+            <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
+            <select v-model="languageSetting" class="settings-select">
+              <option value="en">{{ t("language-option-en", "English") }}</option>
+              <option value="zh">{{ t("language-option-zh", "中文") }}</option>
+            </select>
           </div>
 
           <div class="settings-field settings-field--inline">
@@ -158,10 +148,7 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const closeBehavior = computed({
-  get: () => store.settings?.global.closeBehavior ?? "tray",
-  set: (value: "tray" | "quit") => store.updateGlobalSetting("closeBehavior", value)
-});
+
 
 const autoLaunch = computed({
   get: () => store.settings?.global.autoLaunch ?? false,

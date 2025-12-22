@@ -49,6 +49,7 @@ export class WindowController {
     this.shortcutManager = new ShortcutManager();
     this.trayManager = new TrayManager({
       getIconPath: () => this.getIconPath(),
+      getLanguage: () => this.options.getSettings().global.language ?? "en",
       onShow: () => this.showMainWindow(),
       onQuickShow: () => this.quickShowMainWindow(),
       onQuit: () => {
@@ -58,7 +59,6 @@ export class WindowController {
     this.windowManager = new WindowManager({
       getSettings: this.options.getSettings,
       getIconPath: () => this.getIconPath(),
-      shouldPreventClose: () => !this.isQuitting,
       onDidFinishLoad: () => {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
@@ -200,19 +200,12 @@ export class WindowController {
       this.applyGlobalShortcut();
     }
 
-    if (previousGlobal.closeBehavior !== appSettings.global.closeBehavior) {
-      const window = this.windowManager.getWindow();
-      if (window) {
-        if (appSettings.global.closeBehavior === "quit") {
-          window.setSkipTaskbar(false);
-        } else if (!window.isVisible()) {
-          window.setSkipTaskbar(true);
-        }
-      }
-    }
-
     if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop) {
       this.windowManager.updateAlwaysOnTop(appSettings.global.alwaysOnTop);
+    }
+
+    if (previousGlobal.language !== appSettings.global.language) {
+      this.trayManager.updateLanguage();
     }
 
     if (

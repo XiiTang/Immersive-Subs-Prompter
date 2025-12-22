@@ -6,7 +6,6 @@ import { AppSettings } from "../types.js";
 type WindowManagerOptions = {
   getSettings: () => AppSettings;
   getIconPath: () => string;
-  shouldPreventClose: () => boolean;
   onDidFinishLoad?: (window: BrowserWindow) => void;
   onShow?: () => void;
   onHide?: () => void;
@@ -56,14 +55,8 @@ export class WindowManager {
 
     this.mainWindow.loadFile(path.join(this.__dirname, "../../renderer/index.html"));
 
-    this.mainWindow.on("close", (event) => {
-      const currentSettings = this.options.getSettings();
-      if (this.options.shouldPreventClose() && currentSettings.global.closeBehavior === "tray") {
-        event.preventDefault();
-        this.mainWindow?.hide();
-        this.mainWindow?.setSkipTaskbar(true);
-      }
-    });
+    // Close event: allow window to close normally (Alt+F4, taskbar close, etc.)
+    // No need to intercept - window closes and app quits
 
     this.mainWindow.on("show", () => {
       this.mainWindow?.setSkipTaskbar(false);
@@ -71,9 +64,6 @@ export class WindowManager {
     });
 
     this.mainWindow.on("hide", () => {
-      if (this.options.getSettings().global.closeBehavior === "tray") {
-        this.mainWindow?.setSkipTaskbar(true);
-      }
       this.options.onHide?.();
     });
 
