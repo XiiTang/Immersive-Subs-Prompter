@@ -3,7 +3,7 @@
     <HeaderBar />
     <div class="window__content">
       <div class="primary-view">
-        <SubtitleList />
+        <SubtitleView />
       </div>
       <SettingsPanel v-show="store.isSettingsOpen" />
     </div>
@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import HeaderBar from "./components/HeaderBar.vue";
-import SubtitleList from "./components/SubtitleList.vue";
+import SubtitleView from "./components/subtitle/SubtitleView.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "./stores/desktop";
 import type { ProfileSettings } from "./main/types.js";
