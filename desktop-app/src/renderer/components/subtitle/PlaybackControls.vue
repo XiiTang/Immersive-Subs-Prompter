@@ -7,7 +7,7 @@
       :aria-label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
       @click="$emit('toggle-playback')"
     >
-      {{ isPlaying ? "ā¸? : "ā–?" }}
+      {{ isPlaying ? "⏸" : "▶" }}
     </button>
     <div class="playback-progress">
       <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
@@ -34,7 +34,7 @@
       aria-label="Toggle auto hide panels"
       @click="$emit('toggle-auto-hide')"
     >
-      {{ autoHideEnabled ? "ā–? : "ā–?" }}
+      {{ autoHideEnabled ? "▲" : "▼" }}
     </button>
   </div>
 </template>

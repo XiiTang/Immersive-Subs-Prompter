@@ -22,7 +22,7 @@
       "
       @click="$emit('start')"
     >
-      <span aria-hidden="true">{{ isTranscribing ? "ā¸? : "ā–?" }}</span>
+      <span aria-hidden="true">{{ isTranscribing ? "⏳" : "▶" }}</span>
     </button>
   </div>
 </template>
