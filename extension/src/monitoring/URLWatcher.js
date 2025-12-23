@@ -16,10 +16,3 @@ export function ensureUrlWatcher(onUrlChanged) {
   };
   state.urlMonitorTimer = window.setTimeout(tick, 1000);
 }
-
-export function stopUrlWatcher() {
-  if (state.urlMonitorTimer !== null) {
-    clearTimeout(state.urlMonitorTimer);
-    state.urlMonitorTimer = null;
-  }
-}

@@ -53,16 +53,12 @@ export function startLoop(target, startMs, endMs) {
   target.currentTime = startMs / 1000;
   if (wasPaused) {
     target.play().catch((err) => {
-      log.error("ctrl", "Auto-play after loop enabled failed", err);
+      log.error("loop", "Auto-play after loop enabled failed", err);
     });
   }
 
   startLoopCheck();
   send("loop-started", {});
-}
-
-export function markProgrammaticSeek() {
-  state.loop.programmaticSeek = true;
 }
 
 export function clearProgrammaticSeekFlag() {
@@ -71,8 +67,4 @@ export function clearProgrammaticSeekFlag() {
 
 export function isProgrammaticSeek() {
   return state.loop.programmaticSeek;
-}
-
-export function isLooping() {
-  return state.loop.isLooping;
 }

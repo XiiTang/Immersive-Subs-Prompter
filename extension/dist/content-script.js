@@ -585,7 +585,7 @@ var USPContentScript = (() => {
     target.currentTime = startMs / 1e3;
     if (wasPaused) {
       target.play().catch((err) => {
-        log.error("ctrl", "Auto-play after loop enabled failed", err);
+        log.error("loop", "Auto-play after loop enabled failed", err);
       });
     }
     startLoopCheck();
@@ -978,21 +978,23 @@ var USPContentScript = (() => {
     stopDOMObserver();
     disconnectPort();
   }
+  function handleBlacklistStatusChange(result, context = "change") {
+    if (!result || !result.changed) {
+      return;
+    }
+    if (result.blocked) {
+      log.info("blacklist", `Page blacklisted (${context}), stopping detection`, { url: location.href });
+      stopMonitoring();
+    } else {
+      log.info("blacklist", `Page unblacklisted (${context}), resuming detection`, { url: location.href });
+      startMonitoring();
+    }
+  }
   function handleUrlChanged(url, title) {
     if (state.monitoringActive) {
       send("page-url-changed", { pageUrl: url, title });
     }
-    const result = evaluateCurrentUrl();
-    if (!result.changed) {
-      return;
-    }
-    if (result.blocked) {
-      log.info("blacklist", "Current page is blacklisted, stopping detection", { url: location.href });
-      stopMonitoring();
-    } else {
-      log.info("blacklist", "Current page removed from blacklist, resuming detection", { url: location.href });
-      startMonitoring();
-    }
+    handleBlacklistStatusChange(evaluateCurrentUrl(), "url-change");
   }
   async function bootstrap() {
     setPortHandlers({ onMessage: handlePortMessage, onReconnect: handlePortReconnect });
@@ -1009,27 +1011,14 @@ var USPContentScript = (() => {
     }
     const status = evaluateCurrentUrl();
     if (status.blocked) {
-      log.info("blacklist", "Current page is blacklisted, skipping detection", { url: location.href });
+      log.info("blacklist", "Page blacklisted (init), skipping detection", { url: location.href });
     } else {
       startMonitoring();
     }
     ensureUrlWatcher(handleUrlChanged);
   }
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    const result = handleStorageChange(changes, areaName);
-    if (!result) {
-      return;
-    }
-    if (!result.changed) {
-      return;
-    }
-    if (result.blocked) {
-      log.info("blacklist", "Current page is blacklisted, stopping detection", { url: location.href });
-      stopMonitoring();
-    } else {
-      log.info("blacklist", "Current page removed from blacklist, resuming detection", { url: location.href });
-      startMonitoring();
-    }
+    handleBlacklistStatusChange(handleStorageChange(changes, areaName), "storage-change");
   });
   ["beforeunload", "unload"].forEach((eventName) => {
     window.addEventListener(eventName, () => {

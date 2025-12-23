@@ -1,7 +1,7 @@
 import { log, state } from "../content/state.js";
 import { send } from "../connection/MessageSender.js";
 
-export function detectSite() {
+function detectSite() {
   const host = location.hostname;
   const site = host.includes("youtube.com") ? "youtube"
     : host.includes("bilibili.com") ? "bilibili"
@@ -31,7 +31,7 @@ export function gatherVideoState(video) {
   };
 }
 
-export function recordPlaybackSample(snapshot) {
+function recordPlaybackSample(snapshot) {
   if (!snapshot) {
     return;
   }

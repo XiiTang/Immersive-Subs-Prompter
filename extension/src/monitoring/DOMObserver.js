@@ -18,7 +18,7 @@ export function ensureDocListeners(target) {
   });
 }
 
-export function getShadowRoot(element) {
+function getShadowRoot(element) {
   if (!element) return null;
   if (typeof chrome !== "undefined" && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
     try {

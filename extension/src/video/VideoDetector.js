@@ -5,7 +5,7 @@ import { ensureDriftMonitor, stopDriftMonitor } from "../monitoring/DriftMonitor
 import { clearLoopState, clearProgrammaticSeekFlag, isProgrammaticSeek } from "./LoopController.js";
 import { gatherVideoState, handleTimeUpdate, resetPlaybackPrediction } from "./VideoStateGatherer.js";
 
-export function setActiveVideo(video) {
+function setActiveVideo(video) {
   if (!state.monitoringActive) {
     return;
   }
@@ -37,7 +37,7 @@ export function endActiveVideoSession(reason = "ended") {
   setActiveVideo(null);
 }
 
-export function watchVideo(video) {
+function watchVideo(video) {
   if (!state.monitoringActive || !video || !(video instanceof HTMLVideoElement)) return;
   if (state.hooked.has(video)) return;
   state.hooked.add(video);

@@ -10,10 +10,6 @@ export function setPortHandlers({ onMessage, onReconnect } = {}) {
   handleReconnect = typeof onReconnect === "function" ? onReconnect : null;
 }
 
-export function getPort() {
-  return state.port;
-}
-
 export function schedulePortReconnect() {
   if (!state.monitoringActive) {
     return;

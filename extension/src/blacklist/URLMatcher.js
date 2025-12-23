@@ -1,6 +1,6 @@
 import { log, state } from "../content/state.js";
 
-export function compileRegex(pattern) {
+function compileRegex(pattern) {
   if (!pattern) {
     return null;
   }
@@ -18,7 +18,7 @@ export function compileRegex(pattern) {
   }
 }
 
-export function matchesBlacklistRule(rule, url) {
+function matchesBlacklistRule(rule, url) {
   if (!rule || typeof rule.value !== "string" || !rule.value.length) {
     return false;
   }
