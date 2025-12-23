@@ -18,7 +18,7 @@ async function build() {
     }),
     esbuild.build({
       ...shared,
-      entryPoints: ["src/content-script.js"],
+      entryPoints: ["src/content/index.js"],
       outfile: "dist/content-script.js",
       format: "iife",
       globalName: "USPContentScript",

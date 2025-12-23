@@ -100,8 +100,8 @@ var USPContentScript = (() => {
         duration: video.duration
       });
     }
-    videoStateChange(eventType, state) {
-      this.debug("media-state", `Video state changed: ${eventType}`, state);
+    videoStateChange(eventType, state2) {
+      this.debug("media-state", `Video state changed: ${eventType}`, state2);
     }
     messageSent(type, payload, target) {
       this.debug("message-transmission", `Message sent: ${type} -> ${target}`, payload);
@@ -180,9 +180,663 @@ var USPContentScript = (() => {
     }
   };
 
+  // src/content/state.js
+  var log = new Logger("content-script");
+  var state = {
+    port: null,
+    reconnectTimer: null,
+    keepAliveTimer: null,
+    activeVideo: null,
+    driftMonitorTimer: null,
+    lastPageUrl: location.href,
+    blacklistRules: [],
+    isPageBlacklisted: false,
+    monitoringActive: false,
+    prototypesHooked: false,
+    urlMonitorTimer: null,
+    regexCache: /* @__PURE__ */ new Map(),
+    lastReportedPlayback: null,
+    loop: {
+      startMs: null,
+      endMs: null,
+      isLooping: false,
+      programmaticSeek: false,
+      checkTimer: null
+    },
+    domObserver: null,
+    hooked: /* @__PURE__ */ new WeakSet(),
+    observedDocs: /* @__PURE__ */ new WeakSet()
+  };
+
   // src/shared/constants.js
   var BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
   var CONTENT_PORT = "usp-video-channel";
+
+  // src/content/constants.js
+  var DRIFT_CHECK_INTERVAL_MS = 250;
+  var DRIFT_THRESHOLD_MS = 200;
+  var KEEPALIVE_INTERVAL_MS = 15e3;
+  var RECONNECT_DELAY_MS = 1e3;
+  var MEDIA_EVENTS = [
+    "play",
+    "playing",
+    "pause",
+    "seeking",
+    "seeked",
+    "loadedmetadata",
+    "loadeddata",
+    "ratechange",
+    "durationchange",
+    "volumechange",
+    "enterpictureinpicture",
+    "leavepictureinpicture",
+    "ended"
+  ];
+
+  // src/connection/PortManager.js
+  var handleMessage = null;
+  var handleReconnect = null;
+  function setPortHandlers({ onMessage, onReconnect } = {}) {
+    handleMessage = typeof onMessage === "function" ? onMessage : null;
+    handleReconnect = typeof onReconnect === "function" ? onReconnect : null;
+  }
+  function schedulePortReconnect() {
+    if (!state.monitoringActive) {
+      return;
+    }
+    if (state.reconnectTimer) return;
+    log.info("conn", `Reconnecting... ${RECONNECT_DELAY_MS}ms`);
+    state.reconnectTimer = setTimeout(() => {
+      state.reconnectTimer = null;
+      connectPort();
+    }, RECONNECT_DELAY_MS);
+  }
+  function connectPort() {
+    if (!state.monitoringActive) {
+      return null;
+    }
+    if (state.port) return state.port;
+    let nextPort = null;
+    try {
+      nextPort = chrome.runtime.connect({ name: CONTENT_PORT });
+      log.info("conn", "Connected", { url: location.href });
+    } catch (err) {
+      log.error("conn", "Connection failed", err);
+      schedulePortReconnect();
+      return null;
+    }
+    nextPort.onMessage.addListener((message) => {
+      if (state.monitoringActive && handleMessage) {
+        handleMessage(message);
+      }
+    });
+    nextPort.onDisconnect.addListener(() => {
+      if (state.port === nextPort) {
+        state.port = null;
+        log.info("conn", "Disconnected");
+      }
+      if (state.monitoringActive) {
+        schedulePortReconnect();
+      }
+    });
+    state.port = nextPort;
+    if (state.reconnectTimer) {
+      clearTimeout(state.reconnectTimer);
+      state.reconnectTimer = null;
+    }
+    if (handleReconnect) {
+      handleReconnect();
+    }
+    return nextPort;
+  }
+  function disconnectPort() {
+    if (state.reconnectTimer) {
+      clearTimeout(state.reconnectTimer);
+      state.reconnectTimer = null;
+    }
+    if (state.port) {
+      try {
+        state.port.disconnect();
+      } catch (err) {
+        log.warn("conn", "Failed to disconnect port", err);
+      }
+      state.port = null;
+    }
+  }
+
+  // src/connection/MessageSender.js
+  function send(type, payload = {}) {
+    if (!state.monitoringActive) {
+      return;
+    }
+    const channel = state.port || connectPort();
+    if (!channel) {
+      log.warn("msg", `Send failed: ${type} (no connection)`);
+      return;
+    }
+    try {
+      log.debug("msg", `->${type}`, payload);
+      channel.postMessage({ type, payload });
+    } catch (err) {
+      log.error("msg", `Send failed: ${type}`, err);
+      if (state.port === channel) {
+        state.port = null;
+      }
+      schedulePortReconnect();
+    }
+  }
+  function startKeepAlive() {
+    if (state.keepAliveTimer !== null || !state.monitoringActive) {
+      return;
+    }
+    const tick = () => {
+      if (!state.monitoringActive) {
+        stopKeepAlive();
+        return;
+      }
+      send("keepalive", {
+        pageUrl: location.href,
+        title: document.title,
+        timestamp: Date.now()
+      });
+      state.keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
+    };
+    state.keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
+  }
+  function stopKeepAlive() {
+    if (state.keepAliveTimer !== null) {
+      clearTimeout(state.keepAliveTimer);
+      state.keepAliveTimer = null;
+    }
+  }
+
+  // src/monitoring/URLWatcher.js
+  function ensureUrlWatcher(onUrlChanged) {
+    if (state.urlMonitorTimer !== null) {
+      return;
+    }
+    const tick = () => {
+      if (state.lastPageUrl !== location.href) {
+        state.lastPageUrl = location.href;
+        log.info("page", "URL changed", { url: state.lastPageUrl, title: document.title });
+        if (onUrlChanged) {
+          onUrlChanged(state.lastPageUrl, document.title);
+        }
+      }
+      state.urlMonitorTimer = window.setTimeout(tick, 1e3);
+    };
+    state.urlMonitorTimer = window.setTimeout(tick, 1e3);
+  }
+
+  // src/monitoring/DOMObserver.js
+  var mediaEventHandler = null;
+  var videoRemovedHandler = null;
+  function setDomCallbacks({ onMediaEvent, onVideoRemoved } = {}) {
+    mediaEventHandler = typeof onMediaEvent === "function" ? onMediaEvent : null;
+    videoRemovedHandler = typeof onVideoRemoved === "function" ? onVideoRemoved : null;
+  }
+  function ensureDocListeners(target) {
+    if (!target || typeof target.addEventListener !== "function" || state.observedDocs.has(target)) return;
+    if (!mediaEventHandler) return;
+    state.observedDocs.add(target);
+    MEDIA_EVENTS.forEach((eventName) => {
+      target.addEventListener(eventName, mediaEventHandler, { capture: true, passive: true });
+    });
+  }
+  function getShadowRoot(element) {
+    if (!element) return null;
+    if (typeof chrome !== "undefined" && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
+      try {
+        return chrome.dom.openOrClosedShadowRoot(element);
+      } catch (err) {
+      }
+    }
+    return element.shadowRoot;
+  }
+  function scanForShadowRoots(root = document.body) {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+    const elements = root.querySelectorAll("*");
+    elements.forEach((element) => {
+      const shadowRoot = getShadowRoot(element);
+      if (shadowRoot && !state.observedDocs.has(shadowRoot)) {
+        log.info("shadow", "Found Shadow DOM", { host: element.tagName });
+        ensureDocListeners(shadowRoot);
+        scanForShadowRoots(shadowRoot);
+      }
+    });
+  }
+  function findVideosInNode(node) {
+    const videos = [];
+    if (!node) return videos;
+    if (node instanceof HTMLVideoElement) {
+      videos.push(node);
+    }
+    if (typeof node.querySelectorAll === "function") {
+      node.querySelectorAll("video").forEach((video) => videos.push(video));
+    }
+    if (node instanceof Element) {
+      const shadowRoot = getShadowRoot(node);
+      if (shadowRoot && typeof shadowRoot.querySelectorAll === "function") {
+        shadowRoot.querySelectorAll("video").forEach((video) => videos.push(video));
+      }
+    }
+    return videos;
+  }
+  function handleRemovedNode(node) {
+    if (!(node instanceof Element) && !(node instanceof DocumentFragment)) {
+      return;
+    }
+    const videos = findVideosInNode(node);
+    videos.forEach((video) => {
+      const schedule = typeof requestAnimationFrame === "function" ? (fn) => requestAnimationFrame(fn) : (fn) => setTimeout(fn, 0);
+      schedule(() => {
+        if (videoRemovedHandler && video === state.activeVideo && !video.isConnected) {
+          videoRemovedHandler();
+        }
+      });
+    });
+  }
+  function startDOMObserver() {
+    if (state.domObserver) {
+      return state.domObserver;
+    }
+    const observer = new MutationObserver((mutations) => {
+      if (!state.monitoringActive) return;
+      mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => handleRemovedNode(node));
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const shadowRoot = getShadowRoot(node);
+            if (shadowRoot && !state.observedDocs.has(shadowRoot)) {
+              log.info("shadow", "New Shadow DOM detected via mutation", { host: node.tagName });
+              ensureDocListeners(shadowRoot);
+              scanForShadowRoots(shadowRoot);
+            }
+            if (node.querySelectorAll) {
+              scanForShadowRoots(node);
+            }
+          }
+        });
+      });
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+    state.domObserver = observer;
+    return observer;
+  }
+  function stopDOMObserver() {
+    if (state.domObserver) {
+      state.domObserver.disconnect();
+      state.domObserver = null;
+    }
+  }
+  function prepareDomMonitoring() {
+    ensureDocListeners(document);
+    log.info("shadow", "Scanning for existing Shadow DOMs...");
+    scanForShadowRoots();
+  }
+
+  // src/video/VideoStateGatherer.js
+  function detectSite() {
+    const host = location.hostname;
+    const site = host.includes("youtube.com") ? "youtube" : host.includes("bilibili.com") ? "bilibili" : host.includes("douyin.com") ? "douyin" : "unknown";
+    log.debug("site", `Detected: ${site}`, { hostname: host });
+    return site;
+  }
+  function gatherVideoState(video) {
+    if (!video) return null;
+    return {
+      pageUrl: location.href,
+      site: detectSite(),
+      videoSrc: video.currentSrc || video.src || null,
+      videoWidth: Number.isFinite(video.videoWidth) ? video.videoWidth : null,
+      videoHeight: Number.isFinite(video.videoHeight) ? video.videoHeight : null,
+      pictureInPicture: document.pictureInPictureElement === video,
+      playbackRate: video.playbackRate,
+      currentTime: video.currentTime * 1e3,
+      duration: Number.isFinite(video.duration) ? video.duration * 1e3 : null,
+      paused: video.paused,
+      muted: video.muted,
+      volume: video.volume,
+      readyState: video.readyState,
+      title: document.title,
+      updatedAt: Date.now()
+    };
+  }
+  function recordPlaybackSample(snapshot) {
+    if (!snapshot) {
+      return;
+    }
+    const playbackRate = Number.isFinite(snapshot.playbackRate) ? snapshot.playbackRate : 1;
+    const effectiveRate = snapshot.paused ? 0 : playbackRate;
+    state.lastReportedPlayback = {
+      currentTime: snapshot.currentTime,
+      playbackRate: effectiveRate,
+      reportedAt: snapshot.updatedAt
+    };
+  }
+  function resetPlaybackPrediction() {
+    state.lastReportedPlayback = null;
+  }
+  function predictPlaybackTime(now = Date.now()) {
+    if (!state.lastReportedPlayback) {
+      return null;
+    }
+    const elapsed = now - state.lastReportedPlayback.reportedAt;
+    return state.lastReportedPlayback.currentTime + elapsed * state.lastReportedPlayback.playbackRate;
+  }
+  function handleTimeUpdate(video) {
+    if (!state.monitoringActive) {
+      return;
+    }
+    const snapshot = gatherVideoState(video);
+    if (!snapshot) {
+      return;
+    }
+    send("time-update", snapshot);
+    recordPlaybackSample(snapshot);
+  }
+
+  // src/video/LoopController.js
+  function startLoopCheck() {
+    if (state.loop.checkTimer) {
+      clearInterval(state.loop.checkTimer);
+    }
+    state.loop.checkTimer = setInterval(() => {
+      const video = state.activeVideo;
+      if (!state.loop.isLooping || !video || state.loop.startMs === null || state.loop.endMs === null) {
+        if (state.loop.checkTimer) {
+          clearInterval(state.loop.checkTimer);
+          state.loop.checkTimer = null;
+        }
+        return;
+      }
+      const currentTimeMs = video.currentTime * 1e3;
+      if (currentTimeMs >= state.loop.endMs) {
+        state.loop.programmaticSeek = true;
+        video.currentTime = state.loop.startMs / 1e3;
+      }
+    }, 100);
+  }
+  function clearLoopState() {
+    if (state.loop.checkTimer) {
+      clearInterval(state.loop.checkTimer);
+      state.loop.checkTimer = null;
+    }
+    if (!state.loop.isLooping) {
+      log.debug("loop", "clearLoopState called but not looping");
+      state.loop.programmaticSeek = false;
+      return;
+    }
+    state.loop.isLooping = false;
+    state.loop.startMs = null;
+    state.loop.endMs = null;
+    state.loop.programmaticSeek = false;
+    send("loop-cleared", {});
+  }
+  function startLoop(target, startMs, endMs) {
+    state.loop.startMs = startMs;
+    state.loop.endMs = endMs;
+    state.loop.isLooping = true;
+    state.loop.programmaticSeek = true;
+    const wasPaused = target.paused;
+    target.currentTime = startMs / 1e3;
+    if (wasPaused) {
+      target.play().catch((err) => {
+        log.error("ctrl", "Auto-play after loop enabled failed", err);
+      });
+    }
+    startLoopCheck();
+    send("loop-started", {});
+  }
+  function clearProgrammaticSeekFlag() {
+    state.loop.programmaticSeek = false;
+  }
+  function isProgrammaticSeek() {
+    return state.loop.programmaticSeek;
+  }
+
+  // src/video/VideoDetector.js
+  function setActiveVideo(video) {
+    if (!state.monitoringActive) {
+      return;
+    }
+    const nextVideo = video ?? null;
+    const switchedVideo = state.activeVideo !== nextVideo;
+    state.activeVideo = nextVideo;
+    if (nextVideo) {
+      log.info("video", "Video activated", { src: nextVideo.currentSrc || nextVideo.src, duration: nextVideo.duration });
+      send("video-context", gatherVideoState(nextVideo));
+      if (switchedVideo) {
+        resetPlaybackPrediction();
+      }
+      ensureDriftMonitor();
+    } else {
+      log.info("video", "Video cleared");
+      stopDriftMonitor();
+      resetPlaybackPrediction();
+    }
+  }
+  function endActiveVideoSession(reason = "ended") {
+    if (!state.activeVideo) {
+      return;
+    }
+    const src = state.activeVideo.currentSrc || state.activeVideo.src || "(no src)";
+    clearLoopState();
+    log.info("video", `Video ${reason}`, { src });
+    send("video-ended", { pageUrl: location.href });
+    setActiveVideo(null);
+  }
+  function watchVideo(video) {
+    if (!state.monitoringActive || !video || !(video instanceof HTMLVideoElement)) return;
+    if (state.hooked.has(video)) return;
+    state.hooked.add(video);
+    log.info("video", "Video detected", {
+      src: video.currentSrc || video.src || "(no src)",
+      duration: video.duration,
+      readyState: video.readyState
+    });
+    handleTimeUpdate(video);
+  }
+  function handleDocumentMediaEvent(event) {
+    if (!state.monitoringActive) {
+      return;
+    }
+    const target = event?.target;
+    if (!(target instanceof HTMLVideoElement)) return;
+    log.debug("event", event.type, {
+      time: target.currentTime?.toFixed(1),
+      paused: target.paused,
+      active: target === state.activeVideo
+    });
+    watchVideo(target);
+    switch (event.type) {
+      case "play":
+      case "playing":
+        setActiveVideo(target);
+        handleTimeUpdate(target);
+        break;
+      case "loadedmetadata":
+        if (!state.activeVideo) {
+          setActiveVideo(target);
+        } else {
+          send("video-context", gatherVideoState(target));
+        }
+        break;
+      case "loadeddata":
+        if (!state.activeVideo) {
+          setActiveVideo(target);
+        }
+        handleTimeUpdate(target);
+        break;
+      case "pause":
+        if (target === state.activeVideo) {
+          clearLoopState();
+          handleTimeUpdate(target);
+        }
+        break;
+      case "seeking":
+        if (target === state.activeVideo && !isProgrammaticSeek()) {
+          clearLoopState();
+        }
+        clearProgrammaticSeekFlag();
+        break;
+      case "seeked":
+        clearProgrammaticSeekFlag();
+        if (target === state.activeVideo) {
+          handleTimeUpdate(target);
+        }
+        break;
+      case "durationchange":
+      case "volumechange":
+      case "enterpictureinpicture":
+      case "leavepictureinpicture":
+      case "ratechange":
+        if (state.activeVideo === target) {
+          handleTimeUpdate(target);
+        }
+        break;
+      case "ended":
+        if (state.activeVideo === target) {
+          endActiveVideoSession("playback-ended");
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  function ensurePrototypeHooks() {
+    if (state.prototypesHooked) {
+      return;
+    }
+    state.prototypesHooked = true;
+    ["play", "pause", "load"].forEach((methodName) => {
+      const original = HTMLMediaElement.prototype[methodName];
+      if (typeof original !== "function") return;
+      HTMLMediaElement.prototype[methodName] = function(...args) {
+        const result = original.apply(this, args);
+        if (this instanceof HTMLVideoElement) {
+          watchVideo(this);
+        }
+        return result;
+      };
+      HTMLMediaElement.prototype[methodName].toString = () => original.toString();
+    });
+    const originalAttachShadow = Element.prototype.attachShadow;
+    if (typeof originalAttachShadow === "function") {
+      Element.prototype.attachShadow = function(...args) {
+        const shadowRoot = originalAttachShadow.apply(this, args);
+        log.info("shadow", "attachShadow called", { host: this.tagName, mode: args[0]?.mode });
+        ensureDocListeners(shadowRoot);
+        scanForShadowRoots(shadowRoot);
+        return shadowRoot;
+      };
+      Element.prototype.attachShadow.toString = () => originalAttachShadow.toString();
+    }
+  }
+
+  // src/monitoring/DriftMonitor.js
+  function ensureDriftMonitor() {
+    if (state.driftMonitorTimer || !state.monitoringActive) {
+      return;
+    }
+    const tick = () => {
+      if (!state.monitoringActive || !state.activeVideo) {
+        state.driftMonitorTimer = null;
+        return;
+      }
+      if (!state.activeVideo.isConnected) {
+        endActiveVideoSession("removed-from-dom");
+        state.driftMonitorTimer = null;
+        return;
+      }
+      const predicted = predictPlaybackTime();
+      if (predicted !== null) {
+        const actual = state.activeVideo.currentTime * 1e3;
+        if (Math.abs(predicted - actual) > DRIFT_THRESHOLD_MS) {
+          log.debug("drift", "Playback drift detected", {
+            predicted: Math.round(predicted),
+            actual: Math.round(actual)
+          });
+          handleTimeUpdate(state.activeVideo);
+        }
+      }
+      state.driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
+    };
+    state.driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
+  }
+  function stopDriftMonitor() {
+    if (state.driftMonitorTimer) {
+      clearTimeout(state.driftMonitorTimer);
+      state.driftMonitorTimer = null;
+    }
+  }
+
+  // src/video/ControlHandler.js
+  function applyControl(action, payload) {
+    if (!state.monitoringActive) {
+      return;
+    }
+    const target = state.activeVideo || document.querySelector("video");
+    if (!target) {
+      log.warn("ctrl", `Failed to execute: ${action} (no video)`);
+      return;
+    }
+    switch (action) {
+      case "seek":
+        clearLoopState();
+        if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
+          log.debug("ctrl", "seek requested", { ms: payload.time, before: Math.round(target.currentTime * 1e3) });
+          const timeInSeconds = payload.time / 1e3;
+          const clamped = Math.max(0, Math.min(timeInSeconds, target.duration || timeInSeconds));
+          const wasPaused = target.paused;
+          target.currentTime = clamped;
+          log.debug("ctrl", "seek applied", { after: Math.round(target.currentTime * 1e3) });
+          if (wasPaused) {
+            target.play().catch((err) => {
+              log.error("ctrl", "Auto-play after seek failed", err);
+            });
+          }
+          handleTimeUpdate(target);
+        } else {
+          log.warn("ctrl", "seek failed: invalid time", payload);
+        }
+        break;
+      case "loop":
+        if (typeof payload.start === "number" && typeof payload.end === "number" && Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
+          log.debug("ctrl", "loop requested", { start: payload.start, end: payload.end, before: Math.round(target.currentTime * 1e3) });
+          startLoop(target, payload.start, payload.end);
+          log.debug("ctrl", "loop applied", { after: Math.round(target.currentTime * 1e3) });
+        } else {
+          log.warn("ctrl", "loop failed: invalid times", payload);
+          send("loop-cleared", {});
+        }
+        break;
+      case "stopLoop":
+        log.debug("ctrl", "stopLoop requested");
+        clearLoopState();
+        break;
+      case "pause":
+        log.debug("ctrl", "pause requested", { time: Math.round(target.currentTime * 1e3) });
+        clearLoopState();
+        target.pause();
+        log.debug("ctrl", "pause applied");
+        break;
+      case "play":
+        log.debug("ctrl", "play requested", { time: Math.round(target.currentTime * 1e3) });
+        clearLoopState();
+        target.play().catch((err) => {
+          log.error("ctrl", "play failed", err);
+        });
+        log.debug("ctrl", "play applied");
+        break;
+      default:
+        log.warn("ctrl", `Unknown command: ${action}`);
+        break;
+    }
+  }
 
   // src/shared/blacklist-utils.js
   var BLACKLIST_MODES = Object.freeze(["contains", "exact", "regex"]);
@@ -202,749 +856,186 @@ var USPContentScript = (() => {
     }).filter(Boolean);
   }
 
-  // src/content-script.js
-  var log = new Logger("content-script");
-  (function() {
-    const DRIFT_CHECK_INTERVAL_MS = 250;
-    const DRIFT_THRESHOLD_MS = 200;
-    const KEEPALIVE_INTERVAL_MS = 15e3;
-    const RECONNECT_DELAY_MS = 1e3;
-    let port = null;
-    let reconnectTimer = null;
-    let keepAliveTimer = null;
-    let activeVideo = null;
-    let driftMonitorTimer = null;
-    const hooked = /* @__PURE__ */ new WeakSet();
-    const observedDocs = /* @__PURE__ */ new WeakSet();
-    const MEDIA_EVENTS = [
-      "play",
-      "playing",
-      "pause",
-      "seeking",
-      "seeked",
-      "loadedmetadata",
-      "loadeddata",
-      "ratechange",
-      "durationchange",
-      "volumechange",
-      "enterpictureinpicture",
-      "leavepictureinpicture",
-      "ended"
-    ];
-    let lastPageUrl = location.href;
-    let blacklistRules = [];
-    let isPageBlacklisted = false;
-    let monitoringActive = false;
-    let prototypesHooked = false;
-    let urlMonitorTimer = null;
-    const regexCache = /* @__PURE__ */ new Map();
-    let lastReportedPlayback = null;
-    let loopStartMs = null;
-    let loopEndMs = null;
-    let isLooping = false;
-    let programmaticSeek = false;
-    let loopCheckTimer = null;
-    function clearLoopState() {
-      if (isLooping) {
-        isLooping = false;
-        loopStartMs = null;
-        loopEndMs = null;
-        if (loopCheckTimer) {
-          clearInterval(loopCheckTimer);
-          loopCheckTimer = null;
-        }
-        send("loop-cleared", {});
-      } else {
-        log.debug("loop", "clearLoopState called but not looping");
-      }
+  // src/blacklist/URLMatcher.js
+  function compileRegex(pattern) {
+    if (!pattern) {
+      return null;
     }
-    function startLoopCheck() {
-      if (loopCheckTimer) {
-        clearInterval(loopCheckTimer);
-      }
-      loopCheckTimer = setInterval(() => {
-        if (!isLooping || !activeVideo || loopStartMs === null || loopEndMs === null) {
-          if (loopCheckTimer) {
-            clearInterval(loopCheckTimer);
-            loopCheckTimer = null;
-          }
-          return;
-        }
-        const currentTimeMs = activeVideo.currentTime * 1e3;
-        if (currentTimeMs >= loopEndMs) {
-          programmaticSeek = true;
-          activeVideo.currentTime = loopStartMs / 1e3;
-        }
-      }, 100);
+    if (state.regexCache.has(pattern)) {
+      return state.regexCache.get(pattern);
     }
-    function resetPlaybackPrediction() {
-      lastReportedPlayback = null;
+    try {
+      const regex = new RegExp(pattern);
+      state.regexCache.set(pattern, regex);
+      return regex;
+    } catch (error) {
+      log.warn("blacklist", "Invalid regex", { pattern });
+      state.regexCache.set(pattern, null);
+      return null;
     }
-    function recordPlaybackSample(state) {
-      if (!state) {
-        return;
-      }
-      const playbackRate = Number.isFinite(state.playbackRate) ? state.playbackRate : 1;
-      const effectiveRate = state.paused ? 0 : playbackRate;
-      lastReportedPlayback = {
-        currentTime: state.currentTime,
-        playbackRate: effectiveRate,
-        reportedAt: state.updatedAt
-      };
+  }
+  function matchesBlacklistRule(rule, url) {
+    if (!rule || typeof rule.value !== "string" || !rule.value.length) {
+      return false;
     }
-    function predictPlaybackTime(now = Date.now()) {
-      if (!lastReportedPlayback) {
-        return null;
+    switch (rule.mode) {
+      case "exact":
+        return url === rule.value;
+      case "regex": {
+        const regex = compileRegex(rule.value);
+        return regex ? regex.test(url) : false;
       }
-      const elapsed = now - lastReportedPlayback.reportedAt;
-      return lastReportedPlayback.currentTime + elapsed * lastReportedPlayback.playbackRate;
+      case "contains":
+      default:
+        return url.includes(rule.value);
     }
-    function ensureDriftMonitor() {
-      if (driftMonitorTimer || !monitoringActive) {
-        return;
-      }
-      const tick = () => {
-        if (!monitoringActive || !activeVideo) {
-          driftMonitorTimer = null;
-          return;
-        }
-        if (!activeVideo.isConnected) {
-          endActiveVideoSession("removed-from-dom");
-          driftMonitorTimer = null;
-          return;
-        }
-        if (lastReportedPlayback) {
-          const predicted = predictPlaybackTime();
-          if (predicted !== null) {
-            const actual = activeVideo.currentTime * 1e3;
-            if (Math.abs(predicted - actual) > DRIFT_THRESHOLD_MS) {
-              log.debug("drift", "Playback drift detected", {
-                predicted: Math.round(predicted),
-                actual: Math.round(actual)
-              });
-              handleTimeUpdate(activeVideo);
-            }
-          }
-        }
-        driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
-      };
-      driftMonitorTimer = window.setTimeout(tick, DRIFT_CHECK_INTERVAL_MS);
+  }
+  function isUrlBlacklisted(url, rules = state.blacklistRules) {
+    const target = typeof url === "string" ? url : "";
+    if (!target) {
+      return false;
     }
-    function stopDriftMonitor() {
-      if (driftMonitorTimer) {
-        clearTimeout(driftMonitorTimer);
-        driftMonitorTimer = null;
-      }
-    }
-    function endActiveVideoSession(reason = "ended") {
-      if (!activeVideo) {
-        return;
-      }
-      const src = activeVideo.currentSrc || activeVideo.src || "(no src)";
-      clearLoopState();
-      log.info("video", `Video ${reason}`, { src });
-      send("video-ended", { pageUrl: location.href });
-      setActiveVideo(null);
-    }
-    function loadBlacklistRules() {
-      return new Promise((resolve) => {
-        try {
-          chrome.storage.local.get([BLACKLIST_STORAGE_KEY], (result) => {
-            if (chrome.runtime?.lastError) {
-              log.logError("blacklist", "Failed to read blacklist", chrome.runtime.lastError);
-              resolve([]);
-              return;
-            }
-            resolve(result?.[BLACKLIST_STORAGE_KEY] ?? []);
-          });
-        } catch (error) {
-          log.logError("blacklist", "Failed to read blacklist", error);
-          resolve([]);
-        }
-      });
-    }
-    function compileRegex(pattern) {
-      if (!pattern) {
-        return null;
-      }
-      if (regexCache.has(pattern)) {
-        return regexCache.get(pattern);
-      }
+    return rules.some((rule) => matchesBlacklistRule(rule, target));
+  }
+
+  // src/blacklist/BlacklistManager.js
+  function setBlacklistRules(rawRules) {
+    const normalized = normalizeBlacklistRules(rawRules ?? []);
+    state.blacklistRules = normalized;
+    state.regexCache.clear();
+    return normalized;
+  }
+  async function loadBlacklistRules() {
+    return new Promise((resolve) => {
       try {
-        const regex = new RegExp(pattern);
-        regexCache.set(pattern, regex);
-        return regex;
+        chrome.storage.local.get([BLACKLIST_STORAGE_KEY], (result) => {
+          if (chrome.runtime?.lastError) {
+            log.logError("blacklist", "Failed to read blacklist", chrome.runtime.lastError);
+            resolve([]);
+            return;
+          }
+          resolve(result?.[BLACKLIST_STORAGE_KEY] ?? []);
+        });
       } catch (error) {
-        log.warn("blacklist", "Invalid regex", { pattern });
-        regexCache.set(pattern, null);
-        return null;
+        log.logError("blacklist", "Failed to read blacklist", error);
+        resolve([]);
       }
-    }
-    function matchesBlacklistRule(rule, url) {
-      if (!rule || typeof rule.value !== "string" || !rule.value.length) {
-        return false;
-      }
-      switch (rule.mode) {
-        case "exact":
-          return url === rule.value;
-        case "regex": {
-          const regex = compileRegex(rule.value);
-          return regex ? regex.test(url) : false;
-        }
-        case "contains":
-        default:
-          return url.includes(rule.value);
-      }
-    }
-    function isUrlBlacklisted(url, rules = blacklistRules) {
-      const target = typeof url === "string" ? url : "";
-      if (!target) {
-        return false;
-      }
-      return rules.some((rule) => matchesBlacklistRule(rule, target));
-    }
-    function evaluateBlacklistForCurrentUrl() {
-      const blocked = isUrlBlacklisted(location.href);
-      if (blocked === isPageBlacklisted) {
-        return blocked;
-      }
-      isPageBlacklisted = blocked;
-      if (blocked) {
-        log.info("blacklist", "Current page is blacklisted, stopping detection", { url: location.href });
-        stopMonitoring();
-      } else {
-        log.info("blacklist", "Current page removed from blacklist, resuming detection", { url: location.href });
-        startMonitoring();
-      }
-      return blocked;
-    }
-    function handleStorageChange(changes, areaName) {
-      if (areaName !== "local") {
-        return;
-      }
-      if (!Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
-        return;
-      }
-      const nextRules = normalizeBlacklistRules(changes[BLACKLIST_STORAGE_KEY].newValue ?? []);
-      blacklistRules = nextRules;
-      regexCache.clear();
-      evaluateBlacklistForCurrentUrl();
-    }
-    function ensureUrlWatcher() {
-      if (urlMonitorTimer !== null) {
-        return;
-      }
-      const tick = () => {
-        if (lastPageUrl !== location.href) {
-          lastPageUrl = location.href;
-          log.info("page", "URL changed", { url: lastPageUrl, title: document.title });
-          if (monitoringActive) {
-            send("page-url-changed", { pageUrl: lastPageUrl, title: document.title });
-          }
-          evaluateBlacklistForCurrentUrl();
-        }
-        urlMonitorTimer = window.setTimeout(tick, 1e3);
-      };
-      urlMonitorTimer = window.setTimeout(tick, 1e3);
-    }
-    function handlePortMessage(message) {
-      if (!monitoringActive || !message || typeof message !== "object") return;
-      log.debug("msg", `\u2190 ${message.type}`, message);
-      if (message.type === "control") {
-        applyControl(message.action, message.payload || {});
-      }
-    }
-    function schedulePortReconnect() {
-      if (!monitoringActive) {
-        return;
-      }
-      if (reconnectTimer) return;
-      log.info("conn", `Reconnecting... ${RECONNECT_DELAY_MS}ms`);
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        connectPort();
-      }, RECONNECT_DELAY_MS);
-    }
-    function connectPort() {
-      if (!monitoringActive) {
-        return null;
-      }
-      if (port) return port;
-      let nextPort = null;
-      try {
-        nextPort = chrome.runtime.connect({ name: CONTENT_PORT });
-        log.info("conn", "Connected", { url: location.href });
-      } catch (err) {
-        log.error("conn", "Connection failed", err);
-        schedulePortReconnect();
-        return null;
-      }
-      nextPort.onMessage.addListener(handlePortMessage);
-      nextPort.onDisconnect.addListener(() => {
-        if (port === nextPort) {
-          port = null;
-          log.info("conn", "Disconnected");
-        }
-        if (monitoringActive) {
-          schedulePortReconnect();
-        }
-      });
-      port = nextPort;
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-      if (activeVideo) {
-        log.info("conn", "Reconnected successfully, syncing video state");
-        send("video-context", gatherVideoState(activeVideo));
-        handleTimeUpdate(activeVideo);
-      }
-      return nextPort;
-    }
-    function startKeepAlive() {
-      if (keepAliveTimer !== null || !monitoringActive) {
-        return;
-      }
-      const tick = () => {
-        if (!monitoringActive) {
-          stopKeepAlive();
-          return;
-        }
-        send("keepalive", {
-          pageUrl: location.href,
-          title: document.title,
-          timestamp: Date.now()
-        });
-        keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
-      };
-      keepAliveTimer = window.setTimeout(tick, KEEPALIVE_INTERVAL_MS);
-    }
-    function stopKeepAlive() {
-      if (keepAliveTimer !== null) {
-        clearTimeout(keepAliveTimer);
-        keepAliveTimer = null;
-      }
-    }
-    function send(type, payload = {}) {
-      if (!monitoringActive) {
-        return;
-      }
-      const channel = port || connectPort();
-      if (!channel) {
-        log.warn("msg", `Send failed: ${type} (no connection)`);
-        return;
-      }
-      try {
-        log.debug("msg", `\u2192 ${type}`, payload);
-        channel.postMessage({ type, payload });
-      } catch (err) {
-        log.error("msg", `Send failed: ${type}`, err);
-        if (port === channel) {
-          port = null;
-        }
-        schedulePortReconnect();
-      }
-    }
-    function detectSite() {
-      const host = location.hostname;
-      const site = host.includes("youtube.com") ? "youtube" : host.includes("bilibili.com") ? "bilibili" : host.includes("douyin.com") ? "douyin" : "unknown";
-      log.debug("site", `Detected: ${site}`, { hostname: host });
-      return site;
-    }
-    function gatherVideoState(video) {
-      if (!video) return null;
-      return {
-        pageUrl: location.href,
-        site: detectSite(),
-        videoSrc: video.currentSrc || video.src || null,
-        videoWidth: Number.isFinite(video.videoWidth) ? video.videoWidth : null,
-        videoHeight: Number.isFinite(video.videoHeight) ? video.videoHeight : null,
-        pictureInPicture: document.pictureInPictureElement === video,
-        playbackRate: video.playbackRate,
-        currentTime: video.currentTime * 1e3,
-        // Convert seconds to milliseconds
-        duration: Number.isFinite(video.duration) ? video.duration * 1e3 : null,
-        // Convert seconds to milliseconds
-        paused: video.paused,
-        muted: video.muted,
-        volume: video.volume,
-        readyState: video.readyState,
-        title: document.title,
-        updatedAt: Date.now()
-      };
-    }
-    function handleTimeUpdate(video) {
-      if (!monitoringActive) {
-        return;
-      }
-      const state = gatherVideoState(video);
-      if (!state) {
-        return;
-      }
-      send("time-update", state);
-      recordPlaybackSample(state);
-    }
-    function setActiveVideo(video) {
-      if (!monitoringActive) {
-        return;
-      }
-      const nextVideo = video ?? null;
-      const switchedVideo = activeVideo !== nextVideo;
-      activeVideo = nextVideo;
-      if (video) {
-        log.info("video", "Video activated", { src: video.currentSrc || video.src, duration: video.duration });
-        send("video-context", gatherVideoState(video));
-        if (switchedVideo) {
-          resetPlaybackPrediction();
-        }
-        ensureDriftMonitor();
-      } else {
-        log.info("video", "Video cleared");
-        stopDriftMonitor();
-        resetPlaybackPrediction();
-      }
-    }
-    function watchVideo(video) {
-      if (!monitoringActive || !video || !(video instanceof HTMLVideoElement)) return;
-      const root = video.getRootNode?.();
-      if (root instanceof ShadowRoot) {
-        ensureDocListeners(root);
-      } else {
-        ensureDocListeners(document);
-      }
-      if (hooked.has(video)) return;
-      hooked.add(video);
-      log.info("video", "Video detected", {
-        src: video.currentSrc || video.src || "(no src)",
-        duration: video.duration,
-        readyState: video.readyState
-      });
-      handleTimeUpdate(video);
-    }
-    function applyControl(action, payload) {
-      if (!monitoringActive) {
-        return;
-      }
-      const target = activeVideo || document.querySelector("video");
-      if (!target) {
-        log.warn("ctrl", `Failed to execute: ${action} (no video)`);
-        return;
-      }
-      switch (action) {
-        case "seek":
-          clearLoopState();
-          if (typeof payload.time === "number" && Number.isFinite(payload.time)) {
-            log.debug("ctrl", "seek requested", { ms: payload.time, before: Math.round(target.currentTime * 1e3) });
-            const timeInSeconds = payload.time / 1e3;
-            const clamped = Math.max(0, Math.min(timeInSeconds, target.duration || timeInSeconds));
-            const wasPaused = target.paused;
-            target.currentTime = clamped;
-            log.debug("ctrl", "seek applied", { after: Math.round(target.currentTime * 1e3) });
-            if (wasPaused) {
-              target.play().catch((err) => {
-                log.error("ctrl", "Auto-play after seek failed", err);
-              });
-            }
-            handleTimeUpdate(target);
-          } else {
-            log.warn("ctrl", `seek failed: invalid time`, payload);
-          }
-          break;
-        case "loop":
-          if (typeof payload.start === "number" && typeof payload.end === "number" && Number.isFinite(payload.start) && Number.isFinite(payload.end)) {
-            log.debug("ctrl", "loop requested", { start: payload.start, end: payload.end, before: Math.round(target.currentTime * 1e3) });
-            loopStartMs = payload.start;
-            loopEndMs = payload.end;
-            isLooping = true;
-            programmaticSeek = true;
-            const wasPaused = target.paused;
-            target.currentTime = loopStartMs / 1e3;
-            log.debug("ctrl", "loop applied", { after: Math.round(target.currentTime * 1e3) });
-            if (wasPaused) {
-              target.play().catch((err) => {
-                log.error("ctrl", "Auto-play after loop enabled failed", err);
-              });
-            }
-            startLoopCheck();
-            send("loop-started", {});
-          } else {
-            log.warn("ctrl", `loop failed: invalid times`, payload);
-            send("loop-cleared", {});
-          }
-          break;
-        case "stopLoop":
-          log.debug("ctrl", "stopLoop requested");
-          clearLoopState();
-          break;
-        case "pause":
-          log.debug("ctrl", "pause requested", { time: Math.round(target.currentTime * 1e3) });
-          clearLoopState();
-          target.pause();
-          log.debug("ctrl", "pause applied");
-          break;
-        case "play":
-          log.debug("ctrl", "play requested", { time: Math.round(target.currentTime * 1e3) });
-          clearLoopState();
-          target.play().catch((err) => {
-            log.error("ctrl", "play failed", err);
-          });
-          log.debug("ctrl", "play applied");
-          break;
-        default:
-          log.warn("ctrl", `Unknown command: ${action}`);
-          break;
-      }
-    }
-    function ensureDocListeners(target) {
-      if (!target || typeof target.addEventListener !== "function" || observedDocs.has(target)) return;
-      observedDocs.add(target);
-      MEDIA_EVENTS.forEach((eventName) => {
-        target.addEventListener(eventName, handleDocumentMediaEvent, { capture: true, passive: true });
-      });
-    }
-    function handleDocumentMediaEvent(event) {
-      if (!monitoringActive) {
-        return;
-      }
-      const target = event?.target;
-      if (!(target instanceof HTMLVideoElement)) return;
-      log.debug("event", event.type, {
-        time: target.currentTime?.toFixed(1),
-        paused: target.paused,
-        active: target === activeVideo
-      });
-      watchVideo(target);
-      switch (event.type) {
-        case "play":
-        case "playing":
-          setActiveVideo(target);
-          handleTimeUpdate(target);
-          break;
-        case "loadedmetadata":
-          if (!activeVideo) {
-            setActiveVideo(target);
-          } else {
-            send("video-context", gatherVideoState(target));
-          }
-          break;
-        case "loadeddata":
-          if (!activeVideo) {
-            setActiveVideo(target);
-          }
-          handleTimeUpdate(target);
-          break;
-        case "pause":
-          if (target === activeVideo) {
-            clearLoopState();
-            handleTimeUpdate(target);
-          }
-          break;
-        case "seeking":
-          if (target === activeVideo && !programmaticSeek) {
-            clearLoopState();
-          }
-          programmaticSeek = false;
-          break;
-        case "seeked":
-          programmaticSeek = false;
-          if (target === activeVideo) {
-            handleTimeUpdate(target);
-          }
-          break;
-        case "durationchange":
-        case "volumechange":
-        case "enterpictureinpicture":
-        case "leavepictureinpicture":
-          if (activeVideo === target) {
-            handleTimeUpdate(target);
-          }
-          break;
-        case "ratechange":
-          if (activeVideo === target) {
-            handleTimeUpdate(target);
-          }
-          break;
-        case "ended":
-          if (activeVideo === target) {
-            endActiveVideoSession("playback-ended");
-          }
-          break;
-        default:
-          break;
-      }
-    }
-    function getShadowRoot(element) {
-      if (!element) return null;
-      if (typeof chrome !== "undefined" && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
-        try {
-          return chrome.dom.openOrClosedShadowRoot(element);
-        } catch (err) {
-        }
-      }
-      return element.shadowRoot;
-    }
-    function scanForShadowRoots(root = document.body) {
-      if (!root) return;
-      const elements = root.querySelectorAll("*");
-      elements.forEach((element) => {
-        const shadowRoot = getShadowRoot(element);
-        if (shadowRoot && !observedDocs.has(shadowRoot)) {
-          log.info("shadow", "Found Shadow DOM", { host: element.tagName });
-          ensureDocListeners(shadowRoot);
-          scanForShadowRoots(shadowRoot);
-        }
-      });
-    }
-    function findVideosInNode(node) {
-      const videos = [];
-      if (!node) return videos;
-      if (node instanceof HTMLVideoElement) {
-        videos.push(node);
-      }
-      if (typeof node.querySelectorAll === "function") {
-        node.querySelectorAll("video").forEach((video) => videos.push(video));
-      }
-      if (node instanceof Element) {
-        const shadowRoot = getShadowRoot(node);
-        if (shadowRoot && typeof shadowRoot.querySelectorAll === "function") {
-          shadowRoot.querySelectorAll("video").forEach((video) => videos.push(video));
-        }
-      }
-      return videos;
-    }
-    function handleRemovedNode(node) {
-      if (!(node instanceof Element) && !(node instanceof DocumentFragment)) {
-        return;
-      }
-      const videos = findVideosInNode(node);
-      videos.forEach((video) => {
-        const schedule = typeof requestAnimationFrame === "function" ? (fn) => requestAnimationFrame(fn) : (fn) => setTimeout(fn, 0);
-        schedule(() => {
-          if (video === activeVideo && !video.isConnected) {
-            endActiveVideoSession("removed-from-dom");
-          }
-        });
-      });
-    }
-    function setupDOMMutationObserver() {
-      const observer = new MutationObserver((mutations) => {
-        if (!monitoringActive) return;
-        mutations.forEach((mutation) => {
-          mutation.removedNodes.forEach((node) => handleRemovedNode(node));
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const shadowRoot = getShadowRoot(node);
-              if (shadowRoot && !observedDocs.has(shadowRoot)) {
-                log.info("shadow", "New Shadow DOM detected via mutation", { host: node.tagName });
-                ensureDocListeners(shadowRoot);
-                scanForShadowRoots(shadowRoot);
-              }
-              if (node.querySelectorAll) {
-                scanForShadowRoots(node);
-              }
-            }
-          });
-        });
-      });
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-      });
-      return observer;
-    }
-    let domObserver = null;
-    function ensurePrototypeHooks() {
-      if (prototypesHooked) {
-        return;
-      }
-      prototypesHooked = true;
-      ["play", "pause", "load"].forEach((methodName) => {
-        const original = HTMLMediaElement.prototype[methodName];
-        if (typeof original !== "function") return;
-        HTMLMediaElement.prototype[methodName] = function(...args) {
-          const result = original.apply(this, args);
-          if (this instanceof HTMLVideoElement) {
-            watchVideo(this);
-          }
-          return result;
-        };
-        HTMLMediaElement.prototype[methodName].toString = () => original.toString();
-      });
-      const originalAttachShadow = Element.prototype.attachShadow;
-      if (typeof originalAttachShadow === "function") {
-        Element.prototype.attachShadow = function(...args) {
-          const shadowRoot = originalAttachShadow.apply(this, args);
-          log.info("shadow", "attachShadow called", { host: this.tagName, mode: args[0]?.mode });
-          ensureDocListeners(shadowRoot);
-          scanForShadowRoots(shadowRoot);
-          return shadowRoot;
-        };
-        Element.prototype.attachShadow.toString = () => originalAttachShadow.toString();
-      }
-    }
-    function startMonitoring() {
-      if (monitoringActive || isPageBlacklisted) {
-        return;
-      }
-      monitoringActive = true;
-      ensurePrototypeHooks();
-      connectPort();
-      ensureDocListeners(document);
-      startKeepAlive();
-      log.info("shadow", "Scanning for existing Shadow DOMs...");
-      scanForShadowRoots();
-      domObserver = setupDOMMutationObserver();
-    }
-    function stopMonitoring() {
-      if (!monitoringActive) {
-        return;
-      }
-      monitoringActive = false;
-      stopDriftMonitor();
-      resetPlaybackPrediction();
-      activeVideo = null;
-      stopKeepAlive();
-      if (domObserver) {
-        domObserver.disconnect();
-        domObserver = null;
-      }
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-      if (port) {
-        try {
-          port.disconnect();
-        } catch (err) {
-          log.warn("conn", "Failed to disconnect port", err);
-        }
-        port = null;
-      }
-    }
-    async function bootstrap() {
-      try {
-        const raw = await loadBlacklistRules();
-        blacklistRules = normalizeBlacklistRules(raw);
-      } catch (error) {
-        log.logError("blacklist", "Failed to init blacklist", error);
-        blacklistRules = [];
-      }
-      regexCache.clear();
-      isPageBlacklisted = isUrlBlacklisted(location.href);
-      if (isPageBlacklisted) {
-        log.info("blacklist", "Current page is blacklisted, skipping detection", { url: location.href });
-      } else {
-        startMonitoring();
-      }
-      ensureUrlWatcher();
-    }
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    ["beforeunload", "unload"].forEach((eventName) => {
-      window.addEventListener(eventName, () => {
-        stopDriftMonitor();
-      });
     });
-    bootstrap();
-  })();
+  }
+  function evaluateCurrentUrl() {
+    const blocked = isUrlBlacklisted(location.href, state.blacklistRules);
+    const changed = blocked !== state.isPageBlacklisted;
+    state.isPageBlacklisted = blocked;
+    return { blocked, changed };
+  }
+  function handleStorageChange(changes, areaName) {
+    if (areaName !== "local") {
+      return null;
+    }
+    if (!Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
+      return null;
+    }
+    setBlacklistRules(changes[BLACKLIST_STORAGE_KEY].newValue ?? []);
+    return evaluateCurrentUrl();
+  }
+
+  // src/content/index.js
+  function handlePortMessage(message) {
+    if (!state.monitoringActive || !message || typeof message !== "object") return;
+    log.debug("msg", `<-${message.type}`, message);
+    if (message.type === "control") {
+      applyControl(message.action, message.payload || {});
+    }
+  }
+  function handlePortReconnect() {
+    if (state.activeVideo) {
+      log.info("conn", "Reconnected successfully, syncing video state");
+      send("video-context", gatherVideoState(state.activeVideo));
+      handleTimeUpdate(state.activeVideo);
+    }
+  }
+  function startMonitoring() {
+    if (state.monitoringActive || state.isPageBlacklisted) {
+      return;
+    }
+    state.monitoringActive = true;
+    ensurePrototypeHooks();
+    connectPort();
+    prepareDomMonitoring();
+    startDOMObserver();
+    startKeepAlive();
+  }
+  function stopMonitoring() {
+    if (!state.monitoringActive) {
+      return;
+    }
+    state.monitoringActive = false;
+    clearLoopState();
+    stopDriftMonitor();
+    resetPlaybackPrediction();
+    state.activeVideo = null;
+    stopKeepAlive();
+    stopDOMObserver();
+    disconnectPort();
+  }
+  function handleUrlChanged(url, title) {
+    if (state.monitoringActive) {
+      send("page-url-changed", { pageUrl: url, title });
+    }
+    const result = evaluateCurrentUrl();
+    if (!result.changed) {
+      return;
+    }
+    if (result.blocked) {
+      log.info("blacklist", "Current page is blacklisted, stopping detection", { url: location.href });
+      stopMonitoring();
+    } else {
+      log.info("blacklist", "Current page removed from blacklist, resuming detection", { url: location.href });
+      startMonitoring();
+    }
+  }
+  async function bootstrap() {
+    setPortHandlers({ onMessage: handlePortMessage, onReconnect: handlePortReconnect });
+    setDomCallbacks({
+      onMediaEvent: handleDocumentMediaEvent,
+      onVideoRemoved: () => endActiveVideoSession("removed-from-dom")
+    });
+    try {
+      const raw = await loadBlacklistRules();
+      setBlacklistRules(raw);
+    } catch (error) {
+      log.logError("blacklist", "Failed to init blacklist", error);
+      setBlacklistRules([]);
+    }
+    const status = evaluateCurrentUrl();
+    if (status.blocked) {
+      log.info("blacklist", "Current page is blacklisted, skipping detection", { url: location.href });
+    } else {
+      startMonitoring();
+    }
+    ensureUrlWatcher(handleUrlChanged);
+  }
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    const result = handleStorageChange(changes, areaName);
+    if (!result) {
+      return;
+    }
+    if (!result.changed) {
+      return;
+    }
+    if (result.blocked) {
+      log.info("blacklist", "Current page is blacklisted, stopping detection", { url: location.href });
+      stopMonitoring();
+    } else {
+      log.info("blacklist", "Current page removed from blacklist, resuming detection", { url: location.href });
+      startMonitoring();
+    }
+  });
+  ["beforeunload", "unload"].forEach((eventName) => {
+    window.addEventListener(eventName, () => {
+      stopDriftMonitor();
+    });
+  });
+  bootstrap();
 })();
 //# sourceMappingURL=content-script.js.map
