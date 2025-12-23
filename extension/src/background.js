@@ -1,11 +1,10 @@
 import { Logger } from "./shared/Logger.js";
+import { CONTENT_PORT, DASHBOARD_PORT, ENDPOINTS_STORAGE_KEY } from "./shared/constants.js";
+import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils.js";
 const logger = new Logger("background");
 
 const DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
-const ENDPOINTS_STORAGE_KEY = "uspServerEndpoints";
 const RETRY_DELAY_MS = 2000;
-const CONTENT_PORT = "usp-video-channel";
-const DASHBOARD_PORT = "usp-dashboard";
 // Minimum duration to consider a video as valid media (in milliseconds, was 10 seconds)
 const MINIMUM_DURATION = 10000;
 
@@ -196,33 +195,6 @@ class DesktopConnectionPool {
   describe() {
     return Array.from(this.connections.values()).map((conn) => conn.getSnapshot());
   }
-}
-
-function normalizeEndpoint(value) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (!/^wss?:\/\//i.test(trimmed)) {
-    if (/^[a-z0-9.-]+(:\d+)?$/i.test(trimmed)) {
-      return `ws://${trimmed}`;
-    }
-    return null;
-  }
-  return trimmed;
-}
-
-function normalizeEndpointList(list) {
-  const endpoints = [];
-  const seen = new Set();
-  (Array.isArray(list) ? list : []).forEach((entry) => {
-    const normalized = normalizeEndpoint(entry);
-    if (!normalized || seen.has(normalized)) {
-      return;
-    }
-    seen.add(normalized);
-    endpoints.push(normalized);
-  });
-  return endpoints;
 }
 
 let serverEndpoints = [...DEFAULT_ENDPOINTS];

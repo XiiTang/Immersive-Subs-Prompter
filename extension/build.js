@@ -23,6 +23,12 @@ async function build() {
       format: "iife",
       globalName: "USPContentScript",
     }),
+    esbuild.build({
+      ...shared,
+      entryPoints: ["src/popup.js"],
+      outfile: "dist/popup.js",
+      format: "esm",
+    }),
   ]);
 }
 

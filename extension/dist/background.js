@@ -179,13 +179,42 @@ var Logger = class {
   }
 };
 
+// src/shared/constants.js
+var ENDPOINTS_STORAGE_KEY = "uspServerEndpoints";
+var CONTENT_PORT = "usp-video-channel";
+var DASHBOARD_PORT = "usp-dashboard";
+
+// src/shared/endpoint-utils.js
+function normalizeEndpoint(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^wss?:\/\//i.test(trimmed)) {
+    if (/^[a-z0-9.-]+(:\d+)?$/i.test(trimmed)) {
+      return `ws://${trimmed}`;
+    }
+    return null;
+  }
+  return trimmed;
+}
+function normalizeEndpointList(list) {
+  const endpoints = [];
+  const seen = /* @__PURE__ */ new Set();
+  (Array.isArray(list) ? list : []).forEach((entry) => {
+    const normalized = normalizeEndpoint(entry);
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    endpoints.push(normalized);
+  });
+  return endpoints;
+}
+
 // src/background.js
 var logger = new Logger("background");
 var DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
-var ENDPOINTS_STORAGE_KEY = "uspServerEndpoints";
 var RETRY_DELAY_MS = 2e3;
-var CONTENT_PORT = "usp-video-channel";
-var DASHBOARD_PORT = "usp-dashboard";
 var MINIMUM_DURATION = 1e4;
 var DesktopConnection = class {
   constructor(endpoint, onDesktopMessage, onStatusChange) {
@@ -347,31 +376,6 @@ var DesktopConnectionPool = class {
     return Array.from(this.connections.values()).map((conn) => conn.getSnapshot());
   }
 };
-function normalizeEndpoint(value) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (!/^wss?:\/\//i.test(trimmed)) {
-    if (/^[a-z0-9.-]+(:\d+)?$/i.test(trimmed)) {
-      return `ws://${trimmed}`;
-    }
-    return null;
-  }
-  return trimmed;
-}
-function normalizeEndpointList(list) {
-  const endpoints = [];
-  const seen = /* @__PURE__ */ new Set();
-  (Array.isArray(list) ? list : []).forEach((entry) => {
-    const normalized = normalizeEndpoint(entry);
-    if (!normalized || seen.has(normalized)) {
-      return;
-    }
-    seen.add(normalized);
-    endpoints.push(normalized);
-  });
-  return endpoints;
-}
 var serverEndpoints = [...DEFAULT_ENDPOINTS];
 var connectionPool = new DesktopConnectionPool(handleDesktopMessage, handleConnectionStatusChange);
 function handleConnectionStatusChange() {

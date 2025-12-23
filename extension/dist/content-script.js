@@ -180,14 +180,34 @@ var USPContentScript = (() => {
     }
   };
 
+  // src/shared/constants.js
+  var BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
+  var CONTENT_PORT = "usp-video-channel";
+
+  // src/shared/blacklist-utils.js
+  var BLACKLIST_MODES = Object.freeze(["contains", "exact", "regex"]);
+  var BLACKLIST_MODE_SET = new Set(BLACKLIST_MODES);
+  function normalizeBlacklistRules(input) {
+    if (!Array.isArray(input)) {
+      return [];
+    }
+    return input.map((entry, index) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+      const id = typeof entry.id === "string" && entry.id.length ? entry.id : `rule-${Date.now()}-${index}`;
+      const mode = typeof entry.mode === "string" && BLACKLIST_MODE_SET.has(entry.mode) ? entry.mode : "contains";
+      const value = typeof entry.value === "string" ? entry.value.trim() : "";
+      return { id, mode, value };
+    }).filter(Boolean);
+  }
+
   // src/content-script.js
   var log = new Logger("content-script");
   (function() {
-    const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
-    const BLACKLIST_MODES = /* @__PURE__ */ new Set(["contains", "exact", "regex"]);
     const DRIFT_CHECK_INTERVAL_MS = 250;
     const DRIFT_THRESHOLD_MS = 200;
-    const PORT_NAME = "usp-video-channel";
+    const PORT_NAME = CONTENT_PORT;
     const KEEPALIVE_INTERVAL_MS = 15e3;
     const RECONNECT_DELAY_MS = 1e3;
     let port = null;
@@ -326,20 +346,6 @@ var USPContentScript = (() => {
       log.info("video", `Video ${reason}`, { src });
       send("video-ended", { pageUrl: location.href });
       setActiveVideo(null);
-    }
-    function normalizeBlacklistRules(input) {
-      if (!Array.isArray(input)) {
-        return [];
-      }
-      return input.map((entry, index) => {
-        if (!entry || typeof entry !== "object") {
-          return null;
-        }
-        const id = typeof entry.id === "string" && entry.id.length ? entry.id : `rule-${Date.now()}-${index}`;
-        const mode = typeof entry.mode === "string" && BLACKLIST_MODES.has(entry.mode) ? entry.mode : "contains";
-        const value = typeof entry.value === "string" ? entry.value.trim() : "";
-        return { id, mode, value };
-      }).filter(Boolean);
     }
     function loadBlacklistRules() {
       return new Promise((resolve) => {

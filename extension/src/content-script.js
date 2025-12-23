@@ -1,13 +1,13 @@
 import { Logger } from "./shared/Logger.js";
+import { BLACKLIST_STORAGE_KEY, CONTENT_PORT } from "./shared/constants.js";
+import { normalizeBlacklistRules } from "./shared/blacklist-utils.js";
 
-const log = new Logger('content-script');
+const log = new Logger("content-script");
 
 (function () {
-  const BLACKLIST_STORAGE_KEY = "uspBlacklistRules";
-  const BLACKLIST_MODES = new Set(["contains", "exact", "regex"]);
   const DRIFT_CHECK_INTERVAL_MS = 250;
   const DRIFT_THRESHOLD_MS = 200;
-  const PORT_NAME = "usp-video-channel";
+  const PORT_NAME = CONTENT_PORT;
   const KEEPALIVE_INTERVAL_MS = 15000;
   const RECONNECT_DELAY_MS = 1000;
 
@@ -168,29 +168,6 @@ const log = new Logger('content-script');
     log.info('video', `Video ${reason}`, { src });
     send("video-ended", { pageUrl: location.href });
     setActiveVideo(null);
-  }
-
-  function normalizeBlacklistRules(input) {
-    if (!Array.isArray(input)) {
-      return [];
-    }
-    return input
-      .map((entry, index) => {
-        if (!entry || typeof entry !== "object") {
-          return null;
-        }
-        const id =
-          typeof entry.id === "string" && entry.id.length
-            ? entry.id
-            : `rule-${Date.now()}-${index}`;
-        const mode =
-          typeof entry.mode === "string" && BLACKLIST_MODES.has(entry.mode)
-            ? entry.mode
-            : "contains";
-        const value = typeof entry.value === "string" ? entry.value.trim() : "";
-        return { id, mode, value };
-      })
-      .filter(Boolean);
   }
 
   function loadBlacklistRules() {
