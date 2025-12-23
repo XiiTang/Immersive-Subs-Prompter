@@ -153,10 +153,51 @@ onBeforeUnmount(() => {
   window.removeEventListener("blur", handleWindowBlur);
 });
 
+// Track if store has been initialized to avoid applying default template prematurely
+const storeInitialized = ref(false);
+
+// Watch for store initialization completion
+watch(
+  () => store.isInitializing,
+  (isInitializing) => {
+    if (!isInitializing && store.settings) {
+      storeInitialized.value = true;
+      // Apply the active profile settings after initialization
+      const activeSettings = store.activeProfile?.settings ?? store.editingProfileSettings;
+      applySubtitleStyles(activeSettings);
+    }
+  },
+  { immediate: true }
+);
+
+// Watch editingProfileSettings for live preview while editing in settings panel
 watch(
   () => store.editingProfileSettings,
-  (settings) => applySubtitleStyles(settings),
+  (settings) => {
+    // Skip if store hasn't initialized yet (will be handled by initialization watcher)
+    if (!storeInitialized.value) {
+      return;
+    }
+    applySubtitleStyles(settings);
+  },
   { deep: true, immediate: true }
+);
+
+// Also watch activeProfile changes for when the applied profile changes (e.g., via rules)
+watch(
+  () => store.activeProfile?.settings,
+  (settings) => {
+    if (!storeInitialized.value || !settings) {
+      return;
+    }
+    // Only apply if different from editing profile (to avoid duplicate updates)
+    const editingId = store.editingProfile?.id;
+    const activeId = store.activeProfile?.id;
+    if (editingId !== activeId) {
+      applySubtitleStyles(settings);
+    }
+  },
+  { deep: true }
 );
 
 

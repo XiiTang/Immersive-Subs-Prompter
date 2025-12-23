@@ -122,6 +122,31 @@ For detailed procedures (including extension packaging, Electron installer, yt-d
     3. Save and reopen PowerShell
   - **Recommended**: Use Windows Terminal or VS Code built-in terminal, they support UTF-8 encoding by default.
 
+## Tips
+
+### Viewing Installed Fonts on Windows
+
+To configure subtitle fonts in **Settings → Profiles → Subtitle Font**, you need to know the exact font names installed on your system.
+
+**List system-wide fonts** (installed for all users):
+
+```powershell
+[System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") | Out-Null
+(New-Object System.Drawing.Text.InstalledFontCollection).Families | Select-Object -ExpandProperty Name
+```
+
+**List user-installed fonts** (Windows 10/11, installed for current user only):
+
+```powershell
+(Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" -ErrorAction SilentlyContinue).PSObject.Properties | Where-Object { $_.Name -notlike "PS*" } | ForEach-Object { $_.Name -replace ' \(TrueType\)$','' -replace ' \(OpenType\)$','' }
+```
+
+> **Note**: Fonts installed via right-click → "Install" are user-level fonts and won't appear in the system fonts list. Use right-click → "Install for all users" to install system-wide.
+
+Then copy the font name you want and paste it into the "Subtitle Font" field. For example: `Microsoft YaHei`, `LXGW WenKai`, `霞鹜文楷`, or `Source Han Sans SC`.
+
+You can also specify multiple fallback fonts separated by commas: `LXGW WenKai, Microsoft YaHei, sans-serif`
+
 ## License
 
 This example is for internal integration reference only. Before distributing, confirm the license requirements of third-party dependencies (especially `yt-dlp`).
