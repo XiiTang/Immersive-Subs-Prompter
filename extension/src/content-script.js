@@ -1,3 +1,5 @@
+import { Logger } from "./shared/Logger.js";
+
 const log = new Logger('content-script');
 
 (function () {

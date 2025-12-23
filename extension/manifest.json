@@ -11,7 +11,7 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "dist/background.js",
     "type": "module"
   },
   "content_scripts": [
@@ -20,8 +20,7 @@
         "<all_urls>"
       ],
       "js": [
-        "logger.js",
-        "content-script.js"
+        "dist/content-script.js"
       ],
       "all_frames": true,
       "run_at": "document_start"

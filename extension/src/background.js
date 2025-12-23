@@ -1,4 +1,4 @@
-import { Logger } from "./logger.module.js";
+import { Logger } from "./shared/Logger.js";
 const logger = new Logger("background");
 
 const DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
