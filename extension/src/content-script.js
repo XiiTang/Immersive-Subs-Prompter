@@ -7,7 +7,6 @@ const log = new Logger("content-script");
 (function () {
   const DRIFT_CHECK_INTERVAL_MS = 250;
   const DRIFT_THRESHOLD_MS = 200;
-  const PORT_NAME = CONTENT_PORT;
   const KEEPALIVE_INTERVAL_MS = 15000;
   const RECONNECT_DELAY_MS = 1000;
 
@@ -305,7 +304,7 @@ const log = new Logger("content-script");
     if (port) return port;
     let nextPort = null;
     try {
-      nextPort = chrome.runtime.connect({ name: PORT_NAME });
+      nextPort = chrome.runtime.connect({ name: CONTENT_PORT });
       log.info('conn', 'Connected', { url: location.href });
     } catch (err) {
       log.error('conn', 'Connection failed', err);

@@ -207,7 +207,6 @@ var USPContentScript = (() => {
   (function() {
     const DRIFT_CHECK_INTERVAL_MS = 250;
     const DRIFT_THRESHOLD_MS = 200;
-    const PORT_NAME = CONTENT_PORT;
     const KEEPALIVE_INTERVAL_MS = 15e3;
     const RECONNECT_DELAY_MS = 1e3;
     let port = null;
@@ -473,7 +472,7 @@ var USPContentScript = (() => {
       if (port) return port;
       let nextPort = null;
       try {
-        nextPort = chrome.runtime.connect({ name: PORT_NAME });
+        nextPort = chrome.runtime.connect({ name: CONTENT_PORT });
         log.info("conn", "Connected", { url: location.href });
       } catch (err) {
         log.error("conn", "Connection failed", err);
