@@ -2,13 +2,21 @@ import { log, state } from "../content/state.js";
 
 const URL_FALLBACK_INTERVAL_MS = 10000;
 
-function notifyUrlChange(onUrlChanged) {
+function notifyUrlChange(onUrlChanged, source = "unknown") {
   const currentUrl = location.href;
   if (state.lastPageUrl === currentUrl) {
     return;
   }
+  const oldUrl = state.lastPageUrl;
   state.lastPageUrl = currentUrl;
-  log.info("page", "URL changed", { url: currentUrl, title: document.title });
+
+  log.info("page", "URL changed", {
+    source,
+    from: oldUrl,
+    to: currentUrl,
+    title: document.title
+  });
+
   if (typeof onUrlChanged === "function") {
     onUrlChanged(currentUrl, document.title);
   }
@@ -19,14 +27,15 @@ function addListener(target, eventName, handler) {
   state.urlWatcherCleanups.push(() => target.removeEventListener(eventName, handler));
 }
 
-function patchHistoryMethod(methodName, handler) {
+function patchHistoryMethod(methodName, onUrlChanged) {
   const original = history?.[methodName];
   if (typeof original !== "function") {
+    log.warn("page", `Cannot patch history.${methodName}: not a function`);
     return;
   }
   const patched = function (...args) {
     const result = original.apply(this, args);
-    handler();
+    notifyUrlChange(onUrlChanged, methodName);
     return result;
   };
   patched.toString = () => original.toString();
@@ -41,7 +50,7 @@ function scheduleFallback(onUrlChanged) {
     clearTimeout(state.urlFallbackTimer);
   }
   state.urlFallbackTimer = window.setTimeout(() => {
-    notifyUrlChange(onUrlChanged);
+    notifyUrlChange(onUrlChanged, "fallback");
     scheduleFallback(onUrlChanged);
   }, URL_FALLBACK_INTERVAL_MS);
 }
@@ -53,15 +62,24 @@ export function ensureUrlWatcher(onUrlChanged) {
   state.urlWatcherInitialized = true;
   state.urlWatcherCleanups = [];
 
-  const handleUrlChange = () => notifyUrlChange(onUrlChanged);
-
-  addListener(window, "popstate", handleUrlChange);
-  addListener(window, "hashchange", handleUrlChange);
-  ["pushState", "replaceState"].forEach((methodName) => patchHistoryMethod(methodName, handleUrlChange));
+  addListener(window, "popstate", () => notifyUrlChange(onUrlChanged, "popstate"));
+  addListener(window, "hashchange", () => notifyUrlChange(onUrlChanged, "hashchange"));
+  ["pushState", "replaceState"].forEach((methodName) => patchHistoryMethod(methodName, onUrlChanged));
   scheduleFallback(onUrlChanged);
+
+  log.info("page", "URL watcher initialized", {
+    mode: "event-driven + fallback",
+    fallbackIntervalMs: URL_FALLBACK_INTERVAL_MS
+  });
 }
 
 export function stopUrlWatcher() {
+  if (!state.urlWatcherInitialized) {
+    return;
+  }
+
+  log.info("page", "Stopping URL watcher");
+
   if (state.urlFallbackTimer) {
     clearTimeout(state.urlFallbackTimer);
     state.urlFallbackTimer = null;
@@ -77,4 +95,6 @@ export function stopUrlWatcher() {
   }
   state.urlWatcherCleanups = [];
   state.urlWatcherInitialized = false;
+
+  log.info("page", "URL watcher stopped");
 }

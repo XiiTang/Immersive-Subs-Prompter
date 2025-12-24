@@ -193,7 +193,9 @@ var USPContentScript = (() => {
     isPageBlacklisted: false,
     monitoringActive: false,
     prototypesHooked: false,
-    urlMonitorTimer: null,
+    urlWatcherInitialized: false,
+    urlWatcherCleanups: [],
+    urlFallbackTimer: null,
     regexCache: /* @__PURE__ */ new Map(),
     lastReportedPlayback: null,
     loop: {
@@ -351,21 +353,90 @@ var USPContentScript = (() => {
   }
 
   // src/monitoring/URLWatcher.js
-  function ensureUrlWatcher(onUrlChanged) {
-    if (state.urlMonitorTimer !== null) {
+  var URL_FALLBACK_INTERVAL_MS = 1e4;
+  function notifyUrlChange(onUrlChanged, source = "unknown") {
+    const currentUrl = location.href;
+    if (state.lastPageUrl === currentUrl) {
       return;
     }
-    const tick = () => {
-      if (state.lastPageUrl !== location.href) {
-        state.lastPageUrl = location.href;
-        log.info("page", "URL changed", { url: state.lastPageUrl, title: document.title });
-        if (onUrlChanged) {
-          onUrlChanged(state.lastPageUrl, document.title);
-        }
-      }
-      state.urlMonitorTimer = window.setTimeout(tick, 1e3);
+    const oldUrl = state.lastPageUrl;
+    state.lastPageUrl = currentUrl;
+    log.info("page", "URL changed", {
+      source,
+      from: oldUrl,
+      to: currentUrl,
+      title: document.title
+    });
+    if (typeof onUrlChanged === "function") {
+      onUrlChanged(currentUrl, document.title);
+    }
+  }
+  function addListener(target, eventName, handler) {
+    target.addEventListener(eventName, handler);
+    state.urlWatcherCleanups.push(() => target.removeEventListener(eventName, handler));
+  }
+  function patchHistoryMethod(methodName, onUrlChanged) {
+    const original = history?.[methodName];
+    if (typeof original !== "function") {
+      log.warn("page", `Cannot patch history.${methodName}: not a function`);
+      return;
+    }
+    const patched = function(...args) {
+      const result = original.apply(this, args);
+      notifyUrlChange(onUrlChanged, methodName);
+      return result;
     };
-    state.urlMonitorTimer = window.setTimeout(tick, 1e3);
+    patched.toString = () => original.toString();
+    history[methodName] = patched;
+    state.urlWatcherCleanups.push(() => {
+      history[methodName] = original;
+    });
+  }
+  function scheduleFallback(onUrlChanged) {
+    if (state.urlFallbackTimer) {
+      clearTimeout(state.urlFallbackTimer);
+    }
+    state.urlFallbackTimer = window.setTimeout(() => {
+      notifyUrlChange(onUrlChanged, "fallback");
+      scheduleFallback(onUrlChanged);
+    }, URL_FALLBACK_INTERVAL_MS);
+  }
+  function ensureUrlWatcher(onUrlChanged) {
+    if (state.urlWatcherInitialized) {
+      return;
+    }
+    state.urlWatcherInitialized = true;
+    state.urlWatcherCleanups = [];
+    addListener(window, "popstate", () => notifyUrlChange(onUrlChanged, "popstate"));
+    addListener(window, "hashchange", () => notifyUrlChange(onUrlChanged, "hashchange"));
+    ["pushState", "replaceState"].forEach((methodName) => patchHistoryMethod(methodName, onUrlChanged));
+    scheduleFallback(onUrlChanged);
+    log.info("page", "URL watcher initialized", {
+      mode: "event-driven + fallback",
+      fallbackIntervalMs: URL_FALLBACK_INTERVAL_MS
+    });
+  }
+  function stopUrlWatcher() {
+    if (!state.urlWatcherInitialized) {
+      return;
+    }
+    log.info("page", "Stopping URL watcher");
+    if (state.urlFallbackTimer) {
+      clearTimeout(state.urlFallbackTimer);
+      state.urlFallbackTimer = null;
+    }
+    if (Array.isArray(state.urlWatcherCleanups)) {
+      state.urlWatcherCleanups.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch (error) {
+          log.warn("page", "Failed to cleanup URL watcher", error);
+        }
+      });
+    }
+    state.urlWatcherCleanups = [];
+    state.urlWatcherInitialized = false;
+    log.info("page", "URL watcher stopped");
   }
 
   // src/monitoring/DOMObserver.js
@@ -959,6 +1030,7 @@ var USPContentScript = (() => {
       return;
     }
     state.monitoringActive = true;
+    ensureUrlWatcher(handleUrlChanged);
     ensurePrototypeHooks();
     connectPort();
     prepareDomMonitoring();
@@ -975,6 +1047,7 @@ var USPContentScript = (() => {
     resetPlaybackPrediction();
     state.activeVideo = null;
     stopKeepAlive();
+    stopUrlWatcher();
     stopDOMObserver();
     disconnectPort();
   }
