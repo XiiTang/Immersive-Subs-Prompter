@@ -1,7 +1,7 @@
 import { log, state } from "./state.js";
 import { setPortHandlers, connectPort, disconnectPort } from "../connection/PortManager.js";
 import { send, startKeepAlive, stopKeepAlive } from "../connection/MessageSender.js";
-import { ensureUrlWatcher } from "../monitoring/URLWatcher.js";
+import { ensureUrlWatcher, stopUrlWatcher } from "../monitoring/URLWatcher.js";
 import { prepareDomMonitoring, setDomCallbacks, startDOMObserver, stopDOMObserver } from "../monitoring/DOMObserver.js";
 import { stopDriftMonitor } from "../monitoring/DriftMonitor.js";
 import { ensurePrototypeHooks, endActiveVideoSession, handleDocumentMediaEvent } from "../video/VideoDetector.js";
@@ -32,6 +32,7 @@ function startMonitoring() {
   }
   state.monitoringActive = true;
 
+  ensureUrlWatcher(handleUrlChanged);
   ensurePrototypeHooks();
   connectPort();
   prepareDomMonitoring();
@@ -50,6 +51,7 @@ function stopMonitoring() {
   state.activeVideo = null;
 
   stopKeepAlive();
+  stopUrlWatcher();
   stopDOMObserver();
   disconnectPort();
 }
@@ -110,4 +112,3 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 bootstrap();
-

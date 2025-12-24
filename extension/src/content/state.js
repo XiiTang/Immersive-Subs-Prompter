@@ -13,7 +13,9 @@ export const state = {
   isPageBlacklisted: false,
   monitoringActive: false,
   prototypesHooked: false,
-  urlMonitorTimer: null,
+  urlWatcherInitialized: false,
+  urlWatcherCleanups: [],
+  urlFallbackTimer: null,
   regexCache: new Map(),
   lastReportedPlayback: null,
   loop: {
