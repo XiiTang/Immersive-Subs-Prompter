@@ -36,7 +36,7 @@ export class ConnectionManager {
   private server: WebSocketServer | null = null;
   private currentNetwork: NetworkSettings | null = null;
 
-  constructor(private readonly options: ConnectionManagerOptions) {}
+  constructor(private readonly options: ConnectionManagerOptions) { }
 
   start() {
     this.applyNetworkSettings(true);
@@ -349,7 +349,7 @@ export class ConnectionManager {
 
         const requestId = ++this.subtitleRequestToken;
         try {
-          const result = await this.options.subtitleService.getSubtitles(resolvedUrl);
+          const result = await this.options.subtitleService.getSubtitles(normalizedUrl);
           if (requestId === this.subtitleRequestToken) {
             const tracks: SubtitleTrack[] = cachedTranscriptionTracks.length
               ? [...cachedTranscriptionTracks, ...result.tracks]
@@ -515,6 +515,19 @@ export class ConnectionManager {
 
     try {
       const urlObj = new URL(url);
+
+      // Bilibili: If no "p" param is present for a video URL, add p=1 to prevent
+      // yt-dlp from downloading subtitles for the entire playlist (all episodes)
+      // instead of just the first episode. This is safe for single videos too.
+      if (
+        urlObj.hostname.includes("bilibili.com") &&
+        urlObj.pathname.startsWith("/video/") &&
+        !urlObj.searchParams.has("p")
+      ) {
+        urlObj.searchParams.set("p", "1");
+        this.log.debug("Added p=1 to Bilibili URL to prevent playlist download", { originalUrl: url });
+      }
+
       const trackingParams = [
         "spm_id_from",
         "vd_source",

@@ -13,7 +13,7 @@ import {
 import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
 import { clampPort } from "./utils.js";
 
-export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --cookies-from-browser firefox";
+export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --no-playlist --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
 export const DEFAULT_PROFILE_NAME = "Default Profile";
 
