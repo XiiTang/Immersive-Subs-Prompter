@@ -211,11 +211,9 @@ function normalizeEndpointList(list) {
   return endpoints;
 }
 
-// src/background.js
-var logger = new Logger("background");
-var DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
+// src/background/desktop/DesktopConnection.js
 var RETRY_DELAY_MS = 2e3;
-var MINIMUM_DURATION = 1e4;
+var logger = new Logger("desktop-conn");
 var DesktopConnection = class {
   constructor(endpoint, onDesktopMessage, onStatusChange) {
     this.endpoint = endpoint;
@@ -282,7 +280,7 @@ var DesktopConnection = class {
           logger.debug("ws", "Received heartbeat, sent ACK", { endpoint: this.endpoint });
           return;
         }
-        logger.debug("ws", `\u2190 ${payload.type}`, { source: payload.source, endpoint: this.endpoint });
+        logger.debug("ws", `->${payload.type}`, { source: payload.source, endpoint: this.endpoint });
         this.onDesktopMessage?.(payload, this.endpoint);
       } catch (err) {
         logger.error("ws", "Failed to parse message", err);
@@ -315,7 +313,7 @@ var DesktopConnection = class {
       ...payload,
       sentAt: Date.now()
     });
-    logger.debug("ws", `\u2192 ${payload.type}`, { tabId: payload.tabId, endpoint: this.endpoint });
+    logger.debug("ws", `->${payload.type}`, { tabId: payload.tabId, endpoint: this.endpoint });
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
@@ -338,6 +336,8 @@ var DesktopConnection = class {
     this.updateState("idle");
   }
 };
+
+// src/background/desktop/DesktopConnectionPool.js
 var DesktopConnectionPool = class {
   constructor(onDesktopMessage, onStatusChange) {
     this.onDesktopMessage = onDesktopMessage;
@@ -376,346 +376,488 @@ var DesktopConnectionPool = class {
     return Array.from(this.connections.values()).map((conn) => conn.getSnapshot());
   }
 };
-var serverEndpoints = [...DEFAULT_ENDPOINTS];
-var connectionPool = new DesktopConnectionPool(handleDesktopMessage, handleConnectionStatusChange);
-function handleConnectionStatusChange() {
-  broadcastMediaSnapshot();
+
+// src/background/desktop/DesktopMessageHandler.js
+function createDesktopMessageHandler({ tabRegistry: tabRegistry2, logger: logger3 = new Logger("desktop-handler") }) {
+  return function handleDesktopMessage(message, endpoint) {
+    if (!message || typeof message !== "object") return;
+    if (message.source !== "usp-desktop") return;
+    if (message.type === "control-command" && typeof message.tabId === "number") {
+      const frameId = tabRegistry2.getPreferredFrameId(message.tabId);
+      logger3.info("ctrl", `Desktop command: ${message.action}`, { tabId: message.tabId, frameId, endpoint });
+      const port = tabRegistry2.getPort(message.tabId, frameId);
+      if (!port) {
+        logger3.warn("msg", `Tab${message.tabId} No port`, { preferredFrameId: frameId });
+        return;
+      }
+      try {
+        logger3.debug("msg", `Tab${message.tabId} ->control`, { frameId });
+        port.postMessage({
+          type: "control",
+          action: message.action,
+          payload: message.payload || {}
+        });
+      } catch (err) {
+        logger3.error("msg", `Tab${message.tabId} Send failed`, err);
+      }
+    }
+  };
 }
-function loadServerEndpoints() {
-  return new Promise((resolve) => {
+
+// src/background/tabs/TabRegistry.js
+var TabRegistry = class {
+  constructor({ logger: logger3 }) {
+    this.logger = logger3;
+    this.tabMetadata = /* @__PURE__ */ new Map();
+    this.tabPorts = /* @__PURE__ */ new Map();
+  }
+  ensureTabInfo(tabId) {
+    if (!this.tabMetadata.has(tabId)) {
+      this.tabMetadata.set(tabId, { lastVideoUrl: null, lastFrameId: null });
+    } else {
+      const existing = this.tabMetadata.get(tabId);
+      if (!Object.prototype.hasOwnProperty.call(existing, "lastVideoUrl")) {
+        existing.lastVideoUrl = null;
+      }
+      if (!Object.prototype.hasOwnProperty.call(existing, "lastFrameId")) {
+        existing.lastFrameId = null;
+      }
+    }
+    return this.tabMetadata.get(tabId);
+  }
+  rememberActiveFrame(tabId, frameId, pageUrl) {
+    if (typeof tabId !== "number") return;
+    const info = this.ensureTabInfo(tabId);
+    if (typeof frameId === "number") {
+      info.lastFrameId = frameId;
+    }
+    if (pageUrl) {
+      info.lastVideoUrl = pageUrl;
+    }
+    this.tabMetadata.set(tabId, info);
+  }
+  registerPort(tabId, frameId, port) {
+    this.ensureTabInfo(tabId);
+    const framePorts = this.tabPorts.get(tabId) || /* @__PURE__ */ new Map();
+    framePorts.set(frameId, port);
+    this.tabPorts.set(tabId, framePorts);
+  }
+  getPort(tabId, preferredFrameId) {
+    const framePorts = this.tabPorts.get(tabId);
+    if (!framePorts) {
+      return null;
+    }
+    if (typeof preferredFrameId === "number" && framePorts.has(preferredFrameId)) {
+      return framePorts.get(preferredFrameId);
+    }
+    const iterator = framePorts.values().next();
+    return iterator.done ? null : iterator.value;
+  }
+  getPreferredFrameId(tabId) {
+    return this.tabMetadata.get(tabId)?.lastFrameId ?? null;
+  }
+  clearFrame(tabId, frameId) {
+    const frames = this.tabPorts.get(tabId);
+    const removedFrame = frames ? frames.delete(frameId) : false;
+    const tabInfo = this.tabMetadata.get(tabId);
+    let clearedPreferredFrame = false;
+    if (tabInfo && tabInfo.lastFrameId === frameId) {
+      tabInfo.lastFrameId = null;
+      this.tabMetadata.set(tabId, tabInfo);
+      clearedPreferredFrame = true;
+    }
+    let tabRemoved = false;
+    if (frames && frames.size === 0) {
+      this.tabPorts.delete(tabId);
+      tabRemoved = true;
+    }
+    if (tabRemoved) {
+      this.tabMetadata.delete(tabId);
+    }
+    return { removedFrame, clearedPreferredFrame, tabRemoved };
+  }
+};
+
+// src/background/tabs/MediaStateStore.js
+var MINIMUM_DURATION = 1e4;
+var MediaStateStore = class {
+  constructor({ logger: logger3 = new Logger("media-state"), minDuration = MINIMUM_DURATION, onChange } = {}) {
+    this.logger = logger3;
+    this.minDuration = minDuration;
+    this.onChange = onChange;
+    this.mediaStates = /* @__PURE__ */ new Map();
+  }
+  isValidMedia(payload) {
+    if (!payload) return false;
+    if (!payload.readyState) {
+      this.logger.debug("filter", "Filtered: no readyState");
+      return false;
+    }
+    const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
+    if (duration <= this.minDuration) {
+      this.logger.debug("filter", `Filtered: duration=${duration}s`);
+      return false;
+    }
+    return true;
+  }
+  setState(tabId, patch = {}, lastEventType) {
+    if (typeof tabId !== "number" || !patch || typeof patch !== "object") return null;
+    const prev = this.mediaStates.get(tabId) || { tabId };
+    const next = {
+      ...prev,
+      ...patch,
+      tabId,
+      lastEventType: lastEventType || patch.type || prev?.lastEventType,
+      updatedAt: Date.now()
+    };
+    this.mediaStates.set(tabId, next);
+    this.onChange?.(this.mediaStates);
+    return next;
+  }
+  removeState(tabId) {
+    if (!this.mediaStates.has(tabId)) return false;
+    this.mediaStates.delete(tabId);
+    this.onChange?.(this.mediaStates);
+    return true;
+  }
+  has(tabId) {
+    return this.mediaStates.has(tabId);
+  }
+  get(tabId) {
+    return this.mediaStates.get(tabId);
+  }
+  list() {
+    return [...this.mediaStates.values()];
+  }
+};
+
+// src/background/endpoints/EndpointManager.js
+var EndpointManager = class {
+  constructor({ logger: logger3 = new Logger("endpoints"), storageKey, defaultEndpoints = [], onChange } = {}) {
+    this.logger = logger3;
+    this.storageKey = storageKey;
+    this.defaultEndpoints = defaultEndpoints;
+    this.onChange = onChange;
+    this.endpoints = [...defaultEndpoints];
+  }
+  getEndpoints() {
+    return [...this.endpoints];
+  }
+  async load() {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.get([this.storageKey], (result) => {
+          if (chrome.runtime?.lastError) {
+            this.logger.error("storage", "Failed to load server endpoints", chrome.runtime.lastError);
+            resolve([...this.defaultEndpoints]);
+            return;
+          }
+          const stored = normalizeEndpointList(result?.[this.storageKey]);
+          const hasKey = result && Object.prototype.hasOwnProperty.call(result, this.storageKey);
+          resolve(hasKey ? stored : stored.length ? stored : [...this.defaultEndpoints]);
+        });
+      } catch (error) {
+        this.logger.error("storage", "Failed to load server endpoints", error);
+        resolve([...this.defaultEndpoints]);
+      }
+    });
+  }
+  persist(endpoints) {
     try {
-      chrome.storage.local.get([ENDPOINTS_STORAGE_KEY], (result) => {
+      chrome.storage.local.set({ [this.storageKey]: endpoints }, () => {
         if (chrome.runtime?.lastError) {
-          logger.error("storage", "Failed to load server endpoints", chrome.runtime.lastError);
-          resolve([...DEFAULT_ENDPOINTS]);
-          return;
+          this.logger.error("storage", "Failed to persist server endpoints", chrome.runtime.lastError);
         }
-        const stored = normalizeEndpointList(result?.[ENDPOINTS_STORAGE_KEY]);
-        const hasKey = result && Object.prototype.hasOwnProperty.call(result, ENDPOINTS_STORAGE_KEY);
-        resolve(hasKey ? stored : stored.length ? stored : [...DEFAULT_ENDPOINTS]);
       });
     } catch (error) {
-      logger.error("storage", "Failed to load server endpoints", error);
-      resolve([...DEFAULT_ENDPOINTS]);
+      this.logger.error("storage", "Failed to persist server endpoints", error);
     }
-  });
-}
-function persistServerEndpoints(endpoints) {
-  try {
-    chrome.storage.local.set({ [ENDPOINTS_STORAGE_KEY]: endpoints }, () => {
-      if (chrome.runtime?.lastError) {
-        logger.error("storage", "Failed to persist server endpoints", chrome.runtime.lastError);
+  }
+  set(endpoints, { persist = true, fallbackToDefault = false } = {}) {
+    const normalized = normalizeEndpointList(endpoints);
+    this.endpoints = normalized.length || !fallbackToDefault ? normalized : [...this.defaultEndpoints];
+    if (persist) {
+      this.persist(this.endpoints);
+    }
+    this.onChange?.(this.endpoints);
+    return this.getEndpoints();
+  }
+  add(endpoint) {
+    if (typeof endpoint !== "string") return this.getEndpoints();
+    return this.set([...this.endpoints, endpoint]);
+  }
+  remove(endpoint) {
+    if (typeof endpoint !== "string") return this.getEndpoints();
+    return this.set(this.endpoints.filter((item) => item !== endpoint));
+  }
+};
+
+// src/background/messaging/SnapshotBuilder.js
+var SnapshotBuilder = class {
+  constructor({ mediaStateStore: mediaStateStore2, connectionPool: connectionPool2, getEndpoints, logger: logger3 = new Logger("snapshot") }) {
+    this.mediaStateStore = mediaStateStore2;
+    this.connectionPool = connectionPool2;
+    this.getEndpoints = getEndpoints;
+    this.logger = logger3;
+  }
+  buildMediaInfo(state, now = Date.now()) {
+    const duration = typeof state.duration === "number" && Number.isFinite(state.duration) ? state.duration : null;
+    const currentTime = typeof state.currentTime === "number" && Number.isFinite(state.currentTime) ? state.currentTime : null;
+    const progress = duration && currentTime != null && duration > 0 ? Math.min(Math.max(currentTime / duration, 0), 1) : null;
+    const isPlaying = !state.paused && (state.readyState || 0) >= 2;
+    return {
+      ...state,
+      duration,
+      currentTime,
+      progress,
+      isPlaying,
+      updatedAgo: now - (state.updatedAt || now)
+    };
+  }
+  buildMediaSnapshot() {
+    const now = Date.now();
+    return this.mediaStateStore.list().map((state) => this.buildMediaInfo(state, now)).sort((a, b) => {
+      if (a.isPlaying !== b.isPlaying) {
+        return a.isPlaying ? -1 : 1;
       }
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
-  } catch (error) {
-    logger.error("storage", "Failed to persist server endpoints", error);
   }
-}
-function setServerEndpoints(endpoints, { persist = true, fallbackToDefault = false } = {}) {
-  serverEndpoints = normalizeEndpointList(endpoints);
-  if (!serverEndpoints.length && fallbackToDefault) {
-    serverEndpoints = [...DEFAULT_ENDPOINTS];
+  buildConnectionSnapshot() {
+    return this.connectionPool.describe();
   }
-  connectionPool.setEndpoints(serverEndpoints);
-  if (persist) {
-    persistServerEndpoints(serverEndpoints);
-  }
-  broadcastMediaSnapshot();
-}
-var tabMetadata = /* @__PURE__ */ new Map();
-var tabPorts = /* @__PURE__ */ new Map();
-var mediaStates = /* @__PURE__ */ new Map();
-var dashboardPorts = /* @__PURE__ */ new Set();
-loadServerEndpoints().then((endpoints) => setServerEndpoints(endpoints, { persist: false, fallbackToDefault: true }));
-function buildMediaSnapshot() {
-  const now = Date.now();
-  return [...mediaStates.values()].map((state) => buildMediaInfo(state, now)).sort((a, b) => {
-    if (a.isPlaying !== b.isPlaying) {
-      return a.isPlaying ? -1 : 1;
-    }
-    return (b.updatedAt || 0) - (a.updatedAt || 0);
-  });
-}
-function buildConnectionSnapshot() {
-  return connectionPool.describe();
-}
-function buildMediaInfo(state, now = Date.now()) {
-  const duration = typeof state.duration === "number" && Number.isFinite(state.duration) ? state.duration : null;
-  const currentTime = typeof state.currentTime === "number" && Number.isFinite(state.currentTime) ? state.currentTime : null;
-  const progress = duration && currentTime != null && duration > 0 ? Math.min(Math.max(currentTime / duration, 0), 1) : null;
-  const isPlaying = !state.paused && (state.readyState || 0) >= 2;
-  return {
-    ...state,
-    duration,
-    currentTime,
-    progress,
-    isPlaying,
-    updatedAgo: now - (state.updatedAt || now)
-  };
-}
-function broadcastMediaSnapshot() {
-  if (!dashboardPorts.size) return;
-  const snapshot = {
-    type: "media-state-snapshot",
-    payload: {
+  buildSnapshot() {
+    return {
       generatedAt: Date.now(),
-      items: buildMediaSnapshot(),
-      connections: buildConnectionSnapshot(),
-      endpoints: serverEndpoints
+      items: this.buildMediaSnapshot(),
+      connections: this.buildConnectionSnapshot(),
+      endpoints: this.getEndpoints()
+    };
+  }
+};
+
+// src/background/messaging/ContentMessageRouter.js
+var ContentMessageRouter = class {
+  constructor({ logger: logger3 = new Logger("content-router"), tabRegistry: tabRegistry2, mediaStateStore: mediaStateStore2, connectionPool: connectionPool2, snapshotBuilder: snapshotBuilder2 }) {
+    this.logger = logger3;
+    this.tabRegistry = tabRegistry2;
+    this.mediaStateStore = mediaStateStore2;
+    this.connectionPool = connectionPool2;
+    this.snapshotBuilder = snapshotBuilder2;
+  }
+  handlePort(port) {
+    const tabId = port.sender?.tab?.id;
+    if (tabId === void 0) {
+      this.logger.warn("conn", "Ignored: no tabId");
+      return;
     }
-  };
-  dashboardPorts.forEach((port) => {
-    try {
-      port.postMessage(snapshot);
-    } catch (err) {
-      logger.warn("dashboard", "Failed to reach dashboard port", err);
-      dashboardPorts.delete(port);
-    }
-  });
-}
-function sendSnapshotToPort(port) {
-  try {
-    port.postMessage({
-      type: "media-state-snapshot",
-      payload: {
-        generatedAt: Date.now(),
-        items: buildMediaSnapshot(),
-        connections: buildConnectionSnapshot(),
-        endpoints: serverEndpoints
-      }
+    const frameId = typeof port.sender?.frameId === "number" ? port.sender.frameId : 0;
+    this.logger.info("conn", `Tab${tabId} Connected`, { url: port.sender?.tab?.url, frameId });
+    this.tabRegistry.registerPort(tabId, frameId, port);
+    port.onMessage.addListener((message) => {
+      this.handleMessage(tabId, frameId, message);
     });
-  } catch (err) {
-    logger.error("dashboard", "Failed to send dashboard snapshot", err);
-  }
-}
-function ensureTabInfo(tabId) {
-  if (!tabMetadata.has(tabId)) {
-    tabMetadata.set(tabId, { lastVideoUrl: null, lastFrameId: null });
-  } else {
-    const existing = tabMetadata.get(tabId);
-    if (!Object.prototype.hasOwnProperty.call(existing, "lastVideoUrl")) {
-      existing.lastVideoUrl = null;
-    }
-    if (!Object.prototype.hasOwnProperty.call(existing, "lastFrameId")) {
-      existing.lastFrameId = null;
-    }
-  }
-  return tabMetadata.get(tabId);
-}
-function rememberActiveFrame(tabId, frameId, pageUrl) {
-  if (typeof tabId !== "number") return;
-  const info = ensureTabInfo(tabId);
-  if (typeof frameId === "number") {
-    info.lastFrameId = frameId;
-  }
-  if (pageUrl) {
-    info.lastVideoUrl = pageUrl;
-  }
-  tabMetadata.set(tabId, info);
-}
-function getPortForTab(tabId, preferredFrameId) {
-  const framePorts = tabPorts.get(tabId);
-  if (!framePorts) {
-    return null;
-  }
-  if (typeof preferredFrameId === "number" && framePorts.has(preferredFrameId)) {
-    return framePorts.get(preferredFrameId);
-  }
-  const iterator = framePorts.values().next();
-  return iterator.done ? null : iterator.value;
-}
-function setMediaState(tabId, patch = {}, lastEventType) {
-  if (typeof tabId !== "number" || !patch || typeof patch !== "object") return;
-  const prev = mediaStates.get(tabId) || { tabId };
-  const next = {
-    ...prev,
-    ...patch,
-    tabId,
-    lastEventType: lastEventType || patch.type || prev.lastEventType,
-    updatedAt: Date.now()
-  };
-  mediaStates.set(tabId, next);
-  broadcastMediaSnapshot();
-}
-function removeMediaState(tabId) {
-  if (!mediaStates.has(tabId)) return false;
-  mediaStates.delete(tabId);
-  broadcastMediaSnapshot();
-  return true;
-}
-function isValidMedia(payload) {
-  if (!payload) return false;
-  if (!payload.readyState) {
-    logger.debug("filter", "Filtered: no readyState");
-    return false;
-  }
-  const duration = typeof payload.duration === "number" && Number.isFinite(payload.duration) ? payload.duration : 0;
-  if (duration <= MINIMUM_DURATION) {
-    logger.debug("filter", `Filtered: duration=${duration}s`);
-    return false;
-  }
-  return true;
-}
-function ingestMediaMessage(tabId, frameId, message) {
-  if (!message || typeof message !== "object") return;
-  const { type, payload } = message;
-  if (!type) return;
-  logger.debug("msg", `Tab${tabId} \u2190 ${type}`);
-  if (type === "video-context") {
-    rememberActiveFrame(tabId, frameId, payload?.pageUrl);
-  }
-  if (type === "video-context" || type === "time-update" || type === "playback-rate") {
-    const isValid = isValidMedia(payload);
-    if (isValid) {
-      logger.info("media", `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
-      const patch = typeof frameId === "number" ? { ...payload || {}, frameId } : payload || {};
-      setMediaState(tabId, patch, type);
-    }
-  } else if (type === "loop-started") {
-    logger.info("loop", `Tab${tabId} Loop started`);
-    connectionPool.broadcast({
-      source: "usp-extension",
-      type: "loop-started",
-      tabId,
-      payload: payload || {}
-    });
-  } else if (type === "loop-cleared") {
-    logger.info("loop", `Tab${tabId} Loop cleared by user interaction`);
-    connectionPool.broadcast({
-      source: "usp-extension",
-      type: "loop-cleared",
-      tabId,
-      payload: payload || {}
-    });
-  } else if (type === "page-url-changed" && mediaStates.has(tabId)) {
-    logger.info("page", `Tab${tabId} URL changed`, { url: payload.pageUrl });
-    setMediaState(tabId, payload || {}, type);
-  } else if (type === "video-ended") {
-    logger.info("media", `Tab${tabId} Playback ended`);
-    removeMediaState(tabId);
-  }
-}
-function sendToContentScript(tabId, message) {
-  const preferredFrameId = tabMetadata.get(tabId)?.lastFrameId;
-  const port = getPortForTab(tabId, preferredFrameId);
-  if (!port) {
-    logger.warn("msg", `Tab${tabId} No port`, { preferredFrameId });
-    return;
-  }
-  try {
-    logger.debug("msg", `Tab${tabId} \u2192 ${message.type}`, { frameId: preferredFrameId });
-    port.postMessage(message);
-  } catch (err) {
-    logger.error("msg", `Tab${tabId} Send failed`, err);
-  }
-}
-function handleDesktopMessage(message, endpoint) {
-  if (!message || typeof message !== "object") return;
-  if (message.source !== "usp-desktop") return;
-  if (message.type === "control-command" && typeof message.tabId === "number") {
-    const frameId = tabMetadata.get(message.tabId)?.lastFrameId ?? null;
-    logger.info("ctrl", `Desktop command: ${message.action}`, { tabId: message.tabId, frameId, endpoint });
-    sendToContentScript(message.tabId, {
-      type: "control",
-      action: message.action,
-      payload: message.payload || {}
+    port.onDisconnect.addListener(() => {
+      this.handleDisconnect(tabId, frameId);
     });
   }
-}
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === CONTENT_PORT) {
-    handleContentPort(port);
-  } else if (port.name === DASHBOARD_PORT) {
-    handleDashboardPort(port);
-  }
-});
-function handleContentPort(port) {
-  const tabId = port.sender?.tab?.id;
-  if (tabId === void 0) {
-    logger.warn("conn", "Ignored: no tabId");
-    return;
-  }
-  const frameId = typeof port.sender?.frameId === "number" ? port.sender.frameId : 0;
-  logger.info("conn", `Tab${tabId} Connected`, { url: port.sender?.tab?.url, frameId });
-  ensureTabInfo(tabId);
-  const framePorts = tabPorts.get(tabId) || /* @__PURE__ */ new Map();
-  framePorts.set(frameId, port);
-  tabPorts.set(tabId, framePorts);
-  port.onMessage.addListener((message) => {
-    ingestMediaMessage(tabId, frameId, message);
+  handleMessage(tabId, frameId, message) {
+    this.ingestMediaMessage(tabId, frameId, message);
+    if (!message || typeof message !== "object") return;
     if (message.type === "video-ended") {
-      connectionPool.broadcast({
+      this.connectionPool.broadcast({
         tabId,
         type: "video-ended",
         payload: {}
       });
     } else if (message.type === "page-url-changed") {
-      connectionPool.broadcast({
+      this.connectionPool.broadcast({
         tabId,
         type: "page-url-changed",
         payload: message.payload
       });
-    } else if (mediaStates.has(tabId)) {
-      const mediaInfo = buildMediaInfo(mediaStates.get(tabId));
-      logger.debug("fwd", `\u2192Desktop Tab${tabId}:${message.type}`, {
+    } else if (this.mediaStateStore.has(tabId)) {
+      const mediaInfo = this.snapshotBuilder.buildMediaInfo(this.mediaStateStore.get(tabId));
+      this.logger.debug("fwd", `->Desktop Tab${tabId}:${message.type}`, {
         dur: mediaInfo.duration?.toFixed(1),
         time: mediaInfo.currentTime?.toFixed(1)
       });
-      connectionPool.broadcast({
+      this.connectionPool.broadcast({
         tabId,
         type: message.type,
         payload: mediaInfo
       });
     }
-  });
-  port.onDisconnect.addListener(() => {
-    logger.info("conn", `Tab${tabId} Frame${frameId} Disconnected`);
-    const frames = tabPorts.get(tabId);
-    if (frames) {
-      frames.delete(frameId);
-      if (!frames.size) {
-        tabPorts.delete(tabId);
-      }
-    }
+  }
+  handleDisconnect(tabId, frameId) {
+    this.logger.info("conn", `Tab${tabId} Frame${frameId} Disconnected`);
+    const { clearedPreferredFrame, tabRemoved } = this.tabRegistry.clearFrame(tabId, frameId);
     let stateRemoved = false;
-    const tabInfo = tabMetadata.get(tabId);
-    if (tabInfo && tabInfo.lastFrameId === frameId) {
-      tabInfo.lastFrameId = null;
-      tabMetadata.set(tabId, tabInfo);
-      stateRemoved = removeMediaState(tabId) || stateRemoved;
+    if (clearedPreferredFrame) {
+      stateRemoved = this.mediaStateStore.removeState(tabId) || stateRemoved;
     }
-    if (!tabPorts.has(tabId)) {
-      tabMetadata.delete(tabId);
-      stateRemoved = removeMediaState(tabId) || stateRemoved;
+    if (tabRemoved) {
+      stateRemoved = this.mediaStateStore.removeState(tabId) || stateRemoved;
     }
     if (stateRemoved) {
-      connectionPool.broadcast({
+      this.connectionPool.broadcast({
         tabId,
         type: "video-ended",
         payload: {}
       });
     }
-  });
-}
-function handleDashboardPort(port) {
-  logger.info("conn", `Dashboard Connected (total: ${dashboardPorts.size + 1})`);
-  dashboardPorts.add(port);
-  sendSnapshotToPort(port);
-  port.onMessage.addListener((message) => {
+  }
+  ingestMediaMessage(tabId, frameId, message) {
+    if (!message || typeof message !== "object") return;
+    const { type, payload } = message;
+    if (!type) return;
+    this.logger.debug("msg", `Tab${tabId} ->${type}`);
+    if (type === "video-context") {
+      this.tabRegistry.rememberActiveFrame(tabId, frameId, payload?.pageUrl);
+    }
+    if (type === "video-context" || type === "time-update" || type === "playback-rate") {
+      const isValid = this.mediaStateStore.isValidMedia(payload);
+      if (isValid) {
+        this.logger.info("media", `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
+        const patch = typeof frameId === "number" ? { ...payload || {}, frameId } : payload || {};
+        this.mediaStateStore.setState(tabId, patch, type);
+      }
+    } else if (type === "loop-started") {
+      this.logger.info("loop", `Tab${tabId} Loop started`);
+      this.connectionPool.broadcast({
+        source: "usp-extension",
+        type: "loop-started",
+        tabId,
+        payload: payload || {}
+      });
+    } else if (type === "loop-cleared") {
+      this.logger.info("loop", `Tab${tabId} Loop cleared by user interaction`);
+      this.connectionPool.broadcast({
+        source: "usp-extension",
+        type: "loop-cleared",
+        tabId,
+        payload: payload || {}
+      });
+    } else if (type === "page-url-changed" && this.mediaStateStore.has(tabId)) {
+      this.logger.info("page", `Tab${tabId} URL changed`, { url: payload.pageUrl });
+      this.mediaStateStore.setState(tabId, payload || {}, type);
+    } else if (type === "video-ended") {
+      this.logger.info("media", `Tab${tabId} Playback ended`);
+      this.mediaStateStore.removeState(tabId);
+    }
+  }
+};
+
+// src/background/dashboard/DashboardBridge.js
+var DashboardBridge = class {
+  constructor({ snapshotBuilder: snapshotBuilder2, endpointManager: endpointManager2, logger: logger3 = new Logger("dashboard") }) {
+    this.snapshotBuilder = snapshotBuilder2;
+    this.endpointManager = endpointManager2;
+    this.logger = logger3;
+    this.dashboardPorts = /* @__PURE__ */ new Set();
+  }
+  handlePort(port) {
+    this.logger.info("conn", `Dashboard Connected (total: ${this.dashboardPorts.size + 1})`);
+    this.dashboardPorts.add(port);
+    this.sendSnapshotToPort(port);
+    port.onMessage.addListener((message) => this.handleMessage(port, message));
+    port.onDisconnect.addListener(() => this.handleDisconnect(port));
+  }
+  handleMessage(port, message) {
     if (!message || typeof message !== "object") return;
     if (message.type === "server-endpoints:get") {
-      sendSnapshotToPort(port);
+      this.sendSnapshotToPort(port);
     } else if (message.type === "server-endpoints:add" && typeof message.endpoint === "string") {
-      setServerEndpoints([...serverEndpoints, message.endpoint]);
+      this.endpointManager.add(message.endpoint);
     } else if (message.type === "server-endpoints:remove" && typeof message.endpoint === "string") {
-      setServerEndpoints(serverEndpoints.filter((endpoint) => endpoint !== message.endpoint));
+      this.endpointManager.remove(message.endpoint);
     } else if (message.type === "server-endpoints:set" && Array.isArray(message.endpoints)) {
-      setServerEndpoints(message.endpoints);
+      this.endpointManager.set(message.endpoints);
     }
-  });
-  port.onDisconnect.addListener(() => {
-    logger.info("conn", `Dashboard Disconnected (total: ${dashboardPorts.size - 1})`);
-    dashboardPorts.delete(port);
-  });
+  }
+  handleDisconnect(port) {
+    this.logger.info("conn", `Dashboard Disconnected (total: ${this.dashboardPorts.size - 1})`);
+    this.dashboardPorts.delete(port);
+  }
+  sendSnapshotToPort(port) {
+    try {
+      port.postMessage({
+        type: "media-state-snapshot",
+        payload: this.snapshotBuilder.buildSnapshot()
+      });
+    } catch (err) {
+      this.logger.error("dashboard", "Failed to send dashboard snapshot", err);
+    }
+  }
+  broadcastSnapshot() {
+    if (!this.dashboardPorts.size) return;
+    const snapshot = {
+      type: "media-state-snapshot",
+      payload: this.snapshotBuilder.buildSnapshot()
+    };
+    this.dashboardPorts.forEach((port) => {
+      try {
+        port.postMessage(snapshot);
+      } catch (err) {
+        this.logger.warn("dashboard", "Failed to reach dashboard port", err);
+        this.dashboardPorts.delete(port);
+      }
+    });
+  }
+};
+
+// src/background.js
+var DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
+var logger2 = new Logger("background");
+var tabRegistry = new TabRegistry({ logger: logger2 });
+var mediaStateStore = new MediaStateStore({
+  logger: logger2,
+  onChange: () => broadcastMediaSnapshot()
+});
+var dashboardBridge = null;
+function broadcastMediaSnapshot() {
+  dashboardBridge?.broadcastSnapshot();
 }
+var desktopMessageHandler = createDesktopMessageHandler({ tabRegistry, logger: logger2 });
+var connectionPool = new DesktopConnectionPool(
+  (message, sourceEndpoint) => desktopMessageHandler(message, sourceEndpoint),
+  () => broadcastMediaSnapshot()
+);
+var endpointManager = new EndpointManager({
+  logger: logger2,
+  storageKey: ENDPOINTS_STORAGE_KEY,
+  defaultEndpoints: DEFAULT_ENDPOINTS,
+  onChange: (endpoints) => {
+    connectionPool.setEndpoints(endpoints);
+    broadcastMediaSnapshot();
+  }
+});
+var snapshotBuilder = new SnapshotBuilder({
+  mediaStateStore,
+  connectionPool,
+  getEndpoints: () => endpointManager.getEndpoints(),
+  logger: logger2
+});
+dashboardBridge = new DashboardBridge({
+  logger: logger2,
+  snapshotBuilder,
+  endpointManager
+});
+var contentMessageRouter = new ContentMessageRouter({
+  logger: logger2,
+  tabRegistry,
+  mediaStateStore,
+  connectionPool,
+  snapshotBuilder
+});
+endpointManager.load().then((endpoints) => {
+  endpointManager.set(endpoints, { persist: false, fallbackToDefault: true });
+});
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === CONTENT_PORT) {
+    contentMessageRouter.handlePort(port);
+  } else if (port.name === DASHBOARD_PORT) {
+    dashboardBridge.handlePort(port);
+  }
+});
 //# sourceMappingURL=background.js.map
