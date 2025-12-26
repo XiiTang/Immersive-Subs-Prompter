@@ -458,9 +458,18 @@ var TabRegistry = class {
   }
   clearFrame(tabId, frameId) {
     const frames = this.tabPorts.get(tabId);
-    const removedFrame = frames ? frames.delete(frameId) : false;
     const tabInfo = this.tabMetadata.get(tabId);
     let clearedPreferredFrame = false;
+    if (!frames) {
+      if (tabInfo && tabInfo.lastFrameId === frameId) {
+        tabInfo.lastFrameId = null;
+        this.tabMetadata.set(tabId, tabInfo);
+        clearedPreferredFrame = true;
+      }
+      this.tabMetadata.delete(tabId);
+      return { removedFrame: false, clearedPreferredFrame, tabRemoved: true };
+    }
+    const removedFrame = frames.delete(frameId);
     if (tabInfo && tabInfo.lastFrameId === frameId) {
       tabInfo.lastFrameId = null;
       this.tabMetadata.set(tabId, tabInfo);
