@@ -14,9 +14,11 @@
           :is-active="index === activeCueIndex"
           :is-looping="loopCueIndex === index"
           :auto-hide-timestamps="autoHideTimestamps"
+          :ab-loop-start-index="abLoopStartIndex"
           :ref="(component: any) => setCueRef(component?.el?.value ?? component?.el ?? null, index)"
           @play="$emit('play-cue', index)"
           @loop="$emit('loop-cue', index)"
+          @loop-range="$emit('loop-range', index)"
         />
       </template>
     </section>
@@ -34,6 +36,7 @@ const props = defineProps<{
   activeCueIndex: number | null;
   loopCueIndex: number | null;
   autoHideTimestamps: boolean;
+  abLoopStartIndex: number | null;
   subtitlePanelStyle: Record<string, string>;
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
@@ -42,6 +45,7 @@ const props = defineProps<{
 defineEmits<{
   (e: "play-cue", index: number): void;
   (e: "loop-cue", index: number): void;
+  (e: "loop-range", index: number): void;
 }>();
 
 const { subtitleListEl, setCueRef, isScrollbarActive } = useAutoScroll({

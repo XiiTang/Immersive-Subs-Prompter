@@ -15,7 +15,25 @@
         :aria-label="`Play from cue ${index + 1}`"
         @click="$emit('play')"
       >
-        ▶
+        ā–?
+      </button>
+      <button
+        class="subtitle-item__ab-btn"
+        type="button"
+        :class="{
+          'subtitle-item__ab-btn--active': abLoopStartIndex === index,
+          'subtitle-item__ab-btn--pending-end': abLoopStartIndex !== null && abLoopStartIndex !== index
+        }"
+        :aria-label="
+          abLoopStartIndex === null
+            ? `Set A point at cue ${index + 1}`
+            : abLoopStartIndex === index
+              ? `A selected at cue ${index + 1}, choose B`
+              : `Set B point at cue ${index + 1}`
+        "
+        @click="$emit('loop-range')"
+      >
+        {{ abLoopStartIndex === null || abLoopStartIndex === index ? "A" : "B" }}
       </button>
       <button
         class="subtitle-item__loop-btn"
@@ -24,7 +42,7 @@
         :aria-label="`Loop cue ${index + 1}`"
         @click="$emit('loop')"
       >
-        ↻
+        ā†?
       </button>
     </div>
     <div class="subtitle-item__text">
@@ -49,11 +67,13 @@ defineProps<{
   isActive: boolean;
   isLooping: boolean;
   autoHideTimestamps: boolean;
+  abLoopStartIndex: number | null;
 }>();
 
 defineEmits<{
   (e: "play"): void;
   (e: "loop"): void;
+  (e: "loop-range"): void;
 }>();
 
 const rootRef = ref<HTMLElement | null>(null);
