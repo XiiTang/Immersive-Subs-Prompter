@@ -22,26 +22,7 @@ const targets = {
 };
 
 async function copyDirectory(src, dest) {
-  if (typeof fs.cp === "function") {
-    await fs.cp(src, dest, { recursive: true });
-    return;
-  }
-
-  await fs.mkdir(dest, { recursive: true });
-  const entries = await fs.readdir(src, { withFileTypes: true });
-
-  await Promise.all(
-    entries.map(async (entry) => {
-      const sourcePath = path.join(src, entry.name);
-      const targetPath = path.join(dest, entry.name);
-
-      if (entry.isDirectory()) {
-        await copyDirectory(sourcePath, targetPath);
-      } else {
-        await fs.copyFile(sourcePath, targetPath);
-      }
-    })
-  );
+  await fs.cp(src, dest, { recursive: true });
 }
 
 async function copyStaticAssets({ manifest, outDir }) {
