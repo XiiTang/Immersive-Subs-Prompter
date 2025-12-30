@@ -15,7 +15,7 @@
         :aria-label="`Play from cue ${index + 1}`"
         @click="$emit('play')"
       >
-        ā–?
+        ▶
       </button>
       <button
         class="subtitle-item__ab-btn"
@@ -42,7 +42,7 @@
         :aria-label="`Loop cue ${index + 1}`"
         @click="$emit('loop')"
       >
-        ā†?
+        ↻
       </button>
     </div>
     <div class="subtitle-item__text">
