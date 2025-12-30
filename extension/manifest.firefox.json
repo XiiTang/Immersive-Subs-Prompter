@@ -3,6 +3,7 @@
   "name": "Immersive Subs Prompter",
   "version": "0.0.1",
   "description": "Injects into major video sites, captures playback info, and relays it to the Immersive Subs Prompter desktop app.",
+  "author": "sheixunixitang3@gmail.com",
   "permissions": [
     "storage",
     "alarms"
@@ -37,7 +38,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "immersive-subs-prompter@example.com",
+      "id": "sheixunixitang3@gmail.com",
       "strict_min_version": "109.0"
     }
   }

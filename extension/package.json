@@ -2,6 +2,7 @@
   "name": "immersive-subs-prompter-extension",
   "version": "0.0.1",
   "private": true,
+  "author": "sheixunixitang3@gmail.com",
   "scripts": {
     "build": "npm run build:chrome",
     "build:chrome": "node ./build.js chrome",

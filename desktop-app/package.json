@@ -23,7 +23,7 @@
     "subtitles",
     "yt-dlp"
   ],
-  "author": "",
+  "author": "sheixunixitang3@gmail.com",
   "license": "MIT",
   "dependencies": {
     "active-win": "^8.2.1",
@@ -47,7 +47,7 @@
     "vue-tsc": "^1.8.27"
   },
   "build": {
-    "appId": "com.example.immersivesubsprompter",
+    "appId": "com.sheixunixitang3.immersivesubsprompter",
     "productName": "Immersive Subs Prompter",
     "directories": {
       "output": "release"

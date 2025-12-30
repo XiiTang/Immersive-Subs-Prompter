@@ -3,6 +3,7 @@
   "name": "Immersive Subs Prompter",
   "version": "0.0.1",
   "description": "Injects into major video sites, captures playback info, and relays it to the Immersive Subs Prompter desktop app.",
+  "author": "sheixunixitang3@gmail.com",
   "permissions": [
     "storage",
     "alarms"
