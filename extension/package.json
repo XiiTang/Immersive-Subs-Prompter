@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "node ./build.js"
+    "build": "npm run build:chrome",
+    "build:chrome": "node ./build.js chrome",
+    "build:firefox": "node ./build.js firefox",
+    "build:all": "npm run build:chrome && npm run build:firefox"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"

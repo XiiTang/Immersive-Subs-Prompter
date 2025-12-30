@@ -59,7 +59,9 @@ desktop-app/   # Electron + TypeScript desktop application
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Chrome / Edge / Chromium-based browser for loading extensions
+- Supported browsers:
+  - **Chrome / Edge / Chromium-based browser**: Version 110+
+  - **Firefox**: Version 109+ (Manifest V3 support required)
 - The desktop app will automatically download the corresponding platform's `yt-dlp` on first run, and automatically update it on subsequent launches by comparing with the latest Release. If unable to connect to the internet, you can pre-stage the binary according to the deployment guide.
 
 ### Start Desktop App
@@ -74,9 +76,29 @@ By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address an
 
 ### Load Browser Extension
 
+First, build the extension for your target browser:
+
+```bash
+cd extension
+npm install
+npm run build:chrome   # For Chrome/Edge/Chromium
+npm run build:firefox  # For Firefox
+npm run build:all      # Build both versions
+```
+
+**Chrome / Edge / Chromium:**
+
 1. Open `chrome://extensions`
 2. Enable "Developer mode"
-3. Select "Load unpacked", pointing to the `extension/` directory in the repository
+3. Select "Load unpacked", pointing to the `extension/dist/chrome` directory
+
+**Firefox:**
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on..."
+3. Navigate to `extension/dist/firefox` and select `manifest.json`
+
+> **Note**: Firefox temporary add-ons are removed when the browser closes. For persistent installation, the extension needs to be signed through [Firefox Add-ons](https://addons.mozilla.org/).
 
 Then playing any video on Bilibili / YouTube / Douyin will allow you to see the desktop app window download subtitles and sync highlighting.
 Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback updates will broadcast to every connected desktop app.
@@ -96,8 +118,10 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 | `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
 | `desktop-app` | `npm run dist:win/mac/linux` | Generate installation package for the corresponding platform using electron-builder (Win version installer allows free path selection) |
 | `desktop-app` | `npm run dist:all` | Package Win/Mac/Linux simultaneously (must run on respective platforms) |
-
-The extension part has no build script yet and uses the source directory directly.
+| `extension` | `npm run build` | Build Chrome extension (default) |
+| `extension` | `npm run build:chrome` | Build Chrome/Edge/Chromium extension to `dist/chrome/` |
+| `extension` | `npm run build:firefox` | Build Firefox extension to `dist/firefox/` |
+| `extension` | `npm run build:all` | Build both Chrome and Firefox versions |
 
 ## Deployment and Distribution
 

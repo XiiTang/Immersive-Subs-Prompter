@@ -110,7 +110,7 @@ release/
 # Browser extension
 *.crx
 *.pem
-!extension/dist/
+# Keep extension source but ignore dist build outputs
 !extension/package-lock.json
 
 # yt-dlp cache (if any)
