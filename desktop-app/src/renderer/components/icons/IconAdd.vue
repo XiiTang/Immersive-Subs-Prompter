@@ -3,22 +3,22 @@
     class="icon icon--add"
     :class="[sizeClass]"
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    :viewBox="ICON_ADD.viewBox"
+    v-bind="ICON_STROKE_PROPS"
     aria-hidden="true"
   >
-    <circle cx="8" cy="8" r="6" />
-    <line x1="8" y1="5" x2="8" y2="11" />
-    <line x1="5" y1="8" x2="11" y2="8" />
+    <component
+      v-for="(segment, index) in ICON_ADD.segments"
+      :is="segment.tag"
+      :key="index"
+      v-bind="segment.attrs"
+    />
   </svg>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ICON_ADD, ICON_STROKE_PROPS } from "../../shared/iconDefs";
 
 const props = defineProps<{
   size?: "sm" | "md" | "lg";
