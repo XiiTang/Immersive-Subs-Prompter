@@ -6,19 +6,27 @@
         <div class="profile-settings__actions">
           <span class="settings-field__label">{{ t("profile-list-label", "Profile List") }}</span>
           <div class="profile-settings__buttons">
-            <button type="button" class="text-button" @click="store.addProfile()">
-              {{ t("button-add", "Add") }}
+            <button
+              type="button"
+              class="icon-button"
+              :title="t('button-add', 'Add')"
+              :aria-label="t('button-add', 'Add')"
+              @click="store.addProfile()"
+            >
+              <IconAdd size="md" />
             </button>
             <button type="button" class="text-button" @click="store.duplicateProfile()">
               {{ t("button-duplicate", "Duplicate") }}
             </button>
             <button
               type="button"
-              class="text-button"
+              class="icon-button"
               :disabled="!canDeleteProfile"
+              :title="t('button-delete', 'Delete')"
+              :aria-label="t('button-delete', 'Delete')"
               @click="deleteEditingProfile"
             >
-              {{ t("button-delete", "Delete") }}
+              <IconDelete size="md" />
             </button>
           </div>
         </div>
@@ -234,8 +242,14 @@
               :placeholder="t('primary-priority-placeholder', 'e.g.: en')"
               @keyup.enter="addPriority('primary')"
             />
-            <button type="button" class="text-button" @click="addPriority('primary')">
-              {{ t("button-add", "Add") }}
+            <button
+              type="button"
+              class="icon-button"
+              :title="t('button-add', 'Add')"
+              :aria-label="t('button-add', 'Add')"
+              @click="addPriority('primary')"
+            >
+              <IconAdd size="md" />
             </button>
           </div>
         </div>
@@ -286,8 +300,14 @@
               :placeholder="t('secondary-priority-placeholder', 'e.g.: zh, zh-Hans')"
               @keyup.enter="addPriority('secondary')"
             />
-            <button type="button" class="text-button" @click="addPriority('secondary')">
-              {{ t("button-add", "Add") }}
+            <button
+              type="button"
+              class="icon-button"
+              :title="t('button-add', 'Add')"
+              :aria-label="t('button-add', 'Add')"
+              @click="addPriority('secondary')"
+            >
+              <IconAdd size="md" />
             </button>
           </div>
         </div>
@@ -308,6 +328,7 @@
 import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import { IconAdd, IconDelete } from "../icons";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

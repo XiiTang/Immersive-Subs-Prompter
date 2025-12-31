@@ -108,6 +108,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  text-align: center;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
@@ -2261,6 +2263,201 @@ body {
 .transcription-config-list__muted {
   color: #9ca3af;
   white-space: nowrap;
+}
+
+.color-swatch-preview {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.color-swatch-preview:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.color-swatch-preview__fill {
+  width: 100%;
+  height: 100%;
+}
+
+.color-swatch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.color-swatch-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #d4d4d8;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.color-swatch-input {
+  width: 100%;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #a1a1aa;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.color-swatch-input:focus {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(103, 232, 249, 0.5);
+}
+
+.sr-only-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+  opacity: 0;
+}
+
+/* Transcription Settings Layout */
+.transcription-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.transcription-settings__sidebar {
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transcription-settings__editor {
+  flex: 1;
+  min-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transcription-settings__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transcription-settings__buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.transcription-settings__buttons .text-button {
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.transcription-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.transcription-config-list__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px 10px;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, calc(0.1 * var(--panel-opacity-factor)));
+  background: rgba(0, 0, 0, calc(0.3 * var(--panel-opacity-factor)));
+  color: #e5e5e5;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  gap: 8px;
+}
+
+.transcription-config-list__item:hover {
+  background: rgba(255, 255, 255, calc(0.05 * var(--panel-opacity-factor)));
+  border-color: rgba(255, 255, 255, calc(0.2 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__item.is-selected {
+  border-color: rgba(103, 232, 249, calc(0.6 * var(--panel-opacity-factor)));
+  background: rgba(103, 232, 249, calc(0.12 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.transcription-config-list__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transcription-config-list__badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(103, 232, 249, calc(0.22 * var(--panel-opacity-factor)));
+  color: #d8f3ff;
+  border: 1px solid rgba(103, 232, 249, calc(0.35 * var(--panel-opacity-factor)));
+}
+
+.transcription-config-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  font-size: 11px;
+  color: #cbd5f5;
+}
+
+.transcription-config-list__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, calc(0.16 * var(--panel-opacity-factor)));
+  border: 1px solid rgba(103, 232, 249, calc(0.28 * var(--panel-opacity-factor)));
+  color: #a5b4fc;
+}
+
+.transcription-config-list__muted {
+  color: #9ca3af;
+  white-space: nowrap;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2270,4 +2467,81 @@ body {
   font-size: 12px;
   color: #9ca3af;
   padding: 6px 2px;
+}
+
+/* ==========================================================================
+   Icon Components
+   ========================================================================== */
+
+/* When .icon is a span containing SVG */
+span.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  color: currentColor;
+  line-height: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+span.icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* When .icon is directly an SVG element */
+svg.icon {
+  display: block;
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+/* Icon sizes */
+.icon--sm {
+  width: 14px;
+  height: 14px;
+}
+
+.icon--md {
+  width: 16px;
+  height: 16px;
+}
+
+.icon--lg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon colors */
+.icon--add {
+  color: #67e8f9;
+}
+
+.icon--delete {
+  color: #f87171;
+}
+
+/* Icon button wrapper styling */
+.text-button .icon {
+  margin-right: 4px;
+}
+
+/* Icon-only button - ensure icon is centered */
+.icon-button .icon {
+  margin: 0;
+  display: block;
+}
+
+.text-button:hover .icon--add,
+.icon-button:hover .icon--add {
+  color: #a5f3fc;
+  transform: scale(1.1);
+}
+
+.text-button:hover .icon--delete,
+.icon-button:hover .icon--delete {
+  color: #fca5a5;
+  transform: scale(1.1);
 }

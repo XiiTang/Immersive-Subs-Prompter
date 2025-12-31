@@ -41,8 +41,14 @@
               >
                 {{ t("rule-action-move-down", "Move down") }}
               </button>
-              <button type="button" class="rule-item__action" @click="deleteRule(rule.id)">
-                {{ t("rule-action-delete", "Delete") }}
+              <button
+                type="button"
+                class="rule-item__action icon-button"
+                :title="t('rule-action-delete', 'Delete')"
+                :aria-label="t('rule-action-delete', 'Delete')"
+                @click="deleteRule(rule.id)"
+              >
+                <IconDelete size="md" />
               </button>
             </div>
           </div>
@@ -110,6 +116,7 @@ import { computed, reactive } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import type { ProfileRule, UrlMatchType } from "../../main/types";
+import { IconAdd, IconDelete } from "../icons";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

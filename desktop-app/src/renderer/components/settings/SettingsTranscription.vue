@@ -12,16 +12,24 @@
         <div class="transcription-settings__actions">
           <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
           <div class="transcription-settings__buttons">
-            <button type="button" class="text-button" @click="handleAddConfig">
-              {{ t("button-add", "Add") }}
+            <button
+              type="button"
+              class="icon-button"
+              :title="t('button-add', 'Add')"
+              :aria-label="t('button-add', 'Add')"
+              @click="handleAddConfig"
+            >
+              <IconAdd size="md" />
             </button>
             <button
               type="button"
-              class="text-button"
+              class="icon-button"
               :disabled="transcriptionConfigs.length <= 1"
+              :title="t('button-delete', 'Delete')"
+              :aria-label="t('button-delete', 'Delete')"
               @click="handleDeleteConfig"
             >
-              {{ t("button-delete", "Delete") }}
+              <IconDelete size="md" />
             </button>
           </div>
         </div>
@@ -354,6 +362,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import type { TranscriptionConfig } from "../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
+import { IconAdd, IconDelete } from "../icons";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

@@ -100,8 +100,14 @@
                 autocomplete="off"
                 @keyup.enter="addGameProcess"
               />
-              <button type="button" class="btn-primary" @click="addGameProcess">
-                {{ t("button-add", "Add") }}
+              <button
+                type="button"
+                class="icon-button"
+                :title="t('button-add', 'Add')"
+                :aria-label="t('button-add', 'Add')"
+                @click="addGameProcess"
+              >
+                <IconAdd size="md" />
               </button>
             </div>
 
@@ -136,6 +142,7 @@
 import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import { IconAdd } from "../icons";
 
 const emit = defineEmits<{
   (e: "preview-auto-hide", visible: boolean): void; // Leaving this for now to match interface but will remove usage

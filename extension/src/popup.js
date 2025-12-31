@@ -1,6 +1,7 @@
 import { DASHBOARD_PORT, BLACKLIST_STORAGE_KEY } from "./shared/constants.js";
 import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils.js";
 import { normalizeBlacklistRules, areBlacklistRulesEqual } from "./shared/blacklist-utils.js";
+import { createAddIcon, createDeleteIcon } from "./shared/icons.js";
 
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
@@ -53,10 +54,10 @@ function connectionStatusLabel(state, hasError) {
     state === "connected"
       ? "Connected"
       : state === "connecting"
-      ? "Connecting"
-      : state === "idle"
-      ? "Idle"
-      : "Disconnected";
+        ? "Connecting"
+        : state === "idle"
+          ? "Idle"
+          : "Disconnected";
   return hasError ? `${base} · Error` : base;
 }
 
@@ -140,7 +141,10 @@ function renderServers() {
   });
   const addBtn = document.createElement("button");
   addBtn.type = "button";
-  addBtn.textContent = "Add";
+  addBtn.className = "icon-btn";
+  addBtn.title = "Add";
+  addBtn.setAttribute("aria-label", "Add");
+  addBtn.appendChild(createAddIcon({ size: 16, className: "icon icon--add" }));
   addBtn.addEventListener("click", () => addServerEndpoint(serverInputEl.value));
   addRow.appendChild(serverInputEl);
   addRow.appendChild(addBtn);
@@ -181,8 +185,10 @@ function renderServers() {
 
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
-      removeBtn.className = "server-remove";
-      removeBtn.textContent = "Remove";
+      removeBtn.className = "server-remove icon-btn";
+      removeBtn.title = "Remove";
+      removeBtn.setAttribute("aria-label", "Remove");
+      removeBtn.appendChild(createDeleteIcon({ size: 16, className: "icon icon--delete" }));
       removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
 
       row.appendChild(endpointEl);
@@ -350,8 +356,10 @@ function renderBlacklistRules() {
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
-    removeButton.className = "blacklist-item__remove";
-    removeButton.textContent = "Remove";
+    removeButton.className = "blacklist-item__remove icon-btn";
+    removeButton.title = "Remove";
+    removeButton.setAttribute("aria-label", "Remove");
+    removeButton.appendChild(createDeleteIcon({ size: 16, className: "icon icon--delete" }));
     removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
 
     footer.appendChild(error);
