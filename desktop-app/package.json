@@ -12,11 +12,11 @@
     "dev:renderer": "vite dev",
     "start": "npm run build && electron .",
     "clean": "rimraf dist",
-    "clean:node-modules": "node scripts/cleanup-node-modules.js",
-    "dist:win": "npm run build && npm run clean:node-modules && electron-builder --win",
-    "dist:mac": "npm run build && npm run clean:node-modules && electron-builder --mac",
-    "dist:linux": "npm run build && npm run clean:node-modules && electron-builder --linux",
-    "dist:all": "npm run build && npm run clean:node-modules && electron-builder -mwl"
+    "clean:node-modules": "node scripts/cleanup-node-modules.cjs",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:all": "npm run build && electron-builder -mwl"
   },
   "keywords": [
     "electron",
