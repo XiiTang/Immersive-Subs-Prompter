@@ -118,3 +118,13 @@ __pycache__/
 *.pyc
 globalspeed
 
+# Python / uv
+.venv/
+.python-version
+uv.lock
+pyproject.toml
+hello.py
+main.py
+
+# Extension release zip
+immersive-subs-prompter-*.zip
