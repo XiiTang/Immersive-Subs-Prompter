@@ -18,6 +18,7 @@ import type {
   TranscriptionState,
   VideoControlCommand
 } from "../main/types.js";
+import { BASE_TRANSCRIPTION_CONFIG } from "../../common/transcriptionDefaults.js";
 
 
 export type CombinedCue = {
@@ -54,27 +55,7 @@ type CacheStats = {
   newestEntry: number | null;
 };
 
-const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
-  name: "Whisper API",
-  provider: "whisper-api",
-  baseUrl: "https://api.openai.com/v1",
-  apiKey: "",
-  model: "whisper-1",
-  language: "",
-  prompt: "",
-  enableWordTimestamps: false,
-  extraParams: {},
-  ytDlpArgs:
-    '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox',
-  fasterWhisperBinary: "faster-whisper",
-  fasterWhisperModel: "base",
-  fasterWhisperModelDir: "",
-  fasterWhisperDevice: "cpu",
-  fasterWhisperVadFilter: true,
-  fasterWhisperVadThreshold: 0.5,
-  fasterWhisperVadMethod: "",
-  fasterWhisperUseKim2: false
-};
+const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = { ...BASE_TRANSCRIPTION_CONFIG };
 
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {

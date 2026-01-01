@@ -5,18 +5,22 @@ import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import {
+  AppSettings,
   ExtensionMessage,
   ExtensionMessageType,
   ExtensionPayload,
   NetworkSettings,
   SubtitleTrack,
+  TranscriptionConfig,
   VideoControlCommand
 } from "./types.js";
+import { buildTranscriptionCacheKey } from "./transcriptionCache.js";
 
 const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
 
 type ConnectionManagerOptions = {
   getNetworkSettings: () => NetworkSettings;
+  getSettings: () => AppSettings;
   subtitleService: SubtitleService;
   stateManager: StateManager;
   bus: AppEventBus;
@@ -271,10 +275,31 @@ export class ConnectionManager {
     this.socketTabs.delete(socket);
   }
 
+  private getActiveTranscriptionConfig(): TranscriptionConfig | null {
+    const transcription = this.options.getSettings().transcription;
+    if (!transcription || !Array.isArray(transcription.configs) || !transcription.configs.length) {
+      return null;
+    }
+    const active =
+      transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
+      transcription.configs[0];
+    return active;
+  }
+
   private async getCachedTranscriptionTracks(videoUrl: string): Promise<SubtitleTrack[]> {
+    const config = this.getActiveTranscriptionConfig();
+    const candidateKeys = config
+      ? [buildTranscriptionCacheKey(videoUrl, config), videoUrl]
+      : [videoUrl];
+
     try {
-      const cached = await this.options.cacheManager.get(videoUrl, "transcription");
-      return cached?.tracks ?? [];
+      for (const key of candidateKeys) {
+        const cached = await this.options.cacheManager.get(key, "transcription");
+        if (cached?.tracks?.length) {
+          return cached.tracks;
+        }
+      }
+      return [];
     } catch (error) {
       this.log.warn("Failed to read transcription cache", { videoUrl, error });
       return [];

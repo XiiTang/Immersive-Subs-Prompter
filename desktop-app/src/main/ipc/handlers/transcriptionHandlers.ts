@@ -1,11 +1,20 @@
 import { ipcMain } from "electron";
-import { createHash } from "crypto";
-import { SubtitleTrack, TranscriptionConfig } from "../../types.js";
+import { SubtitleTrack, TranscriptionConfig, TranscriptionSettings } from "../../types.js";
 import { IpcContext } from "../ipcRouter.js";
+import { buildTranscriptionCacheKey } from "../../transcriptionCache.js";
 
 export function registerTranscriptionHandlers(context: IpcContext) {
+  let isTranscribing = false;
+
   ipcMain.handle("usp:start-transcription", async () => {
-    const config = resolveActiveTranscriptionConfig(context);
+    const transcriptionSettings = context.getSettings().transcription;
+    if (!transcriptionSettings?.enabled) {
+      const message = "Transcription is disabled in settings.";
+      context.stateManager.setTranscriptionStatus("error", message, null);
+      return { ok: false, error: message };
+    }
+
+    const config = resolveActiveTranscriptionConfig(context, transcriptionSettings);
     if (!config) {
       const message = "No transcription configuration available.";
       context.stateManager.setTranscriptionStatus("error", message, null);
@@ -25,44 +34,51 @@ export function registerTranscriptionHandlers(context: IpcContext) {
       return { ok: false, error: message };
     }
 
-    const targetVideoUrl = state.videoUrl;
-    context.stateManager.setTranscriptionStatus("running", null, config.name);
-    const cacheKey = buildTranscriptionCacheKey(targetVideoUrl, config);
+    if (isTranscribing) {
+      const message = "Transcription already in progress.";
+      context.stateManager.setTranscriptionStatus("running", message, config.name);
+      return { ok: false, error: message };
+    }
 
-    const applyTrackToState = (track: SubtitleTrack, message: string) => {
-      context.stateManager.addOrReplaceSubtitleTrack(track, true);
-      context.stateManager.updateState((draft) => {
-        draft.status = "ready";
-        draft.error = null;
-      });
-      context.stateManager.setTranscriptionStatus("success", message, config.name);
-    };
+    isTranscribing = true;
+    try {
+      const targetVideoUrl = state.videoUrl;
+      context.stateManager.setTranscriptionStatus("running", null, config.name);
+      const cacheKey = buildTranscriptionCacheKey(targetVideoUrl, config);
 
-    const cached = await context.cacheManager.get(cacheKey, "transcription");
-    if (cached?.tracks?.length) {
-      const cachedTrack = cached.tracks[0];
-      const latestState = context.stateManager.getState();
-      if (latestState.videoUrl === targetVideoUrl) {
-        applyTrackToState(
-          cachedTrack,
-          `Transcription completed (${cachedTrack.cues.length} lines).`
+      const applyTrackToState = (track: SubtitleTrack, message: string) => {
+        context.stateManager.addOrReplaceSubtitleTrack(track, true);
+        context.stateManager.updateState((draft) => {
+          draft.status = "ready";
+          draft.error = null;
+        });
+        context.stateManager.setTranscriptionStatus("success", message, config.name);
+      };
+
+      const cached = await context.cacheManager.get(cacheKey, "transcription");
+      if (cached?.tracks?.length) {
+        const cachedTrack = cached.tracks[0];
+        const latestState = context.stateManager.getState();
+        if (latestState.videoUrl === targetVideoUrl) {
+          applyTrackToState(
+            cachedTrack,
+            `Transcription completed (${cachedTrack.cues.length} lines).`
+          );
+          return { ok: true, trackId: cachedTrack.id, cached: true };
+        }
+        await context.cacheManager.set(cacheKey, "transcription", { tracks: [cachedTrack] });
+        context.logger.info(
+          "Cached transcription available for previous video, storing silently",
+          { videoUrl: targetVideoUrl }
+        );
+        context.stateManager.setTranscriptionStatus(
+          "success",
+          "Transcription cached for previous video.",
+          config.name
         );
         return { ok: true, trackId: cachedTrack.id, cached: true };
       }
-      await context.cacheManager.set(cacheKey, "transcription", { tracks: [cachedTrack] });
-      context.logger.info(
-        "Cached transcription available for previous video, storing silently",
-        { videoUrl: targetVideoUrl }
-      );
-      context.stateManager.setTranscriptionStatus(
-        "success",
-        "Transcription cached for previous video.",
-        config.name
-      );
-      return { ok: true, trackId: cachedTrack.id, cached: true };
-    }
 
-    try {
       const track = await context.transcriptionService.transcribe(targetVideoUrl, config);
       await context.cacheManager.set(cacheKey, "transcription", { tracks: [track] });
 
@@ -87,12 +103,16 @@ export function registerTranscriptionHandlers(context: IpcContext) {
         error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
       context.stateManager.setTranscriptionStatus("error", message, config.name);
       return { ok: false, error: message };
+    } finally {
+      isTranscribing = false;
     }
   });
 }
 
-function resolveActiveTranscriptionConfig(context: IpcContext): TranscriptionConfig | null {
-  const transcription = context.getSettings().transcription;
+function resolveActiveTranscriptionConfig(
+  context: IpcContext,
+  transcription: TranscriptionSettings | null | undefined = context.getSettings().transcription
+): TranscriptionConfig | null {
   if (!transcription || !Array.isArray(transcription.configs) || !transcription.configs.length) {
     return null;
   }
@@ -100,32 +120,4 @@ function resolveActiveTranscriptionConfig(context: IpcContext): TranscriptionCon
     transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
     transcription.configs[0];
   return active;
-}
-
-function buildTranscriptionCacheKey(videoUrl: string, config: TranscriptionConfig): string {
-  const provider = config.provider === "faster-whisper" ? "faster-whisper" : "whisper-api";
-  const signaturePayload = {
-    id: config.id,
-    provider,
-    model: provider === "faster-whisper" ? config.fasterWhisperModel : config.model,
-    language: config.language,
-    prompt: config.prompt,
-    enableWordTimestamps: config.enableWordTimestamps,
-    ytDlpArgs: config.ytDlpArgs,
-    baseUrl: provider === "whisper-api" ? config.baseUrl : "",
-    extraParams: provider === "whisper-api" ? config.extraParams : undefined,
-    fasterWhisper:
-      provider === "faster-whisper"
-        ? {
-            device: config.fasterWhisperDevice,
-            modelDir: config.fasterWhisperModelDir,
-            vadFilter: config.fasterWhisperVadFilter,
-            vadThreshold: config.fasterWhisperVadThreshold,
-            vadMethod: config.fasterWhisperVadMethod,
-            useKim2: config.fasterWhisperUseKim2
-          }
-        : undefined
-  };
-  const signature = createHash("sha256").update(JSON.stringify(signaturePayload)).digest("hex").slice(0, 12);
-  return `${videoUrl}#${signature}`;
 }

@@ -12,6 +12,7 @@ import {
 } from "../types.js";
 import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
 import { clampPort } from "./utils.js";
+import { BASE_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --no-playlist --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
@@ -70,32 +71,13 @@ export const DEFAULT_MEDIA_SERVER_SETTINGS: MediaServerSettings = {
   configs: []
 };
 
-export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
-  '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox';
-
 export const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 export const DEFAULT_FASTER_WHISPER_MODEL_DIR = path.join(app.getPath("userData"), "faster-whisper", "models");
 
 export const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   id: DEFAULT_TRANSCRIPTION_CONFIG_ID,
-  name: "Default Whisper API",
-  provider: "whisper-api",
-  baseUrl: "https://api.openai.com/v1",
-  apiKey: "",
-  model: "whisper-1",
-  language: "",
-  prompt: "",
-  enableWordTimestamps: false,
-  extraParams: {},
-  ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
-  fasterWhisperBinary: "faster-whisper",
-  fasterWhisperModel: "base",
-  fasterWhisperModelDir: DEFAULT_FASTER_WHISPER_MODEL_DIR,
-  fasterWhisperDevice: "cpu",
-  fasterWhisperVadFilter: true,
-  fasterWhisperVadThreshold: 0.5,
-  fasterWhisperVadMethod: "",
-  fasterWhisperUseKim2: false
+  ...BASE_TRANSCRIPTION_CONFIG,
+  fasterWhisperModelDir: DEFAULT_FASTER_WHISPER_MODEL_DIR
 };
 
 export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
@@ -103,6 +85,8 @@ export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
   activeConfigId: DEFAULT_TRANSCRIPTION_CONFIG_ID,
   configs: [DEFAULT_TRANSCRIPTION_CONFIG]
 };
+
+export { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 
 export const DEFAULT_CACHE_SETTINGS: SubtitleCacheSettings = {
   enabled: true,

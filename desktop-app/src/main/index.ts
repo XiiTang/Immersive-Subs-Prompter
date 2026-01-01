@@ -33,6 +33,7 @@ const subtitleService = new SubtitleService(
 );
 const connectionManager = new ConnectionManager({
   getNetworkSettings: () => getSettings().network,
+  getSettings,
   subtitleService,
   stateManager,
   bus,
