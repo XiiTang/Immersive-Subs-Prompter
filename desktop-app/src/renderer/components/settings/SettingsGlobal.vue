@@ -144,13 +144,6 @@ import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd } from "../icons";
 
-const emit = defineEmits<{
-  (e: "preview-auto-hide", visible: boolean): void; // Leaving this for now to match interface but will remove usage
-}>();
-// actually I should remove the emit definition too if I remove the usage. 
-// But let's check if strict typing requires me to remove it from parent first? 
-// No, Vue is flexible. But better to remove it all.
-
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);

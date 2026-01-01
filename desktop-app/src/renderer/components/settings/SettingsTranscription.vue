@@ -473,25 +473,46 @@ const extraParamsText = computed({
   }
 });
 
-onMounted(async () => {
+function shouldUseFasterWhisper() {
+  return transcriptionEnabled.value && isFasterWhisper.value && !!activeConfig.value;
+}
+
+function ensureDownloadSubscription() {
+  if (!unsubscribeDownloadProgress) {
+    unsubscribeDownloadProgress = window.usp.onFasterWhisperDownloadProgress(handleDownloadProgress);
+  }
+}
+
+function teardownDownloadSubscription() {
+  if (unsubscribeDownloadProgress) {
+    unsubscribeDownloadProgress();
+    unsubscribeDownloadProgress = null;
+  }
+}
+
+async function initializeFasterWhisper() {
+  if (!shouldUseFasterWhisper()) {
+    return;
+  }
   try {
     paths.value = await window.usp.getFasterWhisperPaths();
     if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
       updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
     }
     modelsBaseDir.value = paths.value?.modelsDir ?? modelsBaseDir.value;
-    await refreshStatus();
   } catch (error) {
     console.error("Failed to load Faster-Whisper paths", error);
   }
-  unsubscribeDownloadProgress = window.usp.onFasterWhisperDownloadProgress(handleDownloadProgress);
+  ensureDownloadSubscription();
+  await refreshStatus();
+}
+
+onMounted(async () => {
+  await initializeFasterWhisper();
 });
 
 onBeforeUnmount(() => {
-  if (unsubscribeDownloadProgress) {
-    unsubscribeDownloadProgress();
-    unsubscribeDownloadProgress = null;
-  }
+  teardownDownloadSubscription();
 });
 
 function updateConfig(patch: Record<string, unknown>) {
@@ -582,6 +603,15 @@ watch(customModelInput, (value) => {
   }
 });
 
+watch([transcriptionEnabled, isFasterWhisper], () => {
+  if (shouldUseFasterWhisper()) {
+    void initializeFasterWhisper();
+  } else {
+    teardownDownloadSubscription();
+    downloadProgress.value = null;
+  }
+});
+
 watch(activeConfig, () => {
   extraParamsError.value = null;
   if (activeConfig.value?.fasterWhisperModel) {
@@ -591,13 +621,17 @@ watch(activeConfig, () => {
   if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
     updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
   }
-  refreshStatus();
+  if (shouldUseFasterWhisper()) {
+    void initializeFasterWhisper();
+  }
 });
 
 watch(
   () => fasterWhisperModelDir.value,
   () => {
-    refreshStatus();
+    if (shouldUseFasterWhisper()) {
+      void refreshStatus();
+    }
   }
 );
 
@@ -673,10 +707,7 @@ function handleDownloadProgress(payload: {
   downloadProgress.value = payload;
   if (payload.percent >= 100 && payload.id === activeJobId.value) {
     activeJobId.value = null;
-    if (payload.type === "model") {
-      void refreshStatus();
-    }
-    if (payload.type === "binary") {
+    if (payload.type === "model" || payload.type === "binary") {
       void refreshStatus();
     }
     setTimeout(() => {
@@ -767,6 +798,9 @@ async function openPath(target?: string | null) {
 }
 
 async function refreshStatus() {
+  if (!shouldUseFasterWhisper()) {
+    return;
+  }
   const targetDir =
     (activeConfig.value?.fasterWhisperModelDir || "").trim() ||
     paths.value?.modelsDir ||

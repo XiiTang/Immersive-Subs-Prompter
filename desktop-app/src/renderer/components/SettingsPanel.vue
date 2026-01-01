@@ -29,10 +29,6 @@ import SettingsTranscription from "./settings/SettingsTranscription.vue";
 import SettingsMediaServer from "./settings/SettingsMediaServer.vue";
 import SettingsCache from "./settings/SettingsCache.vue";
 
-const emit = defineEmits<{
-
-}>();
-
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
