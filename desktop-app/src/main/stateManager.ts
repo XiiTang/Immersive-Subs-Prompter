@@ -13,7 +13,7 @@ import {
   TranscriptionState,
   TranscriptionStatus
 } from "./types.js";
-import { isValidRegex } from "./settings/utils.js";
+import { normalizeRegexPattern } from "../common/regex.js";
 
 const clone = <T>(value: T): T => {
   if (typeof (globalThis as any).structuredClone === "function") {
@@ -84,10 +84,6 @@ function createInitialState(settings: AppSettings): {
       transcription: createDefaultTranscriptionState()
     }
   };
-}
-
-function normalizePriorityEntries(entries: string[]): string[] {
-  return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
 
 function matchesRule(url: string, rule: ProfileRule): boolean {
@@ -407,12 +403,14 @@ export class StateManager {
     if (!tracks.length) {
       return null;
     }
-    const normalized = normalizePriorityEntries(priorities);
     const candidates = tracks.filter((track) => !excludeIds.has(track.id));
-    if (normalized.length) {
-      for (const pattern of normalized) {
-        if (!isValidRegex(pattern)) {
-          this.log.warn(`Skipping invalid subtitle priority regex: "${pattern}"`);
+    if (priorities.length) {
+      for (const rawPattern of priorities) {
+        const pattern = normalizeRegexPattern(rawPattern);
+        if (!pattern) {
+          if (rawPattern?.trim().length) {
+            this.log.warn(`Skipping invalid subtitle priority regex: "${rawPattern}"`);
+          }
           continue;
         }
         const regex = new RegExp(pattern);

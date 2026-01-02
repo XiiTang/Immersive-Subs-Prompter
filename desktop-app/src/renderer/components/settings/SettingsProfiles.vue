@@ -348,6 +348,7 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
+import { isValidRegex } from "../../../common/regex.js";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -551,15 +552,6 @@ function isPriorityDragOver(role: PriorityRole, index: number) {
 
 async function openRegexDoc() {
   await window.usp.openExternal(regexDocUrl);
-}
-
-function isValidRegex(pattern: string): boolean {
-  try {
-    new RegExp(pattern);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function getPriorityRegexError(value: string): string | null {
