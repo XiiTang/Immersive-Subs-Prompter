@@ -61,6 +61,7 @@ const api = {
     ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
+  openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
   getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
     ipcRenderer.invoke("usp:cache-stats"),
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),

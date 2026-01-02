@@ -19,6 +19,18 @@ export function normalizeColor(value: unknown, fallback: string): string {
   return trimmed.length ? trimmed : fallback;
 }
 
+export function isValidRegex(pattern: string): boolean {
+  if (typeof pattern !== "string") {
+    return false;
+  }
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function sanitizePriorityList(value: unknown): string[] {
   if (!value) {
     return [];

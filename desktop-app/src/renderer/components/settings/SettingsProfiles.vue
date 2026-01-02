@@ -200,9 +200,20 @@
 
         <div class="priority-editor">
           <div class="priority-editor__header">
-            <span class="settings-field__label">{{ t("primary-priority-label", "Primary Subtitle Priority") }}</span>
+            <div class="priority-editor__label-row">
+              <span class="settings-field__label">{{ t("primary-priority-label", "Primary Subtitle Priority") }}</span>
+              <a
+                class="priority-editor__link"
+                :href="regexDocUrl"
+                @click.prevent="openRegexDoc"
+              >
+                {{ t("priority-regex-examples", "查看正则示例") }}
+              </a>
+            </div>
             <span class="priority-editor__hint">
-              {{ t("primary-priority-hint", "Match language/tag keywords; reorder to reprioritize") }}
+              {{
+                t("primary-priority-hint", "Use regular expressions to match subtitle filenames; drag to reprioritize")
+              }}
             </span>
           </div>
           <div class="priority-editor__list" @dragover.prevent @drop.prevent="onPriorityListDrop('primary')">
@@ -239,7 +250,7 @@
             <input
               type="text"
               v-model="primaryPriorityInput"
-              :placeholder="t('primary-priority-placeholder', 'e.g.: en')"
+              :placeholder="t('primary-priority-placeholder', 'e.g.: en or zh-Hans')"
               @keyup.enter="addPriority('primary')"
             />
             <button
@@ -252,15 +263,20 @@
               <IconAdd size="md" />
             </button>
           </div>
+          <div v-if="primaryPriorityError" class="settings-field__error">
+            {{ primaryPriorityError }}
+          </div>
         </div>
 
         <div class="priority-editor">
           <div class="priority-editor__header">
-            <span class="settings-field__label">
-              {{ t("secondary-priority-label", "Secondary Subtitle Priority") }}
-            </span>
+            <div class="priority-editor__label-row">
+              <span class="settings-field__label">
+                {{ t("secondary-priority-label", "Secondary Subtitle Priority") }}
+              </span>
+            </div>
             <span class="priority-editor__hint">
-              {{ t("secondary-priority-hint", "Usually the keywords for your native language") }}
+              {{ t("secondary-priority-hint", "Use regular expressions to match subtitle filenames; drag to reprioritize") }}
             </span>
           </div>
           <div class="priority-editor__list" @dragover.prevent @drop.prevent="onPriorityListDrop('secondary')">
@@ -297,7 +313,7 @@
             <input
               type="text"
               v-model="secondaryPriorityInput"
-              :placeholder="t('secondary-priority-placeholder', 'e.g.: zh, zh-Hans')"
+              :placeholder="t('secondary-priority-placeholder', 'e.g.: en or zh-Hans')"
               @keyup.enter="addPriority('secondary')"
             />
             <button
@@ -309,6 +325,9 @@
             >
               <IconAdd size="md" />
             </button>
+          </div>
+          <div v-if="secondaryPriorityError" class="settings-field__error">
+            {{ secondaryPriorityError }}
           </div>
         </div>
 
@@ -424,6 +443,9 @@ const primaryPriority = computed(() => store.editingProfileSettings.primarySubti
 const secondaryPriority = computed(() => store.editingProfileSettings.secondarySubtitlePriority ?? []);
 const primaryPriorityInput = ref("");
 const secondaryPriorityInput = ref("");
+const primaryPriorityError = computed(() => getPriorityRegexError(primaryPriorityInput.value));
+const secondaryPriorityError = computed(() => getPriorityRegexError(secondaryPriorityInput.value));
+const regexDocUrl = "https://github.com/XiiTang/Immersive-Subs-Prompter/blob/main/docs/subtitle-priority-regex.md";
 
 type PriorityRole = "primary" | "secondary";
 type PriorityDragState = {
@@ -525,5 +547,26 @@ function resetPriorityDragState() {
 function isPriorityDragOver(role: PriorityRole, index: number) {
   const state = priorityDragState.value;
   return state.role === role && state.overIndex === index && state.fromIndex !== index;
+}
+
+async function openRegexDoc() {
+  await window.usp.openExternal(regexDocUrl);
+}
+
+function isValidRegex(pattern: string): boolean {
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getPriorityRegexError(value: string): string | null {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+  return isValidRegex(normalized) ? null : t("priority-regex-invalid", "无效的正则表达式");
 }
 </script>

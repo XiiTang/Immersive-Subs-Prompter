@@ -13,6 +13,7 @@ import {
   TranscriptionState,
   TranscriptionStatus
 } from "./types.js";
+import { isValidRegex } from "./settings/utils.js";
 
 const clone = <T>(value: T): T => {
   if (typeof (globalThis as any).structuredClone === "function") {
@@ -86,7 +87,7 @@ function createInitialState(settings: AppSettings): {
 }
 
 function normalizePriorityEntries(entries: string[]): string[] {
-  return entries.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
+  return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
 
 function matchesRule(url: string, rule: ProfileRule): boolean {
@@ -409,10 +410,13 @@ export class StateManager {
     const normalized = normalizePriorityEntries(priorities);
     const candidates = tracks.filter((track) => !excludeIds.has(track.id));
     if (normalized.length) {
-      for (const priority of normalized) {
-        const matched = candidates.find((track) =>
-          track.sourceFile.toLowerCase().includes(priority)
-        );
+      for (const pattern of normalized) {
+        if (!isValidRegex(pattern)) {
+          this.log.warn(`Skipping invalid subtitle priority regex: "${pattern}"`);
+          continue;
+        }
+        const regex = new RegExp(pattern);
+        const matched = candidates.find((track) => regex.test(track.sourceFile));
         if (matched) {
           return matched;
         }

@@ -408,7 +408,7 @@ export const useDesktopStore = defineStore("desktop", {
       }
       const key = role === "primary" ? "primarySubtitlePriority" : "secondarySubtitlePriority";
       const current = this.editingProfileSettings[key] ?? [];
-      if (current.some((entry) => entry.toLowerCase() === normalized.toLowerCase())) {
+      if (current.some((entry) => entry === normalized)) {
         return;
       }
       const next = [...current, normalized];
@@ -420,7 +420,7 @@ export const useDesktopStore = defineStore("desktop", {
       }
       const key = role === "primary" ? "primarySubtitlePriority" : "secondarySubtitlePriority";
       const current = this.editingProfileSettings[key] ?? [];
-      const next = current.filter((entry) => entry.toLowerCase() !== value.toLowerCase());
+      const next = current.filter((entry) => entry !== value);
       this.updateProfileSetting(key as keyof ProfileSettings, next as any);
     },
     reorderPriority(role: "primary" | "secondary", fromIndex: number, toIndex: number) {
