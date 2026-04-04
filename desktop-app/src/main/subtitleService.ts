@@ -1,8 +1,7 @@
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
-import iconvLite from "iconv-lite";
-const iconv = iconvLite.default ?? iconvLite;
+import * as iconv from "iconv-lite";
 import { tmpdir } from "os";
 import path from "path";
 import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings/index.js";
