@@ -16,7 +16,15 @@ interface SubtitleTrackOption {
   sourceFile: string;
 }
 
-const props = defineProps<{
+const {
+  modelValue,
+  tracks,
+  placeholder,
+  noneLabel,
+  ariaLabel,
+  grow,
+  formatSourceFile
+} = defineProps<{
   modelValue: string;
   tracks: SubtitleTrackOption[];
   placeholder?: string;

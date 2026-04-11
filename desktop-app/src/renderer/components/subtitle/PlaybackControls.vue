@@ -42,7 +42,19 @@
 <script setup lang="ts">
 import { formatTime } from "../../utils/formatters";
 
-defineProps<{
+const {
+  isPlaying,
+  hasActiveVideo,
+  displayedPlaybackTime,
+  playbackDuration,
+  sliderMax,
+  sliderStep,
+  sliderValue,
+  sliderEnabled,
+  sliderFillStyle,
+  autoHideEnabled,
+  t
+} = defineProps<{
   isPlaying: boolean;
   hasActiveVideo: boolean;
   displayedPlaybackTime: number;

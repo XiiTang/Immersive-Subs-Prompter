@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, useTemplateRef } from "vue";
 import { useDesktopStore } from "../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../i18n";
 
@@ -61,7 +61,7 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const headerRef = ref<HTMLElement | null>(null);
+const headerRef = useTemplateRef<HTMLElement>("headerRef");
 
 // ===== 窗口拖拽 (使用 Windows 原生 SC_MOVE 命令) =====
 // Windows 会完全接管拖拽操作，无需轮询，无尺寸漂移

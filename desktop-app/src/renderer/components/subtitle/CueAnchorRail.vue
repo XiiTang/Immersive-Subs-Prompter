@@ -45,7 +45,13 @@
 import { computed } from "vue";
 import { formatTime } from "../../utils/formatters";
 
-const props = defineProps<{
+const {
+  start,
+  end,
+  abLabel,
+  isLooping,
+  isAbPendingSelection
+} = defineProps<{
   state: "quiet" | "hover" | "active" | "selection" | "looping" | "ab-pending" | "focus-within";
   start: number;
   end: number;
@@ -60,17 +66,17 @@ defineEmits<{
   (e: "loop-range"): void;
 }>();
 
-const timeLabel = computed(() => `${formatTime(props.start)} - ${formatTime(props.end)}`);
+const timeLabel = computed(() => `${formatTime(start)} - ${formatTime(end)}`);
 const playLabel = computed(() => `Play from cue ${timeLabel.value}`);
 const loopLabel = computed(() => `Loop cue ${timeLabel.value}`);
 const abLoopLabel = computed(() => {
-  if (props.isAbPendingSelection) {
+  if (isAbPendingSelection) {
     return `A point selected at cue ${timeLabel.value}, choose B`;
   }
-  if (props.abLabel === "A") {
+  if (abLabel === "A") {
     return `A point at cue ${timeLabel.value}`;
   }
-  if (props.abLabel === "B") {
+  if (abLabel === "B") {
     return `B point at cue ${timeLabel.value}`;
   }
   return `Set A-B endpoint at cue ${timeLabel.value}`;

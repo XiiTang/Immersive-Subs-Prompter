@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const { banner } = defineProps<{
   banner: {
     text: string;
     modifier: string;

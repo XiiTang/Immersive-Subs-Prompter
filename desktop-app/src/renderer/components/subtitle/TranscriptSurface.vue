@@ -15,7 +15,7 @@
           :start="block.block.start"
           :end="block.block.end"
           :lines="block.lines"
-          :auto-hide-meta-row="props.autoHideMetaRow"
+          :auto-hide-meta-row="autoHideMetaRow"
           :is-active="block.block.id === projection.activeBlockId"
           :is-single-looping="singleLoopCueIndex === block.block.sourceCueRefs.primaryCueIndex"
           :ab-label="resolveAbLoopLabel(block.block.sourceCueRefs.primaryCueIndex)"
@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import type { LoopSession } from "../../../main/types.js";
 import type { AbLoopSelectionState } from "./abLoopSelection";
 import { getAbLoopLabel } from "./abLoopSelection";
@@ -56,7 +56,26 @@ import type {
   TranscriptViewportAnchor
 } from "./transcript/types";
 
-const props = withDefaults(defineProps<{
+const {
+  blocks,
+  currentTime,
+  seekRequest = null,
+  playbackLoop,
+  abLoopSelectionState,
+  subtitlePanelStyle,
+  fontFamily,
+  fontSize,
+  autoHideMetaRow = false,
+  lineHeight,
+  primarySecondaryGap,
+  blockGap,
+  primaryColor,
+  secondaryColor,
+  activePrimaryColor,
+  activeSecondaryColor,
+  autoScrollDelayMs,
+  scrollPositionRatio
+} = defineProps<{
   blocks: TranscriptBlockModel[];
   currentTime: number | null;
   seekRequest?: TranscriptSeekRequest | null;
@@ -75,10 +94,7 @@ const props = withDefaults(defineProps<{
   activeSecondaryColor: string;
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
-}>(), {
-  autoHideMetaRow: false,
-  seekRequest: null
-});
+}>();
 
 const emit = defineEmits<{
   (e: "play-cue", cueIndex: number): void;
@@ -86,8 +102,8 @@ const emit = defineEmits<{
   (e: "loop-range", cueIndex: number): void;
 }>();
 
-const viewportRef = ref<HTMLElement | null>(null);
-const contentRef = ref<HTMLElement | null>(null);
+const viewportRef = useTemplateRef<HTMLElement>("viewportRef");
+const contentRef = useTemplateRef<HTMLElement>("contentRef");
 const surfaceWidth = ref(640);
 const viewportHeight = ref(1);
 const viewportScrollTop = ref(0);
@@ -98,32 +114,32 @@ const META_ROW_HEIGHT_PX = 18;
 const META_ROW_GAP_PX = 6;
 let scrollRafId: number | null = null;
 
-const surfaceStyle = computed(() => props.subtitlePanelStyle);
+const surfaceStyle = computed(() => subtitlePanelStyle);
 const contentStyle = computed(() => ({
   height: `${layout.value.totalHeight}px`
 }));
 
 const layout = computed(() =>
   measureTranscriptLayout({
-    blocks: props.blocks,
+    blocks,
     width: surfaceWidth.value,
-    fontSize: props.fontSize,
-    lineHeight: props.lineHeight,
-    fontFamily: props.fontFamily,
-    primarySecondaryGap: props.primarySecondaryGap,
-    blockGap: props.blockGap,
+    fontSize,
+    lineHeight,
+    fontFamily,
+    primarySecondaryGap,
+    blockGap,
     metaRowHeight: META_ROW_HEIGHT_PX,
     metaRowGap: META_ROW_GAP_PX,
     preparedTextCache
   })
 );
 
-const blockById = computed(() => new Map(props.blocks.map((block) => [block.id, block])));
-const blockIdByCueIndex = computed(() => new Map(props.blocks.map((block) => [block.sourceCueRefs.primaryCueIndex, block.id])));
-const singleLoopCueIndex = computed(() => getSingleLoopCueIndex(props.playbackLoop));
+const blockById = computed(() => new Map(blocks.map((block) => [block.id, block])));
+const blockIdByCueIndex = computed(() => new Map(blocks.map((block) => [block.sourceCueRefs.primaryCueIndex, block.id])));
+const singleLoopCueIndex = computed(() => getSingleLoopCueIndex(playbackLoop));
 const playbackActiveBlockId = computed(() => {
-  if (props.currentTime === null) return null;
-  const index = findActiveBlockIndex(layout.value.blocks, props.currentTime);
+  if (currentTime === null) return null;
+  const index = findActiveBlockIndex(layout.value.blocks, currentTime);
   return index === -1 ? null : layout.value.blocks[index]!.blockId;
 });
 const playbackFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
@@ -138,7 +154,7 @@ const playbackFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
   };
 });
 const loopWrapFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
-  const cueIndex = getLoopWrapCueIndex(props.playbackLoop);
+  const cueIndex = getLoopWrapCueIndex(playbackLoop);
   if (cueIndex === null) {
     return null;
   }
@@ -157,14 +173,14 @@ const loopWrapFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
 const followAnchor = computed(() => loopWrapFollowAnchor.value ?? playbackFollowAnchor.value);
 
 watch(
-  () => [props.blocks, props.fontFamily, props.fontSize],
+  () => [blocks, fontFamily, fontSize],
   () => {
     preparedTextCache.clear();
   }
 );
 
 watch(
-  [followAnchor, () => props.blocks],
+  [followAnchor, () => blocks],
   ([anchor]) => {
     lastAnchor.value = anchor;
   },
@@ -177,7 +193,7 @@ const projection = computed(() =>
     anchor: lastAnchor.value,
     activeBlockId: playbackActiveBlockId.value,
     viewportHeight: viewportHeight.value,
-    followRatio: props.scrollPositionRatio
+    followRatio: scrollPositionRatio
   })
 );
 
@@ -190,7 +206,7 @@ const windowProjection = computed(() =>
   })
 );
 
-const secondaryFontSize = computed(() => Math.max(props.fontSize - 1, 1));
+const secondaryFontSize = computed(() => Math.max(fontSize - 1, 1));
 
 const renderedBlocks = computed(() => {
   const activeBlockId = projection.value.activeBlockId;
@@ -213,11 +229,11 @@ const renderedBlocks = computed(() => {
             top: `${line.relativeTop}px`,
             height: `${line.height}px`,
             lineHeight: `${line.height}px`,
-            fontFamily: props.fontFamily,
-            fontSize: `${line.kind === "primary" ? props.fontSize : secondaryFontSize.value}px`,
+            fontFamily,
+            fontSize: `${line.kind === "primary" ? fontSize : secondaryFontSize.value}px`,
             color: line.kind === "primary"
-              ? (isActive ? props.activePrimaryColor : props.primaryColor)
-              : (isActive ? props.activeSecondaryColor : props.secondaryColor)
+              ? (isActive ? activePrimaryColor : primaryColor)
+              : (isActive ? activeSecondaryColor : secondaryColor)
           }
         }));
       return {
@@ -232,11 +248,11 @@ const renderedBlocks = computed(() => {
 });
 
 function resolveAbLoopLabel(cueIndex: number) {
-  return getAbLoopLabel(props.abLoopSelectionState, cueIndex);
+  return getAbLoopLabel(abLoopSelectionState, cueIndex);
 }
 
 function isAbPendingSelection(cueIndex: number) {
-  return props.abLoopSelectionState.kind === "selecting-second" && props.abLoopSelectionState.anchorCueIndex === cueIndex;
+  return abLoopSelectionState.kind === "selecting-second" && abLoopSelectionState.anchorCueIndex === cueIndex;
 }
 
 function handleViewportScroll() {
@@ -268,12 +284,12 @@ function syncViewportMetrics() {
 
 const { isSelectionPaused, isAutoFollowPaused, clearAutoFollowPause } = useTranscriptSelection({
   rootEl: viewportRef,
-  autoScrollDelayMs: computed(() => props.autoScrollDelayMs),
+  autoScrollDelayMs: computed(() => autoScrollDelayMs),
   onResume: () => {
     syncViewportMetrics();
     lastAnchor.value = resolveTranscriptViewportAnchor({
       layout: layout.value,
-      currentTime: props.currentTime,
+      currentTime,
       previousAnchor: playbackFollowAnchor.value,
       reason: "playback-follow"
     });
@@ -289,9 +305,9 @@ const { scrollToProjectedPosition } = useTranscriptAutoFollow({
 });
 
 watch(
-  () => props.seekRequest?.token,
+  () => seekRequest?.token,
   () => {
-    if (!props.seekRequest) {
+    if (!seekRequest) {
       return;
     }
 
@@ -299,7 +315,7 @@ watch(
     clearAutoFollowPause();
     lastAnchor.value = resolveTranscriptViewportAnchor({
       layout: layout.value,
-      currentTime: props.seekRequest.time,
+      currentTime: seekRequest.time,
       previousAnchor: null,
       reason: "seek-recenter"
     });
@@ -311,7 +327,7 @@ function handleResize() {
   syncViewportMetrics();
   lastAnchor.value = resolveTranscriptViewportAnchor({
     layout: layout.value,
-    currentTime: props.currentTime,
+    currentTime,
     previousAnchor: playbackFollowAnchor.value,
     reason: "resize-reproject"
   });

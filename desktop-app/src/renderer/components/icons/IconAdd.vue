@@ -20,9 +20,9 @@
 import { computed } from "vue";
 import { ICON_ADD, ICON_STROKE_PROPS } from "../../shared/iconDefs";
 
-const props = defineProps<{
+const { size = "md" } = defineProps<{
   size?: "sm" | "md" | "lg";
 }>();
 
-const sizeClass = computed(() => `icon--${props.size || "md"}`);
+const sizeClass = computed(() => `icon--${size}`);
 </script>

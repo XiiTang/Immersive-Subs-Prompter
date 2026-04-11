@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import PlaybackControls from "./PlaybackControls.vue";
 import StatusBanner from "./StatusBanner.vue";
 import TrackSelector from "./TrackSelector.vue";
@@ -74,7 +74,12 @@ interface StatusBannerState {
   modifier: string;
 }
 
-const props = defineProps<{
+const {
+  primaryTrackId,
+  secondaryTrackId,
+  activeTranscriptionId,
+  statusBanner
+} = defineProps<{
   title: string;
   profileLabel: string;
   displayUrl: string;
@@ -114,21 +119,21 @@ const emit = defineEmits<{
   (e: "toggle-auto-hide"): void;
 }>();
 
-const statusRowRef = ref<HTMLElement | null>(null);
+const statusRowRef = useTemplateRef<HTMLElement>("statusRowRef");
 const statusRowMaxHeight = ref("100vh");
 
 const localPrimaryTrackId = computed({
-  get: () => props.primaryTrackId,
+  get: () => primaryTrackId,
   set: (value: string) => emit("update:primaryTrackId", value)
 });
 
 const localSecondaryTrackId = computed({
-  get: () => props.secondaryTrackId,
+  get: () => secondaryTrackId,
   set: (value: string) => emit("update:secondaryTrackId", value)
 });
 
 const localActiveTranscriptionId = computed({
-  get: () => props.activeTranscriptionId,
+  get: () => activeTranscriptionId,
   set: (value: string) => emit("update:activeTranscriptionId", value)
 });
 
@@ -143,7 +148,7 @@ function updateStatusRowMaxHeight() {
 }
 
 watch(
-  () => props.statusBanner,
+  () => statusBanner,
   () => {
     updateStatusRowMaxHeight();
   },

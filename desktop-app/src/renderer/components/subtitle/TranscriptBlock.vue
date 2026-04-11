@@ -48,7 +48,12 @@ import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
 
-const props = defineProps<{
+const {
+  showSelectionActions,
+  isAbPendingSelection,
+  isSingleLooping,
+  isActive
+} = defineProps<{
   blockId: string;
   start: number;
   end: number;
@@ -71,19 +76,19 @@ const hovered = ref(false);
 const focusedWithin = ref(false);
 
 const metaRowState = computed(() => {
-  if (props.showSelectionActions) {
+  if (showSelectionActions) {
     return "selection";
   }
   if (focusedWithin.value) {
     return "focus-within";
   }
-  if (props.isAbPendingSelection) {
+  if (isAbPendingSelection) {
     return "ab-pending";
   }
-  if (props.isSingleLooping) {
+  if (isSingleLooping) {
     return "looping";
   }
-  if (props.isActive) {
+  if (isActive) {
     return "active";
   }
   if (hovered.value) {

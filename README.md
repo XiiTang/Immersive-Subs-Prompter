@@ -51,7 +51,7 @@ The extension (`extension/`) runs in the page and continuously collects playback
 
 ```
 extension/     # Chromium MV3 plugin source code, responsible for browser-side injection and communication
-desktop-app/   # Electron + TypeScript desktop application
+desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 ```
 
 ## Quick Start

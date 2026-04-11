@@ -28,7 +28,13 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
+const {
+  configs,
+  activeId,
+  canTranscribe,
+  isTranscribing,
+  t
+} = defineProps<{
   configs: any[];
   activeId: string;
   canTranscribe: boolean;
