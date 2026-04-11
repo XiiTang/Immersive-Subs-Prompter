@@ -2,16 +2,6 @@
   color-scheme: dark;
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
-  --subtitle-font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --subtitle-font-size: 14px;
-  --subtitle-line-spacing: 0px;
-  --subtitle-time-text-gap: 2px;
-  --subtitle-primary-secondary-gap: 3px;
-  --subtitle-line-height: 1.45;
-  --subtitle-primary-text-color: #f5f5f5;
-  --subtitle-secondary-text-color: #c7d2fe;
-  --subtitle-active-primary-text-color: #fff8dc;
-  --subtitle-active-secondary-text-color: #fff9c4;
   --panel-opacity-factor: 1;
   --header-height: 45px;
 }
@@ -64,7 +54,6 @@ body {
 
 .window__title {
   font-size: 15px;
-  letter-spacing: 0.02em;
   flex: 1 1 auto;
 }
 
@@ -211,7 +200,7 @@ body {
   padding-top: 2px;
 }
 
-.subtitle-scroll-section {
+.transcript-surface {
   position: absolute;
   inset: 0;
   display: flex;
@@ -1262,45 +1251,34 @@ body {
   color: #e5e7eb;
 }
 
-.subtitle-list {
+.transcript-surface__viewport {
+  position: relative;
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--subtitle-line-spacing, 0px);
   min-height: 0;
-  scroll-behavior: smooth;
+  padding: 0 18px 32px;
   user-select: text;
-  font-family: var(--subtitle-font-family);
-  font-size: var(--subtitle-font-size);
-  line-height: var(--subtitle-line-height, 1.45);
 }
 
-/* Custom scrollbar for subtitle list - opaque by default, auto-hides fixedly via JS class */
-.subtitle-list::-webkit-scrollbar {
+.transcript-surface__content {
+  width: min(100%, 860px);
+  position: relative;
+}
+
+.transcript-surface__viewport::-webkit-scrollbar {
   width: 8px;
 }
 
-.subtitle-list::-webkit-scrollbar-track,
-.subtitle-list::-webkit-scrollbar-thumb {
+.transcript-surface__viewport::-webkit-scrollbar-track,
+.transcript-surface__viewport::-webkit-scrollbar-thumb {
   background: transparent;
   transition: background 0.25s ease;
 }
 
-/* JS adds this class when scrolling or hovering the scrollbar area */
-.subtitle-list--scrollbar-active::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.subtitle-list--scrollbar-active::-webkit-scrollbar-thumb,
-.subtitle-list::-webkit-scrollbar-thumb:active {
+.transcript-surface__viewport::-webkit-scrollbar-thumb:active,
+.transcript-surface__viewport::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
   border-radius: 4px;
-}
-
-.subtitle-list--scrollbar-active::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45);
 }
 
 /* Other scrollbars still use transparency factor */
@@ -1330,155 +1308,195 @@ body {
   background: rgba(255, 255, 255, calc(0.25 * var(--panel-opacity-factor)));
 }
 
-.subtitle-item {
-  padding: 6px 0;
-  border-radius: 0;
+.transcript-block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 0;
   background: transparent;
-  border: none;
-  transition: color 0.2s ease, border-color 0.2s ease;
-  font-size: var(--subtitle-font-size);
-  line-height: var(--subtitle-line-height, 1.45);
-  font-family: var(--subtitle-font-family);
-  display: flex;
-  flex-direction: column;
-  gap: var(--subtitle-time-text-gap, 2px);
-  user-select: text;
-  color: var(--subtitle-primary-text-color, #f5f5f5);
+  transition: opacity 0.18s ease;
+  opacity: 0.58;
+  cursor: pointer;
 }
 
-.subtitle-item__time {
+.transcript-block:hover {
+  opacity: 0.86;
+}
+
+.transcript-block--active {
+  opacity: 1;
+}
+
+.transcript-block--looping {
+  opacity: 0.94;
+}
+
+.transcript-block__text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.transcript-block__body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.transcript-block__meta-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  height: 18px;
+  color: #a1a1aa;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.transcript-block__cue-actions {
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  min-height: 18px;
   font-size: 11px;
-  color: #a1a1aa;
+  color: inherit;
+  opacity: 0.52;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
-.subtitle-item__text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.transcript-block__meta-row[data-meta-state="hover"],
+.transcript-block__meta-row[data-meta-state="active"],
+.transcript-block__meta-row[data-meta-state="selection"],
+.transcript-block__meta-row[data-meta-state="looping"],
+.transcript-block__meta-row[data-meta-state="ab-pending"],
+.transcript-block__meta-row[data-meta-state="focus-within"] {
+  color: #fde68a;
 }
 
-.subtitle-item__play-btn {
+.transcript-block__meta-row[data-meta-state="quiet"] .transcript-block__cue-actions {
+  opacity: 0.52;
+}
+
+.transcript-block__meta-row[data-auto-hide-quiet="true"][data-meta-state="quiet"] .transcript-block__cue-actions {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.transcript-block__meta-row[data-meta-state="hover"] .transcript-block__cue-actions,
+.transcript-block__meta-row[data-meta-state="active"] .transcript-block__cue-actions,
+.transcript-block__meta-row[data-meta-state="selection"] .transcript-block__cue-actions,
+.transcript-block__meta-row[data-meta-state="looping"] .transcript-block__cue-actions,
+.transcript-block__meta-row[data-meta-state="ab-pending"] .transcript-block__cue-actions,
+.transcript-block__meta-row[data-meta-state="focus-within"] .transcript-block__cue-actions {
+  opacity: 1;
+}
+
+.transcript-block__cue-time {
+  white-space: nowrap;
+  opacity: 0.92;
+}
+
+.transcript-block__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  margin: 0;
+}
+
+.transcript-block__line--primary {
+  font-weight: 560;
+}
+
+.transcript-block__line--secondary {
+  opacity: 0.9;
+}
+
+.transcript-block__play-btn,
+.transcript-block__ab-btn,
+.transcript-block__loop-btn {
   border: none;
   background: transparent;
-  color: #fbbf24;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 2px;
+  opacity: 0.72;
+  transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
   line-height: 1;
-  padding: 0;
-  margin: 0;
-  transition: all 0.2s ease;
-  opacity: 0.5;
-  flex-shrink: 0;
   width: auto;
   height: auto;
 }
 
-.subtitle-item__play-btn:hover {
+.transcript-block__play-btn {
+  color: #fbbf24;
+}
+
+.transcript-block__ab-btn {
+  color: #22d3ee;
+}
+
+.transcript-block__loop-btn {
+  color: #a78bfa;
+}
+
+.transcript-block__play-btn:hover {
   opacity: 1;
   color: #fde047;
   transform: scale(1.3);
 }
 
-.subtitle-item__play-btn:active {
-  transform: scale(1.1);
-}
-
-.subtitle-item--active .subtitle-item__play-btn {
-  opacity: 0.9;
-  color: #fde047;
-}
-
-.subtitle-item__ab-btn {
-  border: none;
-  background: transparent;
-  color: #22d3ee;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  transition: all 0.2s ease;
-  opacity: 0.5;
-  flex-shrink: 0;
-  width: auto;
-  height: auto;
-}
-
-.subtitle-item__ab-btn:hover {
+.transcript-block__ab-btn:hover {
   opacity: 1;
   color: #67e8f9;
   transform: scale(1.25);
 }
 
-.subtitle-item__ab-btn:active {
-  transform: scale(1.1);
-}
-
-.subtitle-item__ab-btn--active {
-  opacity: 1 !important;
-  color: #a5f3fc !important;
-  animation: pulse-loop 1.5s ease-in-out infinite;
-}
-
-.subtitle-item__ab-btn--pending-end {
-  opacity: 0.85;
-  color: #38bdf8;
-}
-
-.subtitle-item--active .subtitle-item__ab-btn {
-  opacity: 0.8;
-}
-
-.subtitle-item__loop-btn {
-  border: none;
-  background: transparent;
-  color: #a78bfa;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  transition: all 0.2s ease;
-  opacity: 0.5;
-  flex-shrink: 0;
-  width: auto;
-  height: auto;
-}
-
-.subtitle-item__loop-btn:hover {
+.transcript-block__loop-btn:hover {
   opacity: 1;
   color: #c4b5fd;
   transform: scale(1.3);
 }
 
-.subtitle-item__loop-btn:active {
+.transcript-block__play-btn:active,
+.transcript-block__ab-btn:active,
+.transcript-block__loop-btn:active {
   transform: scale(1.1);
 }
 
-.subtitle-item__loop-btn--active {
+.transcript-block__ab-btn--active {
+  opacity: 1 !important;
+  color: #a5f3fc !important;
+  animation: pulse-loop 1.5s ease-in-out infinite;
+}
+
+.transcript-block__ab-btn--pending-end {
+  opacity: 0.85;
+  color: #38bdf8;
+}
+
+.transcript-block__loop-btn--active {
   opacity: 1 !important;
   color: #e9d5ff !important;
   animation: pulse-loop 1.5s ease-in-out infinite;
 }
 
-.subtitle-item--active .subtitle-item__loop-btn {
-  opacity: 0.8;
-}
-
 @keyframes pulse-loop {
-
   0%,
   100% {
     transform: scale(1);
@@ -1487,32 +1505,6 @@ body {
   50% {
     transform: scale(1.2);
   }
-}
-
-.subtitle-item__text-secondary {
-  font-size: calc(var(--subtitle-font-size) - 1px);
-  color: var(--subtitle-secondary-text-color, #c7d2fe);
-  opacity: 0.85;
-  margin-top: var(--subtitle-primary-secondary-gap, 0px);
-}
-
-.subtitle-item--active {
-  background: transparent;
-  color: var(--subtitle-active-primary-text-color, #fff8dc);
-}
-
-.subtitle-item--active .subtitle-item__time {
-  color: #fde68a;
-}
-
-.subtitle-item--active .subtitle-item__text-secondary {
-  color: var(--subtitle-active-secondary-text-color, #fff9c4);
-  opacity: 1;
-}
-
-.subtitle-item--active .subtitle-item__text-primary,
-.subtitle-item--active .subtitle-item__text-secondary {
-  font-weight: 600;
 }
 
 /* MediaServer Config Manager */
@@ -1706,7 +1698,6 @@ body {
   font-weight: 600;
   font-size: 13px;
   color: #e5e5e5;
-  letter-spacing: 0.02em;
 }
 
 .fw-card__content {
@@ -1790,7 +1781,6 @@ body {
 .fw-status-item .label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: #a1a1aa;
 }
 

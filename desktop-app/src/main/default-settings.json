@@ -22,10 +22,9 @@
       "name": "Default Profile",
       "description": null,
       "settings": {
-        "subtitleFontFamily": "",
+        "subtitleFontFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
         "subtitleFontSize": 26,
-        "subtitleLineSpacing": 0,
-        "subtitleTimeTextGap": 0,
+        "subtitleAutoHideMetaRow": true,
         "subtitlePrimarySecondaryGap": 0,
         "subtitleLineHeight": 1,
         "subtitlePrimaryColor": "#f5f5f5",
@@ -35,6 +34,7 @@
         "ytDlpArgs": "--skip-download --write-subs --write-auto-subs --all-subs --cookies-from-browser firefox",
         "subtitleAutoScrollTimeout": 3,
         "subtitleScrollPosition": 44,
+        "subtitleBlockGap": 12,
         "primarySubtitlePriority": [
           "en",
           "ai-en"
@@ -43,8 +43,7 @@
           "zh-Hans",
           "ai-zh",
           "zh"
-        ],
-        "autoHideTimestamps": true
+        ]
       }
     },
     {
@@ -52,10 +51,9 @@
       "name": "Youtube",
       "description": null,
       "settings": {
-        "subtitleFontFamily": "",
+        "subtitleFontFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
         "subtitleFontSize": 26,
-        "subtitleLineSpacing": 0,
-        "subtitleTimeTextGap": 0,
+        "subtitleAutoHideMetaRow": true,
         "subtitlePrimarySecondaryGap": 0,
         "subtitleLineHeight": 1.1,
         "subtitlePrimaryColor": "#f5f5f5",
@@ -65,6 +63,7 @@
         "ytDlpArgs": "--skip-download --write-subs --write-auto-subs  --sub-lang \"en.*,zh-Hans.*\" --sub-format \"srt/best\" --cookies-from-browser firefox",
         "subtitleAutoScrollTimeout": 3,
         "subtitleScrollPosition": 33,
+        "subtitleBlockGap": 12,
         "primarySubtitlePriority": [
           "en",
           "ai-en"
@@ -72,8 +71,7 @@
         "secondarySubtitlePriority": [
           "zh",
           "zh-Hans"
-        ],
-        "autoHideTimestamps": true
+        ]
       }
     },
     {
@@ -81,10 +79,9 @@
       "name": "tiktok",
       "description": null,
       "settings": {
-        "subtitleFontFamily": "",
+        "subtitleFontFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
         "subtitleFontSize": 26,
-        "subtitleLineSpacing": 0,
-        "subtitleTimeTextGap": 0,
+        "subtitleAutoHideMetaRow": true,
         "subtitlePrimarySecondaryGap": 0,
         "subtitleLineHeight": 1.1,
         "subtitlePrimaryColor": "#f5f5f5",
@@ -94,6 +91,7 @@
         "ytDlpArgs": "--skip-download --write-subs --write-auto-subs  --sub-lang \"eng.*,cmn-Hans.*\" --sub-format \"srt/best\" --cookies-from-browser firefox",
         "subtitleAutoScrollTimeout": 3,
         "subtitleScrollPosition": 33,
+        "subtitleBlockGap": 12,
         "primarySubtitlePriority": [
           "eng",
           "en",
@@ -104,8 +102,7 @@
           "zh",
           "ai-zh",
           "zh-Hans"
-        ],
-        "autoHideTimestamps": true
+        ]
       }
     },
     {
@@ -113,10 +110,9 @@
       "name": "Bilibili",
       "description": null,
       "settings": {
-        "subtitleFontFamily": "",
+        "subtitleFontFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
         "subtitleFontSize": 26,
-        "subtitleLineSpacing": 0,
-        "subtitleTimeTextGap": 0,
+        "subtitleAutoHideMetaRow": true,
         "subtitlePrimarySecondaryGap": 0,
         "subtitleLineHeight": 1,
         "subtitlePrimaryColor": "#f5f5f5",
@@ -126,6 +122,7 @@
         "ytDlpArgs": "--skip-download --write-subs --write-auto-subs  --all-subs --sub-format \"srt/best\" --cookies-from-browser firefox",
         "subtitleAutoScrollTimeout": 3,
         "subtitleScrollPosition": 33,
+        "subtitleBlockGap": 12,
         "primarySubtitlePriority": [
           "en",
           "ai-en"
@@ -134,8 +131,7 @@
           "zh",
           "ai-zh",
           "zh-Hans"
-        ],
-        "autoHideTimestamps": true
+        ]
       }
     }
   ],

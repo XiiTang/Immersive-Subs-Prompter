@@ -41,7 +41,10 @@
               @click="store.setEditingProfile(profile.id)"
             >
               <span class="profile-list__name">{{ profile.name }}</span>
-              <span v-if="profile.id === defaultProfileId" class="profile-list__badge">
+              <span v-if="profile.id === activeProfileId" class="profile-list__badge">
+                {{ t("active-badge", "Applied") }}
+              </span>
+              <span v-else-if="profile.id === defaultProfileId" class="profile-list__badge">
                 {{ t("default-badge", "Default") }}
               </span>
             </button>
@@ -64,21 +67,26 @@
         </label>
         <label class="settings-field">
           <span class="settings-field__label">{{ t("subtitle-font-label", "Subtitle Font") }}</span>
-          <input
-            type="text"
-            v-model="subtitleFontFamily"
-            placeholder="e.g.: LXGW WenKai, sans-serif"
-            autocomplete="off"
-          />
+          <select v-model="subtitleFontFamily" data-testid="subtitle-font-select">
+            <option v-for="fontOption in subtitleFontOptions" :key="fontOption.value" :value="fontOption.value">
+              {{ fontOption.label }}
+            </option>
+          </select>
         </label>
         <label class="settings-field">
           <span class="settings-field__label">{{ t("subtitle-font-size-label", "Subtitle Font Size") }}</span>
           <input type="number" min="10" max="48" step="1" v-model.number="subtitleFontSize" />
         </label>
         <div class="settings-field settings-field--inline">
-          <span class="settings-field__label">{{ t("auto-hide-timestamps-label", "Hide Timestamps") }}</span>
+          <span class="settings-field__label">
+            {{ t("subtitle-meta-auto-hide-label", "Auto-hide Timestamps & Actions") }}
+          </span>
           <label class="toggle">
-            <input type="checkbox" v-model="autoHideTimestamps" />
+            <input
+              type="checkbox"
+              v-model="subtitleAutoHideMetaRow"
+              data-testid="subtitle-meta-auto-hide-toggle"
+            />
             <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
           </label>
         </div>
@@ -109,24 +117,6 @@
         <label class="settings-field">
           <div class="settings-field__label-row">
             <span class="settings-field__label">
-              {{ t("subtitle-line-spacing-label", "Subtitle Line Spacing") }}
-            </span>
-            <span class="settings-field__value">{{ subtitleLineSpacing }}px</span>
-          </div>
-          <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleLineSpacing" />
-
-        </label>
-        <label class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">{{ t("subtitle-time-gap-label", "Timestamp to Text Gap") }}</span>
-            <span class="settings-field__value">{{ subtitleTimeTextGap }}px</span>
-          </div>
-          <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleTimeTextGap" />
-
-        </label>
-        <label class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">
               {{ t("subtitle-primary-secondary-gap-label", "Primary to Secondary Subtitle Gap") }}
             </span>
             <span class="settings-field__value">{{ subtitlePrimarySecondaryGap }}px</span>
@@ -148,6 +138,16 @@
           </div>
           <input type="range" min="1" max="3" step="0.05" class="slider" v-model.number="subtitleLineHeight" />
 
+        </label>
+        <label class="settings-field">
+          <div class="settings-field__label-row">
+            <span class="settings-field__label">{{ t("subtitle-block-gap-label", "Block Gap") }}</span>
+            <span class="settings-field__value">{{ subtitleBlockGap }}px</span>
+          </div>
+          <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleBlockGap" />
+          <small class="settings-field__hint">
+            {{ t("subtitle-block-gap-hint", "Gap between subtitle text blocks") }}
+          </small>
         </label>
         <div class="settings-group">
           <div class="settings-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</div>
@@ -345,6 +345,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
@@ -357,6 +358,7 @@ const { t } = useI18n(language);
 const profiles = computed(() => store.settings?.profiles ?? []);
 const editingProfile = computed(() => store.editingProfile);
 const editingProfileId = computed(() => store.editingProfile?.id ?? null);
+const activeProfileId = computed(() => store.activeProfileId);
 const defaultProfileId = computed(() => store.settings?.defaultProfileId ?? null);
 const canDeleteProfile = computed(
   () =>
@@ -374,10 +376,16 @@ const subtitleFontFamily = computed({
   get: () => store.editingProfileSettings.subtitleFontFamily,
   set: (value: string) => store.updateProfileSetting("subtitleFontFamily", value)
 });
+const subtitleFontOptions = SUBTITLE_FONT_OPTIONS;
 
 const subtitleFontSize = computed({
   get: () => store.editingProfileSettings.subtitleFontSize,
   set: (value: number) => store.updateProfileSetting("subtitleFontSize", value)
+});
+
+const subtitleAutoHideMetaRow = computed({
+  get: () => store.editingProfileSettings.subtitleAutoHideMetaRow,
+  set: (value: boolean) => store.updateProfileSetting("subtitleAutoHideMetaRow", value)
 });
 
 const subtitleAutoScrollTimeout = computed({
@@ -390,16 +398,6 @@ const subtitleScrollPosition = computed({
   set: (value: number) => store.updateProfileSetting("subtitleScrollPosition", value)
 });
 
-const subtitleLineSpacing = computed({
-  get: () => store.editingProfileSettings.subtitleLineSpacing,
-  set: (value: number) => store.updateProfileSetting("subtitleLineSpacing", value)
-});
-
-const subtitleTimeTextGap = computed({
-  get: () => store.editingProfileSettings.subtitleTimeTextGap,
-  set: (value: number) => store.updateProfileSetting("subtitleTimeTextGap", value)
-});
-
 const subtitlePrimarySecondaryGap = computed({
   get: () => store.editingProfileSettings.subtitlePrimarySecondaryGap,
   set: (value: number) => store.updateProfileSetting("subtitlePrimarySecondaryGap", value)
@@ -408,6 +406,11 @@ const subtitlePrimarySecondaryGap = computed({
 const subtitleLineHeight = computed({
   get: () => store.editingProfileSettings.subtitleLineHeight,
   set: (value: number) => store.updateProfileSetting("subtitleLineHeight", value)
+});
+
+const subtitleBlockGap = computed({
+  get: () => store.editingProfileSettings.subtitleBlockGap,
+  set: (value: number) => store.updateProfileSetting("subtitleBlockGap", value)
 });
 
 const subtitlePrimaryColor = computed({
@@ -433,11 +436,6 @@ const subtitleActiveSecondaryColor = computed({
 const ytDlpArgs = computed({
   get: () => store.editingProfileSettings.ytDlpArgs,
   set: (value: string) => store.updateProfileSetting("ytDlpArgs", value)
-});
-
-const autoHideTimestamps = computed({
-  get: () => store.editingProfileSettings.autoHideTimestamps,
-  set: (value: boolean) => store.updateProfileSetting("autoHideTimestamps", value)
 });
 
 const primaryPriority = computed(() => store.editingProfileSettings.primarySubtitlePriority ?? []);

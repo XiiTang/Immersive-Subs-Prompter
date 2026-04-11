@@ -168,8 +168,7 @@ export interface NetworkSettings {
 export interface ProfileSettings {
   subtitleFontFamily: string;
   subtitleFontSize: number;
-  subtitleLineSpacing: number;
-  subtitleTimeTextGap: number;
+  subtitleAutoHideMetaRow: boolean;
   subtitlePrimarySecondaryGap: number;
   subtitleLineHeight: number;
   subtitlePrimaryColor: string;
@@ -179,9 +178,9 @@ export interface ProfileSettings {
   ytDlpArgs: string;
   subtitleAutoScrollTimeout: number;
   subtitleScrollPosition: number;
+  subtitleBlockGap: number;
   primarySubtitlePriority: string[];
   secondarySubtitlePriority: string[];
-  autoHideTimestamps: boolean;
 }
 
 export interface ProfileDefinition {

@@ -1,11 +1,11 @@
 import { ProfileDefinition, ProfileSettings } from "../../types.js";
+import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
 import { DEFAULT_PROFILE_ID, DEFAULT_PROFILE_NAME, DEFAULT_PROFILE_SETTINGS } from "../constants.js";
 import { ensureUniqueId, normalizeColor, sanitizePriorityList } from "../utils.js";
 
 export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefined): ProfileSettings {
   const source = input ?? {};
-  const subtitleFontFamily =
-    typeof source.subtitleFontFamily === "string" ? source.subtitleFontFamily.trim() : DEFAULT_PROFILE_SETTINGS.subtitleFontFamily;
+  const subtitleFontFamily = normalizeSubtitleFontFamily(source.subtitleFontFamily);
 
   let subtitleFontSize = Number(source.subtitleFontSize);
   if (!Number.isFinite(subtitleFontSize)) {
@@ -13,17 +13,10 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
   }
   subtitleFontSize = Math.min(48, Math.max(10, Math.round(subtitleFontSize)));
 
-  let subtitleLineSpacing = Number(source.subtitleLineSpacing);
-  if (!Number.isFinite(subtitleLineSpacing)) {
-    subtitleLineSpacing = DEFAULT_PROFILE_SETTINGS.subtitleLineSpacing;
-  }
-  subtitleLineSpacing = Math.min(60, Math.max(0, Math.round(subtitleLineSpacing)));
-
-  let subtitleTimeTextGap = Number(source.subtitleTimeTextGap);
-  if (!Number.isFinite(subtitleTimeTextGap)) {
-    subtitleTimeTextGap = DEFAULT_PROFILE_SETTINGS.subtitleTimeTextGap;
-  }
-  subtitleTimeTextGap = Math.min(60, Math.max(0, Math.round(subtitleTimeTextGap)));
+  const subtitleAutoHideMetaRow =
+    typeof source.subtitleAutoHideMetaRow === "boolean"
+      ? source.subtitleAutoHideMetaRow
+      : DEFAULT_PROFILE_SETTINGS.subtitleAutoHideMetaRow;
 
   let subtitlePrimarySecondaryGap = Number(source.subtitlePrimarySecondaryGap);
   if (!Number.isFinite(subtitlePrimarySecondaryGap)) {
@@ -68,14 +61,19 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
   }
   subtitleScrollPosition = Math.min(100, Math.max(0, Math.round(subtitleScrollPosition)));
 
+  let subtitleBlockGap = Number(source.subtitleBlockGap);
+  if (!Number.isFinite(subtitleBlockGap)) {
+    subtitleBlockGap = DEFAULT_PROFILE_SETTINGS.subtitleBlockGap;
+  }
+  subtitleBlockGap = Math.min(60, Math.max(0, Math.round(subtitleBlockGap)));
+
   const primarySubtitlePriority = sanitizePriorityList(source.primarySubtitlePriority);
   const secondarySubtitlePriority = sanitizePriorityList(source.secondarySubtitlePriority);
 
   return {
     subtitleFontFamily,
     subtitleFontSize,
-    subtitleLineSpacing,
-    subtitleTimeTextGap,
+    subtitleAutoHideMetaRow,
     subtitlePrimarySecondaryGap,
     subtitleLineHeight,
     subtitlePrimaryColor,
@@ -85,9 +83,9 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
     ytDlpArgs,
     subtitleAutoScrollTimeout,
     subtitleScrollPosition,
+    subtitleBlockGap,
     primarySubtitlePriority,
-    secondarySubtitlePriority,
-    autoHideTimestamps: typeof source.autoHideTimestamps === "boolean" ? source.autoHideTimestamps : DEFAULT_PROFILE_SETTINGS.autoHideTimestamps
+    secondarySubtitlePriority
   };
 }
 

@@ -33,13 +33,24 @@
       @scrub-cancel="handleScrubCancel"
       @toggle-auto-hide="toggleAutoHide"
     />
-    <SubtitleScrollSection
-      :cues="cues"
-      :active-cue-index="activeCueIndex"
+    <TranscriptSurface
+      :blocks="transcriptBlocks"
+      :current-time="displayedPlaybackTime"
+      :seek-request="seekRequest"
       :loop-cue-index="loopCueIndex"
-      :ab-loop-start-index="abLoopStartIndex"
-      :auto-hide-timestamps="autoHideTimestamps"
+      :active-ab-loop-range="activeAbLoopRange"
+      :ab-loop-start-cue-index="abLoopStartCueIndex"
       :subtitle-panel-style="subtitlePanelStyle"
+      :font-family="transcriptFontFamily"
+      :font-size="transcriptFontSize"
+      :auto-hide-meta-row="subtitleAutoHideMetaRow"
+      :line-height="transcriptLineHeight"
+      :primary-secondary-gap="transcriptPrimarySecondaryGap"
+      :block-gap="transcriptBlockGap"
+      :primary-color="playbackProfileSettings.subtitlePrimaryColor"
+      :secondary-color="playbackProfileSettings.subtitleSecondaryColor"
+      :active-primary-color="playbackProfileSettings.subtitleActivePrimaryColor"
+      :active-secondary-color="playbackProfileSettings.subtitleActiveSecondaryColor"
       :auto-scroll-delay-ms="autoScrollDelayMs"
       :scroll-position-ratio="scrollPositionRatio"
       @play-cue="seekToCue"
@@ -51,14 +62,15 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import SubtitleScrollSection from "./SubtitleScrollSection.vue";
+import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
+import TranscriptSurface from "./TranscriptSurface.vue";
 import VideoInfoSection from "./VideoInfoSection.vue";
 import { usePlaybackPrediction } from "./composables/usePlaybackPrediction";
 import { usePlaybackScrubbing } from "./composables/usePlaybackScrubbing";
 import { clamp, formatSourceFile } from "../../utils/formatters";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
-import type { CombinedCue } from "../../stores/desktop";
+import type { ActiveAbLoopRange, TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -85,6 +97,16 @@ const subtitlePanelStyle = computed(() => ({
 
 const playbackProfileSettings = computed(
   () => store.activeProfile?.settings ?? DEFAULT_PROFILE_TEMPLATE
+);
+const transcriptFontFamily = computed(() => normalizeSubtitleFontFamily(playbackProfileSettings.value.subtitleFontFamily));
+const transcriptFontSize = computed(() => Math.max(playbackProfileSettings.value.subtitleFontSize, 12));
+const subtitleAutoHideMetaRow = computed(() => playbackProfileSettings.value.subtitleAutoHideMetaRow);
+const transcriptLineHeight = computed(() => Math.max(playbackProfileSettings.value.subtitleLineHeight, 1));
+const transcriptPrimarySecondaryGap = computed(() =>
+  Math.max(playbackProfileSettings.value.subtitlePrimarySecondaryGap, 0)
+);
+const transcriptBlockGap = computed(() =>
+  Math.max(playbackProfileSettings.value.subtitleBlockGap, 0)
 );
 
 const autoScrollDelayMs = computed(
@@ -113,18 +135,33 @@ const secondaryTrackId = computed({
   set: (value: string) => store.selectSubtitleTrack(value || null, "secondary")
 });
 
-const cues = computed<CombinedCue[]>(() => store.combinedCues);
+const transcriptBlocks = computed<TranscriptBlock[]>(() => store.transcriptBlocks);
+const primaryCues = computed(() => store.desktopState?.primarySubtitles?.cues ?? []);
+const secondaryCues = computed(() => store.desktopState?.secondarySubtitles?.cues ?? []);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
 const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
-const abLoopStartIndex = ref<number | null>(null);
+const abLoopStartCueIndex = ref<number | null>(null);
+const activeAbLoopRange = ref<ActiveAbLoopRange | null>(null);
+const seekRequestToken = ref(0);
+const seekRequest = ref<TranscriptSeekRequest | null>(null);
 
-watch(cues, () => {
-  abLoopStartIndex.value = null;
+watch([
+  () => store.desktopState?.selectedPrimarySubtitleId,
+  () => store.desktopState?.selectedSecondarySubtitleId,
+  primaryCues,
+  secondaryCues
+], () => {
+  abLoopStartCueIndex.value = null;
+  activeAbLoopRange.value = null;
+});
+watch(() => playback.value?.isLooping, (isLooping) => {
+  if (!isLooping) {
+    activeAbLoopRange.value = null;
+  }
 });
 const hasActiveVideo = computed(() => Boolean(store.desktopState?.videoUrl));
 const isPlaying = computed(() => Math.abs(playback.value?.playbackRate ?? 0) > 0);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
-const autoHideTimestamps = computed(() => store.activeProfile?.settings.autoHideTimestamps ?? false);
 
 const playbackDuration = computed(() => {
   const duration = playback.value?.duration;
@@ -156,9 +193,18 @@ const {
 } = usePlaybackPrediction(playback);
 
 function handleSeek(time: number) {
+  issueSeekRequest(time);
   setManualSeekBaseline(time, playback.value?.playbackRate ?? 0);
   startPredictionLoop();
   store.controlVideo({ type: "seek", time });
+}
+
+function issueSeekRequest(time: number) {
+  seekRequestToken.value += 1;
+  seekRequest.value = {
+    token: seekRequestToken.value,
+    time
+  };
 }
 
 const { isScrubbing, scrubbedTime, handleScrubStart, handleScrubInput, handleScrubEnd, handleScrubCancel } =
@@ -213,18 +259,6 @@ const canTranscribe = computed(() => {
 async function startTranscription() {
   await store.startTranscription();
 }
-
-const activeCueIndex = computed(() => {
-  if (playback.value?.isLooping && loopCueIndex.value !== null) {
-    return loopCueIndex.value;
-  }
-  const currentTime = predictedTime.value ?? playback.value?.currentTime;
-  if (currentTime === undefined || currentTime === null) {
-    return null;
-  }
-  const index = cues.value.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
-  return index === -1 ? null : index;
-});
 
 function formatTrackLabel(sourceFile: string): string {
   return formatSourceFile(sourceFile, transcriptionConfigNames.value);
@@ -312,15 +346,17 @@ function togglePlayback() {
 }
 
 function seekToCue(index: number) {
-  const cue = cues.value[index];
+  const cue = primaryCues.value[index];
   if (!cue) return;
+  issueSeekRequest(cue.start);
   store.controlVideo({ type: "seek", time: cue.start });
 }
 
 function toggleLoop(index: number) {
-  const cue = cues.value[index];
+  const cue = primaryCues.value[index];
   if (!cue) return;
-  abLoopStartIndex.value = null;
+  abLoopStartCueIndex.value = null;
+  activeAbLoopRange.value = null;
   const isActive = loopCueIndex.value === index;
   if (isActive) {
     store.controlVideo({ type: "stopLoop" });
@@ -330,28 +366,31 @@ function toggleLoop(index: number) {
 }
 
 function handleAbLoop(index: number) {
-  const endCue = cues.value[index];
+  const endCue = primaryCues.value[index];
   if (!endCue) {
     return;
   }
 
-  if (abLoopStartIndex.value === null) {
-    abLoopStartIndex.value = index;
+  if (abLoopStartCueIndex.value === null) {
+    abLoopStartCueIndex.value = index;
+    activeAbLoopRange.value = null;
     if (playback.value?.isLooping) {
       store.controlVideo({ type: "stopLoop" });
     }
     return;
   }
 
-  if (abLoopStartIndex.value === index) {
-    abLoopStartIndex.value = null;
+  if (abLoopStartCueIndex.value === index) {
+    abLoopStartCueIndex.value = null;
+    activeAbLoopRange.value = null;
     return;
   }
 
-  const startIndex = abLoopStartIndex.value;
-  const startCue = cues.value[startIndex];
+  const startIndex = abLoopStartCueIndex.value;
+  const startCue = primaryCues.value[startIndex];
   if (!startCue) {
-    abLoopStartIndex.value = null;
+    abLoopStartCueIndex.value = null;
+    activeAbLoopRange.value = null;
     return;
   }
 
@@ -374,8 +413,12 @@ function handleAbLoop(index: number) {
     loopEnd = loopStart + Math.max(fallbackDuration, 1);
   }
 
+  activeAbLoopRange.value = {
+    startCueIndex: Math.min(startIndex, index),
+    endCueIndex: Math.max(startIndex, index)
+  };
   store.controlVideo({ type: "loop", start: loopStart, end: loopEnd, cueIndex: loopCueIndex });
-  abLoopStartIndex.value = null;
+  abLoopStartCueIndex.value = null;
 }
 
 function toggleAutoHide() {

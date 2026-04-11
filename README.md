@@ -42,7 +42,7 @@ The extension (`extension/`) runs in the page and continuously collects playback
 
 1. (For web pages) invoking `yt-dlp` to obtain all subtitle tracks for a given URL.
 2. (For Jellyfinemby) synchronizing session and subtitle information in real time via a WebSocket API.
-3. Parsing and merging subtitle tracks (e.g., primary + secondary) and displaying them in a scrollable teleprompter panel.
+3. Pairing selected subtitle tracks by cue timing and displaying them in a cue-anchored bilingual reader in the desktop panel.
 4. Enabling bidirectional control so clicking to seek, looping a segment, or sending play/pause commands from the subtitle panel can control the browser video.
 
 ---
@@ -106,9 +106,13 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 ## Feature Overview
 
 - **Real-time Playback Info**: content script monitors video timeline / playback rate / URL, pushing every 300ms to desktop app.
-- **Subtitle Aggregation**: Electron side downloads all available subtitle tracks (including auto-generated) via `yt-dlp`, parsing into a unified VTT cue list.
+- **Subtitle Aggregation**: Electron side downloads all available subtitle tracks (including auto-generated) via `yt-dlp`, pairs selected tracks by cue timing, and keeps cue actions attached to reading blocks.
 - **Track Switching**: UI provides dropdown to select different languages/tracks, clicking subtitle lines jumps to corresponding timestamp.
 - **Bidirectional Control**: Desktop app can initiate play / pause / seek commands, extension receives and directly controls video elements.
+
+### Desktop Subtitle Reader
+
+The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext`, and cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
 
 ## Development Scripts
 
@@ -148,28 +152,9 @@ For detailed procedures (including extension packaging, Electron installer, yt-d
 
 ## Tips
 
-### Viewing Installed Fonts on Windows
+### Subtitle Fonts
 
-To configure subtitle fonts in **Settings → Profiles → Subtitle Font**, you need to know the exact font names installed on your system.
-
-**List system-wide fonts** (installed for all users):
-
-```powershell
-[System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") | Out-Null
-(New-Object System.Drawing.Text.InstalledFontCollection).Families | Select-Object -ExpandProperty Name
-```
-
-**List user-installed fonts** (Windows 10/11, installed for current user only):
-
-```powershell
-(Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" -ErrorAction SilentlyContinue).PSObject.Properties | Where-Object { $_.Name -notlike "PS*" } | ForEach-Object { $_.Name -replace ' \(TrueType\)$','' -replace ' \(OpenType\)$','' }
-```
-
-> **Note**: Fonts installed via right-click → "Install" are user-level fonts and won't appear in the system fonts list. Use right-click → "Install for all users" to install system-wide.
-
-Then copy the font name you want and paste it into the "Subtitle Font" field. For example: `Microsoft YaHei`, `LXGW WenKai`, `霞鹜文楷`, or `Source Han Sans SC`.
-
-You can also specify multiple fallback fonts separated by commas: `LXGW WenKai, Microsoft YaHei, sans-serif`
+**Settings → Profiles → Subtitle Font** now uses a curated built-in font list. Pick one of the provided options in the dropdown; free-form font-family input is no longer part of the desktop app.
 
 ## License
 

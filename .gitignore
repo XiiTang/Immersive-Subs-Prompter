@@ -128,3 +128,6 @@ main.py
 
 # Extension release zip
 immersive-subs-prompter-*.zip
+
+# Local reference codebase
+referrence project/

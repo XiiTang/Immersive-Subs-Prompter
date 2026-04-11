@@ -19,20 +19,37 @@ import type {
   VideoControlCommand
 } from "../main/types.js";
 import { BASE_TRANSCRIPTION_CONFIG } from "../../common/transcriptionDefaults.js";
+import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
+import { buildTranscriptBlocks } from "../components/subtitle/transcript/buildTranscriptBlocks";
+import type { TranscriptBlock } from "../components/subtitle/transcript/types";
 
+function createTranscriptBlocksCache() {
+  let lastPrimaryCues: SubtitleCue[] | null = null;
+  let lastSecondaryCues: SubtitleCue[] | null = null;
+  let lastBlocks: TranscriptBlock[] = [];
 
-export type CombinedCue = {
-  start: number;
-  end: number;
-  primaryText: string;
-  secondaryText: string | null;
-};
+  return {
+    get(primaryCues: SubtitleCue[], secondaryCues: SubtitleCue[]): TranscriptBlock[] {
+      if (primaryCues === lastPrimaryCues && secondaryCues === lastSecondaryCues) {
+        return lastBlocks;
+      }
+      lastPrimaryCues = primaryCues;
+      lastSecondaryCues = secondaryCues;
+      lastBlocks = buildTranscriptBlocks({ primaryCues, secondaryCues });
+      return lastBlocks;
+    },
+    clear() {
+      lastPrimaryCues = null;
+      lastSecondaryCues = null;
+      lastBlocks = [];
+    }
+  };
+}
 
 export const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
-  subtitleFontFamily: "",
+  subtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
   subtitleFontSize: 14,
-  subtitleLineSpacing: 0,
-  subtitleTimeTextGap: 2,
+  subtitleAutoHideMetaRow: true,
   subtitlePrimarySecondaryGap: 3,
   subtitleLineHeight: 1.45,
   subtitlePrimaryColor: "#f5f5f5",
@@ -42,9 +59,9 @@ export const DEFAULT_PROFILE_TEMPLATE: ProfileSettings = {
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
+  subtitleBlockGap: 12,
   primarySubtitlePriority: [],
-  secondarySubtitlePriority: [],
-  autoHideTimestamps: false
+  secondarySubtitlePriority: []
 };
 
 const DEFAULT_PANEL_OPACITY = 100;
@@ -79,54 +96,6 @@ function mergePartial<T>(target: T | null, patch: Partial<T>): T {
   return base as T;
 }
 
-function mergeSubtitleCues(primary: SubtitleCue[], secondary: SubtitleCue[]): CombinedCue[] {
-  if (!primary.length) {
-    return [];
-  }
-
-  if (!secondary.length) {
-    return primary.map((cue) => ({
-      start: cue.start,
-      end: cue.end,
-      primaryText: cue.text,
-      secondaryText: null
-    }));
-  }
-
-  const merged: CombinedCue[] = [];
-  let secondaryIndex = 0;
-
-  for (const primaryCue of primary) {
-    while (secondaryIndex < secondary.length && secondary[secondaryIndex].end < primaryCue.start) {
-      secondaryIndex += 1;
-    }
-
-    let bestMatch: SubtitleCue | null = null;
-    let bestOverlap = -1;
-
-    for (let i = secondaryIndex; i < secondary.length; i += 1) {
-      const candidate = secondary[i];
-      if (candidate.start > primaryCue.end) {
-        break;
-      }
-      const overlap = Math.min(primaryCue.end, candidate.end) - Math.max(primaryCue.start, candidate.start);
-      if (overlap >= 0 && overlap >= bestOverlap) {
-        bestOverlap = overlap;
-        bestMatch = candidate;
-      }
-    }
-
-    merged.push({
-      start: primaryCue.start,
-      end: primaryCue.end,
-      primaryText: primaryCue.text,
-      secondaryText: bestMatch ? bestMatch.text : null
-    });
-  }
-
-  return merged;
-}
-
 function toPlain<T>(value: T): T {
   const rawValue = toRaw(value) as unknown as T;
   if (rawValue === null || typeof rawValue !== "object") {
@@ -141,6 +110,8 @@ function toPlain<T>(value: T): T {
   }
   return result as T;
 }
+
+const transcriptBlocksCache = createTranscriptBlocksCache();
 
 export const useDesktopStore = defineStore("desktop", {
   state: () => ({
@@ -157,10 +128,10 @@ export const useDesktopStore = defineStore("desktop", {
     subtitleTracks(state): SubtitleTrack[] {
       return state.desktopState?.subtitleTracks ?? [];
     },
-    combinedCues(state): CombinedCue[] {
+    transcriptBlocks(state): TranscriptBlock[] {
       const primary = state.desktopState?.primarySubtitles?.cues ?? [];
       const secondary = state.desktopState?.secondarySubtitles?.cues ?? [];
-      return mergeSubtitleCues(primary, secondary);
+      return transcriptBlocksCache.get(primary, secondary);
     },
     connectionLabel(state): string {
       if (!state.desktopState) {
@@ -222,7 +193,7 @@ export const useDesktopStore = defineStore("desktop", {
         this.desktopState = state;
         this.playback = state.playback;
         this.settings = settings;
-        this.editingProfileId = settings.defaultProfileId;
+        this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId ?? settings.profiles[0]?.id ?? null;
         this.attachIpcListeners();
         await this.refreshCacheStats();
       } catch (error) {
@@ -245,7 +216,7 @@ export const useDesktopStore = defineStore("desktop", {
       window.usp.onSettingsChange((settings) => {
         this.settings = settings;
         if (!this.editingProfileId && settings.profiles.length) {
-          this.editingProfileId = settings.defaultProfileId ?? settings.profiles[0].id;
+          this.editingProfileId = this.desktopState?.appliedProfileId ?? settings.defaultProfileId ?? settings.profiles[0].id;
         }
         this.refreshCacheStats();
       });
@@ -256,6 +227,10 @@ export const useDesktopStore = defineStore("desktop", {
       });
     },
     setSettingsOpen(next: boolean) {
+      if (next && this.settings?.profiles.length) {
+        this.editingProfileId =
+          this.desktopState?.appliedProfileId ?? this.settings.defaultProfileId ?? this.settings.profiles[0]?.id ?? null;
+      }
       this.isSettingsOpen = next;
     },
     setEditingProfile(profileId: string) {

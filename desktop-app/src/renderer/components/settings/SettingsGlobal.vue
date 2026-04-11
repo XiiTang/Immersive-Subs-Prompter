@@ -220,7 +220,6 @@ function removeGameProcess(name: string) {
   font-size: 13px;
   font-weight: 600;
   color: #e5e5e5;
-  letter-spacing: 0.02em;
 }
 
 .settings-card__content {

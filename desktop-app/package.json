@@ -10,6 +10,8 @@
     "build:preload": "tsc --project tsconfig.preload.json",
     "build:renderer": "vite build",
     "dev:renderer": "vite dev",
+    "test:renderer": "vitest run",
+    "test:renderer:watch": "vitest",
     "start": "npm run build && electron .",
     "clean": "rimraf dist",
     "clean:node-modules": "node scripts/cleanup-node-modules.cjs",
@@ -26,6 +28,7 @@
   "author": "sheixunixitang3@gmail.com",
   "license": "MIT",
   "dependencies": {
+    "@chenglou/pretext": "^0.0.4",
     "active-win": "^8.2.1",
     "decompress": "^4.2.1",
     "iconv-lite": "^0.7.0",
@@ -39,11 +42,14 @@
     "@types/node": "^20.12.12",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/test-utils": "^2.4.6",
     "electron": "^30.0.0",
     "electron-builder": "^26.0.12",
+    "jsdom": "^24.1.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
     "vite": "^5.2.8",
+    "vitest": "^2.1.1",
     "vue-tsc": "^1.8.27"
   },
   "build": {

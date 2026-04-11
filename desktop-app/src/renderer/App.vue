@@ -15,14 +15,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import HeaderBar from "./components/HeaderBar.vue";
 import SubtitleView from "./components/subtitle/SubtitleView.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
-import { useDesktopStore, DEFAULT_PROFILE_TEMPLATE } from "./stores/desktop";
-import type { ProfileSettings } from "./main/types.js";
+import { useDesktopStore } from "./stores/desktop";
 import { normalizeLanguage } from "./i18n.js";
 
 const store = useDesktopStore();
-
-const DEFAULT_SUBTITLE_FONT_FAMILY =
-  '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
 
 const autoHideCollapsed = ref(false);
 const lastPointerPosition = ref<{ x: number; y: number } | null>(null);
@@ -35,39 +31,6 @@ const windowClasses = computed(() => ({
   "window--settings-open": store.isSettingsOpen,
   "auto-hide-collapsed": autoHideCollapsed.value
 }));
-
-function applySubtitleStyles(settings: ProfileSettings | null) {
-  const root = document.documentElement;
-  const config = settings ?? DEFAULT_PROFILE_TEMPLATE;
-  root.style.setProperty(
-    "--subtitle-font-family",
-    config.subtitleFontFamily?.trim() || DEFAULT_SUBTITLE_FONT_FAMILY
-  );
-  root.style.setProperty("--subtitle-font-size", `${config.subtitleFontSize ?? 14}px`);
-  root.style.setProperty("--subtitle-line-spacing", `${config.subtitleLineSpacing ?? 0}px`);
-  root.style.setProperty("--subtitle-time-text-gap", `${config.subtitleTimeTextGap ?? 2}px`);
-  root.style.setProperty(
-    "--subtitle-primary-secondary-gap",
-    `${config.subtitlePrimarySecondaryGap ?? 3}px`
-  );
-  root.style.setProperty("--subtitle-line-height", `${config.subtitleLineHeight ?? 1.45}`);
-  root.style.setProperty(
-    "--subtitle-primary-text-color",
-    config.subtitlePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitlePrimaryColor
-  );
-  root.style.setProperty(
-    "--subtitle-secondary-text-color",
-    config.subtitleSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleSecondaryColor
-  );
-  root.style.setProperty(
-    "--subtitle-active-primary-text-color",
-    config.subtitleActivePrimaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActivePrimaryColor
-  );
-  root.style.setProperty(
-    "--subtitle-active-secondary-text-color",
-    config.subtitleActiveSecondaryColor ?? DEFAULT_PROFILE_TEMPLATE.subtitleActiveSecondaryColor
-  );
-}
 
 function refreshAutoHideElements() {
   if (!headerElement.value) {
@@ -152,55 +115,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointerout", handlePointerOut);
   window.removeEventListener("blur", handleWindowBlur);
 });
-
-// Track if store has been initialized to avoid applying default template prematurely
-const storeInitialized = ref(false);
-
-// Watch for store initialization completion
-watch(
-  () => store.isInitializing,
-  (isInitializing) => {
-    if (!isInitializing && store.settings) {
-      storeInitialized.value = true;
-      // Apply the active profile settings after initialization
-      const activeSettings = store.activeProfile?.settings ?? store.editingProfileSettings;
-      applySubtitleStyles(activeSettings);
-    }
-  },
-  { immediate: true }
-);
-
-// Watch editingProfileSettings for live preview while editing in settings panel
-watch(
-  () => store.editingProfileSettings,
-  (settings) => {
-    // Skip if store hasn't initialized yet (will be handled by initialization watcher)
-    if (!storeInitialized.value) {
-      return;
-    }
-    applySubtitleStyles(settings);
-  },
-  { deep: true, immediate: true }
-);
-
-// Also watch activeProfile changes for when the applied profile changes (e.g., via rules)
-watch(
-  () => store.activeProfile?.settings,
-  (settings) => {
-    if (!storeInitialized.value || !settings) {
-      return;
-    }
-    // Only apply if different from editing profile (to avoid duplicate updates)
-    const editingId = store.editingProfile?.id;
-    const activeId = store.activeProfile?.id;
-    if (editingId !== activeId) {
-      applySubtitleStyles(settings);
-    }
-  },
-  { deep: true }
-);
-
-
 
 watch(autoHideEnabled, (enabled) => {
   if (!enabled) {

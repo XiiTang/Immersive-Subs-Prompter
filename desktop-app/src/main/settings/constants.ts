@@ -11,6 +11,7 @@ import {
   UrlMatchType
 } from "../types.js";
 import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
+import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { clampPort } from "./utils.js";
 import { BASE_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 
@@ -48,10 +49,9 @@ export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
-  subtitleFontFamily: "",
+  subtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
   subtitleFontSize: 14,
-  subtitleLineSpacing: 0,
-  subtitleTimeTextGap: 2,
+  subtitleAutoHideMetaRow: true,
   subtitlePrimarySecondaryGap: 3,
   subtitleLineHeight: 1.45,
   subtitlePrimaryColor: DEFAULT_SUBTITLE_PRIMARY_COLOR,
@@ -61,9 +61,9 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   ytDlpArgs: "",
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 33,
+  subtitleBlockGap: 12,
   primarySubtitlePriority: [],
-  secondarySubtitlePriority: [],
-  autoHideTimestamps: false
+  secondarySubtitlePriority: []
 };
 
 export const DEFAULT_MEDIA_SERVER_SETTINGS: MediaServerSettings = {
