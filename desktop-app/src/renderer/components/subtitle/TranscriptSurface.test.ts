@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import type { TranscriptBlock } from "./transcript/types";
 
@@ -23,35 +23,90 @@ const blocks: TranscriptBlock[] = [
   }
 ];
 
-describe("TranscriptSurface", () => {
-  function restoreDescriptor(name: keyof HTMLElement, descriptor?: PropertyDescriptor) {
-    if (descriptor) {
-      Object.defineProperty(HTMLElement.prototype, name, descriptor);
-      return;
-    }
-    delete (HTMLElement.prototype as HTMLElement & Record<string, unknown>)[name];
+const extraBlocks: TranscriptBlock[] = [
+  {
+    id: "block-2",
+    start: 2000,
+    end: 3000,
+    primaryText: "third block with a longer sentence that wraps across multiple lines",
+    secondaryText: null,
+    sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
+  },
+  {
+    id: "block-3",
+    start: 3000,
+    end: 4000,
+    primaryText: "fourth block with another long sentence that should force scrolling on mount",
+    secondaryText: null,
+    sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
   }
+];
+
+function defaultProps(overrides: Record<string, unknown> = {}) {
+  return {
+    blocks,
+    currentTime: 300,
+    loopCueIndex: null,
+    abLoopStartCueIndex: null,
+    subtitlePanelStyle: {},
+    fontFamily: "Arial",
+    fontSize: 16,
+    lineHeight: 1.5,
+    primarySecondaryGap: 6,
+    blockGap: 12,
+    primaryColor: "#fff",
+    secondaryColor: "#ccc",
+    activePrimaryColor: "#ff0",
+    activeSecondaryColor: "#ee0",
+    autoScrollDelayMs: 500,
+    scrollPositionRatio: 0.4,
+    ...overrides
+  };
+}
+
+function mockViewportSize(width: number, height: number) {
+  const savedWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+  const savedHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => width });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => height });
+  return () => {
+    if (savedWidth) Object.defineProperty(HTMLElement.prototype, "clientWidth", savedWidth);
+    else delete (HTMLElement.prototype as any).clientWidth;
+    if (savedHeight) Object.defineProperty(HTMLElement.prototype, "clientHeight", savedHeight);
+    else delete (HTMLElement.prototype as any).clientHeight;
+  };
+}
+
+describe("TranscriptSurface", () => {
+  let restoreSize: (() => void) | null = null;
+
+  afterEach(() => {
+    restoreSize?.();
+    restoreSize = null;
+  });
 
   it("lays out wrapped lines against the transcript content width instead of the viewport width", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    const savedWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const savedHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
     Object.defineProperty(HTMLElement.prototype, "clientWidth", {
       configurable: true,
       get() {
-        if (this.classList?.contains("transcript-surface__viewport")) {
-          return 900;
-        }
-        if (this.classList?.contains("transcript-surface__content")) {
-          return 220;
-        }
+        if (this.classList?.contains("transcript-surface__viewport")) return 900;
+        if (this.classList?.contains("transcript-surface__content")) return 220;
         return 0;
       }
     });
     Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 240 });
+    restoreSize = () => {
+      if (savedWidth) Object.defineProperty(HTMLElement.prototype, "clientWidth", savedWidth);
+      else delete (HTMLElement.prototype as any).clientWidth;
+      if (savedHeight) Object.defineProperty(HTMLElement.prototype, "clientHeight", savedHeight);
+      else delete (HTMLElement.prototype as any).clientHeight;
+    };
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [
           {
             id: "block-0",
@@ -63,22 +118,8 @@ describe("TranscriptSurface", () => {
             sourceCueRefs: { primaryCueIndex: 0, secondaryCueIndex: null }
           }
         ],
-        currentTime: 0,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        currentTime: 0
+      })
     });
 
     await nextTick();
@@ -87,23 +128,14 @@ describe("TranscriptSurface", () => {
     expect(wrapper.findAll(".transcript-block__line--primary").length).toBeGreaterThan(1);
 
     wrapper.unmount();
-    if (clientWidthDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
-    }
-    if (clientHeightDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
-    }
   });
 
   it("includes fixed meta row offset in rendered line geometry", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 220 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 240 });
+    restoreSize = mockViewportSize(220, 240);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [
           {
             id: "block-0",
@@ -114,22 +146,8 @@ describe("TranscriptSurface", () => {
             sourceCueRefs: { primaryCueIndex: 0, secondaryCueIndex: null }
           }
         ],
-        currentTime: 0,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        currentTime: 0
+      })
     });
 
     await nextTick();
@@ -138,37 +156,17 @@ describe("TranscriptSurface", () => {
     expect(wrapper.get(".transcript-block__line").attributes("style")).toContain("top: 24px;");
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("scrolls the active block into the reading zone on first mount", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [
           ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          },
+          ...extraBlocks,
           {
             id: "block-4",
             start: 4000,
@@ -178,22 +176,8 @@ describe("TranscriptSurface", () => {
             sourceCueRefs: { primaryCueIndex: 4, secondaryCueIndex: null }
           }
         ],
-        currentTime: 2300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        currentTime: 2300
+      })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
@@ -202,58 +186,14 @@ describe("TranscriptSurface", () => {
 
     expect(viewport.scrollTop).toBeGreaterThan(0);
     wrapper.unmount();
-    if (clientWidthDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
-    }
-    if (clientHeightDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
-    }
   });
 
   it("updates the reading-zone position when scroll position changes on the same active block", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
-        currentTime: 3300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps({ blocks: [...blocks, ...extraBlocks], currentTime: 3300 })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
@@ -268,54 +208,18 @@ describe("TranscriptSurface", () => {
     expect(viewport.scrollTop).toBeLessThan(originalTop);
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("keeps the same follow target while a looped cue plays through its end boundary", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
+      props: defaultProps({
+        blocks: [...blocks, ...extraBlocks],
         currentTime: 900,
-        loopCueIndex: 0,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        loopCueIndex: 0
+      })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
@@ -330,55 +234,19 @@ describe("TranscriptSurface", () => {
     expect(viewport.scrollTop).toBe(initialScrollTop);
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("uses a dedicated fixed anchor for A-B loop follow while playback highlighting still advances", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
+      props: defaultProps({
+        blocks: [...blocks, ...extraBlocks],
         currentTime: 1200,
         loopCueIndex: 0,
-        activeAbLoopRange: { startCueIndex: 0, endCueIndex: 3 },
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        activeAbLoopRange: { startCueIndex: 0, endCueIndex: 3 }
+      })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
@@ -394,54 +262,14 @@ describe("TranscriptSurface", () => {
     expect(wrapper.get(".transcript-block--active").attributes("data-transcript-block-id")).toBe("block-3");
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("uses the smooth scroll path without a manual scrollTop jump on follow updates", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
-        currentTime: 2300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps({ blocks: [...blocks, ...extraBlocks], currentTime: 2300 })
     });
 
     await nextTick();
@@ -470,30 +298,11 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("emits seek and loop actions from the anchor rail", async () => {
     const wrapper = mount(TranscriptSurface, {
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps()
     });
 
     await wrapper.get('[data-testid="cue-action-play"]').trigger("click");
@@ -506,24 +315,7 @@ describe("TranscriptSurface", () => {
   it("keeps only the active block's cue actions visible while selecting text", async () => {
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps({ autoScrollDelayMs: 10 })
     });
 
     expect(wrapper.findAll('[data-testid="transcript-cue-actions"]')).toHaveLength(2);
@@ -562,24 +354,7 @@ describe("TranscriptSurface", () => {
   it("pauses auto-follow while text is selected and resumes after clear", async () => {
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps({ autoScrollDelayMs: 10 })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element;
@@ -612,25 +387,10 @@ describe("TranscriptSurface", () => {
   it("reclaims the focus band for an explicit seek even when selection pause is active", async () => {
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
+      props: defaultProps({
         autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4,
         seekRequest: { token: 1, time: 1300 }
-      }
+      })
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element;
@@ -656,32 +416,11 @@ describe("TranscriptSurface", () => {
   });
 
   it("uses a single explicit-seek scroll instead of replaying a stale follow step first", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+    restoreSize = mockViewportSize(180, 220);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4,
-        seekRequest: null
-      }
+      props: defaultProps({ autoScrollDelayMs: 10, seekRequest: null })
     });
 
     await nextTick();
@@ -702,55 +441,19 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("pauses auto-follow while the user scrolls and resumes after the restore delay", async () => {
     vi.useFakeTimers();
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
+      props: defaultProps({
+        blocks: [...blocks, ...extraBlocks],
         currentTime: 2300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 50,
-        scrollPositionRatio: 0.4
-      }
+        autoScrollDelayMs: 50
+      })
     });
 
     await nextTick();
@@ -777,56 +480,20 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
     vi.useRealTimers();
   });
 
   it("pauses auto-follow while dragging the viewport scrollbar and resumes after mouseup", async () => {
     vi.useFakeTimers();
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks: [
-          ...blocks,
-          {
-            id: "block-2",
-            start: 2000,
-            end: 3000,
-            primaryText: "third block with a longer sentence that wraps across multiple lines",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 2, secondaryCueIndex: null }
-          },
-          {
-            id: "block-3",
-            start: 3000,
-            end: 4000,
-            primaryText: "fourth block with another long sentence that should force scrolling on mount",
-            secondaryText: null,
-            sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
-          }
-        ],
+      props: defaultProps({
+        blocks: [...blocks, ...extraBlocks],
         currentTime: 2300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 50,
-        scrollPositionRatio: 0.4
-      }
+        autoScrollDelayMs: 50
+      })
     });
 
     await nextTick();
@@ -855,21 +522,16 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
     vi.useRealTimers();
   });
 
   it("pauses auto-follow while dragging transcript text before selection exists", async () => {
     vi.useFakeTimers();
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 140 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+    restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [
           ...blocks,
           {
@@ -890,21 +552,8 @@ describe("TranscriptSurface", () => {
           }
         ],
         currentTime: 2300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 50,
-        scrollPositionRatio: 0.4
-      }
+        autoScrollDelayMs: 50
+      })
     });
 
     await nextTick();
@@ -933,20 +582,15 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
     vi.useRealTimers();
   });
 
   it("renders the full transcript instead of trimming to the active playback window", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 320 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 100 });
+    restoreSize = mockViewportSize(320, 100);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [
           ...blocks,
           {
@@ -965,23 +609,8 @@ describe("TranscriptSurface", () => {
             secondaryText: null,
             sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
           }
-        ],
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        ]
+      })
     });
     await nextTick();
     await nextTick();
@@ -991,19 +620,10 @@ describe("TranscriptSurface", () => {
     expect(wrapper.text()).toContain("third block hidden");
     expect(wrapper.text()).toContain("fourth block hidden");
     wrapper.unmount();
-    if (clientWidthDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
-    }
-    if (clientHeightDescriptor) {
-      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
-    }
   });
 
   it("renders only the projected block window instead of every block", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 220 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 100 });
+    restoreSize = mockViewportSize(220, 100);
 
     const manyBlocks = Array.from({ length: 40 }, (_, index) => ({
       id: `block-${index}`,
@@ -1016,25 +636,12 @@ describe("TranscriptSurface", () => {
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: manyBlocks,
         currentTime: 0,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
         autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4,
         seekRequest: null
-      }
+      })
     });
 
     await nextTick();
@@ -1043,37 +650,18 @@ describe("TranscriptSurface", () => {
     expect(wrapper.findAll(".transcript-block").length).toBeLessThan(manyBlocks.length);
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("reprojects the latest anchor on resize instead of preserving stale scrollTop", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+    restoreSize = mockViewportSize(180, 220);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
+      props: defaultProps({
         currentTime: 1300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
         autoScrollDelayMs: 10,
-        scrollPositionRatio: 0.4,
         seekRequest: null
-      }
+      })
     });
 
     await nextTick();
@@ -1090,61 +678,22 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("does not render a permanent focus-band overlay", () => {
     const wrapper = mount(TranscriptSurface, {
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps()
     });
 
     expect(wrapper.find(".transcript-surface__focus-band").exists()).toBe(false);
   });
 
   it("positions blocks and lines from pretext geometry instead of stacked DOM flow", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+    restoreSize = mockViewportSize(180, 220);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
-        blocks,
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
-        fontFamily: "Arial",
-        fontSize: 16,
-        lineHeight: 1.5,
-        primarySecondaryGap: 6,
-        blockGap: 12,
-        primaryColor: "#fff",
-        secondaryColor: "#ccc",
-        activePrimaryColor: "#ff0",
-        activeSecondaryColor: "#ee0",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+      props: defaultProps()
     });
 
     await nextTick();
@@ -1161,36 +710,22 @@ describe("TranscriptSurface", () => {
     expect(lines[0]?.attributes("style")).toContain("height:");
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 
   it("renders transcript typography and colors from surface props", async () => {
-    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 220 });
-    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+    restoreSize = mockViewportSize(220, 220);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
-      props: {
+      props: defaultProps({
         blocks: [blocks[0]!],
-        currentTime: 300,
-        loopCueIndex: null,
-        abLoopStartCueIndex: null,
-        subtitlePanelStyle: {},
         fontFamily: "Georgia, serif",
         fontSize: 20,
         lineHeight: 1.6,
         primarySecondaryGap: 4,
-        blockGap: 12,
-        primaryColor: "#112233",
-        secondaryColor: "#445566",
         activePrimaryColor: "#778899",
-        activeSecondaryColor: "#aabbcc",
-        autoScrollDelayMs: 500,
-        scrollPositionRatio: 0.4
-      }
+        activeSecondaryColor: "#aabbcc"
+      })
     });
 
     await nextTick();
@@ -1230,7 +765,5 @@ describe("TranscriptSurface", () => {
     expect(Number.parseFloat(updatedSecondaryLine.style.top)).toBeGreaterThan(initialSecondaryTop);
 
     wrapper.unmount();
-    restoreDescriptor("clientWidth", clientWidthDescriptor);
-    restoreDescriptor("clientHeight", clientHeightDescriptor);
   });
 });

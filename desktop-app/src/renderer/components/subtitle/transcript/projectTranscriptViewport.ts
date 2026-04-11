@@ -19,10 +19,13 @@ type ProjectTranscriptViewportInput = {
   anchor: TranscriptViewportAnchor | null;
   viewportHeight: number;
   followRatio: number;
+  // When provided, overrides the anchor's blockId for active-block highlighting only.
+  // This allows the scroll anchor to stay fixed (e.g. A-B loop center) while the
+  // active highlight still tracks the real playback position.
   activeBlockId?: string | null;
 };
 
-function findActiveBlockIndex(blocks: readonly TranscriptLayoutBlock[], currentTime: number): number {
+export function findActiveBlockIndex(blocks: readonly TranscriptLayoutBlock[], currentTime: number): number {
   let lo = 0;
   let hi = blocks.length - 1;
   let candidate = -1;
@@ -45,12 +48,12 @@ function findActiveBlockIndex(blocks: readonly TranscriptLayoutBlock[], currentT
 }
 
 function findBlockIndexById(blocks: readonly TranscriptLayoutBlock[], blockId: string): number {
-  for (let i = 0; i < blocks.length; i += 1) {
-    if (blocks[i]!.blockId === blockId) {
-      return i;
-    }
-  }
-  return -1;
+  // Block IDs are "block-{index}" — parse the index directly for O(1) lookup.
+  const dashPos = blockId.indexOf("-");
+  if (dashPos === -1) return -1;
+  const parsed = Number(blockId.slice(dashPos + 1));
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed >= blocks.length) return -1;
+  return blocks[parsed]!.blockId === blockId ? parsed : -1;
 }
 
 export function resolveTranscriptViewportAnchor({

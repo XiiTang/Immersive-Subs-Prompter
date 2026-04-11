@@ -38,6 +38,7 @@ import { useTranscriptSelection } from "./composables/useTranscriptSelection";
 import { createTranscriptPreparedTextCache, layoutTranscriptBlocks } from "./transcript/pretextLayout";
 import { projectTranscriptWindow } from "./transcript/projectTranscriptWindow";
 import {
+  findActiveBlockIndex,
   projectTranscriptViewport,
   resolveTranscriptViewportAnchor
 } from "./transcript/projectTranscriptViewport";
@@ -135,14 +136,9 @@ const abLoopAnchorBlockId = computed(() => {
 });
 const followAnchorBlockId = computed(() => abLoopAnchorBlockId.value ?? singleLoopAnchorBlockId.value);
 const playbackActiveBlockId = computed(() => {
-  const playbackAnchor = resolveTranscriptViewportAnchor({
-    layout: layout.value,
-    currentTime: props.currentTime,
-    previousAnchor: null,
-    reason: "playback-follow",
-    loopAnchorBlockId: null
-  });
-  return playbackAnchor?.blockId ?? null;
+  if (props.currentTime === null) return null;
+  const index = findActiveBlockIndex(layout.value.blocks, props.currentTime);
+  return index === -1 ? null : layout.value.blocks[index]!.blockId;
 });
 
 watch(
@@ -239,17 +235,12 @@ function handleViewportScroll() {
 
 function syncViewportMetrics() {
   const content = contentRef.value;
-  if (content?.clientWidth && content.clientWidth > 0) {
+  if (content && content.clientWidth > 0) {
     surfaceWidth.value = content.clientWidth;
-  } else {
-    const viewport = viewportRef.value;
-    if (viewport?.clientWidth && viewport.clientWidth > 0) {
-      surfaceWidth.value = viewport.clientWidth;
-    }
   }
 
   const viewport = viewportRef.value;
-  if (viewport?.clientHeight && viewport.clientHeight > 0) {
+  if (viewport && viewport.clientHeight > 0) {
     viewportHeight.value = viewport.clientHeight;
     viewportScrollTop.value = viewport.scrollTop;
   }
