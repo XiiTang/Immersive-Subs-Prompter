@@ -158,7 +158,7 @@ Rules:
 
 ### Layout Output
 
-The existing layout output should remain block-first, but it needs stronger metadata for projection and future line-aware behavior.
+The layout output is block-first with a parallel line array for per-block line slicing.
 
 Required block-level metadata:
 
@@ -172,11 +172,15 @@ Required block-level metadata:
 
 Required line-level metadata:
 
+- `key`
 - `blockId`
 - `kind`
+- `text`
 - `top`
 - `height`
-- block-relative top offset
+- `relativeTop` (block-relative top offset)
+
+The layout result also carries the full `lines` array; consumers slice it by `lineStart` and `lineCount` from each block.
 
 ### Anchor Model
 
@@ -276,6 +280,7 @@ Why:
 - these states must be keyed by block identity or cue identity
 - they must not depend on whether a block component is currently mounted
 - unmounting and remounting a block due to virtualization must preserve visual and behavioral continuity
+- single-cue loop may lock playback-follow to that cue's block, but A-B loop must use its own stable range anchor; in A-B mode the viewport anchor may stay fixed while the active block highlight continues to follow playback within the selected range
 
 ## Testing Strategy
 

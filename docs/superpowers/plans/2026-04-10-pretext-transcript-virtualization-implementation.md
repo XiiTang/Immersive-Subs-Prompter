@@ -17,6 +17,21 @@
 - Verification: `npm --prefix desktop-app run build:renderer` passed.
 - Verification note: `npx vue-tsc --project tsconfig.renderer.json --noEmit` was attempted, but the installed `vue-tsc` crashed before checking project types with `Search string not found: "/supportedTSExtensions = .*(?=;)/"`.
 
+## Post-Implementation Code Review Revision (2026-04-11)
+
+A code review after the 614823e commit surfaced drift between the committed implementation and the Task 4 Step 4 slicing contract in this plan. The following revisions bring the code back in line with the design and fix additional issues surfaced during the review:
+
+- **Single-pass layout restored.** `layoutTranscriptBlocks` now calls `layoutWithLines` once per block and emits both block geometry and the full line array on `TranscriptLayoutResult.lines`. The secondary `layoutBlockLines` helper has been removed, and `TranscriptLayoutBlock` now carries `lineStart` so `TranscriptSurface.renderedBlocks` can slice lines from `layout.lines` instead of re-running pretext per visible block per scroll frame.
+- **Scroll handler throttled to rAF.** `TranscriptSurface.handleViewportScroll` batches `viewportScrollTop` writes into a single `requestAnimationFrame` tick so virtualization does not relayout on every scroll event.
+- **Binary search in window projection.** `projectTranscriptWindow` now uses lower/upper bound binary search over `layout.blocks` instead of linear scans from index 0.
+- **Resume-follow reason collapsed into playback-follow.** The resume callback in `useTranscriptSelection.onResume` now requests a `playback-follow` anchor, which always re-derives from `currentTime`. The `resume-follow` reason is still accepted by the type for future use but is no longer produced by the component.
+- **Selection pause stops broadcasting cue actions to every block.** `showSelectionActions` is now scoped to the active block only; hovering an inactive block during selection still reveals its rail, matching the design rule that "active or hovered blocks reveal cue actions".
+- **`white-space` consistency.** `.transcript-block__line` uses `pre-wrap` to match `prepareWithSegments({ whiteSpace: "pre-wrap" })`.
+- **Module-level transcript block cache encapsulated.** `desktop.ts` replaces the raw module-level `let` variables with a `createTranscriptBlocksCache()` factory so the cache has a documented boundary and can be cleared explicitly.
+- **Cue-action row height decoupled from layout.** The hardcoded `TRANSCRIPT_CUE_ACTION_ROW_HEIGHT` constant has been removed from `pretextLayout.ts`. `layoutTranscriptBlocks` now accepts an optional `blockHeaderHeight` parameter (default 0). `TranscriptSurface.vue` owns the `CUE_ACTION_ROW_HEIGHT = 19` constant and passes it in, keeping the layout module free of view-layer constants. `TranscriptBlock.vue` receives the value as a `cueActionRowHeight` prop for `CueAnchorRail` min-height styling.
+- **Line styles precomputed in parent.** `TranscriptSurface.renderedBlocks` now computes full inline styles (color, font-family, font-size, top, height, line-height) per line when slicing from `layout.lines`. `TranscriptBlock.vue` receives lines with a pre-built `style` record and no longer owns `fontFamily`, `fontSize`, or the four color props. The `getLineStyle` function has been removed.
+- Verification after revision: `npm --prefix desktop-app run test:renderer` → 10 files, 54 tests green; `npm --prefix desktop-app run build:renderer` passes.
+
 ---
 
 ## File Structure
