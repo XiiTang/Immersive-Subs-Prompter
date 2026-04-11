@@ -1,6 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TranscriptBlock } from "./types";
-import { createTranscriptPreparedTextCache, layoutTranscriptBlocks } from "./pretextLayout";
+
+const pretextMocks = vi.hoisted(() => ({
+  prepareWithSegments: vi.fn(),
+  measureLineStats: vi.fn(),
+  layoutNextLineRange: vi.fn(),
+  materializeLineRange: vi.fn()
+}));
+
+vi.mock("@chenglou/pretext", () => pretextMocks);
+
+import {
+  createTranscriptPreparedTextCache,
+  materializeTranscriptBlockLines,
+  measureTranscriptLayout
+} from "./pretextLayout";
 
 const blocks: TranscriptBlock[] = [
   {
@@ -21,7 +35,19 @@ const blocks: TranscriptBlock[] = [
   }
 ];
 
-describe("layoutTranscriptBlocks", () => {
+type MockPrepared = {
+  id: string;
+  text: string;
+};
+
+function createPrepared(text: string): MockPrepared {
+  return {
+    id: text,
+    text
+  };
+}
+
+describe("transcript pretext layout", () => {
   const baseInput = {
     blocks,
     width: 180,
@@ -34,124 +60,166 @@ describe("layoutTranscriptBlocks", () => {
     metaRowGap: 6
   } as const;
 
-  it("produces block geometry with line counts and lineStart", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
+  beforeEach(() => {
+    pretextMocks.prepareWithSegments.mockReset();
+    pretextMocks.measureLineStats.mockReset();
+    pretextMocks.layoutNextLineRange.mockReset();
+    pretextMocks.materializeLineRange.mockReset();
+
+    pretextMocks.prepareWithSegments.mockImplementation((text: string) => createPrepared(text));
+    pretextMocks.measureLineStats.mockImplementation((prepared: MockPrepared) => ({
+      lineCount:
+        prepared.text === "hello world"
+          ? 1
+          : prepared.text === "你好世界"
+            ? 1
+            : prepared.text === "another longer sentence for wrapping"
+              ? 2
+              : 1,
+      maxLineWidth: prepared.text.length * 10
+    }));
+    pretextMocks.layoutNextLineRange.mockImplementation((prepared: MockPrepared, start?: { segmentIndex: number }) => {
+      const linesByText: Record<string, Array<{ start: number; end: number }>> = {
+        "hello world": [{ start: 0, end: 11 }],
+        "你好世界": [{ start: 0, end: 4 }],
+        "another longer sentence for wrapping": [
+          { start: 0, end: 15 },
+          { start: 15, end: 36 }
+        ]
+      };
+      const ranges = linesByText[prepared.text] ?? [];
+      const index = start?.segmentIndex ?? 0;
+      const current = ranges[index];
+      if (!current) {
+        return null;
+      }
+      return {
+        width: (current.end - current.start) * 10,
+        start: { segmentIndex: index, graphemeIndex: 0 },
+        end: { segmentIndex: index + 1, graphemeIndex: 0 }
+      };
+    });
+    pretextMocks.materializeLineRange.mockImplementation((prepared: MockPrepared, range: { start: { segmentIndex: number } }) => {
+      const textsByPrepared: Record<string, string[]> = {
+        "hello world": ["hello world"],
+        "你好世界": ["你好世界"],
+        "another longer sentence for wrapping": ["another longer", " sentence for wrapping"]
+      };
+      const text = textsByPrepared[prepared.text]?.[range.start.segmentIndex] ?? "";
+      return {
+        text,
+        width: text.length * 10,
+        start: range.start,
+        end: { segmentIndex: range.start.segmentIndex + 1, graphemeIndex: 0 }
+      };
+    });
+  });
+
+  it("measures block geometry and cumulative line ownership without materializing line strings", () => {
+    const layout = measureTranscriptLayout(baseInput);
 
     expect(layout.blocks).toHaveLength(2);
-    expect(layout.blocks[0]?.lineCount).toBeGreaterThan(0);
-    expect(layout.blocks[0]?.blockId).toBe("block-0");
-    expect(layout.blocks[0]?.lineStart).toBe(0);
-    expect(layout.blocks[1]?.blockId).toBe("block-1");
-    expect(layout.blocks[1]?.lineStart).toBe(layout.blocks[0]!.lineCount);
+    expect(layout.blocks[0]).toMatchObject({
+      blockId: "block-0",
+      lineStart: 0,
+      primaryLineCount: 1,
+      secondaryLineCount: 1,
+      lineCount: 2
+    });
+    expect(layout.blocks[1]).toMatchObject({
+      blockId: "block-1",
+      lineStart: 2,
+      primaryLineCount: 2,
+      secondaryLineCount: 0,
+      lineCount: 2
+    });
+    expect(pretextMocks.materializeLineRange).not.toHaveBeenCalled();
   });
 
-  it("relayouts at a narrower width without rebuilding block ownership", () => {
-    const wide = layoutTranscriptBlocks({
-      ...baseInput,
-      width: 320,
-    });
-    const narrow = layoutTranscriptBlocks({
-      ...baseInput,
-      width: 140,
-    });
+  it("prepares transcript text with pre-wrap and keep-all enabled", () => {
+    measureTranscriptLayout(baseInput);
 
-    expect(narrow.blocks[1]!.lineCount).toBeGreaterThanOrEqual(wide.blocks[1]!.lineCount);
-    expect(narrow.blocks.map((block) => block.blockId)).toEqual(wide.blocks.map((block) => block.blockId));
-  });
-
-  it("uses the configured primary-secondary gap in block geometry", () => {
-    const compact = layoutTranscriptBlocks({
-      ...baseInput,
-      primarySecondaryGap: 2,
-    });
-    const loose = layoutTranscriptBlocks({
-      ...baseInput,
-      primarySecondaryGap: 12,
-    });
-
-    expect(loose.blocks[0]!.height).toBeGreaterThan(compact.blocks[0]!.height);
+    expect(pretextMocks.prepareWithSegments).toHaveBeenCalledWith(
+      "hello world",
+      expect.any(String),
+      { whiteSpace: "pre-wrap", wordBreak: "keep-all" }
+    );
+    expect(pretextMocks.prepareWithSegments).toHaveBeenCalledWith(
+      "你好世界",
+      expect.any(String),
+      { whiteSpace: "pre-wrap", wordBreak: "keep-all" }
+    );
   });
 
   it("reuses caller-scoped prepared text across width-only relayouts", () => {
     const preparedTextCache = createTranscriptPreparedTextCache();
 
-    layoutTranscriptBlocks({
+    measureTranscriptLayout({
       ...baseInput,
       width: 320,
       preparedTextCache
     });
     expect(preparedTextCache.size).toBe(3);
 
-    layoutTranscriptBlocks({
+    measureTranscriptLayout({
       ...baseInput,
       width: 140,
       preparedTextCache
     });
     expect(preparedTextCache.size).toBe(3);
+    expect(pretextMocks.prepareWithSegments).toHaveBeenCalledTimes(3);
   });
 
-  it("keeps prepared text caches isolated by caller", () => {
-    const firstCache = createTranscriptPreparedTextCache();
-    const secondCache = createTranscriptPreparedTextCache();
-
-    layoutTranscriptBlocks({
+  it("materializes line strings only for the requested block", () => {
+    const preparedTextCache = createTranscriptPreparedTextCache();
+    const layout = measureTranscriptLayout({
       ...baseInput,
-      preparedTextCache: firstCache
+      preparedTextCache
     });
 
-    expect(firstCache.size).toBe(3);
-    expect(secondCache.size).toBe(0);
-  });
-
-  it("maps each rendered line back to its owning block", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
-
-    const block0 = layout.blocks[0]!;
-    const block0Lines = layout.lines.slice(block0.lineStart, block0.lineStart + block0.lineCount);
-    expect(block0Lines.length).toBeGreaterThan(0);
-    expect(block0Lines.every((line) => line.blockId === "block-0")).toBe(true);
-  });
-
-  it("uses a smaller geometry for secondary lines", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
-
-    const block0 = layout.blocks[0]!;
-    const block0Lines = layout.lines.slice(block0.lineStart, block0.lineStart + block0.lineCount);
-    const primaryLine = block0Lines.find((line) => line.kind === "primary");
-    const secondaryLine = block0Lines.find((line) => line.kind === "secondary");
-
-    expect(primaryLine).toBeDefined();
-    expect(secondaryLine).toBeDefined();
-    expect(secondaryLine!.height).toBeLessThan(primaryLine!.height);
-  });
-
-  it("records block-relative line offsets", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
-
-    expect(layout.lines[0]).toMatchObject({
-      blockId: "block-0",
-      relativeTop: expect.any(Number)
+    const visibleBlockLines = materializeTranscriptBlockLines({
+      block: layout.blocks[1]!,
+      width: baseInput.width,
+      preparedTextCache
     });
-    expect(layout.lines[0]!.relativeTop).toBe(24);
+
+    expect(visibleBlockLines.map((line) => line.text)).toEqual([
+      "another longer",
+      " sentence for wrapping"
+    ]);
+    expect(pretextMocks.materializeLineRange).toHaveBeenCalledTimes(2);
+    expect(pretextMocks.materializeLineRange).not.toHaveBeenCalledWith(
+      expect.objectContaining({ text: "hello world" }),
+      expect.anything()
+    );
   });
 
-  it("adds fixed meta row geometry before text lines", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
+  it("preserves explicit cue line breaks in materialized lines", () => {
+    pretextMocks.prepareWithSegments.mockImplementation((text: string) => createPrepared(text));
+    pretextMocks.measureLineStats.mockImplementation(() => ({
+      lineCount: 2,
+      maxLineWidth: 90
+    }));
+    pretextMocks.layoutNextLineRange.mockImplementation((_prepared: MockPrepared, start?: { segmentIndex: number }) => {
+      const index = start?.segmentIndex ?? 0;
+      if (index > 1) {
+        return null;
+      }
+      return {
+        width: 90,
+        start: { segmentIndex: index, graphemeIndex: 0 },
+        end: { segmentIndex: index + 1, graphemeIndex: 0 }
+      };
+    });
+    pretextMocks.materializeLineRange.mockImplementation((_prepared: MockPrepared, range: { start: { segmentIndex: number } }) => ({
+      text: range.start.segmentIndex === 0 ? "first line" : "second line",
+      width: 90,
+      start: range.start,
+      end: { segmentIndex: range.start.segmentIndex + 1, graphemeIndex: 0 }
+    }));
 
-    expect(layout.blocks[0]!.height).toBeGreaterThan(24);
-    expect(layout.lines[0]!.relativeTop).toBe(24);
-  });
-
-  it("keeps line offsets stable when only interaction visibility would change", () => {
-    const first = layoutTranscriptBlocks(baseInput);
-    const second = layoutTranscriptBlocks(baseInput);
-
-    expect(second.blocks).toEqual(first.blocks);
-    expect(second.lines.map((line) => line.relativeTop)).toEqual(first.lines.map((line) => line.relativeTop));
-  });
-
-  it("preserves explicit cue line breaks in pretext layout", () => {
-    const layout = layoutTranscriptBlocks({
+    const preparedTextCache = createTranscriptPreparedTextCache();
+    const layout = measureTranscriptLayout({
       ...baseInput,
       blocks: [
         {
@@ -164,36 +232,15 @@ describe("layoutTranscriptBlocks", () => {
         }
       ],
       width: 500,
+      preparedTextCache
     });
 
-    const primaryLines = layout.lines.filter((line) => line.kind === "primary");
-    expect(primaryLines).toHaveLength(2);
-    expect(primaryLines.map((line) => line.text)).toEqual(["first line", "second line"]);
-  });
-
-  it("reflows to fewer lines at wider widths", () => {
-    const narrow = layoutTranscriptBlocks({
-      ...baseInput,
-      blocks: [blocks[1]!],
-      width: 140,
-    });
-    const wide = layoutTranscriptBlocks({
-      ...baseInput,
-      blocks: [blocks[1]!],
-      width: 320,
+    const lines = materializeTranscriptBlockLines({
+      block: layout.blocks[0]!,
+      width: 500,
+      preparedTextCache
     });
 
-    expect(narrow.lines.length).toBeGreaterThan(wide.lines.length);
-  });
-
-  it("produces consistent lineStart + lineCount covering all lines", () => {
-    const layout = layoutTranscriptBlocks(baseInput);
-
-    let expectedLineStart = 0;
-    for (const block of layout.blocks) {
-      expect(block.lineStart).toBe(expectedLineStart);
-      expectedLineStart += block.lineCount;
-    }
-    expect(expectedLineStart).toBe(layout.lines.length);
+    expect(lines.map((line) => line.text)).toEqual(["first line", "second line"]);
   });
 });

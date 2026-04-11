@@ -112,7 +112,7 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 
 ### Desktop Subtitle Reader
 
-The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext`, and cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
+The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext` 0.0.5 using a two-phase pipeline: transcript blocks are measured up front, then visible blocks materialize line text on demand for the virtualized viewport. Subtitle text is prepared with `white-space: pre-wrap` and `word-break: keep-all` so explicit cue breaks are preserved while CJK / Hangul wrapping stays closer to browser behavior. Cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
 
 ## Development Scripts
 

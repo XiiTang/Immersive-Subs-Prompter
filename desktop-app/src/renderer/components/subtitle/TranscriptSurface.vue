@@ -39,7 +39,11 @@ import TranscriptBlock from "./TranscriptBlock.vue";
 import { useTranscriptAutoFollow } from "./composables/useTranscriptAutoFollow";
 import { useTranscriptSelection } from "./composables/useTranscriptSelection";
 import { getLoopWrapCueIndex, getSingleLoopCueIndex } from "./loopPlayback";
-import { createTranscriptPreparedTextCache, layoutTranscriptBlocks } from "./transcript/pretextLayout";
+import {
+  createTranscriptPreparedTextCache,
+  materializeTranscriptBlockLines,
+  measureTranscriptLayout
+} from "./transcript/pretextLayout";
 import { projectTranscriptWindow } from "./transcript/projectTranscriptWindow";
 import {
   findActiveBlockIndex,
@@ -100,7 +104,7 @@ const contentStyle = computed(() => ({
 }));
 
 const layout = computed(() =>
-  layoutTranscriptBlocks({
+  measureTranscriptLayout({
     blocks: props.blocks,
     width: surfaceWidth.value,
     fontSize: props.fontSize,
@@ -196,8 +200,11 @@ const renderedBlocks = computed(() => {
     .map((layoutBlock) => {
       const block = blockById.value.get(layoutBlock.blockId)!;
       const isActive = block.id === activeBlockId;
-      const lines = layoutResult.lines
-        .slice(layoutBlock.lineStart, layoutBlock.lineStart + layoutBlock.lineCount)
+      const lines = materializeTranscriptBlockLines({
+        block: layoutBlock,
+        width: surfaceWidth.value,
+        preparedTextCache
+      })
         .map((line) => ({
           key: line.key,
           kind: line.kind,

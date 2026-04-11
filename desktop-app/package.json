@@ -28,7 +28,7 @@
   "author": "sheixunixitang3@gmail.com",
   "license": "MIT",
   "dependencies": {
-    "@chenglou/pretext": "^0.0.4",
+    "@chenglou/pretext": "^0.0.5",
     "active-win": "^8.2.1",
     "decompress": "^4.2.1",
     "iconv-lite": "^0.7.0",

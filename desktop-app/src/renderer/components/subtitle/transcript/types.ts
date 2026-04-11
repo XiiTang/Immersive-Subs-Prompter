@@ -29,6 +29,8 @@ export type TranscriptLayoutLine = {
   relativeTop: number;
 };
 
+export type TranscriptPreparedTextKey = string;
+
 export type TranscriptLayoutBlock = {
   blockId: string;
   start: number;
@@ -37,12 +39,20 @@ export type TranscriptLayoutBlock = {
   height: number;
   lineStart: number;
   lineCount: number;
+  primaryLineCount: number;
+  secondaryLineCount: number;
+  primaryLineHeight: number;
+  secondaryLineHeight: number;
+  metaRowHeight: number;
+  metaRowGap: number;
+  primarySecondaryGap: number;
+  primaryPreparedTextKey: TranscriptPreparedTextKey;
+  secondaryPreparedTextKey: TranscriptPreparedTextKey | null;
 };
 
 export type TranscriptLayoutResult = {
   totalHeight: number;
   blocks: TranscriptLayoutBlock[];
-  lines: TranscriptLayoutLine[];
 };
 
 export type TranscriptViewportAnchorReason =
