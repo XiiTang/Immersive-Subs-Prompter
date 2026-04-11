@@ -69,6 +69,11 @@ export function handleDocumentMediaEvent(event) {
       setActiveVideo(target);
       handleTimeUpdate(target);
       break;
+    case "timeupdate":
+      if (target === state.activeVideo) {
+        handleTimeUpdate(target);
+      }
+      break;
     case "loadedmetadata":
       if (!state.activeVideo) {
         setActiveVideo(target);

@@ -4,6 +4,24 @@ export interface SubtitleCue {
   text: string;
 }
 
+export type LoopMode = "single" | "ab";
+export type LoopOrigin = "single-loop" | "ab-loop";
+export type LoopBoundaryTransition = "none" | "loop-wrap";
+export type ProgrammaticSeekReason = "none" | "manual-control" | "loop-wrap";
+
+export interface LoopSession {
+  mode: LoopMode;
+  startMs: number;
+  endMs: number;
+  startCueIndex: number | null;
+  endCueIndex: number | null;
+  anchorCueIndex: number | null;
+  origin: LoopOrigin;
+  status: "running";
+  boundaryTransition: LoopBoundaryTransition;
+  programmaticSeekReason?: ProgrammaticSeekReason;
+}
+
 export interface ExtensionPayload {
   pageUrl?: string;
   site?: string;
@@ -15,6 +33,7 @@ export interface ExtensionPayload {
   title?: string;
   muted?: boolean;
   volume?: number;
+  loop?: LoopSession | null;
 }
 
 export type ExtensionMessageType =
@@ -47,8 +66,7 @@ export interface PlaybackState {
   duration: number | null; // milliseconds
   playbackRate: number;
   lastUpdate: number | null; // timestamp in milliseconds
-  isLooping: boolean; // whether currently in loop mode
-  loopCueIndex: number | null; // index of the cue being looped
+  loop: LoopSession | null;
 }
 
 export interface DesktopState {
@@ -85,7 +103,18 @@ export type VideoControlCommand =
   | { type: "seek"; time: number } // milliseconds
   | { type: "pause" }
   | { type: "play" }
-  | { type: "loop"; start: number; end: number; cueIndex: number } // milliseconds, cueIndex for UI
+  | {
+      type: "loop";
+      loop: {
+        mode: LoopMode;
+        startMs: number;
+        endMs: number;
+        startCueIndex: number | null;
+        endCueIndex: number | null;
+        anchorCueIndex: number | null;
+        origin: LoopOrigin;
+      };
+    }
   | { type: "stopLoop" };
 
 export type CloseBehavior = "quit" | "tray";

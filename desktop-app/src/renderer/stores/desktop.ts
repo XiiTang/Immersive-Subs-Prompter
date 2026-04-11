@@ -222,7 +222,7 @@ export const useDesktopStore = defineStore("desktop", {
       });
       window.usp.onLoopCleared(() => {
         if (this.playback) {
-          this.playback = { ...this.playback, isLooping: false, loopCueIndex: null };
+          this.playback = { ...this.playback, loop: null };
         }
       });
     },

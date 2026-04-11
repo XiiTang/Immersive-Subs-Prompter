@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import TranscriptSurface from "./TranscriptSurface.vue";
+import { createAbLoopSelectionState } from "./abLoopSelection";
 import type { TranscriptBlock } from "./transcript/types";
 
 const blocks: TranscriptBlock[] = [
@@ -46,8 +47,8 @@ function defaultProps(overrides: Record<string, unknown> = {}) {
   return {
     blocks,
     currentTime: 300,
-    loopCueIndex: null,
-    abLoopStartCueIndex: null,
+    playbackLoop: null,
+    abLoopSelectionState: createAbLoopSelectionState(),
     subtitlePanelStyle: {},
     fontFamily: "Arial",
     fontSize: 16,
@@ -218,7 +219,17 @@ describe("TranscriptSurface", () => {
       props: defaultProps({
         blocks: [...blocks, ...extraBlocks],
         currentTime: 900,
-        loopCueIndex: 0
+        playbackLoop: {
+          mode: "single",
+          startMs: 0,
+          endMs: 1000,
+          startCueIndex: 0,
+          endCueIndex: 0,
+          anchorCueIndex: 0,
+          origin: "single-loop",
+          status: "running",
+          boundaryTransition: "none"
+        }
       })
     });
 
@@ -227,7 +238,20 @@ describe("TranscriptSurface", () => {
     await nextTick();
     const initialScrollTop = viewport.scrollTop;
 
-    await wrapper.setProps({ currentTime: 10, loopCueIndex: 0 });
+    await wrapper.setProps({
+      currentTime: 10,
+      playbackLoop: {
+        mode: "single",
+        startMs: 0,
+        endMs: 1000,
+        startCueIndex: 0,
+        endCueIndex: 0,
+        anchorCueIndex: 0,
+        origin: "single-loop",
+        status: "running",
+        boundaryTransition: "none"
+      }
+    });
     await nextTick();
     await nextTick();
 
@@ -236,16 +260,38 @@ describe("TranscriptSurface", () => {
     wrapper.unmount();
   });
 
-  it("uses a dedicated fixed anchor for A-B loop follow while playback highlighting still advances", async () => {
-    restoreSize = mockViewportSize(140, 200);
+  it("keeps A-B loop auto-follow tied to the active playback block instead of a fixed anchor", async () => {
+    restoreSize = mockViewportSize(140, 160);
+    const longBlocks: TranscriptBlock[] = Array.from({ length: 8 }, (_, index) => ({
+      id: `block-${index}`,
+      start: index * 1000,
+      end: (index + 1) * 1000,
+      primaryText: `block ${index} has a deliberately long sentence that wraps enough to force a taller transcript layout and expose follow scrolling behavior`,
+      secondaryText: null,
+      sourceCueRefs: { primaryCueIndex: index, secondaryCueIndex: null }
+    }));
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
       props: defaultProps({
-        blocks: [...blocks, ...extraBlocks],
+        blocks: longBlocks,
         currentTime: 1200,
-        loopCueIndex: 0,
-        activeAbLoopRange: { startCueIndex: 0, endCueIndex: 3 }
+        playbackLoop: {
+          mode: "ab",
+          startMs: 1000,
+          endMs: 7000,
+          startCueIndex: 1,
+          endCueIndex: 6,
+          anchorCueIndex: 1,
+          origin: "ab-loop",
+          status: "running",
+          boundaryTransition: "none"
+        },
+        abLoopSelectionState: {
+          kind: "active",
+          startCueIndex: 1,
+          endCueIndex: 6
+        }
       })
     });
 
@@ -253,12 +299,65 @@ describe("TranscriptSurface", () => {
     await nextTick();
     await nextTick();
     const initialScrollTop = viewport.scrollTop;
+    const scrollTo = vi.spyOn(viewport, "scrollTo").mockImplementation(({ top }) => {
+      Object.defineProperty(viewport, "scrollTop", {
+        configurable: true,
+        value: top,
+        writable: true
+      });
+    });
 
-    await wrapper.setProps({ currentTime: 3200 });
+    await wrapper.setProps({ currentTime: 5200 });
     await nextTick();
     await nextTick();
 
-    expect(viewport.scrollTop).toBe(initialScrollTop);
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
+    expect(viewport.scrollTop).not.toBe(initialScrollTop);
+    expect(scrollTo.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        top: expect.any(Number),
+        behavior: "smooth"
+      })
+    );
+
+    scrollTo.mockRestore();
+
+    wrapper.unmount();
+  });
+
+  it("does not mark the A point as a single-cue looping block during A-B loop mode", async () => {
+    restoreSize = mockViewportSize(140, 200);
+
+    const wrapper = mount(TranscriptSurface, {
+      attachTo: document.body,
+      props: defaultProps({
+        blocks: [...blocks, ...extraBlocks],
+        currentTime: 3200,
+        playbackLoop: {
+          mode: "ab",
+          startMs: 0,
+          endMs: 4000,
+          startCueIndex: 0,
+          endCueIndex: 3,
+          anchorCueIndex: 0,
+          origin: "ab-loop",
+          status: "running",
+          boundaryTransition: "none"
+        },
+        abLoopSelectionState: {
+          kind: "active",
+          startCueIndex: 0,
+          endCueIndex: 3
+        }
+      })
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const block0 = wrapper.find('[data-transcript-block-id="block-0"]');
+    expect(block0.classes()).not.toContain("transcript-block--looping");
+    expect(block0.get('[data-testid="transcript-meta-row"]').attributes("data-meta-state")).toBe("quiet");
     expect(wrapper.get(".transcript-block--active").attributes("data-transcript-block-id")).toBe("block-3");
 
     wrapper.unmount();
@@ -483,16 +582,14 @@ describe("TranscriptSurface", () => {
     vi.useRealTimers();
   });
 
-  it("pauses auto-follow while dragging the viewport scrollbar and resumes after mouseup", async () => {
-    vi.useFakeTimers();
+  it("does not pause auto-follow on a plain pointer press inside the viewport", async () => {
     restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
       props: defaultProps({
         blocks: [...blocks, ...extraBlocks],
-        currentTime: 2300,
-        autoScrollDelayMs: 50
+        currentTime: 2300
       })
     });
 
@@ -510,23 +607,13 @@ describe("TranscriptSurface", () => {
     await nextTick();
     await nextTick();
 
-    expect(scrollTo).not.toHaveBeenCalled();
-
-    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
-    await nextTick();
-    await vi.advanceTimersByTimeAsync(60);
-    await nextTick();
-    await nextTick();
-
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    vi.useRealTimers();
   });
 
-  it("pauses auto-follow while dragging transcript text before selection exists", async () => {
-    vi.useFakeTimers();
+  it("does not pause auto-follow on transcript text mousedown before any selection exists", async () => {
     restoreSize = mockViewportSize(140, 200);
 
     const wrapper = mount(TranscriptSurface, {
@@ -551,8 +638,7 @@ describe("TranscriptSurface", () => {
             sourceCueRefs: { primaryCueIndex: 3, secondaryCueIndex: null }
           }
         ],
-        currentTime: 2300,
-        autoScrollDelayMs: 50
+        currentTime: 2300
       })
     });
 
@@ -570,19 +656,10 @@ describe("TranscriptSurface", () => {
     await nextTick();
     await nextTick();
 
-    expect(scrollTo).not.toHaveBeenCalled();
-
-    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
-    await nextTick();
-    await vi.advanceTimersByTimeAsync(60);
-    await nextTick();
-    await nextTick();
-
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
 
     scrollTo.mockRestore();
     wrapper.unmount();
-    vi.useRealTimers();
   });
 
   it("renders the full transcript instead of trimming to the active playback window", async () => {

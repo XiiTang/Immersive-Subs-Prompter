@@ -27,7 +27,22 @@ export function gatherVideoState(video) {
     volume: video.volume,
     readyState: video.readyState,
     title: document.title,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    loop:
+      state.loop.isLooping && state.loop.mode
+        ? {
+          mode: state.loop.mode,
+          startMs: state.loop.startMs,
+          endMs: state.loop.endMs,
+          startCueIndex: state.loop.startCueIndex,
+          endCueIndex: state.loop.endCueIndex,
+          anchorCueIndex: state.loop.anchorCueIndex,
+          origin: state.loop.origin,
+          status: "running",
+          boundaryTransition: state.loop.boundaryTransition,
+          programmaticSeekReason: state.loop.programmaticSeekReason
+        }
+        : null
   };
 }
 

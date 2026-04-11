@@ -81,7 +81,6 @@ export function useTranscriptSelection({ rootEl, autoScrollDelayMs, onResume }: 
       return;
     }
     isPointerDown.value = true;
-    pauseAutoFollow();
   }
 
   function handleMouseUp(event: MouseEvent) {

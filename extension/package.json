@@ -7,9 +7,13 @@
     "build": "npm run build:chrome && npm run build:firefox",
     "build:chrome": "node ./build.js chrome",
     "build:firefox": "node ./build.js firefox",
-    "build:all": "npm run build:chrome && npm run build:firefox"
+    "build:all": "npm run build:chrome && npm run build:firefox",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "jsdom": "^24.1.0",
+    "vitest": "^2.1.1"
   }
 }

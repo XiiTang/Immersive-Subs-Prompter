@@ -26,9 +26,9 @@ describe("TranscriptBlock", () => {
       { key: "line-1", kind: "secondary" as const, text: "你好世界", style: lineStyle(54, 18, { color: "#ccc" }) }
     ],
     isActive: false,
-    isLooping: false,
-    isAbLoopStart: false,
-    abLoopPending: false,
+    isSingleLooping: false,
+    abLabel: "AB" as const,
+    isAbPendingSelection: false,
     showSelectionActions: false,
     autoHideMetaRow: false
   };
@@ -62,10 +62,10 @@ describe("TranscriptBlock", () => {
 
     expect(wrapper.get('[data-testid="transcript-cue-actions"]').text()).toContain("00:00 - 00:01");
     expect(wrapper.get('[data-testid="cue-action-play"]').text()).toBe("▶");
-    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("A");
+    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("AB");
     expect(wrapper.get('[data-testid="cue-action-loop"]').text()).toBe("↻");
     expect(wrapper.get('[data-testid="cue-action-play"]').attributes("aria-label")).toBe("Play from cue 00:00 - 00:01");
-    expect(wrapper.get('[data-testid="cue-action-ab"]').attributes("aria-label")).toBe("Set A point at cue 00:00 - 00:01");
+    expect(wrapper.get('[data-testid="cue-action-ab"]').attributes("aria-label")).toBe("Set A-B endpoint at cue 00:00 - 00:01");
     expect(wrapper.get('[data-testid="cue-action-loop"]').attributes("aria-label")).toBe("Loop cue 00:00 - 00:01");
   });
 
@@ -101,7 +101,8 @@ describe("TranscriptBlock", () => {
       props: {
         ...defaultProps,
         lines: [{ key: "line-0", kind: "primary", text: "hello world", style: lineStyle(24, 24) }],
-        isAbLoopStart: true
+        abLabel: "A",
+        isAbPendingSelection: true
       }
     });
 
@@ -115,7 +116,7 @@ describe("TranscriptBlock", () => {
       props: {
         ...defaultProps,
         lines: [{ key: "line-0", kind: "primary", text: "hello world", style: lineStyle(24, 24) }],
-        isLooping: true
+        isSingleLooping: true
       }
     });
 

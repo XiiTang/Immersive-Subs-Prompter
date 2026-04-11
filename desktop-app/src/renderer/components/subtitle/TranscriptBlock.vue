@@ -1,7 +1,7 @@
 <template>
   <article
     class="transcript-block"
-    :class="{ 'transcript-block--active': isActive, 'transcript-block--looping': isLooping }"
+    :class="{ 'transcript-block--active': isActive, 'transcript-block--looping': isSingleLooping }"
     :data-transcript-block-id="blockId"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
@@ -20,9 +20,9 @@
           :state="metaRowState"
           :start="start"
           :end="end"
-          :ab-label="abLoopPending ? 'B' : 'A'"
-          :is-looping="isLooping"
-          :is-ab-loop-start="isAbLoopStart"
+          :ab-label="abLabel"
+          :is-looping="isSingleLooping"
+          :is-ab-pending-selection="isAbPendingSelection"
           @play="$emit('play')"
           @loop="$emit('loop')"
           @loop-range="$emit('loop-range')"
@@ -55,9 +55,9 @@ const props = defineProps<{
   lines: Array<{ key: string; kind: TranscriptLayoutLineKind; text: string; style: Record<string, string> }>;
   autoHideMetaRow: boolean;
   isActive: boolean;
-  isLooping: boolean;
-  isAbLoopStart: boolean;
-  abLoopPending: boolean;
+  isSingleLooping: boolean;
+  abLabel: "AB" | "A" | "B";
+  isAbPendingSelection: boolean;
   showSelectionActions: boolean;
 }>();
 
@@ -77,10 +77,10 @@ const metaRowState = computed(() => {
   if (focusedWithin.value) {
     return "focus-within";
   }
-  if (props.isAbLoopStart) {
+  if (props.isAbPendingSelection) {
     return "ab-pending";
   }
-  if (props.isLooping) {
+  if (props.isSingleLooping) {
     return "looping";
   }
   if (props.isActive) {

@@ -78,10 +78,7 @@ export class ConnectionManager {
     if (command.type === "seek") {
       payload = { time: command.time };
     } else if (command.type === "loop") {
-      this.options.stateManager.updateState((draft) => {
-        draft.playback.loopCueIndex = command.cueIndex;
-      });
-      payload = { start: command.start, end: command.end };
+      payload = { ...command.loop };
     }
 
     this.log.debug("Sending control command", {
@@ -429,7 +426,8 @@ export class ConnectionManager {
         this.options.stateManager.updatePlayback({
           currentTime,
           playbackRate,
-          duration
+          duration,
+          loop: message.payload.loop ?? null
         });
         break;
       }
@@ -441,7 +439,7 @@ export class ConnectionManager {
         }
 
         this.options.stateManager.updatePlayback({
-          isLooping: true
+          loop: message.payload.loop ?? state.playback.loop
         });
         break;
       }
@@ -453,8 +451,7 @@ export class ConnectionManager {
         }
 
         this.options.stateManager.updateState((draft) => {
-          draft.playback.isLooping = false;
-          draft.playback.loopCueIndex = null;
+          draft.playback.loop = null;
         });
         this.options.bus.emit("playback:loop-cleared", undefined as void);
         this.options.bus.emit("state:playback", this.options.stateManager.getState().playback);
@@ -474,8 +471,7 @@ export class ConnectionManager {
               duration: null,
               playbackRate: 0,
               lastUpdate: null,
-              isLooping: false,
-              loopCueIndex: null
+              loop: null
             };
           });
           this.options.bus.emit("state:playback", this.options.stateManager.getState().playback);
@@ -493,8 +489,7 @@ export class ConnectionManager {
               duration: null,
               playbackRate: 0,
               lastUpdate: null,
-              isLooping: false,
-              loopCueIndex: null
+              loop: null
             };
           });
           this.options.bus.emit("state:playback", this.options.stateManager.getState().playback);

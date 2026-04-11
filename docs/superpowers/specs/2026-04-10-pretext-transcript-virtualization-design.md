@@ -280,7 +280,7 @@ Why:
 - these states must be keyed by block identity or cue identity
 - they must not depend on whether a block component is currently mounted
 - unmounting and remounting a block due to virtualization must preserve visual and behavioral continuity
-- single-cue loop may lock playback-follow to that cue's block, but A-B loop must use its own stable range anchor; in A-B mode the viewport anchor may stay fixed while the active block highlight continues to follow playback within the selected range
+- single-cue loop may lock playback-follow to that cue's block, but A-B loop must keep playback-follow on the real active block; A-B edge protection should come from keeping projected playback time inside the selected range rather than from freezing the viewport anchor
 
 ## Testing Strategy
 

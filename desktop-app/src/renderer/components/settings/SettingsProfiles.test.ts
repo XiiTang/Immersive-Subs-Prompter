@@ -83,8 +83,7 @@ function createDesktopState(appliedProfileId = "profile-1", appliedProfileName =
       duration: null,
       playbackRate: 1,
       lastUpdate: Date.now(),
-      isLooping: false,
-      loopCueIndex: null
+      loop: null
     },
     subtitleTracks: [],
     selectedPrimarySubtitleId: null,

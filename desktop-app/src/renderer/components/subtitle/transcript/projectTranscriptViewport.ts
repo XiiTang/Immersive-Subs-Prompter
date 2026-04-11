@@ -11,7 +11,6 @@ type ResolveTranscriptViewportAnchorInput = {
   currentTime: number | null;
   previousAnchor: TranscriptViewportAnchor | null;
   reason: TranscriptViewportAnchorReason;
-  loopAnchorBlockId?: string | null;
 };
 
 type ProjectTranscriptViewportInput = {
@@ -60,8 +59,7 @@ export function resolveTranscriptViewportAnchor({
   layout,
   currentTime,
   previousAnchor,
-  reason,
-  loopAnchorBlockId = null
+  reason
 }: ResolveTranscriptViewportAnchorInput): TranscriptViewportAnchor | null {
   // For non-playback reasons (resize, seek), reuse the previous anchor if it's still valid.
   // For playback-follow (including resume after pause), always re-derive from currentTime
@@ -70,17 +68,6 @@ export function resolveTranscriptViewportAnchor({
     const anchorIndex = findBlockIndexById(layout.blocks, previousAnchor.blockId);
     if (anchorIndex !== -1) {
       return previousAnchor.reason === reason ? previousAnchor : { ...previousAnchor, reason };
-    }
-  }
-
-  if (reason === "playback-follow" && loopAnchorBlockId) {
-    const loopAnchorIndex = findBlockIndexById(layout.blocks, loopAnchorBlockId);
-    if (loopAnchorIndex !== -1) {
-      return {
-        blockId: layout.blocks[loopAnchorIndex]!.blockId,
-        reason,
-        anchorBias: 0.5
-      };
     }
   }
 

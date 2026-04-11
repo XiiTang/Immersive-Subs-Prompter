@@ -36,13 +36,27 @@ export function applyControl(action, payload) {
       break;
     case "loop":
       if (
-        typeof payload.start === "number" &&
-        typeof payload.end === "number" &&
-        Number.isFinite(payload.start) &&
-        Number.isFinite(payload.end)
+        (payload.mode === "single" || payload.mode === "ab") &&
+        typeof payload.startMs === "number" &&
+        typeof payload.endMs === "number" &&
+        Number.isFinite(payload.startMs) &&
+        Number.isFinite(payload.endMs)
       ) {
-        log.debug("ctrl", "loop requested", { start: payload.start, end: payload.end, before: Math.round(target.currentTime * 1000) });
-        startLoop(target, payload.start, payload.end);
+        log.debug("ctrl", "loop requested", {
+          mode: payload.mode,
+          startMs: payload.startMs,
+          endMs: payload.endMs,
+          before: Math.round(target.currentTime * 1000)
+        });
+        startLoop(target, {
+          mode: payload.mode,
+          startMs: payload.startMs,
+          endMs: payload.endMs,
+          startCueIndex: typeof payload.startCueIndex === "number" ? payload.startCueIndex : null,
+          endCueIndex: typeof payload.endCueIndex === "number" ? payload.endCueIndex : null,
+          anchorCueIndex: typeof payload.anchorCueIndex === "number" ? payload.anchorCueIndex : null,
+          origin: payload.origin === "ab-loop" ? "ab-loop" : "single-loop"
+        });
         log.debug("ctrl", "loop applied", { after: Math.round(target.currentTime * 1000) });
       } else {
         log.warn("ctrl", "loop failed: invalid times", payload);

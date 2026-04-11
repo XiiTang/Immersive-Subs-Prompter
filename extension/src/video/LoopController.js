@@ -1,5 +1,38 @@
 import { log, state } from "../content/state.js";
 import { send } from "../connection/MessageSender.js";
+import { handleTimeUpdate } from "./VideoStateGatherer.js";
+
+function buildLoopPayload() {
+  if (!state.loop.isLooping || state.loop.startMs === null || state.loop.endMs === null || !state.loop.mode) {
+    return null;
+  }
+
+  return {
+    mode: state.loop.mode,
+    startMs: state.loop.startMs,
+    endMs: state.loop.endMs,
+    startCueIndex: state.loop.startCueIndex,
+    endCueIndex: state.loop.endCueIndex,
+    anchorCueIndex: state.loop.anchorCueIndex,
+    origin: state.loop.origin,
+    status: "running",
+    boundaryTransition: state.loop.boundaryTransition,
+    programmaticSeekReason: state.loop.programmaticSeekReason
+  };
+}
+
+function resetLoopStateFields() {
+  state.loop.mode = null;
+  state.loop.startMs = null;
+  state.loop.endMs = null;
+  state.loop.startCueIndex = null;
+  state.loop.endCueIndex = null;
+  state.loop.anchorCueIndex = null;
+  state.loop.origin = null;
+  state.loop.isLooping = false;
+  state.loop.programmaticSeekReason = "none";
+  state.loop.boundaryTransition = "none";
+}
 
 function startLoopCheck() {
   if (state.loop.checkTimer) {
@@ -18,8 +51,11 @@ function startLoopCheck() {
 
     const currentTimeMs = video.currentTime * 1000;
     if (currentTimeMs >= state.loop.endMs) {
-      state.loop.programmaticSeek = true;
+      state.loop.programmaticSeekReason = "loop-wrap";
+      state.loop.boundaryTransition = "loop-wrap";
       video.currentTime = state.loop.startMs / 1000;
+      handleTimeUpdate(video);
+      state.loop.boundaryTransition = "none";
     }
   }, 100);
 }
@@ -32,25 +68,29 @@ export function clearLoopState() {
 
   if (!state.loop.isLooping) {
     log.debug("loop", "clearLoopState called but not looping");
-    state.loop.programmaticSeek = false;
+    resetLoopStateFields();
     return;
   }
 
-  state.loop.isLooping = false;
-  state.loop.startMs = null;
-  state.loop.endMs = null;
-  state.loop.programmaticSeek = false;
+  resetLoopStateFields();
   send("loop-cleared", {});
 }
 
-export function startLoop(target, startMs, endMs) {
-  state.loop.startMs = startMs;
-  state.loop.endMs = endMs;
+export function startLoop(target, session) {
+  state.loop.mode = session.mode;
+  state.loop.startMs = session.startMs;
+  state.loop.endMs = session.endMs;
+  state.loop.startCueIndex = session.startCueIndex;
+  state.loop.endCueIndex = session.endCueIndex;
+  state.loop.anchorCueIndex = session.anchorCueIndex;
+  state.loop.origin = session.origin;
   state.loop.isLooping = true;
-  state.loop.programmaticSeek = true;
+  state.loop.programmaticSeekReason = "manual-control";
+  state.loop.boundaryTransition = "none";
 
   const wasPaused = target.paused;
-  target.currentTime = startMs / 1000;
+  target.currentTime = session.startMs / 1000;
+  handleTimeUpdate(target);
   if (wasPaused) {
     target.play().catch((err) => {
       log.error("loop", "Auto-play after loop enabled failed", err);
@@ -58,13 +98,15 @@ export function startLoop(target, startMs, endMs) {
   }
 
   startLoopCheck();
-  send("loop-started", {});
+  send("loop-started", buildLoopPayload());
 }
 
 export function clearProgrammaticSeekFlag() {
-  state.loop.programmaticSeek = false;
+  if (state.loop.boundaryTransition !== "loop-wrap") {
+    state.loop.programmaticSeekReason = "none";
+  }
 }
 
 export function isProgrammaticSeek() {
-  return state.loop.programmaticSeek;
+  return state.loop.programmaticSeekReason !== "none";
 }

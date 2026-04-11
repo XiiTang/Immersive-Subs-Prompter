@@ -42,8 +42,7 @@ describe("resolveTranscriptViewportAnchor", () => {
       layout,
       currentTime: 1500,
       previousAnchor: null,
-      reason: "playback-follow",
-      loopAnchorBlockId: null
+      reason: "playback-follow"
     });
 
     expect(anchor).toMatchObject({
@@ -53,17 +52,16 @@ describe("resolveTranscriptViewportAnchor", () => {
     });
   });
 
-  it("freezes playback-follow to the loop anchor block when looping", () => {
+  it("keeps playback-follow on the current playback block even when a loop anchor is provided", () => {
     const anchor = resolveTranscriptViewportAnchor({
       layout,
       currentTime: 1980,
       previousAnchor: null,
-      reason: "playback-follow",
-      loopAnchorBlockId: "block-0"
+      reason: "playback-follow"
     });
 
     expect(anchor).toMatchObject({
-      blockId: "block-0",
+      blockId: "block-1",
       reason: "playback-follow",
       anchorBias: 0.5
     });
@@ -78,8 +76,7 @@ describe("resolveTranscriptViewportAnchor", () => {
         reason: "seek-recenter",
         anchorBias: 0.5
       },
-      reason: "resize-reproject",
-      loopAnchorBlockId: null
+      reason: "resize-reproject"
     });
 
     expect(anchor).toEqual({

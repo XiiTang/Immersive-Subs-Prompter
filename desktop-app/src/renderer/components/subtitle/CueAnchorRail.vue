@@ -17,8 +17,8 @@
     <button
       class="transcript-block__ab-btn"
       :class="{
-        'transcript-block__ab-btn--active': isAbLoopStart,
-        'transcript-block__ab-btn--pending-end': !isAbLoopStart && abLabel === 'B'
+        'transcript-block__ab-btn--active': abLabel === 'A',
+        'transcript-block__ab-btn--pending-end': abLabel === 'B'
       }"
       :aria-label="abLoopLabel"
       data-testid="cue-action-ab"
@@ -49,9 +49,9 @@ const props = defineProps<{
   state: "quiet" | "hover" | "active" | "selection" | "looping" | "ab-pending" | "focus-within";
   start: number;
   end: number;
-  abLabel: "A" | "B";
+  abLabel: "AB" | "A" | "B";
   isLooping: boolean;
-  isAbLoopStart: boolean;
+  isAbPendingSelection: boolean;
 }>();
 
 defineEmits<{
@@ -64,12 +64,15 @@ const timeLabel = computed(() => `${formatTime(props.start)} - ${formatTime(prop
 const playLabel = computed(() => `Play from cue ${timeLabel.value}`);
 const loopLabel = computed(() => `Loop cue ${timeLabel.value}`);
 const abLoopLabel = computed(() => {
-  if (props.isAbLoopStart) {
+  if (props.isAbPendingSelection) {
     return `A point selected at cue ${timeLabel.value}, choose B`;
   }
-  if (props.abLabel === "B") {
-    return `Set B point at cue ${timeLabel.value}`;
+  if (props.abLabel === "A") {
+    return `A point at cue ${timeLabel.value}`;
   }
-  return `Set A point at cue ${timeLabel.value}`;
+  if (props.abLabel === "B") {
+    return `B point at cue ${timeLabel.value}`;
+  }
+  return `Set A-B endpoint at cue ${timeLabel.value}`;
 });
 </script>

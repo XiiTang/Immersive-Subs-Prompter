@@ -47,6 +47,7 @@ export type TranscriptLayoutResult = {
 
 export type TranscriptViewportAnchorReason =
   | "playback-follow"
+  | "loop-wrap-follow"
   | "seek-recenter"
   | "resize-reproject";
 

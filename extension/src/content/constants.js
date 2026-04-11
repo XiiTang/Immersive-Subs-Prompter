@@ -6,6 +6,7 @@ export const RECONNECT_DELAY_MS = 1000;
 export const MEDIA_EVENTS = [
   "play",
   "playing",
+  "timeupdate",
   "pause",
   "seeking",
   "seeked",

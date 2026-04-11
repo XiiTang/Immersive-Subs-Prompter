@@ -19,10 +19,16 @@ export const state = {
   regexCache: new Map(),
   lastReportedPlayback: null,
   loop: {
+    mode: null,
     startMs: null,
     endMs: null,
+    startCueIndex: null,
+    endCueIndex: null,
+    anchorCueIndex: null,
+    origin: null,
     isLooping: false,
-    programmaticSeek: false,
+    programmaticSeekReason: "none",
+    boundaryTransition: "none",
     checkTimer: null
   },
   domObserver: null,

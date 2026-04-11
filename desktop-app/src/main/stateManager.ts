@@ -59,8 +59,7 @@ function createInitialState(settings: AppSettings): {
         duration: null,
         playbackRate: 1,
         lastUpdate: null,
-        isLooping: false,
-        loopCueIndex: null
+        loop: null
       },
       subtitleTracks: [],
       selectedPrimarySubtitleId: null,
@@ -435,8 +434,7 @@ export class StateManager {
       duration: null,
       playbackRate: 0,
       lastUpdate: null,
-      isLooping: false,
-      loopCueIndex: null
+      loop: null
     };
     if (clearError) {
       draft.error = null;

@@ -17,9 +17,9 @@
           :lines="block.lines"
           :auto-hide-meta-row="props.autoHideMetaRow"
           :is-active="block.block.id === projection.activeBlockId"
-          :is-looping="loopCueIndex === block.block.sourceCueRefs.primaryCueIndex"
-          :is-ab-loop-start="abLoopStartCueIndex === block.block.sourceCueRefs.primaryCueIndex"
-          :ab-loop-pending="abLoopStartCueIndex !== null && abLoopStartCueIndex !== block.block.sourceCueRefs.primaryCueIndex"
+          :is-single-looping="singleLoopCueIndex === block.block.sourceCueRefs.primaryCueIndex"
+          :ab-label="resolveAbLoopLabel(block.block.sourceCueRefs.primaryCueIndex)"
+          :is-ab-pending-selection="isAbPendingSelection(block.block.sourceCueRefs.primaryCueIndex)"
           :show-selection-actions="isSelectionPaused && block.block.id === projection.activeBlockId"
           @play="emit('play-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop="emit('loop-cue', block.block.sourceCueRefs.primaryCueIndex)"
@@ -32,9 +32,13 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import type { LoopSession } from "../../../main/types.js";
+import type { AbLoopSelectionState } from "./abLoopSelection";
+import { getAbLoopLabel } from "./abLoopSelection";
 import TranscriptBlock from "./TranscriptBlock.vue";
 import { useTranscriptAutoFollow } from "./composables/useTranscriptAutoFollow";
 import { useTranscriptSelection } from "./composables/useTranscriptSelection";
+import { getLoopWrapCueIndex, getSingleLoopCueIndex } from "./loopPlayback";
 import { createTranscriptPreparedTextCache, layoutTranscriptBlocks } from "./transcript/pretextLayout";
 import { projectTranscriptWindow } from "./transcript/projectTranscriptWindow";
 import {
@@ -43,7 +47,6 @@ import {
   resolveTranscriptViewportAnchor
 } from "./transcript/projectTranscriptViewport";
 import type {
-  ActiveAbLoopRange,
   TranscriptBlock as TranscriptBlockModel,
   TranscriptSeekRequest,
   TranscriptViewportAnchor
@@ -53,9 +56,8 @@ const props = withDefaults(defineProps<{
   blocks: TranscriptBlockModel[];
   currentTime: number | null;
   seekRequest?: TranscriptSeekRequest | null;
-  loopCueIndex: number | null;
-  activeAbLoopRange?: ActiveAbLoopRange | null;
-  abLoopStartCueIndex: number | null;
+  playbackLoop: LoopSession | null;
+  abLoopSelectionState: AbLoopSelectionState;
   subtitlePanelStyle: Record<string, string>;
   fontFamily: string;
   fontSize: number;
@@ -71,8 +73,7 @@ const props = withDefaults(defineProps<{
   scrollPositionRatio: number;
 }>(), {
   autoHideMetaRow: false,
-  seekRequest: null,
-  activeAbLoopRange: null
+  seekRequest: null
 });
 
 const emit = defineEmits<{
@@ -114,32 +115,42 @@ const layout = computed(() =>
 );
 
 const blockById = computed(() => new Map(props.blocks.map((block) => [block.id, block])));
-const singleLoopAnchorBlockId = computed(() => {
-  if (props.loopCueIndex === null || props.activeAbLoopRange) {
-    return null;
-  }
-  return props.blocks.find((block) => block.sourceCueRefs.primaryCueIndex === props.loopCueIndex)?.id ?? null;
-});
-const abLoopAnchorBlockId = computed(() => {
-  const range = props.activeAbLoopRange;
-  if (!range) {
-    return null;
-  }
-  const blocksInRange = props.blocks.filter((block) => {
-    const cueIndex = block.sourceCueRefs.primaryCueIndex;
-    return cueIndex >= range.startCueIndex && cueIndex <= range.endCueIndex;
-  });
-  if (!blocksInRange.length) {
-    return null;
-  }
-  return blocksInRange[Math.floor(blocksInRange.length / 2)]?.id ?? null;
-});
-const followAnchorBlockId = computed(() => abLoopAnchorBlockId.value ?? singleLoopAnchorBlockId.value);
+const blockIdByCueIndex = computed(() => new Map(props.blocks.map((block) => [block.sourceCueRefs.primaryCueIndex, block.id])));
+const singleLoopCueIndex = computed(() => getSingleLoopCueIndex(props.playbackLoop));
 const playbackActiveBlockId = computed(() => {
   if (props.currentTime === null) return null;
   const index = findActiveBlockIndex(layout.value.blocks, props.currentTime);
   return index === -1 ? null : layout.value.blocks[index]!.blockId;
 });
+const playbackFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
+  const blockId = playbackActiveBlockId.value;
+  if (!blockId) {
+    return null;
+  }
+  return {
+    blockId,
+    reason: "playback-follow",
+    anchorBias: 0.5
+  };
+});
+const loopWrapFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
+  const cueIndex = getLoopWrapCueIndex(props.playbackLoop);
+  if (cueIndex === null) {
+    return null;
+  }
+
+  const blockId = blockIdByCueIndex.value.get(cueIndex);
+  if (!blockId) {
+    return null;
+  }
+
+  return {
+    blockId,
+    reason: "loop-wrap-follow",
+    anchorBias: 0.5
+  };
+});
+const followAnchor = computed(() => loopWrapFollowAnchor.value ?? playbackFollowAnchor.value);
 
 watch(
   () => [props.blocks, props.fontFamily, props.fontSize],
@@ -149,15 +160,9 @@ watch(
 );
 
 watch(
-  [() => props.currentTime, () => props.blocks, followAnchorBlockId],
-  ([currentTime]) => {
-    lastAnchor.value = resolveTranscriptViewportAnchor({
-      layout: layout.value,
-      currentTime,
-      previousAnchor: lastAnchor.value,
-      reason: "playback-follow",
-      loopAnchorBlockId: followAnchorBlockId.value
-    });
+  [followAnchor, () => props.blocks],
+  ([anchor]) => {
+    lastAnchor.value = anchor;
   },
   { immediate: true }
 );
@@ -219,6 +224,14 @@ const renderedBlocks = computed(() => {
     });
 });
 
+function resolveAbLoopLabel(cueIndex: number) {
+  return getAbLoopLabel(props.abLoopSelectionState, cueIndex);
+}
+
+function isAbPendingSelection(cueIndex: number) {
+  return props.abLoopSelectionState.kind === "selecting-second" && props.abLoopSelectionState.anchorCueIndex === cueIndex;
+}
+
 function handleViewportScroll() {
   if (scrollRafId !== null) {
     return;
@@ -254,9 +267,8 @@ const { isSelectionPaused, isAutoFollowPaused, clearAutoFollowPause } = useTrans
     lastAnchor.value = resolveTranscriptViewportAnchor({
       layout: layout.value,
       currentTime: props.currentTime,
-      previousAnchor: lastAnchor.value,
-      reason: "playback-follow",
-      loopAnchorBlockId: followAnchorBlockId.value
+      previousAnchor: playbackFollowAnchor.value,
+      reason: "playback-follow"
     });
     scrollToProjectedPosition("smooth");
   }
@@ -282,8 +294,7 @@ watch(
       layout: layout.value,
       currentTime: props.seekRequest.time,
       previousAnchor: null,
-      reason: "seek-recenter",
-      loopAnchorBlockId: null
+      reason: "seek-recenter"
     });
     scrollToProjectedPosition("auto");
   }
@@ -294,9 +305,8 @@ function handleResize() {
   lastAnchor.value = resolveTranscriptViewportAnchor({
     layout: layout.value,
     currentTime: props.currentTime,
-    previousAnchor: lastAnchor.value,
-    reason: "resize-reproject",
-    loopAnchorBlockId: followAnchorBlockId.value
+    previousAnchor: playbackFollowAnchor.value,
+    reason: "resize-reproject"
   });
   scrollToProjectedPosition("auto");
 }

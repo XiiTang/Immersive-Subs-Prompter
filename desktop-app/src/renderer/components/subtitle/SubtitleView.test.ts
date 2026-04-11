@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../../main/types.js";
 import SubtitleView from "./SubtitleView.vue";
 import { useDesktopStore } from "../../stores/desktop";
@@ -76,7 +76,8 @@ function createSettings(): AppSettings {
   };
 }
 
-function createDesktopState(): DesktopState {
+function createDesktopState(options: { withSecondary?: boolean } = {}): DesktopState {
+  const withSecondary = options.withSecondary ?? true;
   const primary = createTrack("primary", [
     { start: 0, end: 1000, text: "alpha beta" },
     { start: 1000, end: 2000, text: "gamma delta" },
@@ -84,13 +85,15 @@ function createDesktopState(): DesktopState {
     { start: 3000, end: 4000, text: "fourth line with enough text to keep the reader scrollable" },
     { start: 4000, end: 5000, text: "fifth line extends the transcript for scroll position assertions" }
   ]);
-  const secondary = createTrack("secondary", [
-    { start: 0, end: 1000, text: "第一行" },
-    { start: 1000, end: 2000, text: "第二行" },
-    { start: 2000, end: 3000, text: "第三行副字幕" },
-    { start: 3000, end: 4000, text: "第四行副字幕" },
-    { start: 4000, end: 5000, text: "第五行副字幕" }
-  ]);
+  const secondary = withSecondary
+    ? createTrack("secondary", [
+      { start: 0, end: 1000, text: "第一行" },
+      { start: 1000, end: 2000, text: "第二行" },
+      { start: 2000, end: 3000, text: "第三行副字幕" },
+      { start: 3000, end: 4000, text: "第四行副字幕" },
+      { start: 4000, end: 5000, text: "第五行副字幕" }
+    ])
+    : null;
 
   return {
     connectionCount: 1,
@@ -107,12 +110,11 @@ function createDesktopState(): DesktopState {
       duration: 5000,
       playbackRate: 1,
       lastUpdate: Date.now(),
-      isLooping: false,
-      loopCueIndex: null
+      loop: null
     },
-    subtitleTracks: [primary, secondary],
+    subtitleTracks: secondary ? [primary, secondary] : [primary],
     selectedPrimarySubtitleId: primary.id,
-    selectedSecondarySubtitleId: secondary.id,
+    selectedSecondarySubtitleId: secondary?.id ?? null,
     primarySubtitles: primary,
     secondarySubtitles: secondary,
     appliedProfileId: "profile-1",
@@ -312,6 +314,8 @@ describe("SubtitleView", () => {
     await nextTick();
     await nextTick();
 
+    expect(wrapper.findAll('[data-testid="cue-action-ab"]').every((button) => button.text() === "AB")).toBe(true);
+
     await wrapper.get('[data-testid="cue-action-ab"]').trigger("click");
     await nextTick();
 
@@ -340,6 +344,63 @@ describe("SubtitleView", () => {
         button.classes().includes("transcript-block__ab-btn--active")
       )
     ).toBe(true);
+
+    wrapper.unmount();
+    if (clientWidthDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
+    }
+    if (clientHeightDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
+    }
+  });
+
+  it("keeps the pending A-B start across playback ticks when no secondary subtitle is selected", async () => {
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = createDesktopState({ withSecondary: false });
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          VideoInfoSection: {
+            template: "<div class='video-info-section-stub'></div>"
+          }
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    await wrapper.get('[data-testid="cue-action-ab"]').trigger("click");
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("A");
+
+    const nextPlayback = {
+      ...store.playback!,
+      currentTime: 600,
+      lastUpdate: Date.now(),
+      loop: null
+    };
+    store.playback = nextPlayback;
+    store.desktopState = {
+      ...store.desktopState!,
+      playback: nextPlayback
+    };
+
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("A");
 
     wrapper.unmount();
     if (clientWidthDescriptor) {
@@ -379,8 +440,17 @@ describe("SubtitleView", () => {
     const loopPlayback = {
       ...store.playback!,
       currentTime: 3500,
-      isLooping: true,
-      loopCueIndex: 0,
+      loop: {
+        mode: "single",
+        startMs: 0,
+        endMs: 1000,
+        startCueIndex: 0,
+        endCueIndex: 0,
+        anchorCueIndex: 0,
+        origin: "single-loop",
+        status: "running",
+        boundaryTransition: "none"
+      },
       lastUpdate: Date.now()
     };
     store.playback = loopPlayback;
@@ -397,6 +467,138 @@ describe("SubtitleView", () => {
         button.classes().includes("transcript-block__loop-btn--active")
       )
     ).toBe(true);
+
+    wrapper.unmount();
+    if (clientWidthDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
+    }
+    if (clientHeightDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
+    }
+  });
+
+  it("clamps single-cue loop playback to the looped cue so the active highlight does not flicker at the boundary", async () => {
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = createDesktopState();
+    store.playback = {
+      ...store.desktopState.playback,
+      currentTime: 1010,
+      loop: {
+        mode: "single",
+        startMs: 0,
+        endMs: 1000,
+        startCueIndex: 0,
+        endCueIndex: 0,
+        anchorCueIndex: 0,
+        origin: "single-loop",
+        status: "running",
+        boundaryTransition: "none"
+      }
+    };
+    store.desktopState = {
+      ...store.desktopState,
+      playback: store.playback
+    };
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          VideoInfoSection: {
+            template: "<div class='video-info-section-stub'></div>"
+          }
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.get(".transcript-block--active").attributes("data-transcript-block-id")).toBe("block-0");
+
+    wrapper.unmount();
+    if (clientWidthDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
+    }
+    if (clientHeightDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
+    }
+  });
+
+  it("wraps A-B loop playback back into the selected range so playback follow keeps moving inside the loop", async () => {
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = createDesktopState();
+    vi.spyOn(store, "controlVideo").mockResolvedValue(false);
+    store.playback = {
+      ...store.desktopState.playback,
+      currentTime: 2300,
+      loop: null
+    };
+    store.desktopState = {
+      ...store.desktopState,
+      playback: store.playback
+    };
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          VideoInfoSection: {
+            template: "<div class='video-info-section-stub'></div>"
+          }
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const abButtons = wrapper.findAll('[data-testid="cue-action-ab"]');
+    await abButtons[1]!.trigger("click");
+    await nextTick();
+    await abButtons[3]!.trigger("click");
+    await nextTick();
+
+    const loopPlayback = {
+      ...store.playback!,
+      currentTime: 4010,
+      loop: {
+        mode: "ab",
+        startMs: 1000,
+        endMs: 4000,
+        startCueIndex: 1,
+        endCueIndex: 3,
+        anchorCueIndex: 1,
+        origin: "ab-loop",
+        status: "running",
+        boundaryTransition: "loop-wrap"
+      },
+      lastUpdate: Date.now()
+    };
+    store.playback = loopPlayback;
+    store.desktopState = {
+      ...store.desktopState!,
+      playback: loopPlayback
+    };
+
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.get(".transcript-block--active").attributes("data-transcript-block-id")).toBe("block-1");
 
     wrapper.unmount();
     if (clientWidthDescriptor) {

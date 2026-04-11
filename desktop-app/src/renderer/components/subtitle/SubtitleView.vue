@@ -37,9 +37,8 @@
       :blocks="transcriptBlocks"
       :current-time="displayedPlaybackTime"
       :seek-request="seekRequest"
-      :loop-cue-index="loopCueIndex"
-      :active-ab-loop-range="activeAbLoopRange"
-      :ab-loop-start-cue-index="abLoopStartCueIndex"
+      :playback-loop="playbackLoop"
+      :ab-loop-selection-state="abLoopSelectionState"
       :subtitle-panel-style="subtitlePanelStyle"
       :font-family="transcriptFontFamily"
       :font-size="transcriptFontSize"
@@ -63,6 +62,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
+import {
+  createAbLoopSelectionState,
+  deriveAbLoopSelectionState,
+  selectAbLoopCue
+} from "./abLoopSelection";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import VideoInfoSection from "./VideoInfoSection.vue";
 import { usePlaybackPrediction } from "./composables/usePlaybackPrediction";
@@ -70,9 +74,11 @@ import { usePlaybackScrubbing } from "./composables/usePlaybackScrubbing";
 import { clamp, formatSourceFile } from "../../utils/formatters";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
-import type { ActiveAbLoopRange, TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
+import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
+import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
 
 const store = useDesktopStore();
+const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
@@ -136,12 +142,11 @@ const secondaryTrackId = computed({
 });
 
 const transcriptBlocks = computed<TranscriptBlock[]>(() => store.transcriptBlocks);
-const primaryCues = computed(() => store.desktopState?.primarySubtitles?.cues ?? []);
-const secondaryCues = computed(() => store.desktopState?.secondarySubtitles?.cues ?? []);
+const primaryCues = computed(() => store.desktopState?.primarySubtitles?.cues ?? EMPTY_CUES);
+const secondaryCues = computed(() => store.desktopState?.secondarySubtitles?.cues ?? EMPTY_CUES);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
-const loopCueIndex = computed(() => playback.value?.loopCueIndex ?? null);
-const abLoopStartCueIndex = ref<number | null>(null);
-const activeAbLoopRange = ref<ActiveAbLoopRange | null>(null);
+const playbackLoop = computed(() => playback.value?.loop ?? null);
+const abLoopSelectionState = ref(createAbLoopSelectionState());
 const seekRequestToken = ref(0);
 const seekRequest = ref<TranscriptSeekRequest | null>(null);
 
@@ -151,14 +156,18 @@ watch([
   primaryCues,
   secondaryCues
 ], () => {
-  abLoopStartCueIndex.value = null;
-  activeAbLoopRange.value = null;
+  abLoopSelectionState.value = createAbLoopSelectionState();
 });
-watch(() => playback.value?.isLooping, (isLooping) => {
-  if (!isLooping) {
-    activeAbLoopRange.value = null;
+watch(playbackLoop, (loop) => {
+  if (loop?.mode === "ab") {
+    abLoopSelectionState.value = deriveAbLoopSelectionState(loop);
+    return;
   }
-});
+
+  if (abLoopSelectionState.value.kind === "active") {
+    abLoopSelectionState.value = createAbLoopSelectionState();
+  }
+}, { immediate: true });
 const hasActiveVideo = computed(() => Boolean(store.desktopState?.videoUrl));
 const isPlaying = computed(() => Math.abs(playback.value?.playbackRate ?? 0) > 0);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
@@ -220,11 +229,21 @@ const displayedPlaybackTime = computed(() => {
       ? scrubbedTime.value
       : predictedTime.value ?? playback.value?.currentTime ?? 0;
   const safeBase = Number.isFinite(baseTime) ? baseTime : 0;
+  const loopWindow = getLoopWindow(playbackLoop.value);
+  const boundedBase =
+    loopWindow !== null
+      ? keepTimeInsideLoopWindow({
+        time: safeBase,
+        start: loopWindow.start,
+        end: loopWindow.end,
+        mode: loopWindow.mode
+      })
+      : safeBase;
   const duration = playbackDuration.value;
   if (!duration || duration <= 0) {
-    return Math.max(0, safeBase);
+    return Math.max(0, boundedBase);
   }
-  return clamp(safeBase, 0, duration);
+  return clamp(boundedBase, 0, duration);
 });
 
 const sliderValue = computed(() => displayedPlaybackTime.value);
@@ -355,70 +374,48 @@ function seekToCue(index: number) {
 function toggleLoop(index: number) {
   const cue = primaryCues.value[index];
   if (!cue) return;
-  abLoopStartCueIndex.value = null;
-  activeAbLoopRange.value = null;
-  const isActive = loopCueIndex.value === index;
+  abLoopSelectionState.value = createAbLoopSelectionState();
+  const isActive = playbackLoop.value?.mode === "single" && playbackLoop.value.startCueIndex === index;
   if (isActive) {
     store.controlVideo({ type: "stopLoop" });
   } else {
-    store.controlVideo({ type: "loop", start: cue.start, end: cue.end, cueIndex: index });
+    store.controlVideo({
+      type: "loop",
+      loop: {
+        mode: "single",
+        startMs: cue.start,
+        endMs: cue.end,
+        startCueIndex: index,
+        endCueIndex: index,
+        anchorCueIndex: index,
+        origin: "single-loop"
+      }
+    });
   }
 }
 
 function handleAbLoop(index: number) {
-  const endCue = primaryCues.value[index];
-  if (!endCue) {
-    return;
-  }
-
-  if (abLoopStartCueIndex.value === null) {
-    abLoopStartCueIndex.value = index;
-    activeAbLoopRange.value = null;
-    if (playback.value?.isLooping) {
-      store.controlVideo({ type: "stopLoop" });
+  const result = selectAbLoopCue(
+    abLoopSelectionState.value,
+    index,
+    (cueIndex) => {
+      const cue = primaryCues.value[cueIndex];
+      if (!cue) {
+        return null;
+      }
+      return { start: cue.start, end: cue.end };
     }
-    return;
+  );
+
+  abLoopSelectionState.value = result.state;
+
+  if (result.state.kind === "selecting-second" && playbackLoop.value !== null) {
+    store.controlVideo({ type: "stopLoop" });
   }
 
-  if (abLoopStartCueIndex.value === index) {
-    abLoopStartCueIndex.value = null;
-    activeAbLoopRange.value = null;
-    return;
+  if (result.loop) {
+    store.controlVideo({ type: "loop", loop: result.loop });
   }
-
-  const startIndex = abLoopStartCueIndex.value;
-  const startCue = primaryCues.value[startIndex];
-  if (!startCue) {
-    abLoopStartCueIndex.value = null;
-    activeAbLoopRange.value = null;
-    return;
-  }
-
-  let loopStart = startCue.start;
-  let loopEnd = endCue.end;
-  let loopCueIndex = startIndex;
-
-  if (loopEnd <= loopStart) {
-    loopStart = Math.min(startCue.start, endCue.start);
-    loopEnd = Math.max(startCue.end, endCue.end);
-    loopCueIndex = loopStart === startCue.start ? startIndex : index;
-  }
-
-  if (loopEnd <= loopStart) {
-    const fallbackDuration = Math.max(
-      startCue.end - startCue.start,
-      endCue.end - endCue.start,
-      500
-    );
-    loopEnd = loopStart + Math.max(fallbackDuration, 1);
-  }
-
-  activeAbLoopRange.value = {
-    startCueIndex: Math.min(startIndex, index),
-    endCueIndex: Math.max(startIndex, index)
-  };
-  store.controlVideo({ type: "loop", start: loopStart, end: loopEnd, cueIndex: loopCueIndex });
-  abLoopStartCueIndex.value = null;
 }
 
 function toggleAutoHide() {
