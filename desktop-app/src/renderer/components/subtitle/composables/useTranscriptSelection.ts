@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, onWatcherCleanup, ref, watch } from "vue";
 import type { Ref } from "vue";
 
 type UseTranscriptSelectionInput = {
@@ -104,6 +104,9 @@ export function useTranscriptSelection({ rootEl, autoScrollDelayMs, onResume }: 
   watch(autoScrollDelayMs, () => {
     if (isAutoFollowPaused.value && resumeTimer !== null) {
       scheduleResume();
+      onWatcherCleanup(() => {
+        clearResumeTimer();
+      });
     }
   });
 

@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onWatcherCleanup, ref, watch } from "vue";
 import type { ComputedRef } from "vue";
 import type { PlaybackState } from "../../../../main/types.js";
 
@@ -82,13 +82,12 @@ export function usePlaybackPrediction(playback: ComputedRef<PlaybackState | null
     () => {
       clearManualSeekBaseline();
       startPredictionLoop();
+      onWatcherCleanup(() => {
+        stopPredictionLoop();
+      });
     },
     { immediate: true }
   );
-
-  onBeforeUnmount(() => {
-    stopPredictionLoop();
-  });
 
   return {
     activeRate,

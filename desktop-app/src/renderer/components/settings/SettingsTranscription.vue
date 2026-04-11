@@ -358,7 +358,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onWatcherCleanup, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import type { TranscriptionConfig } from "../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
@@ -503,17 +503,8 @@ async function initializeFasterWhisper() {
   } catch (error) {
     console.error("Failed to load Faster-Whisper paths", error);
   }
-  ensureDownloadSubscription();
   await refreshStatus();
 }
-
-onMounted(async () => {
-  await initializeFasterWhisper();
-});
-
-onBeforeUnmount(() => {
-  teardownDownloadSubscription();
-});
 
 function updateConfig(patch: Record<string, unknown>) {
   if (!activeConfig.value) {
@@ -603,14 +594,24 @@ watch(customModelInput, (value) => {
   }
 });
 
-watch([transcriptionEnabled, isFasterWhisper], () => {
-  if (shouldUseFasterWhisper()) {
+watch(
+  [transcriptionEnabled, isFasterWhisper, activeConfig],
+  () => {
+    if (!shouldUseFasterWhisper()) {
+      teardownDownloadSubscription();
+      downloadProgress.value = null;
+      return;
+    }
+
+    ensureDownloadSubscription();
+    onWatcherCleanup(() => {
+      teardownDownloadSubscription();
+      downloadProgress.value = null;
+    });
     void initializeFasterWhisper();
-  } else {
-    teardownDownloadSubscription();
-    downloadProgress.value = null;
-  }
-});
+  },
+  { immediate: true }
+);
 
 watch(activeConfig, () => {
   extraParamsError.value = null;
@@ -620,9 +621,6 @@ watch(activeConfig, () => {
   customModelInput.value = activeConfig.value?.fasterWhisperModel ?? "";
   if (!activeConfig.value?.fasterWhisperModelDir && paths.value?.modelsDir) {
     updateConfig({ fasterWhisperModelDir: paths.value.modelsDir });
-  }
-  if (shouldUseFasterWhisper()) {
-    void initializeFasterWhisper();
   }
 });
 
@@ -634,6 +632,22 @@ watch(
     }
   }
 );
+
+watch(downloadProgress, (progress) => {
+  if (!progress || progress.percent < 100) {
+    return;
+  }
+
+  const clearProgressTimer = window.setTimeout(() => {
+    if (downloadProgress.value?.id === progress.id) {
+      downloadProgress.value = null;
+    }
+  }, 800);
+
+  onWatcherCleanup(() => {
+    window.clearTimeout(clearProgressTimer);
+  });
+});
 
 const fasterWhisperDevice = computed({
   get: () => activeConfig.value?.fasterWhisperDevice ?? "cpu",
@@ -710,11 +724,6 @@ function handleDownloadProgress(payload: {
     if (payload.type === "model" || payload.type === "binary") {
       void refreshStatus();
     }
-    setTimeout(() => {
-      if (downloadProgress.value?.id === payload.id) {
-        downloadProgress.value = null;
-      }
-    }, 800);
   }
 }
 
