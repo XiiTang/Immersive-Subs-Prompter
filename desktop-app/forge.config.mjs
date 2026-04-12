@@ -24,7 +24,9 @@ export default {
       path.join(__dirname, "resources", "yt-dlp"),
       path.join(__dirname, "resources", "icon.ico"),
       path.join(__dirname, "resources", "icon.icns"),
-      path.join(__dirname, "resources", "icon.png")
+      path.join(__dirname, "resources", "icon.png"),
+      path.join(__dirname, "resources", "tray-icon.png"),
+      path.join(__dirname, "resources", "tray-icon@2x.png")
     ],
     ignore: [
       /^\/release($|\/)/,

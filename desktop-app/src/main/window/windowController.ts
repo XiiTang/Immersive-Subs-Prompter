@@ -256,6 +256,8 @@ export class WindowController {
     switch (process.platform) {
       case "win32":
         return "icon.ico";
+      case "darwin":
+        return "tray-icon.png";
       default:
         return "icon.png";
     }
