@@ -24,6 +24,9 @@ export class TrayManager {
 
     const iconPath = this.options.getTrayIconPath();
     const icon = nativeImage.createFromPath(iconPath);
+    if (process.platform === "darwin") {
+      icon.setTemplateImage(true);
+    }
     this.tray = new Tray(icon, TRAY_GUID);
     this.tray.setToolTip("Immersive Subs Prompter");
     this.currentLanguage = normalizeLanguage(this.options.getLanguage());

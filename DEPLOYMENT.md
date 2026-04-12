@@ -54,7 +54,7 @@ The build process first executes `npm run build`, then Forge packages contents f
 - Build each target on its matching host platform: `dist:win` on Windows, `dist:mac` on macOS, and `dist:linux` on Linux.
 - Windows currently uses the Squirrel maker, macOS uses DMG/ZIP, and Linux uses DEB/RPM/ZIP.
 - Forge now uses `packagerConfig.icon` with `resources/icon.ico` / `resources/icon.icns`, and DMG output uses the dedicated macOS `.icns` asset.
-- Forge packages `resources/icon.png` and `resources/yt-dlp/` as `extraResource`.
+- Forge packages `resources/icon.png`, the macOS tray template assets, and `resources/yt-dlp/` as `extraResource`.
 - ASAR packaging is enabled, and Electron 41 runtime validation is enforced through the `EnableEmbeddedAsarIntegrityValidation` and `OnlyLoadAppFromAsar` fuses.
 
 > Electron Forge uses Electron Packager under the hood. With `asar: true`, Forge automatically emits the integrity digest metadata required by Electron 39+ ASAR integrity validation.

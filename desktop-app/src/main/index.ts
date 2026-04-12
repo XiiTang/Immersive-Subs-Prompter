@@ -11,6 +11,7 @@ import { TranscriptionService } from "./transcriptionService.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "./settings/index.js";
 import { AppSettings } from "./types.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
+import { resolveBundledResource } from "./resourcePaths.js";
 
 let appSettings: AppSettings = DEFAULT_SETTINGS;
 
@@ -50,6 +51,10 @@ let windowController: WindowController | null = null;
 let settingsStore: SettingsStore | null = null;
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") {
+    app.dock?.setIcon(resolveBundledResource("icon.png"));
+  }
+
   settingsStore = new SettingsStore();
   windowController = new WindowController({
     bus,

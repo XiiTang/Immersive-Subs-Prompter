@@ -257,7 +257,7 @@ export class WindowController {
       case "win32":
         return "icon.ico";
       case "darwin":
-        return "tray-icon.png";
+        return "trayTemplate.png";
       default:
         return "icon.png";
     }

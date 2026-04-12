@@ -66,6 +66,8 @@ describe("Electron 41 upgrade", () => {
     expect(source).toContain("\"resources\", \"icon.icns\"");
     expect(source).toContain("\"resources\", \"icon.png\"");
     expect(source).toContain("\"resources\", \"yt-dlp\"");
+    expect(source).toContain("\"resources\", \"trayTemplate.png\"");
+    expect(source).toContain("\"resources\", \"trayTemplate@2x.png\"");
     expect(source).toContain("@electron-forge/maker-squirrel");
     expect(source).toContain("@electron-forge/maker-dmg");
     expect(source).toContain("@electron-forge/maker-deb");
@@ -77,6 +79,21 @@ describe("Electron 41 upgrade", () => {
     const icon = readFileSync(path.join(desktopAppRoot, "resources", "icon.icns"));
 
     expect(icon.byteLength).toBeGreaterThan(0);
+  });
+
+  it("ships monochrome macOS tray template assets", () => {
+    const trayIcon = readFileSync(path.join(desktopAppRoot, "resources", "trayTemplate.png"));
+    const trayIcon2x = readFileSync(path.join(desktopAppRoot, "resources", "trayTemplate@2x.png"));
+
+    expect(trayIcon.byteLength).toBeGreaterThan(0);
+    expect(trayIcon2x.byteLength).toBeGreaterThan(0);
+  });
+
+  it("sets the macOS dock icon explicitly during app startup", () => {
+    const source = readDesktopFile("src/main/index.ts");
+
+    expect(source).toContain("process.platform === \"darwin\"");
+    expect(source).toContain("app.dock?.setIcon(resolveBundledResource(\"icon.png\"))");
   });
 
   it("resolves bundled resources through a cross-platform helper", async () => {
@@ -123,6 +140,7 @@ describe("Electron 41 upgrade", () => {
     expect(source).toContain("getWindowIconName()");
     expect(source).toContain("getTrayIconName()");
     expect(source).toContain("process.platform");
+    expect(source).toContain("return \"trayTemplate.png\"");
     expect(source).toContain("resolveBundledResource(this.getWindowIconName())");
     expect(source).toContain("resolveBundledResource(this.getTrayIconName())");
     expect(source).not.toContain("app.getPath(\"assets\")");
@@ -133,6 +151,7 @@ describe("Electron 41 upgrade", () => {
 
     expect(source).toMatch(/const TRAY_GUID = "[^"]{36}"/);
     expect(source).toContain("new Tray(icon, TRAY_GUID)");
+    expect(source).toContain("icon.setTemplateImage(true)");
   });
 
   it("keeps the overlay window fully frameless on Wayland and respects snapped quick-show windows", () => {
