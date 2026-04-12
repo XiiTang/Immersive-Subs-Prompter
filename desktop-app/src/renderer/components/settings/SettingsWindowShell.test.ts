@@ -1,47 +1,69 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { defineComponent, h } from "vue";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
-import SettingsGlobal from "./SettingsGlobal.vue";
-import SettingsProfiles from "./SettingsProfiles.vue";
+
+const sectionStub = (testId: string) =>
+  defineComponent({
+    name: `SectionStub${testId}`,
+    render() {
+      return h("section", { "data-testid": testId });
+    }
+  });
 
 describe("SettingsWindowShell", () => {
-  it("renders a fixed left nav and selects General by default", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders every top-level section in one scrollable document", () => {
     const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
       global: {
         stubs: {
-          SettingsGlobal: true,
-          SettingsProfiles: true,
-          SettingsRules: true,
-          SettingsTranscription: true,
-          SettingsMediaServer: true,
-          SettingsCache: true
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsRules: sectionStub("settings-section-rules-content"),
+          SettingsTranscription: sectionStub("settings-section-transcription-content"),
+          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
+          SettingsCache: sectionStub("settings-section-cache-content")
         }
       }
     });
 
+    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBe("document");
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-nav-item-general"]').attributes("aria-current")).toBe("page");
-    expect(wrapper.findComponent(SettingsGlobal).exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-rules"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-transcription"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-media-server"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-cache"]').exists()).toBe(true);
   });
 
-  it("switches active section when a nav item is clicked", async () => {
+  it("scrolls to a section instead of swapping the rendered page", async () => {
+    const scrollIntoView = vi.fn();
+    vi.stubGlobal("scrollIntoView", scrollIntoView);
+    Element.prototype.scrollIntoView = scrollIntoView;
+
     const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
       global: {
         stubs: {
-          SettingsGlobal: true,
-          SettingsProfiles: true,
-          SettingsRules: true,
-          SettingsTranscription: true,
-          SettingsMediaServer: true,
-          SettingsCache: true
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsRules: sectionStub("settings-section-rules-content"),
+          SettingsTranscription: sectionStub("settings-section-transcription-content"),
+          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
+          SettingsCache: sectionStub("settings-section-cache-content")
         }
       }
     });
 
     await wrapper.get('[data-testid="settings-nav-item-profiles"]').trigger("click");
 
-    expect(wrapper.get('[data-testid="settings-nav-item-profiles"]').attributes("aria-current")).toBe("page");
-    expect(wrapper.get('[data-testid="settings-nav-item-general"]').attributes("aria-current")).toBeUndefined();
-    expect(wrapper.findComponent(SettingsProfiles).exists()).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
   });
 });

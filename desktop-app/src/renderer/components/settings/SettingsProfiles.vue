@@ -1,7 +1,15 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">{{ t("section-profiles", "Profiles") }}</h3>
-    <div class="profile-settings">
+    <header class="settings-section__intro">
+      <div>
+        <p class="settings-section__eyebrow">Profiles</p>
+        <h3 class="settings-section__title">{{ t("section-profiles", "Profiles") }}</h3>
+        <p class="settings-section__description">
+          Manage subtitle appearance presets and adjust the active profile in place.
+        </p>
+      </div>
+    </header>
+    <div class="profile-settings settings-surface settings-surface--split">
       <div class="profile-settings__sidebar">
         <div class="profile-settings__actions">
           <span class="settings-field__label">{{ t("profile-list-label", "Profile List") }}</span>

@@ -99,7 +99,9 @@ describe("testing stack upgrade", () => {
     expect(preload).not.toContain("getWindowKind");
     expect(ipcRouter).not.toContain("getSettingsWindow");
     expect(windowController).not.toContain("getSettingsWindow:");
-    expect(shell).toContain("currentSection === 'cache'");
-    expect(shell).not.toContain("<SettingsCache v-else />");
+    expect(shell).toContain('data-scroll-mode="document"');
+    expect(shell).toContain('class="settings-document__section"');
+    expect(shell).toContain("scrollIntoView({ behavior: \"smooth\", block: \"start\" })");
+    expect(shell).not.toContain("<SettingsCache v-else-if");
   });
 });

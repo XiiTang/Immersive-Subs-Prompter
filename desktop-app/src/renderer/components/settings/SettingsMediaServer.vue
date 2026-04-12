@@ -1,14 +1,20 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">
-      {{ t("section-mediaserver", "Media Server Integration") }}
+    <header class="settings-section__intro settings-section__intro--with-toggle">
+      <div>
+        <p class="settings-section__eyebrow">Media Server</p>
+        <h3 class="settings-section__title">{{ t("section-mediaserver", "Media Server Integration") }}</h3>
+        <p class="settings-section__description">
+          Manage server connections and playback integration without leaving the document flow.
+        </p>
+      </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="mediaServerEnabled" />
         <span class="toggle__text">{{ t("mediaserver-enable-label", "Enable Media Server") }}</span>
       </label>
-    </h3>
+    </header>
 
-    <div class="mediaserver-config-manager" v-if="mediaServerEnabled">
+    <div class="mediaserver-config-manager settings-surface settings-surface--split" v-if="mediaServerEnabled">
       <div class="mediaserver-config-manager__sidebar">
         <div class="mediaserver-config-manager__actions">
           <span class="settings-field__label">{{ t("server-list-label", "Server List") }}</span>

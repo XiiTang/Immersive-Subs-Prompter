@@ -1,13 +1,19 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">
-      {{ t("section-transcription", "Speech Transcription") }}
+    <header class="settings-section__intro settings-section__intro--with-toggle">
+      <div>
+        <p class="settings-section__eyebrow">Transcription</p>
+        <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
+        <p class="settings-section__description">
+          Configure providers, prompts, and local runtime settings for transcript extraction.
+        </p>
+      </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="transcriptionEnabled" />
         <span class="toggle__text">{{ t("transcription-enable-label", "Enable Transcription") }}</span>
       </label>
-    </h3>
-    <div class="transcription-settings" v-if="transcriptionEnabled">
+    </header>
+    <div class="transcription-settings settings-surface settings-surface--split" v-if="transcriptionEnabled">
       <div class="transcription-settings__sidebar">
         <div class="transcription-settings__actions">
           <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>

@@ -1,16 +1,27 @@
 <template>
   <section class="settings-section">
-    <h3 class="settings-section__title">
-      {{ t("section-cache", "Subtitle Cache") }}
+    <header class="settings-section__intro settings-section__intro--with-toggle">
+      <div>
+        <p class="settings-section__eyebrow">Cache</p>
+        <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
+        <p class="settings-section__description">
+          Review cache storage, retention, and quick maintenance actions near the end of the settings document.
+        </p>
+      </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="cacheEnabled" />
         <span class="toggle__text">{{ t("enable-cache-label", "Enable Cache") }}</span>
       </label>
-    </h3>
+    </header>
     
-    <div v-if="cacheEnabled" style="display: flex; flex-direction: column; gap: 16px; margin-top: 8px;">
+    <div v-if="cacheEnabled" class="settings-panel">
       <!-- Settings Row -->
-      <div class="fw-row">
+      <div class="settings-group">
+        <div class="settings-group__header">
+          <h4 class="settings-group__title">Storage</h4>
+          <p class="settings-group__description">Choose where cache files live and how long they stay around.</p>
+        </div>
+        <div class="fw-row">
         <div class="fw-field" style="flex: 1; min-width: 0;">
           <div class="fw-field-header">
             <span class="label">{{ t("cache-path-label", "Cache Path") }}</span>
@@ -43,9 +54,15 @@
           />
         </div>
       </div>
+      </div>
 
       <!-- Statistics Summary -->
-      <div class="fw-status-row" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="settings-group">
+         <div class="settings-group__header">
+          <h4 class="settings-group__title">Usage</h4>
+          <p class="settings-group__description">Inspect the current cache footprint and refresh the stats on demand.</p>
+        </div>
+      <div class="fw-status-row settings-status-row">
          <div class="fw-status-item">
            <span class="label">{{ t("cache-stats-entries", "Total entries") }}</span>
            <span class="fw-badge">{{ cacheStatsDisplay.entries }}</span>
@@ -71,6 +88,7 @@
            </div>
            <span class="fw-badge">{{ cacheStatsDisplay.oldest }}</span>
          </div>
+      </div>
       </div>
     </div>
   </section>

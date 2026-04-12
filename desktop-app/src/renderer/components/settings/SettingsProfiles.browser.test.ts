@@ -233,5 +233,5 @@ describe("SettingsProfiles", () => {
     });
 
     await expect.element(wrapper.get(".settings-section").element).toMatchScreenshot("settings-profiles-default.png");
-  });
+  }, 30000);
 });

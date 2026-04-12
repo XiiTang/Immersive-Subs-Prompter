@@ -1,6 +1,15 @@
 <template>
-  <section class="settings-section settings-section--split">
-    <div class="settings-split">
+  <section class="settings-section">
+    <header class="settings-section__intro">
+      <div>
+        <p class="settings-section__eyebrow">Rules</p>
+        <h3 class="settings-section__title">{{ t("section-rules", "URL Rules") }}</h3>
+        <p class="settings-section__description">
+          Match URLs to profiles with a lightweight list on the left and editor on the right.
+        </p>
+      </div>
+    </header>
+    <div class="settings-split settings-surface settings-surface--split">
       <aside class="settings-split__sidebar" data-testid="rules-list">
         <div class="settings-split__sidebar-header">
           <span class="settings-field__label">{{ t("section-rules", "URL Rules") }}</span>

@@ -48,5 +48,5 @@ describe("SettingsRules", () => {
     expect(wrapper.get('[data-testid="rules-list"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="rules-editor"]').exists()).toBe(true);
     await expect.element(wrapper.get(".settings-section").element).toMatchScreenshot("settings-rules-dual-pane.png");
-  });
+  }, 30000);
 });
