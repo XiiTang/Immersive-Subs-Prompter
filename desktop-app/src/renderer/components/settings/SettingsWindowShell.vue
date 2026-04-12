@@ -5,7 +5,6 @@
       <SettingsNav
         :sections="sections"
         :current-section="currentSection"
-        :title="settingsTitle"
         :nav-aria-label="settingsNavAriaLabel"
         @select="scrollToSection"
       />
@@ -16,9 +15,6 @@
         data-scroll-mode="document"
       >
         <div class="settings-document">
-          <header class="settings-document__intro">
-            <h2 class="settings-document__title">{{ settingsTitle }}</h2>
-          </header>
           <section
             v-for="section in sections"
             :id="section.anchorId"

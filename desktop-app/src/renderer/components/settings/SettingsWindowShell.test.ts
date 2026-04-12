@@ -141,6 +141,7 @@ describe("SettingsWindowShell", () => {
 
     const wrapper = mount(SettingsWindowShell);
     const text = wrapper.text();
+    const shellHeaderText = wrapper.get(".settings-window-shell__header").text();
 
     expect(text).toContain("设置");
     expect(text).toContain("全局设置");
@@ -157,5 +158,8 @@ describe("SettingsWindowShell", () => {
     expect(text).not.toContain("Transcription");
     expect(text).not.toContain("Media Server");
     expect(text).not.toContain("Cache");
+    expect(shellHeaderText).toBe("设置");
+    expect(wrapper.find(".settings-nav__meta").exists()).toBe(false);
+    expect(wrapper.find(".settings-document__intro").exists()).toBe(false);
   });
 });

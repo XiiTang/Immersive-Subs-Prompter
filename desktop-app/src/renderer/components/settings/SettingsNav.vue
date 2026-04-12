@@ -1,8 +1,5 @@
 <template>
   <nav class="settings-nav" data-testid="settings-nav" :aria-label="navAriaLabel">
-    <div class="settings-nav__meta">
-      <h1 class="settings-nav__title">{{ title }}</h1>
-    </div>
     <button
       v-for="section in sections"
       :key="section.id"
@@ -27,7 +24,6 @@ defineProps<{
     anchorId: string;
   }>;
   currentSection: SettingsSectionId;
-  title: string;
   navAriaLabel: string;
 }>();
 
