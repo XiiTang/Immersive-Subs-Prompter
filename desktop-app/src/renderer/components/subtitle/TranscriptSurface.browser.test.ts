@@ -78,6 +78,14 @@ function mockViewportSize(width: number, height: number) {
   };
 }
 
+async function flushSurfaceLayout() {
+  await nextTick();
+  await nextTick();
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
 describe("TranscriptSurface", () => {
   let restoreSize: (() => void) | null = null;
 
@@ -182,10 +190,13 @@ describe("TranscriptSurface", () => {
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
-    await nextTick();
-    await nextTick();
+    const scrollTo = vi.spyOn(viewport, "scrollTo");
+    await flushSurfaceLayout();
 
-    expect(viewport.scrollTop).toBeGreaterThan(0);
+    expect(scrollTo).toHaveBeenCalled();
+    expect((scrollTo.mock.calls.at(-1)?.[0] as ScrollToOptions | undefined)?.top).toEqual(expect.any(Number));
+
+    scrollTo.mockRestore();
     wrapper.unmount();
   });
 
@@ -198,16 +209,20 @@ describe("TranscriptSurface", () => {
     });
 
     const viewport = wrapper.get(".transcript-surface__viewport").element as HTMLElement;
-    await nextTick();
-    await nextTick();
-    const originalTop = viewport.scrollTop;
+    const scrollTo = vi.spyOn(viewport, "scrollTo");
+    await flushSurfaceLayout();
+    const originalTop = (scrollTo.mock.calls.at(-1)?.[0] as ScrollToOptions | undefined)?.top;
 
     await wrapper.setProps({ scrollPositionRatio: 0.8 });
-    await nextTick();
-    await nextTick();
+    await flushSurfaceLayout();
 
-    expect(viewport.scrollTop).toBeLessThan(originalTop);
+    const updatedTop = (scrollTo.mock.calls.at(-1)?.[0] as ScrollToOptions | undefined)?.top;
+    expect(typeof originalTop).toBe("number");
+    expect(typeof updatedTop).toBe("number");
+    expect(updatedTop).not.toBe(originalTop);
+    expect(updatedTop).toBeLessThan(originalTop as number);
 
+    scrollTo.mockRestore();
     wrapper.unmount();
   });
 

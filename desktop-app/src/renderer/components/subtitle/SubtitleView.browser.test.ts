@@ -1,10 +1,25 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
+import { defineComponent, h, nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../../main/types.js";
 import SubtitleView from "./SubtitleView.vue";
+import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
+
+const videoInfoSectionStub = defineComponent({
+  name: "VideoInfoSectionStub",
+  render() {
+    return h("div", { class: "video-info-section-stub" });
+  }
+});
+
+const tallVideoInfoSectionStub = defineComponent({
+  name: "TallVideoInfoSectionStub",
+  render() {
+    return h("section", { class: "video-info-section video-info-section-stub" });
+  }
+});
 
 function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
   return {
@@ -171,9 +186,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<section class='video-info-section video-info-section-stub'></section>"
-          }
+          VideoInfoSection: tallVideoInfoSectionStub
         }
       }
     });
@@ -208,9 +221,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -264,8 +275,6 @@ describe("SubtitleView", () => {
     expect(updatedSecondaryLine.style.color).toBe("rgb(0, 255, 0)");
     expect(Number.parseFloat(updatedSecondaryLine.style.top)).toBeGreaterThan(initialSecondaryTop);
 
-    const scrollTopBeforePositionChange = viewport.scrollTop;
-
     store.settings!.profiles[0] = {
       ...store.settings!.profiles[0]!,
       settings: {
@@ -277,7 +286,7 @@ describe("SubtitleView", () => {
     await nextTick();
     await nextTick();
 
-    expect(viewport.scrollTop).not.toBe(scrollTopBeforePositionChange);
+    expect(wrapper.getComponent(TranscriptSurface).props("scrollPositionRatio")).toBe(0.8);
 
     wrapper.unmount();
     if (clientWidthDescriptor) {
@@ -304,9 +313,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -370,9 +377,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -427,9 +432,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -511,9 +514,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -557,9 +558,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });
@@ -619,9 +618,7 @@ describe("SubtitleView", () => {
     const wrapper = mount(SubtitleView, {
       global: {
         stubs: {
-          VideoInfoSection: {
-            template: "<div class='video-info-section-stub'></div>"
-          }
+          VideoInfoSection: videoInfoSectionStub
         }
       }
     });

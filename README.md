@@ -58,7 +58,8 @@ desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 
 ### Prerequisites
 
-- Node.js 20.19+ or 22.12+ and npm
+- Node.js 24+ and npm
+- Playwright Chromium for desktop renderer tests: `cd desktop-app && npx playwright install chromium`
 - Supported browsers:
   - **Chrome / Edge / Chromium-based browser**: Version 110+
   - **Firefox**: Version 109+ (Manifest V3 support required)
@@ -79,6 +80,13 @@ The desktop app now targets Electron 41 / Chromium 146.
 - Desktop release packaging now runs through Electron Forge with ASAR integrity validation enabled.
 
 By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address and port under **Settings → Network** if you want phones/tablets on your LAN to connect.
+
+### Test Stack
+
+- `desktop-app` renderer tests run on **Vitest Browser Mode** with **Playwright Chromium** for component interaction, layout, and visual regression coverage.
+- `desktop-app` jsdom tests remain for lightweight renderer unit tests and upgrade/config assertions.
+- `extension` tests run on **Vitest 4 + jsdom 29**.
+- Browser-mode screenshot baselines live in `__screenshots__/` directories next to the browser test files that own them.
 
 ### Load Browser Extension
 
@@ -126,6 +134,9 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | ---- | ---- | ---- |
 | `desktop-app` | `npm run start` | Build + start Electron (watch-free) |
 | `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
+| `desktop-app` | `npm run test:renderer` | Run the full renderer suite across Vitest Browser Mode and jsdom |
+| `desktop-app` | `npm run test:renderer:browser` | Run browser-mode renderer tests in Playwright Chromium, including visual regression checks |
+| `desktop-app` | `npm run test:renderer:jsdom` | Run jsdom-only renderer unit tests |
 | `desktop-app` | `npm run typecheck:renderer` | Run `vue-tsc` against the renderer app source before packaging or larger refactors |
 | `desktop-app` | `npm run package` | Build the app and create an unpacked Electron Forge package in `out/` |
 | `desktop-app` | `npm run make` | Build the app and generate Electron Forge distributables for the current host platform |
@@ -134,6 +145,7 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `extension` | `npm run build:chrome` | Build Chrome/Edge/Chromium extension to `dist/chrome/` |
 | `extension` | `npm run build:firefox` | Build Firefox extension to `dist/firefox/` |
 | `extension` | `npm run build:all` | Build both Chrome and Firefox versions |
+| `extension` | `npm run test` | Run the extension test suite on Vitest 4 + jsdom 29 |
 
 ## Deployment and Distribution
 

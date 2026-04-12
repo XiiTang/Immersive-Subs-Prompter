@@ -1,11 +1,14 @@
 # Dependencies
 node_modules/
-package-lock.json
+**/node_modules/
 
 # Build outputs
 dist/
 build/
 out/
+**/dist/
+**/build/
+**/out/
 
 # Logs
 *.log
@@ -21,6 +24,7 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+**/coverage/
 
 # nyc test coverage
 .nyc_output
@@ -110,8 +114,6 @@ release/
 # Browser extension
 *.crx
 *.pem
-# Keep extension source but ignore dist build outputs
-!extension/package-lock.json
 
 # yt-dlp cache (if any)
 __pycache__/
@@ -122,9 +124,12 @@ globalspeed
 .venv/
 .python-version
 uv.lock
-pyproject.toml
-hello.py
-main.py
+
+# Test runner artifacts
+.vitest-attachments/
+.vitest-traces/
+playwright-report/
+test-results/
 
 # Extension release zip
 immersive-subs-prompter-*.zip
