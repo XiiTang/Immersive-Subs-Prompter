@@ -1,4 +1,4 @@
-import activeWindow from "active-win";
+import { activeWindow } from "get-windows";
 import path from "path";
 import { createLogger } from "../logger.js";
 

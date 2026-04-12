@@ -72,6 +72,12 @@ npm install
 npm run start   # Build TypeScript and start Electron
 ```
 
+The desktop app now targets Electron 41 / Chromium 146.
+
+- Linux Wayland keeps the subtitle window fully frameless while benefiting from newer windowing and shortcut fixes.
+- Windows Quick Show preserves snapped layouts instead of forcing the panel into a conflicting top-most state.
+- Desktop release packaging now runs through Electron Forge with ASAR integrity validation enabled.
+
 By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address and port under **Settings → Network** if you want phones/tablets on your LAN to connect.
 
 ### Load Browser Extension
@@ -121,8 +127,9 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `desktop-app` | `npm run start` | Build + start Electron (watch-free) |
 | `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
 | `desktop-app` | `npm run typecheck:renderer` | Run `vue-tsc` against the renderer app source before packaging or larger refactors |
-| `desktop-app` | `npm run dist:win/mac/linux` | Generate installation package for the corresponding platform using electron-builder (Win version installer allows free path selection) |
-| `desktop-app` | `npm run dist:all` | Package Win/Mac/Linux simultaneously (must run on respective platforms) |
+| `desktop-app` | `npm run package` | Build the app and create an unpacked Electron Forge package in `out/` |
+| `desktop-app` | `npm run make` | Build the app and generate Electron Forge distributables for the current host platform |
+| `desktop-app` | `npm run dist:win/mac/linux` | Build the app and run `electron-forge make` for that target; run on the matching host platform |
 | `extension` | `npm run build` | Build Chrome extension (default) |
 | `extension` | `npm run build:chrome` | Build Chrome/Edge/Chromium extension to `dist/chrome/` |
 | `extension` | `npm run build:firefox` | Build Firefox extension to `dist/firefox/` |
@@ -130,7 +137,7 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 
 ## Deployment and Distribution
 
-For detailed procedures (including extension packaging, Electron installer, yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
+For detailed procedures (including extension packaging, Electron Forge distributables, and yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Troubleshooting
 

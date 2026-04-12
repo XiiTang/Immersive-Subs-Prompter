@@ -1,5 +1,3 @@
-import { app } from "electron";
-import path from "path";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
@@ -18,6 +16,7 @@ import { ShortcutManager } from "./shortcutManager.js";
 import { TrayManager } from "./trayManager.js";
 import { WindowManager } from "./windowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
+import { resolveBundledResource } from "../resourcePaths.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -48,7 +47,7 @@ export class WindowController {
     this.autoLaunchManager = new AutoLaunchManager();
     this.shortcutManager = new ShortcutManager();
     this.trayManager = new TrayManager({
-      getIconPath: () => this.getIconPath(),
+      getTrayIconPath: () => this.getTrayIconPath(),
       getLanguage: () => this.options.getSettings().global.language ?? "en",
       onShow: () => this.showMainWindow(),
       onQuickShow: () => this.quickShowMainWindow(),
@@ -58,7 +57,7 @@ export class WindowController {
     });
     this.windowManager = new WindowManager({
       getSettings: this.options.getSettings,
-      getIconPath: () => this.getIconPath(),
+      getWindowIconPath: () => this.getWindowIconPath(),
       onDidFinishLoad: () => {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
@@ -130,12 +129,14 @@ export class WindowController {
   quickShowMainWindow() {
     // Show the window first
     this.windowManager.showWindow();
+    const window = this.windowManager.getWindow();
+    const shouldKeepSnapLayout = process.platform === "win32" && !!window && window.isSnapped();
 
-    // Update settings: always on top to highest level and panel opacity to 100%
+    // Keep snapped Windows layouts intact instead of forcing a top-most overlay state.
     this.updateAppSettings({
       global: {
         ...this.options.getSettings().global,
-        alwaysOnTop: "screen-saver",
+        alwaysOnTop: shouldKeepSnapLayout ? this.options.getSettings().global.alwaysOnTop : "screen-saver",
         panelOpacity: 100
       }
     });
@@ -221,10 +222,29 @@ export class WindowController {
     return appSettings;
   }
 
-  private getIconPath(): string {
-    if (app.isPackaged) {
-      return path.join(process.resourcesPath, "icon.png");
+  private getWindowIconPath(): string {
+    return resolveBundledResource(this.getWindowIconName());
+  }
+
+  private getTrayIconPath(): string {
+    return resolveBundledResource(this.getTrayIconName());
+  }
+
+  private getWindowIconName(): string {
+    switch (process.platform) {
+      case "win32":
+        return "icon.ico";
+      default:
+        return "icon.png";
     }
-    return path.join(app.getAppPath(), "resources", "icon.png");
+  }
+
+  private getTrayIconName(): string {
+    switch (process.platform) {
+      case "win32":
+        return "icon.ico";
+      default:
+        return "icon.png";
+    }
   }
 }

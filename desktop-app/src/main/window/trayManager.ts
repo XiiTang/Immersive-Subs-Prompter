@@ -1,8 +1,10 @@
 import { app, Menu, nativeImage, Tray } from "electron";
 import { translate, normalizeLanguage, type SupportedLanguage } from "../i18n.js";
 
+const TRAY_GUID = "5a9e94eb-3edc-4890-aa7c-f6b743923830";
+
 type TrayManagerOptions = {
-  getIconPath: () => string;
+  getTrayIconPath: () => string;
   getLanguage: () => string;
   onShow: () => void;
   onQuickShow: () => void;
@@ -20,9 +22,9 @@ export class TrayManager {
       return;
     }
 
-    const iconPath = this.options.getIconPath();
+    const iconPath = this.options.getTrayIconPath();
     const icon = nativeImage.createFromPath(iconPath);
-    this.tray = new Tray(icon);
+    this.tray = new Tray(icon, TRAY_GUID);
     this.tray.setToolTip("Immersive Subs Prompter");
     this.currentLanguage = normalizeLanguage(this.options.getLanguage());
     this.updateContextMenu();

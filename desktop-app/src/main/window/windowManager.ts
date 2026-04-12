@@ -5,7 +5,7 @@ import { AppSettings } from "../types.js";
 
 type WindowManagerOptions = {
   getSettings: () => AppSettings;
-  getIconPath: () => string;
+  getWindowIconPath: () => string;
   onDidFinishLoad?: (window: BrowserWindow) => void;
   onShow?: () => void;
   onHide?: () => void;
@@ -33,6 +33,7 @@ export class WindowManager {
       width: 460,
       height: 640,
       frame: false,
+      hasShadow: false,
       transparent: true,
       backgroundColor: "#00000000",
       resizable: true,
@@ -43,7 +44,7 @@ export class WindowManager {
         contextIsolation: true,
         nodeIntegration: false
       },
-      icon: this.options.getIconPath()
+      icon: this.options.getWindowIconPath()
     });
 
     const level = settings.global.alwaysOnTop;

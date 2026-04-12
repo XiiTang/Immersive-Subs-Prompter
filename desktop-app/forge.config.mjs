@@ -1,0 +1,62 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerDMG } from "@electron-forge/maker-dmg";
+import { MakerRpm } from "@electron-forge/maker-rpm";
+import { MakerSquirrel } from "@electron-forge/maker-squirrel";
+import { MakerZIP } from "@electron-forge/maker-zip";
+import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
+import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { FuseV1Options, FuseVersion } from "@electron/fuses";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default {
+  packagerConfig: {
+    asar: true,
+    icon: path.join(__dirname, "resources", "icon"),
+    executableName: "Immersive Subs Prompter",
+    name: "Immersive Subs Prompter",
+    appBundleId: "com.sheixunixitang3.immersivesubsprompter",
+    appCopyright: "Copyright (c) XiiTang",
+    extraResource: [
+      path.join(__dirname, "resources", "yt-dlp"),
+      path.join(__dirname, "resources", "icon.ico"),
+      path.join(__dirname, "resources", "icon.icns"),
+      path.join(__dirname, "resources", "icon.png")
+    ],
+    ignore: [
+      /^\/release($|\/)/,
+      /^\/out($|\/)/,
+      /^\/src($|\/)/,
+      /^\/scripts($|\/)/,
+      /^\/\.gitignore$/,
+      /^\/tsconfig(?:\.[^.]+)?\.json$/,
+      /^\/vite\.config\.ts$/,
+      /^\/vitest\.config\.ts$/
+    ]
+  },
+  rebuildConfig: {
+    ignoreModules: ["get-windows"]
+  },
+  makers: [
+    new MakerSquirrel({
+      setupIcon: path.join(__dirname, "resources", "icon.ico")
+    }),
+    new MakerZIP({}, ["darwin", "linux", "win32"]),
+    new MakerDMG({
+      icon: path.join(__dirname, "resources", "icon.icns")
+    }),
+    new MakerDeb({}),
+    new MakerRpm({})
+  ],
+  plugins: [
+    new AutoUnpackNativesPlugin({}),
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true
+    })
+  ]
+};
