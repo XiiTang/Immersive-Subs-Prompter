@@ -231,14 +231,14 @@ export function normalizeLanguage(value: string | null | undefined): SupportedLa
   return (SUPPORTED_LANGUAGES as readonly string[]).includes(code) ? (code as SupportedLanguage) : DEFAULT_LANGUAGE;
 }
 
-export function translate(key: string, fallback: string, language: SupportedLanguage): string {
+export function translate(key: string, fallback = "", language: SupportedLanguage): string {
   const dictionary = TRANSLATIONS[language] ?? TRANSLATIONS[DEFAULT_LANGUAGE];
   return dictionary[key] ?? fallback;
 }
 
 export function formatTranslation(
   key: string,
-  fallback: string,
+  fallback = "",
   language: SupportedLanguage,
   replacements: Record<string, string> = {}
 ): string {
@@ -250,7 +250,7 @@ export function formatTranslation(
 }
 
 export function useI18n(language: ComputedRef<string>) {
-  const t = (key: string, fallback: string, replacements: Record<string, string> = {}) =>
+  const t = (key: string, fallback = "", replacements: Record<string, string> = {}) =>
     formatTranslation(key, fallback, normalizeLanguage(language.value), replacements);
   return { t };
 }

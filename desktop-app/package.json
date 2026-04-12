@@ -8,7 +8,8 @@
     "build": "npm run clean && npm run build:main && npm run build:preload && npm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
-    "build:renderer": "vite build",
+    "typecheck:renderer": "vue-tsc --noEmit -p tsconfig.renderer.json",
+    "build:renderer": "npm run typecheck:renderer && vite build",
     "dev:renderer": "vite dev",
     "test:renderer": "vitest run",
     "test:renderer:watch": "vitest",
@@ -39,18 +40,18 @@
   },
   "devDependencies": {
     "@types/decompress": "^4.2.7",
-    "@types/node": "^20.12.12",
+    "@types/node": "^25.6.0",
     "@types/ws": "^8.18.1",
-    "@vitejs/plugin-vue": "^5.0.4",
+    "@vitejs/plugin-vue": "^6.0.5",
     "@vue/test-utils": "^2.4.6",
     "electron": "^30.0.0",
     "electron-builder": "^26.0.12",
     "jsdom": "^24.1.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
-    "vite": "^5.2.8",
-    "vitest": "^2.1.1",
-    "vue-tsc": "^2.2.12"
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4",
+    "vue-tsc": "^3.2.6"
   },
   "build": {
     "appId": "com.sheixunixitang3.immersivesubsprompter",

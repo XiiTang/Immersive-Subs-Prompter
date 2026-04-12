@@ -17,7 +17,7 @@ describe("Vue 3.5 upgrade", () => {
     };
 
     expect(packageJson.dependencies?.vue).toMatch(/\^3\.5\./);
-    expect(packageJson.devDependencies?.["vue-tsc"]).toMatch(/\^2\./);
+    expect(packageJson.devDependencies?.["vue-tsc"]).toMatch(/\^3\./);
   });
 
   it("replaces legacy template refs with useTemplateRef", () => {

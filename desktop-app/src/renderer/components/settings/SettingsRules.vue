@@ -115,7 +115,7 @@
 import { computed, reactive } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import type { ProfileRule, UrlMatchType } from "../../main/types";
+import type { ProfileRule, UrlMatchType } from "../../../main/types";
 import { IconDelete } from "../icons";
 
 const store = useDesktopStore();

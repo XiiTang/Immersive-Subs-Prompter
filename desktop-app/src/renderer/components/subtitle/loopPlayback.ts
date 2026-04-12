@@ -1,4 +1,4 @@
-import type { LoopMode, LoopSession } from "../../../main/types.js";
+import type { LoopMode, LoopSession } from "../../../main/types";
 
 type KeepTimeInsideLoopWindowInput = {
   time: number;

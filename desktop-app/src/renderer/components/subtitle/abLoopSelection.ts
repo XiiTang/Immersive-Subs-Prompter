@@ -1,4 +1,4 @@
-import type { LoopSession, VideoControlCommand } from "../../../main/types.js";
+import type { LoopSession, VideoControlCommand } from "../../../main/types";
 
 export type AbLoopSelectionState =
   | { kind: "idle" }

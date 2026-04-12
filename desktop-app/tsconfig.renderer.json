@@ -13,8 +13,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "strict": true,
+    "skipLibCheck": true,
     "types": [
-      "vite/client"
+      "vite/client",
+      "node"
     ],
     "baseUrl": ".",
     "paths": {
@@ -26,6 +28,11 @@
   "include": [
     "src/renderer/**/*.ts",
     "src/renderer/**/*.d.ts",
-    "src/renderer/**/*.vue"
+    "src/renderer/**/*.vue",
+    "src/preload.ts",
+    "src/main/types.ts"
+  ],
+  "exclude": [
+    "src/renderer/**/*.test.ts"
   ]
 }

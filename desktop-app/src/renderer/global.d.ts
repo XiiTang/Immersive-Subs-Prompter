@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import type { RendererApi } from "../preload.js";
+import type { RendererApi } from "../preload";
 
 declare global {
   interface Window {

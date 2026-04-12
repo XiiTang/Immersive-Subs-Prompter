@@ -12,6 +12,7 @@ export default defineConfig({
     }
   },
   build: {
+    target: "chrome124",
     outDir: path.resolve(__dirname, "dist/renderer"),
     emptyOutDir: true,
     sourcemap: true

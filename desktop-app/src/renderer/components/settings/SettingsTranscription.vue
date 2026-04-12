@@ -360,7 +360,7 @@
 <script setup lang="ts">
 import { computed, onWatcherCleanup, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import type { TranscriptionConfig } from "../../main/types";
+import type { TranscriptionConfig } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { IconAdd, IconDelete } from "../icons";
 

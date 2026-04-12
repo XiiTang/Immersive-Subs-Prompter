@@ -25,6 +25,8 @@ If only used within the company, you can directly share the `extension/` directo
 
 ## 2. Electron Desktop Application
 
+Requires Node.js `20.19+` or `22.12+` because the desktop renderer now builds with Vite 8.
+
 ### 2.1 Pure Build (Development / Beta Testing)
 
 ```bash

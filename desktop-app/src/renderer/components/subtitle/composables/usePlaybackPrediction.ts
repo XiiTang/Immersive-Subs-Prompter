@@ -1,6 +1,6 @@
 import { computed, onWatcherCleanup, ref, watch } from "vue";
 import type { ComputedRef } from "vue";
-import type { PlaybackState } from "../../../../main/types.js";
+import type { PlaybackState } from "../../../../main/types";
 
 interface ManualSeekBaseline {
   time: number;

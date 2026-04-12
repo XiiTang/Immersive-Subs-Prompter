@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
-import type { LoopSession } from "../../../main/types.js";
+import type { LoopSession } from "../../../main/types";
 import type { AbLoopSelectionState } from "./abLoopSelection";
 import { getAbLoopLabel } from "./abLoopSelection";
 import TranscriptBlock from "./TranscriptBlock.vue";

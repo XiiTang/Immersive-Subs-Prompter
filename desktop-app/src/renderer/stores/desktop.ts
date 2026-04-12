@@ -17,7 +17,7 @@ import type {
   TranscriptionConfig,
   TranscriptionState,
   VideoControlCommand
-} from "../main/types.js";
+} from "../../main/types";
 import { BASE_TRANSCRIPTION_CONFIG } from "../../common/transcriptionDefaults.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { buildTranscriptBlocks } from "../components/subtitle/transcript/buildTranscriptBlocks";

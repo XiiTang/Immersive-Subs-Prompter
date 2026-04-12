@@ -58,7 +58,7 @@ desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20.19+ or 22.12+ and npm
 - Supported browsers:
   - **Chrome / Edge / Chromium-based browser**: Version 110+
   - **Firefox**: Version 109+ (Manifest V3 support required)
@@ -120,6 +120,7 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | ---- | ---- | ---- |
 | `desktop-app` | `npm run start` | Build + start Electron (watch-free) |
 | `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
+| `desktop-app` | `npm run typecheck:renderer` | Run `vue-tsc` against the renderer app source before packaging or larger refactors |
 | `desktop-app` | `npm run dist:win/mac/linux` | Generate installation package for the corresponding platform using electron-builder (Win version installer allows free path selection) |
 | `desktop-app` | `npm run dist:all` | Package Win/Mac/Linux simultaneously (must run on respective platforms) |
 | `extension` | `npm run build` | Build Chrome extension (default) |
