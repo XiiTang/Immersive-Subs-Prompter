@@ -7,6 +7,7 @@ export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
 export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "settings-back": "← 返回",
   "settings-title": "设置",
+  "settings-nav-aria-label": "设置分区导航",
   "section-global-settings": "全局设置",
   "global-general": "常规",
 

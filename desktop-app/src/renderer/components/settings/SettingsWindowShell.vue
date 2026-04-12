@@ -1,8 +1,14 @@
 <template>
   <section class="settings-window-shell settings-window-shell--document" data-testid="settings-shell">
-    <header class="settings-window-shell__header">Settings</header>
+    <header class="settings-window-shell__header">{{ settingsTitle }}</header>
     <div class="settings-window-shell__body">
-      <SettingsNav :sections="sections" :current-section="currentSection" @select="scrollToSection" />
+      <SettingsNav
+        :sections="sections"
+        :current-section="currentSection"
+        :title="settingsTitle"
+        :nav-aria-label="settingsNavAriaLabel"
+        @select="scrollToSection"
+      />
       <main
         ref="contentRef"
         class="settings-window-shell__content"
@@ -11,7 +17,7 @@
       >
         <div class="settings-document">
           <header class="settings-document__intro">
-            <h2 class="settings-document__title">Settings</h2>
+            <h2 class="settings-document__title">{{ settingsTitle }}</h2>
           </header>
           <section
             v-for="section in sections"
@@ -29,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import SettingsRules from "./SettingsRules.vue";
@@ -37,9 +43,16 @@ import SettingsTranscription from "./SettingsTranscription.vue";
 import SettingsMediaServer from "./SettingsMediaServer.vue";
 import SettingsCache from "./SettingsCache.vue";
 import SettingsNav from "./SettingsNav.vue";
-import { SETTINGS_SECTIONS, type SettingsSectionId } from "./settingsSections";
+import { buildSettingsSections, type SettingsSectionId } from "./settingsSections";
+import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
+import { useDesktopStore } from "../../stores/desktop";
 
-const sections = SETTINGS_SECTIONS;
+const store = useDesktopStore();
+const language = computed(() => normalizeLanguage(store.settings?.global.language ?? DEFAULT_LANGUAGE));
+const { t } = useI18n(language);
+const settingsTitle = computed(() => t("settings-title", "Settings"));
+const settingsNavAriaLabel = computed(() => t("settings-nav-aria-label", "Settings sections"));
+const sections = computed(() => buildSettingsSections(language.value));
 const currentSection = ref<SettingsSectionId>("general");
 const contentRef = ref<HTMLElement | null>(null);
 let sectionObserver: IntersectionObserver | null = null;
@@ -90,7 +103,7 @@ onMounted(() => {
     }
   );
 
-  for (const section of sections) {
+  for (const section of sections.value) {
     const element = document.getElementById(section.anchorId);
     if (element) {
       sectionObserver.observe(element);

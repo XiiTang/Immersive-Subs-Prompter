@@ -2,7 +2,6 @@
   <section class="settings-section">
     <header class="settings-section__intro settings-section__intro--with-toggle">
       <div>
-        <p class="settings-section__eyebrow">Cache</p>
         <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
       </div>
       <label class="toggle toggle--sm settings-section__toggle">

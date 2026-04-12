@@ -2,7 +2,6 @@
   <section class="settings-section">
     <header class="settings-section__intro">
       <div>
-        <p class="settings-section__eyebrow">Rules</p>
         <h3 class="settings-section__title">{{ t("section-rules", "URL Rules") }}</h3>
       </div>
     </header>

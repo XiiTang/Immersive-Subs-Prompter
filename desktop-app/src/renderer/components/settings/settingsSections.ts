@@ -1,34 +1,51 @@
-export const SETTINGS_SECTIONS = [
+import type { SupportedLanguage } from "../../i18n";
+import { translate } from "../../i18n";
+
+const SETTINGS_SECTION_DEFS = [
   {
     id: "general",
-    label: "General",
+    labelKey: "section-global-settings",
+    fallback: "Global Settings",
     anchorId: "settings-section-general"
   },
   {
     id: "profiles",
-    label: "Profiles",
+    labelKey: "section-profiles",
+    fallback: "Profiles",
     anchorId: "settings-section-profiles"
   },
   {
     id: "rules",
-    label: "Rules",
+    labelKey: "section-rules",
+    fallback: "URL Rules",
     anchorId: "settings-section-rules"
   },
   {
     id: "transcription",
-    label: "Transcription",
+    labelKey: "section-transcription",
+    fallback: "Speech Transcription",
     anchorId: "settings-section-transcription"
   },
   {
     id: "media-server",
-    label: "Media Server",
+    labelKey: "section-mediaserver",
+    fallback: "Media Server Integration",
     anchorId: "settings-section-media-server"
   },
   {
     id: "cache",
-    label: "Cache",
+    labelKey: "section-cache",
+    fallback: "Subtitle Cache",
     anchorId: "settings-section-cache"
   }
 ] as const;
 
-export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
+export function buildSettingsSections(language: SupportedLanguage) {
+  return SETTINGS_SECTION_DEFS.map((section) => ({
+    id: section.id,
+    label: translate(section.labelKey, section.fallback, language),
+    anchorId: section.anchorId
+  }));
+}
+
+export type SettingsSectionId = (typeof SETTINGS_SECTION_DEFS)[number]["id"];

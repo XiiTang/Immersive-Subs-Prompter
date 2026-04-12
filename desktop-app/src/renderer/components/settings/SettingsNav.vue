@@ -1,8 +1,7 @@
 <template>
-  <nav class="settings-nav" data-testid="settings-nav" aria-label="Settings sections">
+  <nav class="settings-nav" data-testid="settings-nav" :aria-label="navAriaLabel">
     <div class="settings-nav__meta">
-      <p class="settings-nav__eyebrow">Preferences</p>
-      <h1 class="settings-nav__title">Settings</h1>
+      <h1 class="settings-nav__title">{{ title }}</h1>
     </div>
     <button
       v-for="section in sections"
@@ -19,11 +18,17 @@
 </template>
 
 <script setup lang="ts">
-import type { SETTINGS_SECTIONS, SettingsSectionId } from "./settingsSections";
+import type { SettingsSectionId } from "./settingsSections";
 
 defineProps<{
-  sections: typeof SETTINGS_SECTIONS;
+  sections: ReadonlyArray<{
+    id: SettingsSectionId;
+    label: string;
+    anchorId: string;
+  }>;
   currentSection: SettingsSectionId;
+  title: string;
+  navAriaLabel: string;
 }>();
 
 defineEmits<{

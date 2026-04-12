@@ -2,7 +2,6 @@
   <section class="settings-section">
     <header class="settings-section__intro settings-section__intro--with-toggle">
       <div>
-        <p class="settings-section__eyebrow">Transcription</p>
         <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
       </div>
       <label class="toggle toggle--sm settings-section__toggle">

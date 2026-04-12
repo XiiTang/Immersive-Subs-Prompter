@@ -2,7 +2,6 @@
   <section class="settings-section">
     <header class="settings-section__intro">
       <div>
-        <p class="settings-section__eyebrow">Profiles</p>
         <h3 class="settings-section__title">{{ t("section-profiles", "Profiles") }}</h3>
       </div>
     </header>
