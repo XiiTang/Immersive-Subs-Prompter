@@ -1,5 +1,7 @@
 # Settings Panel Redesign Design
 
+> **Status:** ✅ COMPLETED - Implementation verified with 103 tests passing.
+
 ## Goal
 
 重构当前设置窗口的布局和 UI 风格，把它从“多个 section 和卡片堆叠起来的配置面板”整理成更接近桌面系统偏好设置的体验。
