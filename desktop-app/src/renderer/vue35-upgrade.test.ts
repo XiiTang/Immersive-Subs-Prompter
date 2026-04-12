@@ -10,14 +10,14 @@ function readDesktopFile(...segments: string[]) {
 }
 
 describe("Vue 3.5 upgrade", () => {
-  it("pins the desktop app to Vue 3.5", () => {
+  it("pins the desktop app to exact Vue 3.5 and Vue TSC versions", () => {
     const packageJson = JSON.parse(readDesktopFile("package.json")) as {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
 
-    expect(packageJson.dependencies?.vue).toMatch(/\^3\.5\./);
-    expect(packageJson.devDependencies?.["vue-tsc"]).toMatch(/\^3\./);
+    expect(packageJson.dependencies?.vue).toBe("3.5.32");
+    expect(packageJson.devDependencies?.["vue-tsc"]).toBe("3.2.6");
   });
 
   it("replaces legacy template refs with useTemplateRef", () => {

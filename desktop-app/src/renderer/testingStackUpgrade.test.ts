@@ -16,17 +16,17 @@ function readText(filePath: string) {
 }
 
 describe("testing stack upgrade", () => {
-  it("pins desktop renderer tests to Vitest browser mode on Vitest 4 and jsdom 29", () => {
+  it("pins desktop renderer tests to exact Vitest 4 and jsdom 29 versions", () => {
     const packageJson = readJson<{
       devDependencies?: Record<string, string>;
       scripts?: Record<string, string>;
     }>(path.join(desktopAppRoot, "package.json"));
     const vitestConfig = readText(path.join(desktopAppRoot, "vitest.config.ts"));
 
-    expect(packageJson.devDependencies?.vitest).toMatch(/\^4\./);
-    expect(packageJson.devDependencies?.jsdom).toMatch(/\^29\./);
-    expect(packageJson.devDependencies?.["@vitest/browser-playwright"]).toMatch(/\^4\./);
-    expect(packageJson.devDependencies?.playwright).toBeDefined();
+    expect(packageJson.devDependencies?.vitest).toBe("4.1.4");
+    expect(packageJson.devDependencies?.jsdom).toBe("29.0.0");
+    expect(packageJson.devDependencies?.["@vitest/browser-playwright"]).toBe("4.1.4");
+    expect(packageJson.devDependencies?.playwright).toBe("1.55.1");
     expect(packageJson.scripts?.["test:renderer"]).toContain("vitest run");
     expect(vitestConfig).toContain("projects:");
     expect(vitestConfig).toContain("name: \"browser\"");
@@ -37,15 +37,15 @@ describe("testing stack upgrade", () => {
     expect(vitestConfig).toContain("tracesDir: \"./.vitest-traces\"");
   });
 
-  it("pins extension tests to Vitest 4 on jsdom 29", () => {
+  it("pins extension tests to exact Vitest 4 and jsdom 29 versions", () => {
     const packageJson = readJson<{
       devDependencies?: Record<string, string>;
       scripts?: Record<string, string>;
     }>(path.join(extensionRoot, "package.json"));
     const vitestConfig = readText(path.join(extensionRoot, "vitest.config.js"));
 
-    expect(packageJson.devDependencies?.vitest).toMatch(/\^4\./);
-    expect(packageJson.devDependencies?.jsdom).toMatch(/\^29\./);
+    expect(packageJson.devDependencies?.vitest).toBe("4.1.4");
+    expect(packageJson.devDependencies?.jsdom).toBe("29.0.0");
     expect(packageJson.scripts?.test).toBe("vitest run");
     expect(vitestConfig).toContain('environment: "jsdom"');
     expect(vitestConfig).not.toContain("workspace");

@@ -26,7 +26,7 @@ export class JellyfinembyConnection {
   private lastActiveSessionItemId: string | null = null;
   // Track position for each itemId separately to detect real activity
   private itemPositionHistory = new Map<string, number>();
-  private readonly log = createLogger(`jellyfinemby:${this.config.id}`);
+  private readonly log;
   private readonly sessionManager: JellyfinembySessionManager;
   private readonly subtitleLoader: JellyfinembySubtitleLoader;
   private disposed = false;
@@ -37,6 +37,7 @@ export class JellyfinembyConnection {
     private readonly hooks: ConnectionHooks,
     cacheManager?: SubtitleCacheManager
   ) {
+    this.log = createLogger(`jellyfinemby:${this.config.id}`);
     this.sessionManager = new JellyfinembySessionManager(this.config);
     this.subtitleLoader = new JellyfinembySubtitleLoader(this.config, this.identity, this.sessionManager, this.log, cacheManager);
   }

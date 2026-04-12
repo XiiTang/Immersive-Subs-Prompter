@@ -18,10 +18,9 @@
       "vite/client",
       "node"
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/renderer/*"
+        "./src/renderer/*"
       ]
     }
   },
@@ -29,7 +28,7 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.d.ts",
     "src/renderer/**/*.vue",
-    "src/preload.ts",
+    "src/preload.cts",
     "src/main/types.ts"
   ],
   "exclude": [

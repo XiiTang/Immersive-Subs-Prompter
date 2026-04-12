@@ -40,7 +40,7 @@ export class WindowManager {
       fullscreenable: false,
       titleBarStyle: "hidden",
       webPreferences: {
-        preload: path.join(this.__dirname, "../../preload.js"),
+        preload: path.join(this.__dirname, "../../preload.cjs"),
         contextIsolation: true,
         nodeIntegration: false
       },

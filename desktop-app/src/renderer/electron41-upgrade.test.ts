@@ -15,7 +15,7 @@ describe("Electron 41 upgrade", () => {
     vi.doUnmock("electron");
   });
 
-  it("pins desktop dependencies to Electron 41 and switches desktop packaging to Electron Forge", () => {
+  it("pins desktop dependencies to exact Electron 41 era package versions and uses Electron Forge packaging", () => {
     const packageJson = JSON.parse(readDesktopFile("package.json")) as {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
@@ -23,21 +23,22 @@ describe("Electron 41 upgrade", () => {
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.dependencies?.["get-windows"]).toMatch(/\^9\./);
+    expect(packageJson.dependencies?.["get-windows"]).toBe("9.3.0");
     expect(packageJson.dependencies?.["active-win"]).toBeUndefined();
-    expect(packageJson.devDependencies?.electron).toMatch(/\^41\./);
+    expect(packageJson.devDependencies?.electron).toBe("41.2.0");
+    expect(packageJson.devDependencies?.["@electron/fuses"]).toBe("2.1.1");
     expect(packageJson.devDependencies?.["electron-builder"]).toBeUndefined();
-    expect(packageJson.devDependencies?.["@electron-forge/cli"]).toBeDefined();
-    expect(packageJson.devDependencies?.["@electron-forge/plugin-fuses"]).toBeDefined();
+    expect(packageJson.devDependencies?.["@electron-forge/cli"]).toBe("7.11.1");
+    expect(packageJson.devDependencies?.["@electron-forge/plugin-fuses"]).toBe("7.11.1");
     expect(packageJson.scripts?.["dist:win"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:mac"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:linux"]).toContain("electron-forge make");
     expect(packageJson.overrides).toMatchObject({
-      "@mapbox/node-pre-gyp": "^2.0.3",
-      "node-gyp": "^12.2.0",
-      "make-fetch-happen": "^15.0.5",
-      cacache: "^20.0.4",
-      tar: "^7.5.13"
+      "@mapbox/node-pre-gyp": "2.0.3",
+      "node-gyp": "12.2.0",
+      "make-fetch-happen": "15.0.5",
+      cacache: "20.0.4",
+      tar: "7.5.13"
     });
   });
 
@@ -50,6 +51,7 @@ describe("Electron 41 upgrade", () => {
   it("configures Electron Forge makers and fuses for ASAR integrity", () => {
     const source = readDesktopFile("forge.config.mjs");
 
+    expect(source).toContain("strictlyRequireAllFuses: true");
     expect(source).toContain("EnableEmbeddedAsarIntegrityValidation");
     expect(source).toContain("OnlyLoadAppFromAsar");
     expect(source).toContain("icon: path.join(__dirname, \"resources\", \"icon\")");

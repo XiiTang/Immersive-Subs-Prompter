@@ -59,6 +59,7 @@ desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 ### Prerequisites
 
 - Node.js 24+ and npm
+- Direct dependencies in both apps are pinned to exact versions; prefer `npm ci` over `npm install`
 - Playwright Chromium for desktop renderer tests: `cd desktop-app && npx playwright install chromium`
 - Supported browsers:
   - **Chrome / Edge / Chromium-based browser**: Version 110+
@@ -69,7 +70,7 @@ desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 
 ```bash
 cd desktop-app
-npm install
+npm ci
 npm run start   # Build TypeScript and start Electron
 ```
 
@@ -94,7 +95,7 @@ First, build the extension for your target browser:
 
 ```bash
 cd extension
-npm install
+npm ci
 npm run build:chrome   # For Chrome/Edge/Chromium
 npm run build:firefox  # For Firefox
 npm run build:all      # Build both versions

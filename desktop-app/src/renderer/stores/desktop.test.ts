@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AppSettings, DesktopState, RendererApi } from "../preload";
+import type { AppSettings, DesktopState, RendererApi } from "../preload.cts";
 import { useDesktopStore } from "./desktop";
 
 function createTrack(id: string) {

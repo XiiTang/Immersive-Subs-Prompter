@@ -25,13 +25,13 @@ If only used within the company, you can directly share the `extension/` directo
 
 ## 2. Electron Desktop Application
 
-Requires Node.js `20.19+` or `22.12+` because the desktop renderer now builds with Vite 8.
+Requires Node.js `24+` and npm because the repository now pins direct dependencies to exact versions and validates builds on the Node 24 toolchain.
 
 ### 2.1 Pure Build (Development / Beta Testing)
 
 ```bash
 cd desktop-app
-npm install
+npm ci
 npm run build   # Output to dist/
 electron .
 ```
@@ -44,7 +44,7 @@ The project now packages distributables through Electron Forge. Packaging still 
 
 ```bash
 cd desktop-app
-npm install
+npm ci
 npm run package     # Create an unpacked package in out/
 npm run dist:mac    # run dist:win on Windows, dist:linux on Linux
 ```
@@ -81,4 +81,4 @@ For offline installation or intranet environments, you can pre-place official bi
 | Subtitle Cache | Is the temporary subtitle directory on Electron side deleted after download, avoid remnants |
 | `yt-dlp` Version | If bundled for distribution, confirm version and license (Unlicense/MIT) information; show on About page if necessary |
 
-After completing the above steps, you can release to users: ① Plugin ZIP, ② Installation packages for each platform, ③ Corresponding release notes together.***
+After completing the above steps, you can release to users: ① Plugin ZIP, ② Installation packages for each platform, ③ Corresponding release notes together.
