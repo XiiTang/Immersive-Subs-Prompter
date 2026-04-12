@@ -126,6 +126,7 @@ globalspeed
 uv.lock
 
 # Test runner artifacts
+.vitest-a/
 .vitest-attachments/
 .vitest-traces/
 playwright-report/

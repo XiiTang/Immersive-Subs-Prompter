@@ -59,4 +59,11 @@ describe("testing stack upgrade", () => {
     expect(readme).toContain("Playwright");
     expect(readme).toContain("visual regression");
   });
+
+  it("ignores Vitest browser-mode failure artifacts in git", () => {
+    const gitignore = readText(path.join(repoRoot, ".gitignore"));
+
+    expect(gitignore).toContain(".vitest-a/");
+    expect(gitignore).toContain(".vitest-traces/");
+  });
 });
