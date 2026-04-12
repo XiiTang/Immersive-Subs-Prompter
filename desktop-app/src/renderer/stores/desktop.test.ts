@@ -167,7 +167,8 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
     onStateChange: vi.fn(),
     onPlayback: vi.fn(),
     onLoopCleared: vi.fn(),
-    onSettingsChange: vi.fn()
+    onSettingsChange: vi.fn(),
+    openSettingsWindow: vi.fn().mockResolvedValue({ success: true })
   };
 
   Object.defineProperty(window, "usp", {
@@ -191,15 +192,12 @@ describe("desktop store profile selection", () => {
     expect(store.editingProfileId).toBe("profile-bilibili");
   });
 
-  it("re-focuses the settings editor on the currently applied profile when opening settings", () => {
+  it("does not expose an embedded settings-open flag in the store state", () => {
+    installRendererApi(createDesktopState(), createSettings());
     const store = useDesktopStore();
-    store.settings = createSettings();
-    store.desktopState = createDesktopState();
-    store.editingProfileId = "profile-default";
 
-    store.setSettingsOpen(true);
-
-    expect(store.editingProfileId).toBe("profile-bilibili");
+    expect("isSettingsOpen" in store.$state).toBe(false);
+    expect(typeof window.usp.openSettingsWindow).toBe("function");
   });
 
   it("reuses transcript blocks across pure playback updates", () => {

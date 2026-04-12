@@ -120,7 +120,6 @@ export const useDesktopStore = defineStore("desktop", {
     playback: null as PlaybackState | null,
     isInitializing: false,
     initError: null as string | null,
-    isSettingsOpen: false,
     editingProfileId: null as string | null,
     cacheStats: null as CacheStats | null
   }),
@@ -225,13 +224,6 @@ export const useDesktopStore = defineStore("desktop", {
           this.playback = { ...this.playback, loop: null };
         }
       });
-    },
-    setSettingsOpen(next: boolean) {
-      if (next && this.settings?.profiles.length) {
-        this.editingProfileId =
-          this.desktopState?.appliedProfileId ?? this.settings.defaultProfileId ?? this.settings.profiles[0]?.id ?? null;
-      }
-      this.isSettingsOpen = next;
     },
     setEditingProfile(profileId: string) {
       if (!this.settings) {

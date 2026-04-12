@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -69,5 +69,37 @@ describe("testing stack upgrade", () => {
 
     expect(gitignore).toContain(".vitest-a/");
     expect(gitignore).toContain(".vitest-traces/");
+  });
+
+  it("documents the settings window preload and main-process wiring", () => {
+    const preload = readText(path.join(desktopAppRoot, "src/preload.cts"));
+    const windowHandlers = readText(path.join(desktopAppRoot, "src/main/ipc/handlers/windowHandlers.ts"));
+    const windowController = readText(path.join(desktopAppRoot, "src/main/window/windowController.ts"));
+
+    expect(preload).toContain("openSettingsWindow");
+    expect(windowHandlers).toContain("usp:open-settings-window");
+    expect(windowController).toContain("openSettingsWindow()");
+    expect(windowController).toContain("settingsWindowManager");
+  });
+
+  it("keeps the subtitle window free of embedded settings rendering", () => {
+    const appVue = readText(path.join(desktopAppRoot, "src/renderer/App.vue"));
+
+    expect(appVue).not.toContain("SettingsPanel");
+    expect(appVue).not.toContain("window--settings-open");
+  });
+
+  it("removes settings migration leftovers once the dedicated window is in place", () => {
+    const preload = readText(path.join(desktopAppRoot, "src/preload.cts"));
+    const ipcRouter = readText(path.join(desktopAppRoot, "src/main/ipc/ipcRouter.ts"));
+    const windowController = readText(path.join(desktopAppRoot, "src/main/window/windowController.ts"));
+    const shell = readText(path.join(desktopAppRoot, "src/renderer/components/settings/SettingsWindowShell.vue"));
+
+    expect(existsSync(path.join(desktopAppRoot, "src/renderer/components/SettingsPanel.vue"))).toBe(false);
+    expect(preload).not.toContain("getWindowKind");
+    expect(ipcRouter).not.toContain("getSettingsWindow");
+    expect(windowController).not.toContain("getSettingsWindow:");
+    expect(shell).toContain("currentSection === 'cache'");
+    expect(shell).not.toContain("<SettingsCache v-else />");
   });
 });

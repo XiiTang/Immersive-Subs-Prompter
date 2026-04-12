@@ -71,8 +71,10 @@ const api = {
   startTranscription: (): Promise<{ ok: boolean; error?: string; trackId?: string }> =>
     ipcRenderer.invoke("usp:start-transcription"),
   // 窗口拖拽 API (使用 Windows 原生 SC_MOVE 命令，无需轮询，无尺寸漂移)
-  startWindowDrag: (): Promise<{ success: boolean; native?: boolean; error?: string }> => 
-    ipcRenderer.invoke("usp:start-window-drag")
+  startWindowDrag: (): Promise<{ success: boolean; native?: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:start-window-drag"),
+  openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:open-settings-window")
 };
 
 contextBridge.exposeInMainWorld("usp", api);

@@ -28,6 +28,7 @@ export type IpcContext = {
   updateAppSettings: (partial: Partial<AppSettings>) => AppSettings;
   displayManager: DisplayManager;
   getMainWindow: () => BrowserWindow | null;
+  openSettingsWindow: () => BrowserWindow | null;
   logger: ReturnType<typeof createLogger>;
 };
 

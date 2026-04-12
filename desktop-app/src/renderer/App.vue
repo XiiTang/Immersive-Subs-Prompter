@@ -5,7 +5,6 @@
       <div class="primary-view">
         <SubtitleView />
       </div>
-      <SettingsPanel v-show="store.isSettingsOpen" />
     </div>
   </div>
 </template>
@@ -14,7 +13,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import HeaderBar from "./components/HeaderBar.vue";
 import SubtitleView from "./components/subtitle/SubtitleView.vue";
-import SettingsPanel from "./components/SettingsPanel.vue";
 import { useDesktopStore } from "./stores/desktop";
 import { normalizeLanguage } from "./i18n.js";
 
@@ -28,7 +26,6 @@ const videoInfoSectionElement = ref<HTMLElement | null>(null);
 
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
 const windowClasses = computed(() => ({
-  "window--settings-open": store.isSettingsOpen,
   "auto-hide-collapsed": autoHideCollapsed.value
 }));
 
@@ -50,7 +47,7 @@ function isPointerInsideElement(point: { x: number; y: number } | null, element:
 }
 
 function shouldShowPanels(pointer: { x: number; y: number } | null): boolean {
-  if (!autoHideEnabled.value || store.isSettingsOpen) {
+  if (!autoHideEnabled.value) {
     return true;
   }
   refreshAutoHideElements();
@@ -123,17 +120,6 @@ watch(autoHideEnabled, (enabled) => {
   }
   updateAutoHideState();
 });
-
-watch(
-  () => store.isSettingsOpen,
-  (open) => {
-    if (open) {
-      autoHideCollapsed.value = false;
-    } else {
-      updateAutoHideState();
-    }
-  }
-);
 
 watch(
   () => store.settings?.global.language,

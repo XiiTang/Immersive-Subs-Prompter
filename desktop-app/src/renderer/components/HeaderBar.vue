@@ -42,9 +42,8 @@
       <button
         class="icon-button"
         type="button"
-        :aria-pressed="store.isSettingsOpen"
         aria-label="Open settings"
-        @click="store.setSettingsOpen(!store.isSettingsOpen)"
+        @click="openSettingsWindow"
       >
         <span aria-hidden="true">⚙</span>
       </button>
@@ -68,21 +67,21 @@ const headerRef = useTemplateRef<HTMLElement>("headerRef");
 function handleMouseDown(event: MouseEvent) {
   // 只处理左键点击
   if (event.button !== 0) return;
-  
+
   // 检查是否点击了可交互元素
   if (isInteractiveElement(event.target as HTMLElement)) return;
 
   // 通知主进程启动原生窗口拖拽
   // Windows 原生 API 会接管后续操作，不需要监听 mouseup
   window.usp?.startWindowDrag?.();
-  
+
   event.preventDefault();
 }
 
 function isInteractiveElement(element: HTMLElement): boolean {
   const interactiveTags = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A'];
   const interactiveClasses = ['icon-button', 'slider', 'transparency-inline', 'window__header-actions'];
-  
+
   let current: HTMLElement | null = element;
   while (current && current !== headerRef.value) {
     if (interactiveTags.includes(current.tagName)) return true;
@@ -94,6 +93,10 @@ function isInteractiveElement(element: HTMLElement): boolean {
   return false;
 }
 // ===== END 窗口拖拽 =====
+
+async function openSettingsWindow() {
+  await window.usp?.openSettingsWindow?.();
+}
 
 const pinLabels: Record<string, string> = {
   off: "Not pinned",

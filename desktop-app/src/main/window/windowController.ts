@@ -15,6 +15,7 @@ import { GameProcessMonitor } from "./gameProcessMonitor.js";
 import { ShortcutManager } from "./shortcutManager.js";
 import { TrayManager } from "./trayManager.js";
 import { WindowManager } from "./windowManager.js";
+import { SettingsWindowManager } from "./settingsWindowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
 
@@ -39,6 +40,7 @@ export class WindowController {
   private readonly shortcutManager: ShortcutManager;
   private readonly trayManager: TrayManager;
   private readonly windowManager: WindowManager;
+  private readonly settingsWindowManager: SettingsWindowManager;
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
 
@@ -64,6 +66,13 @@ export class WindowController {
       },
       onClosed: () => this.displayManager.reset()
     });
+    this.settingsWindowManager = new SettingsWindowManager({
+      getWindowIconPath: () => this.getWindowIconPath(),
+      onDidFinishLoad: () => {
+        this.pushSettings();
+        this.pushState(this.options.stateManager.getState());
+      }
+    });
     this.gameProcessMonitor = new GameProcessMonitor({
       getBlacklist: () => this.options.getSettings().global.gameProcessBlacklist ?? [],
       onBlocked: () => this.shortcutManager.blockForGame(),
@@ -81,6 +90,7 @@ export class WindowController {
       updateAppSettings: (partial) => this.updateAppSettings(partial),
       displayManager: this.displayManager,
       getMainWindow: () => this.windowManager.getWindow(),
+      openSettingsWindow: () => this.openSettingsWindow(),
       logger: this.log
     });
   }
@@ -123,6 +133,10 @@ export class WindowController {
     this.windowManager.toggleWindow();
   }
 
+  openSettingsWindow() {
+    return this.settingsWindowManager.openSettingsWindow();
+  }
+
   /**
    * Quick show: Show window, lock to top, and set opacity to 100%
    */
@@ -162,9 +176,8 @@ export class WindowController {
   }
 
   private pushState(state: DesktopState) {
-    const window = this.windowManager.getWindow();
-    if (!window) return;
-    window.webContents.send("usp:state", state);
+    this.windowManager.getWindow()?.webContents.send("usp:state", state);
+    this.settingsWindowManager.getWindow()?.webContents.send("usp:state", state);
   }
 
   private sendPlaybackUpdate(playback: PlaybackState) {
@@ -174,9 +187,9 @@ export class WindowController {
   }
 
   private pushSettings() {
-    const window = this.windowManager.getWindow();
-    if (!window) return;
-    window.webContents.send("usp:settings", this.options.getSettings());
+    const settings = this.options.getSettings();
+    this.windowManager.getWindow()?.webContents.send("usp:settings", settings);
+    this.settingsWindowManager.getWindow()?.webContents.send("usp:settings", settings);
   }
 
   private applyGlobalShortcut() {

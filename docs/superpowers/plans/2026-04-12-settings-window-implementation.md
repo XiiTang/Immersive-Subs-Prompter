@@ -1,6 +1,6 @@
 # Settings Window Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Split settings out of the subtitle window into a dedicated fixed-size Electron window, then rebuild the settings UI around a left navigation rail and a right content area.
 
@@ -46,7 +46,7 @@
 - `desktop-app/src/main/ipc/handlers/windowHandlers.ts`
   Purpose: register explicit `usp:open-settings-window` and optional settings drag behavior.
 - `desktop-app/src/preload.cts`
-  Purpose: expose `openSettingsWindow()` and `getWindowKind()` to renderer code.
+  Purpose: expose `openSettingsWindow()` to renderer code.
 - `desktop-app/src/renderer/global.d.ts`
   Purpose: pick up the expanded preload API types.
 - `desktop-app/vite.config.ts`
@@ -62,7 +62,7 @@
 - `desktop-app/src/renderer/style.css`
   Purpose: drop embedded-settings styles and add shared shell/page layout styles for the settings window.
 - `desktop-app/src/renderer/components/SettingsPanel.vue`
-  Purpose: remove from the runtime path or delete after migration is complete.
+  Purpose: delete after migration is complete.
 - `desktop-app/src/renderer/components/settings/SettingsRules.vue`
   Purpose: reshape the page into list-plus-editor columns suitable for the dedicated window.
 - `desktop-app/src/renderer/components/settings/SettingsProfiles.browser.test.ts`
@@ -79,7 +79,7 @@
 - Modify: `desktop-app/src/main/ipc/handlers/windowHandlers.ts`
 - Test: `desktop-app/src/renderer/testingStackUpgrade.test.ts`
 
-- [ ] **Step 1: Add a failing API-presence test for the new window command**
+- [x] **Step 1: Add a failing API-presence test for the new window command**
 
 Append this test to `desktop-app/src/renderer/testingStackUpgrade.test.ts`:
 
@@ -96,13 +96,13 @@ Append this test to `desktop-app/src/renderer/testingStackUpgrade.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm it fails**
+- [x] **Step 2: Run the focused test and confirm it fails**
 
 Run: `npm --prefix desktop-app run test:renderer -- testingStackUpgrade`
 
 Expected: FAIL because the preload API, IPC handler, and controller wiring do not exist yet.
 
-- [ ] **Step 3: Add the dedicated settings window manager and IPC plumbing**
+- [x] **Step 3: Add the dedicated settings window manager and IPC plumbing**
 
 Create `desktop-app/src/main/window/settingsWindowManager.ts`:
 
@@ -147,6 +147,13 @@ export class SettingsWindowManager {
       resizable: false,
       fullscreenable: false,
       titleBarStyle: "hidden",
+      ...(process.platform === "win32" && {
+        titleBarOverlay: {
+          color: "#0d1117",
+          symbolColor: "#e5e5e5",
+          height: 48
+        }
+      }),
       backgroundColor: "#101418",
       webPreferences: {
         preload: path.join(this.__dirname, "../../preload.cjs"),
@@ -175,7 +182,6 @@ export class SettingsWindowManager {
 Update `desktop-app/src/main/ipc/ipcRouter.ts` context:
 
 ```ts
-  getSettingsWindow: () => BrowserWindow | null;
   openSettingsWindow: () => BrowserWindow | null;
 ```
 
@@ -208,7 +214,6 @@ Update `desktop-app/src/main/window/windowController.ts` constructor fields and 
 ```
 
 ```ts
-      getSettingsWindow: () => this.settingsWindowManager.getWindow(),
       openSettingsWindow: () => this.openSettingsWindow(),
 ```
 
@@ -218,13 +223,13 @@ Update `desktop-app/src/main/window/windowController.ts` constructor fields and 
   }
 ```
 
-- [ ] **Step 4: Re-run the focused test**
+- [x] **Step 4: Re-run the focused test**
 
 Run: `npm --prefix desktop-app run test:renderer -- testingStackUpgrade`
 
 Expected: PASS for the new assertions covering preload/IPC/controller wiring text.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop-app/src/main/window/settingsWindowManager.ts \
@@ -248,7 +253,7 @@ git commit -m "feat: add dedicated settings window manager"
 - Modify: `desktop-app/src/renderer/stores/desktop.ts`
 - Test: `desktop-app/src/renderer/stores/desktop.test.ts`
 
-- [ ] **Step 1: Write a failing store/UI regression test for the old embedded-settings state**
+- [x] **Step 1: Write a failing store/UI regression test for the old embedded-settings state**
 
 Append this test to `desktop-app/src/renderer/stores/desktop.test.ts`:
 
@@ -261,21 +266,19 @@ Append this test to `desktop-app/src/renderer/stores/desktop.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run the store test and confirm it fails**
+- [x] **Step 2: Run the store test and confirm it fails**
 
 Run: `npm --prefix desktop-app run test:renderer -- desktop.test`
 
 Expected: FAIL because `isSettingsOpen` still exists and `openSettingsWindow` is not part of the preload API yet.
 
-- [ ] **Step 3: Add explicit preload APIs and a second renderer entry**
+- [x] **Step 3: Add explicit preload APIs and a second renderer entry**
 
 Update `desktop-app/src/preload.cts`:
 
 ```ts
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-settings-window"),
-  getWindowKind: (): "main" | "settings" =>
-    location.pathname.endsWith("/settings.html") ? "settings" : "main",
 ```
 
 Update `desktop-app/vite.config.ts` build input:
@@ -368,7 +371,7 @@ const windowClasses = computed(() => ({
 }));
 ```
 
-- [ ] **Step 4: Re-run the focused test and a renderer typecheck**
+- [x] **Step 4: Re-run the focused test and a renderer typecheck**
 
 Run: `npm --prefix desktop-app run test:renderer -- desktop.test`
 
@@ -378,7 +381,7 @@ Run: `npm --prefix desktop-app run typecheck:renderer`
 
 Expected: PASS with the expanded preload API reflected in `global.d.ts`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop-app/src/preload.cts \
@@ -402,9 +405,9 @@ git commit -m "refactor: split settings into dedicated renderer entry"
 - Create: `desktop-app/src/renderer/components/settings/SettingsWindowShell.vue`
 - Create: `desktop-app/src/renderer/components/settings/SettingsWindowShell.test.ts`
 - Modify: `desktop-app/src/renderer/style.css`
-- Modify: `desktop-app/src/renderer/components/SettingsPanel.vue`
+- Delete: `desktop-app/src/renderer/components/SettingsPanel.vue`
 
-- [ ] **Step 1: Add a failing shell test for left navigation and default page selection**
+- [x] **Step 1: Add a failing shell test for left navigation and default page selection**
 
 Create `desktop-app/src/renderer/components/settings/SettingsWindowShell.test.ts`:
 
@@ -435,13 +438,13 @@ describe("SettingsWindowShell", () => {
 });
 ```
 
-- [ ] **Step 2: Run the shell test and confirm it fails**
+- [x] **Step 2: Run the shell test and confirm it fails**
 
 Run: `npm --prefix desktop-app run test:renderer -- SettingsWindowShell`
 
 Expected: FAIL because the shell/nav files do not exist yet.
 
-- [ ] **Step 3: Create the settings shell, nav, and renderer root**
+- [x] **Step 3: Create the settings shell, nav, and renderer root**
 
 Create `desktop-app/src/renderer/components/settings/settingsSections.ts`:
 
@@ -492,7 +495,7 @@ Create `desktop-app/src/renderer/components/settings/SettingsWindowShell.vue`:
         <SettingsRules v-else-if="currentSection === 'rules'" />
         <SettingsTranscription v-else-if="currentSection === 'transcription'" />
         <SettingsMediaServer v-else-if="currentSection === 'media-server'" />
-        <SettingsCache v-else />
+        <SettingsCache v-else-if="currentSection === 'cache'" />
       </main>
     </div>
   </section>
@@ -557,12 +560,13 @@ Update `desktop-app/src/renderer/style.css` with shell scaffolding:
 .settings-window-shell {
   display: grid;
   grid-template-rows: 48px 1fr;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .settings-window-shell__body {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
+  height: 100%;
 }
 
 .settings-nav {
@@ -571,13 +575,13 @@ Update `desktop-app/src/renderer/style.css` with shell scaffolding:
 }
 ```
 
-- [ ] **Step 4: Re-run the shell test**
+- [x] **Step 4: Re-run the shell test**
 
 Run: `npm --prefix desktop-app run test:renderer -- SettingsWindowShell`
 
 Expected: PASS with General selected by default and the nav rendered.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop-app/src/renderer/SettingsApp.vue \
@@ -601,7 +605,7 @@ git commit -m "feat: add settings window shell and navigation"
 - Create: `desktop-app/src/renderer/components/settings/SettingsRules.browser.test.ts`
 - Test: `desktop-app/src/renderer/components/settings/SettingsProfiles.browser.test.ts`
 
-- [ ] **Step 1: Add a failing browser-mode test for the Rules dual-pane layout**
+- [x] **Step 1: Add a failing browser-mode test for the Rules dual-pane layout**
 
 Create `desktop-app/src/renderer/components/settings/SettingsRules.browser.test.ts`:
 
@@ -653,13 +657,13 @@ describe("SettingsRules", () => {
 });
 ```
 
-- [ ] **Step 2: Run the browser-mode test and confirm it fails**
+- [x] **Step 2: Run the browser-mode test and confirm it fails**
 
 Run: `npm --prefix desktop-app run test:renderer:browser -- SettingsRules`
 
 Expected: FAIL because `SettingsRules.vue` still renders a vertical list-plus-form stack and the new data-testid hooks do not exist.
 
-- [ ] **Step 3: Rebuild the settings pages for the fixed shell, prioritizing Rules**
+- [x] **Step 3: Rebuild the settings pages for the fixed shell, prioritizing Rules**
 
 Update `desktop-app/src/renderer/components/settings/SettingsRules.vue` to use an explicit two-pane structure:
 
@@ -693,7 +697,7 @@ Also make these shell-fit adjustments:
 - `SettingsProfiles.vue`, `SettingsTranscription.vue`, `SettingsMediaServer.vue`: keep their inner list/editor pattern, but ensure the outermost wrapper stretches to the shell height and uses one scroll container per page.
 - `SettingsCache.vue`: wrap the page in the shared section class so it matches the new shell spacing.
 
-- [ ] **Step 4: Re-run the browser-mode Rules test and a focused existing settings test**
+- [x] **Step 4: Re-run the browser-mode Rules test and a focused existing settings test**
 
 Run: `npm --prefix desktop-app run test:renderer:browser -- SettingsRules`
 
@@ -703,7 +707,7 @@ Run: `npm --prefix desktop-app run test:renderer -- SettingsProfiles`
 
 Expected: PASS, confirming the existing complex settings page still mounts correctly inside the new shell assumptions.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop-app/src/renderer/components/settings/SettingsGlobal.vue \
@@ -720,12 +724,12 @@ git commit -m "feat: move settings pages into dedicated shell"
 
 **Files:**
 - Modify: `desktop-app/src/main/window/windowController.ts`
-- Modify: `desktop-app/src/renderer/components/SettingsPanel.vue`
+- Delete: `desktop-app/src/renderer/components/SettingsPanel.vue`
 - Modify: `desktop-app/src/renderer/style.css`
 - Test: `desktop-app/src/renderer/components/settings/SettingsWindowShell.test.ts`
 - Test: `desktop-app/src/renderer/testingStackUpgrade.test.ts`
 
-- [ ] **Step 1: Add a failing integration assertion that the subtitle app no longer references `SettingsPanel`**
+- [x] **Step 1: Add a failing integration assertion that the subtitle app no longer references `SettingsPanel`**
 
 Append this test to `desktop-app/src/renderer/testingStackUpgrade.test.ts`:
 
@@ -738,21 +742,15 @@ Append this test to `desktop-app/src/renderer/testingStackUpgrade.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm it fails before cleanup**
+- [x] **Step 2: Run the focused test and confirm it fails before cleanup**
 
 Run: `npm --prefix desktop-app run test:renderer -- testingStackUpgrade`
 
 Expected: FAIL until the last embedded settings references are removed.
 
-- [ ] **Step 3: Finish cleanup and run the full desktop verification sweep**
+- [x] **Step 3: Finish cleanup and run the full desktop verification sweep**
 
-Delete the old `SettingsPanel` runtime path. Either remove `desktop-app/src/renderer/components/SettingsPanel.vue` entirely or replace it with a dead-end comment component that is not imported anywhere:
-
-```vue
-<template>
-  <div class="settings-panel-retired">Settings now live in the dedicated settings window.</div>
-</template>
-```
+Delete `desktop-app/src/renderer/components/SettingsPanel.vue` entirely.
 
 Remove stale `.window--settings-open` styles from `desktop-app/src/renderer/style.css`.
 
@@ -797,18 +795,17 @@ Run:
 
 Expected: PASS
 
-- [ ] **Step 4: Build the desktop app to verify both renderer entries are emitted**
+- [x] **Step 4: Build the desktop app to verify both renderer entries are emitted**
 
 Run: `npm --prefix desktop-app run build`
 
 Expected: PASS and `desktop-app/dist/renderer/settings.html` exists alongside `index.html`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop-app/src/main/window/windowController.ts \
   desktop-app/src/renderer/App.vue \
-  desktop-app/src/renderer/components/SettingsPanel.vue \
   desktop-app/src/renderer/style.css \
   desktop-app/src/renderer/testingStackUpgrade.test.ts
 git commit -m "refactor: remove embedded settings panel flow"
