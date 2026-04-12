@@ -23,7 +23,11 @@ export class TrayManager {
     }
 
     const iconPath = this.options.getTrayIconPath();
-    const icon = nativeImage.createFromPath(iconPath);
+    let icon = nativeImage.createFromPath(iconPath);
+    if (process.platform === "darwin") {
+      // macOS menu bar icons must be small; 32x32 displays at 16x16 on Retina
+      icon = icon.resize({ width: 32, height: 32 });
+    }
     this.tray = new Tray(icon, TRAY_GUID);
     this.tray.setToolTip("Immersive Subs Prompter");
     this.currentLanguage = normalizeLanguage(this.options.getLanguage());
