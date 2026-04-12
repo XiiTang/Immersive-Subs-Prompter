@@ -28,8 +28,14 @@ describe("Electron 41 upgrade", () => {
     expect(packageJson.devDependencies?.electron).toBe("41.2.0");
     expect(packageJson.devDependencies?.["@electron/fuses"]).toBe("2.1.1");
     expect(packageJson.devDependencies?.["electron-builder"]).toBeUndefined();
-    expect(packageJson.devDependencies?.["@electron-forge/cli"]).toBe("7.11.1");
-    expect(packageJson.devDependencies?.["@electron-forge/plugin-fuses"]).toBe("7.11.1");
+    expect(packageJson.devDependencies?.["@electron-forge/cli"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/maker-deb"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/maker-dmg"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/maker-rpm"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/maker-squirrel"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/maker-zip"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/plugin-auto-unpack-natives"]).toBe("8.0.0-alpha.7");
+    expect(packageJson.devDependencies?.["@electron-forge/plugin-fuses"]).toBe("8.0.0-alpha.7");
     expect(packageJson.scripts?.["dist:win"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:mac"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:linux"]).toContain("electron-forge make");
