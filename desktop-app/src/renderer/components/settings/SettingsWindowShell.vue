@@ -11,11 +11,7 @@
       >
         <div class="settings-document">
           <header class="settings-document__intro">
-            <p class="settings-document__eyebrow">Preferences</p>
-            <h2 class="settings-document__title">Tune the app without losing context.</h2>
-            <p class="settings-document__description">
-              Navigate from the left, edit on the right, and keep every section in one continuous reading flow.
-            </p>
+            <h2 class="settings-document__title">Settings</h2>
           </header>
           <section
             v-for="section in sections"

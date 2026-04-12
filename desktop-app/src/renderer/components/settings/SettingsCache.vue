@@ -4,9 +4,6 @@
       <div>
         <p class="settings-section__eyebrow">Cache</p>
         <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
-        <p class="settings-section__description">
-          Review cache storage, retention, and quick maintenance actions near the end of the settings document.
-        </p>
       </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="cacheEnabled" />
@@ -19,7 +16,6 @@
       <div class="settings-group">
         <div class="settings-group__header">
           <h4 class="settings-group__title">Storage</h4>
-          <p class="settings-group__description">Choose where cache files live and how long they stay around.</p>
         </div>
         <div class="fw-row">
         <div class="fw-field" style="flex: 1; min-width: 0;">
@@ -60,7 +56,6 @@
       <div class="settings-group">
          <div class="settings-group__header">
           <h4 class="settings-group__title">Usage</h4>
-          <p class="settings-group__description">Inspect the current cache footprint and refresh the stats on demand.</p>
         </div>
       <div class="fw-status-row settings-status-row">
          <div class="fw-status-item">

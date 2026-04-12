@@ -4,9 +4,6 @@
       <div>
         <p class="settings-section__eyebrow">Transcription</p>
         <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
-        <p class="settings-section__description">
-          Configure providers, prompts, and local runtime settings for transcript extraction.
-        </p>
       </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="transcriptionEnabled" />

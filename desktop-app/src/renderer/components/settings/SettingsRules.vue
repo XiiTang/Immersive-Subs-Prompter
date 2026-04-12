@@ -4,9 +4,6 @@
       <div>
         <p class="settings-section__eyebrow">Rules</p>
         <h3 class="settings-section__title">{{ t("section-rules", "URL Rules") }}</h3>
-        <p class="settings-section__description">
-          Match URLs to profiles with a lightweight list on the left and editor on the right.
-        </p>
       </div>
     </header>
     <div class="settings-split settings-surface settings-surface--split">

@@ -4,9 +4,6 @@
       <div>
         <p class="settings-section__eyebrow">General</p>
         <h3 class="settings-section__title">{{ t("section-global-settings", "Global Settings") }}</h3>
-        <p class="settings-section__description">
-          Language, startup behavior, connectivity, and shortcut rules for the desktop app.
-        </p>
       </div>
     </header>
 
@@ -14,7 +11,6 @@
       <div class="settings-group">
         <div class="settings-group__header">
           <h4 class="settings-group__title">{{ t("global-general", "General") }}</h4>
-          <p class="settings-group__description">Choose the interface language and startup defaults.</p>
         </div>
 
         <div class="settings-fields-grid settings-fields-grid--two-col">
@@ -39,7 +35,6 @@
       <div class="settings-group">
         <div class="settings-group__header">
           <h4 class="settings-group__title">{{ t("global-network", "Network & Connections") }}</h4>
-          <p class="settings-group__description">Configure how the desktop app listens for local connections.</p>
         </div>
 
         <div class="settings-fields-grid settings-fields-grid--two-col">
@@ -67,7 +62,6 @@
       <div class="settings-group">
         <div class="settings-group__header">
           <h4 class="settings-group__title">{{ t("global-shortcuts", "Shortcuts & Interaction") }}</h4>
-          <p class="settings-group__description">Set the global shortcut and block it for specific foreground processes.</p>
         </div>
 
         <div class="settings-field settings-field--compact">

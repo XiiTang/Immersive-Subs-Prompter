@@ -4,9 +4,6 @@
       <div>
         <p class="settings-section__eyebrow">Media Server</p>
         <h3 class="settings-section__title">{{ t("section-mediaserver", "Media Server Integration") }}</h3>
-        <p class="settings-section__description">
-          Manage server connections and playback integration without leaving the document flow.
-        </p>
       </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="mediaServerEnabled" />
