@@ -45,13 +45,21 @@ describe("testing stack upgrade", () => {
       devDependencies?: Record<string, string>;
       scripts?: Record<string, string>;
     }>(path.join(extensionRoot, "package.json"));
-    const vitestConfig = readText(path.join(extensionRoot, "vitest.config.js"));
+    const vitestConfig = readText(path.join(extensionRoot, "vitest.config.ts"));
+    const tsconfig = readText(path.join(extensionRoot, "tsconfig.json"));
 
     expect(packageJson.devDependencies?.vitest).toBe("4.1.4");
     expect(packageJson.devDependencies?.jsdom).toBe("29.0.2");
+    expect(packageJson.devDependencies?.typescript).toBe("^5.9.2");
+    expect(packageJson.devDependencies?.tsx).toBe("^4.20.5");
+    expect(packageJson.scripts?.typecheck).toBe("tsc -p tsconfig.json --noEmit");
     expect(packageJson.scripts?.test).toBe("vitest run");
     expect(vitestConfig).toContain('environment: "jsdom"');
+    expect(vitestConfig).toContain('include: ["src/**/*.test.ts"]');
+    expect(vitestConfig).toContain('setupFiles: ["./src/test/setup.ts"]');
     expect(vitestConfig).not.toContain("workspace");
+    expect(tsconfig).toContain('"strict": true');
+    expect(tsconfig).toContain('"noEmit": true');
   });
 
   it("documents the final Playwright and jsdom package baselines in the repository README", () => {

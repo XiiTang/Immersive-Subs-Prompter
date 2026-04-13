@@ -157,7 +157,7 @@ For detailed procedures (including extension packaging, Electron Forge distribut
 ## Troubleshooting
 
 - **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
-- **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Extension endpoints are managed in the popup and background TypeScript source under `extension/src/`, not a hard-coded `extension/background.js` file anymore.
+- **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Check the extension popup's `Desktop Apps` endpoint list first; the default endpoint is configured in `extension/src/background.ts` and persisted through the background endpoint manager, rather than a hard-coded legacy `extension/background.js` file.
 - **Missing subtitles**: Some videos don't provide subtitles or `yt-dlp` cannot fetch them. Check the desktop app console/terminal logs for `yt-dlp` output.
 - **Windows PowerShell log garbled text**:
   - **Cause**: Windows PowerShell defaults to GBK encoding, while the app logs use UTF-8 encoding, causing Chinese characters to display as garbled text.

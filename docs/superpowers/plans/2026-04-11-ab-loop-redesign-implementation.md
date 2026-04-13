@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the existing “extension time updates + desktop predicted playback” model, but add a shared loop-session payload so the extension can mark `loop-wrap` boundaries explicitly. On the renderer side, split A-B endpoint UI state from loop playback state, add a focused helper for `AB/A/B` label resolution, and treat auto-follow pause as an intent-based state machine instead of a generic DOM side effect.
 
-**Tech Stack:** Electron main/renderer, Vue 3, TypeScript, Pinia, Vitest, Vue Test Utils, browser extension ES modules, jsdom
+**Tech Stack:** Electron main/renderer, Vue 3, TypeScript, Pinia, Vitest, Vue Test Utils, browser extension TypeScript + esbuild, jsdom
 
 ---
 
@@ -14,13 +14,13 @@
 
 ### New Files
 
-- `extension/vitest.config.js`
+- `extension/vitest.config.ts`
   Purpose: add a minimal jsdom-based unit-test harness for extension modules.
-- `extension/src/test/setup.js`
+- `extension/src/test/setup.ts`
   Purpose: provide stable browser-like globals and timer cleanup for extension unit tests.
-- `extension/src/video/LoopController.test.js`
+- `extension/src/video/LoopController.test.ts`
   Purpose: lock in loop session creation, loop-wrap emission, and cleanup behavior.
-- `extension/src/background/messaging/ContentMessageRouter.test.js`
+- `extension/src/background/messaging/ContentMessageRouter.test.ts`
   Purpose: lock in loop metadata forwarding from content scripts to desktop clients.
 - `desktop-app/src/renderer/components/subtitle/abLoopSelection.ts`
   Purpose: hold pure `AB/A/B` endpoint-selection state transitions so `SubtitleView.vue` does not own the whole state machine inline.
@@ -35,15 +35,15 @@
   Purpose: add a test script and dev dependencies for the extension test harness.
 - `extension/package-lock.json`
   Purpose: record the extension test harness dependency updates.
-- `extension/src/content/state.js`
+- `extension/src/content/state.ts`
   Purpose: expand loop runtime state to store loop mode, endpoint metadata, and programmatic seek reason.
-- `extension/src/video/LoopController.js`
+- `extension/src/video/LoopController.ts`
   Purpose: manage loop sessions, emit `loop-wrap` metadata, and keep time updates flowing during loop playback.
-- `extension/src/video/ControlHandler.js`
+- `extension/src/video/ControlHandler.ts`
   Purpose: pass loop mode / endpoint payload from desktop commands into the loop controller.
-- `extension/src/video/VideoStateGatherer.js`
+- `extension/src/video/VideoStateGatherer.ts`
   Purpose: attach loop metadata and boundary-transition reason to outgoing `time-update` payloads.
-- `extension/src/background/messaging/ContentMessageRouter.js`
+- `extension/src/background/messaging/ContentMessageRouter.ts`
   Purpose: preserve loop metadata while forwarding media updates to the desktop app.
 - `desktop-app/src/main/types.ts`
   Purpose: define shared loop-session and boundary-transition types for desktop runtime and renderer code.
@@ -83,15 +83,15 @@
 ## Task 1: Add Extension Test Harness
 
 **Files:**
-- Create: `extension/vitest.config.js`
-- Create: `extension/src/test/setup.js`
+- Create: `extension/vitest.config.ts`
+- Create: `extension/src/test/setup.ts`
 - Modify: `extension/package.json`
 - Modify: `extension/package-lock.json`
-- Test: `extension/src/video/LoopController.test.js`
+- Test: `extension/src/video/LoopController.test.ts`
 
 - [ ] **Step 1: Add a failing extension smoke test**
 
-Create `extension/src/video/LoopController.test.js`:
+Create `extension/src/video/LoopController.test.ts`:
 
 ```js
 import { describe, expect, it } from "vitest";
@@ -117,8 +117,9 @@ Update `extension/package.json`:
 {
   "scripts": {
     "build": "npm run build:chrome && npm run build:firefox",
-    "build:chrome": "node ./build.js chrome",
-    "build:firefox": "node ./build.js firefox",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:chrome": "tsx ./esbuild.config.ts chrome",
+    "build:firefox": "tsx ./esbuild.config.ts firefox",
     "build:all": "npm run build:chrome && npm run build:firefox",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -131,7 +132,7 @@ Update `extension/package.json`:
 }
 ```
 
-Create `extension/vitest.config.js`:
+Create `extension/vitest.config.ts`:
 
 ```js
 import { defineConfig } from "vitest/config";
@@ -140,13 +141,13 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    include: ["src/**/*.test.js"],
-    setupFiles: ["./src/test/setup.js"]
+    include: ["src/**/*.test.ts"],
+    setupFiles: ["./src/test/setup.ts"]
   }
 });
 ```
 
-Create `extension/src/test/setup.js`:
+Create `extension/src/test/setup.ts`:
 
 ```js
 import { afterEach, beforeEach, vi } from "vitest";
@@ -173,22 +174,22 @@ Expected: PASS with one green smoke test.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add extension/package.json extension/package-lock.json extension/vitest.config.js extension/src/test/setup.js extension/src/video/LoopController.test.js
+git add extension/package.json extension/package-lock.json extension/vitest.config.ts extension/src/test/setup.ts extension/src/video/LoopController.test.ts
 git commit -m "test: add extension vitest harness"
 ```
 
 ## Task 2: Add Extension Loop Session Metadata And `loop-wrap` Emission
 
 **Files:**
-- Modify: `extension/src/content/state.js`
-- Modify: `extension/src/video/LoopController.js`
-- Modify: `extension/src/video/ControlHandler.js`
-- Modify: `extension/src/video/VideoStateGatherer.js`
-- Test: `extension/src/video/LoopController.test.js`
+- Modify: `extension/src/content/state.ts`
+- Modify: `extension/src/video/LoopController.ts`
+- Modify: `extension/src/video/ControlHandler.ts`
+- Modify: `extension/src/video/VideoStateGatherer.ts`
+- Test: `extension/src/video/LoopController.test.ts`
 
 - [ ] **Step 1: Replace the smoke test with failing loop-session tests**
 
-Update `extension/src/video/LoopController.test.js`:
+Update `extension/src/video/LoopController.test.ts`:
 
 ```js
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -290,7 +291,7 @@ Expected: FAIL because `state.loop` does not yet store endpoint metadata, `start
 
 - [ ] **Step 3: Implement loop session metadata in extension runtime**
 
-Update `extension/src/content/state.js`:
+Update `extension/src/content/state.ts`:
 
 ```js
   loop: {
@@ -308,7 +309,7 @@ Update `extension/src/content/state.js`:
   },
 ```
 
-Update `extension/src/video/LoopController.js`:
+Update `extension/src/video/LoopController.ts`:
 
 ```js
 function applyLoopWrap(video) {
@@ -358,7 +359,7 @@ Update the interval branch:
 
 Update `clearLoopState()` so every loop field resets to `null` or `"none"`.
 
-Update `extension/src/video/ControlHandler.js`:
+Update `extension/src/video/ControlHandler.ts`:
 
 ```js
     case "loop":
@@ -375,7 +376,7 @@ Update `extension/src/video/ControlHandler.js`:
       }
 ```
 
-Update `extension/src/video/VideoStateGatherer.js` so `gatherVideoState()` includes loop metadata:
+Update `extension/src/video/VideoStateGatherer.ts` so `gatherVideoState()` includes loop metadata:
 
 ```js
     loopMode: state.loop.mode,
@@ -398,22 +399,22 @@ Expected: PASS with the three loop-session tests green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add extension/src/content/state.js extension/src/video/LoopController.js extension/src/video/ControlHandler.js extension/src/video/VideoStateGatherer.js extension/src/video/LoopController.test.js
+git add extension/src/content/state.ts extension/src/video/LoopController.ts extension/src/video/ControlHandler.ts extension/src/video/VideoStateGatherer.ts extension/src/video/LoopController.test.ts
 git commit -m "feat: add extension loop session metadata"
 ```
 
 ## Task 3: Forward Loop Metadata Into Desktop Playback State
 
 **Files:**
-- Modify: `extension/src/background/messaging/ContentMessageRouter.js`
-- Create: `extension/src/background/messaging/ContentMessageRouter.test.js`
+- Modify: `extension/src/background/messaging/ContentMessageRouter.ts`
+- Create: `extension/src/background/messaging/ContentMessageRouter.test.ts`
 - Modify: `desktop-app/src/main/types.ts`
 - Modify: `desktop-app/src/main/stateManager.ts`
 - Modify: `desktop-app/src/main/connectionManager.ts`
 
 - [ ] **Step 1: Add failing router and desktop-state tests**
 
-Create `extension/src/background/messaging/ContentMessageRouter.test.js`:
+Create `extension/src/background/messaging/ContentMessageRouter.test.ts`:
 
 ```js
 import { describe, expect, it, vi } from "vitest";
@@ -557,7 +558,7 @@ Extend `ExtensionPayload` and `VideoControlCommand`:
     }
 ```
 
-Update `extension/src/background/messaging/ContentMessageRouter.js` so `setState()` and `broadcast()` keep loop metadata in the media patch.
+Update `extension/src/background/messaging/ContentMessageRouter.ts` so `setState()` and `broadcast()` keep loop metadata in the media patch.
 
 Update the `PlaybackState` defaults in `desktop-app/src/main/stateManager.ts`:
 
@@ -644,7 +645,7 @@ Expected: PASS with renderer store retaining `loopSession` and `loopBoundaryTran
 - [ ] **Step 5: Commit**
 
 ```bash
-git add extension/src/background/messaging/ContentMessageRouter.js extension/src/background/messaging/ContentMessageRouter.test.js desktop-app/src/main/types.ts desktop-app/src/main/stateManager.ts desktop-app/src/main/connectionManager.ts desktop-app/src/renderer/stores/desktop.test.ts
+git add extension/src/background/messaging/ContentMessageRouter.ts extension/src/background/messaging/ContentMessageRouter.test.ts desktop-app/src/main/types.ts desktop-app/src/main/stateManager.ts desktop-app/src/main/connectionManager.ts desktop-app/src/renderer/stores/desktop.test.ts
 git commit -m "feat: forward loop metadata into desktop playback"
 ```
 
@@ -1197,8 +1198,8 @@ git commit -m "feat: protect loop-wrap playback in renderer"
 **Files:**
 - Modify: `desktop-app/src/renderer/components/subtitle/SubtitleView.test.ts`
 - Modify: `desktop-app/src/renderer/components/subtitle/TranscriptSurface.test.ts`
-- Modify: `extension/src/video/LoopController.test.js`
-- Modify: `extension/src/background/messaging/ContentMessageRouter.test.js`
+- Modify: `extension/src/video/LoopController.test.ts`
+- Modify: `extension/src/background/messaging/ContentMessageRouter.test.ts`
 
 - [ ] **Step 1: Add end-to-end verification tests for the approved acceptance criteria**
 
@@ -1244,7 +1245,7 @@ Append this test to `desktop-app/src/renderer/components/subtitle/SubtitleView.t
   });
 ```
 
-Append this extension integration-style assertion to `extension/src/video/LoopController.test.js`:
+Append this extension integration-style assertion to `extension/src/video/LoopController.test.ts`:
 
 ```js
   it("keeps emitting plain time updates after a loop-wrap frame", () => {
@@ -1289,7 +1290,7 @@ Expected: PASS with TypeScript and Vite build completing without new errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add extension/src/video/LoopController.test.js extension/src/background/messaging/ContentMessageRouter.test.js desktop-app/src/renderer/components/subtitle/SubtitleView.test.ts desktop-app/src/renderer/components/subtitle/TranscriptSurface.test.ts
+git add extension/src/video/LoopController.test.ts extension/src/background/messaging/ContentMessageRouter.test.ts desktop-app/src/renderer/components/subtitle/SubtitleView.test.ts desktop-app/src/renderer/components/subtitle/TranscriptSurface.test.ts
 git commit -m "test: verify AB loop redesign end to end"
 ```
 

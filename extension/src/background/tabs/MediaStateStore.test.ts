@@ -1,0 +1,68 @@
+import { describe, expect, it, vi } from "vitest";
+import { MediaStateStore } from "./MediaStateStore";
+
+describe("MediaStateStore", () => {
+  it("rejects an initial invalid media payload instead of creating state", () => {
+    const onChange = vi.fn();
+    const store = new MediaStateStore({ onChange });
+
+    const result = store.setState(7, {
+      tabId: 7,
+      readyState: 0,
+      duration: 5000
+    });
+
+    expect(result).toBeNull();
+    expect(store.has(7)).toBe(false);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps existing state when a later incremental patch omits full media fields", () => {
+    const store = new MediaStateStore();
+
+    store.setState(
+      9,
+      {
+        pageUrl: "https://example.com/watch",
+        site: "unknown",
+        videoSrc: "https://cdn.example.com/video.mp4",
+        videoWidth: 1920,
+        videoHeight: 1080,
+        pictureInPicture: false,
+        playbackRate: 1,
+        currentTime: 1500,
+        duration: 20_000,
+        paused: false,
+        muted: false,
+        volume: 0.5,
+        readyState: 4,
+        title: "Episode 1",
+        updatedAt: 1
+      },
+      "video-context"
+    );
+
+    const result = store.setState(
+      9,
+      {
+        currentTime: 3200,
+        pageUrl: "https://example.com/watch?t=3"
+      },
+      "page-url-changed"
+    );
+
+    expect(result).not.toBeNull();
+    expect(result).toEqual(
+      expect.objectContaining({
+        tabId: 9,
+        currentTime: 3200,
+        duration: 20_000,
+        readyState: 4,
+        title: "Episode 1",
+        videoSrc: "https://cdn.example.com/video.mp4",
+        pageUrl: "https://example.com/watch?t=3",
+        lastEventType: "page-url-changed"
+      })
+    );
+  });
+});
