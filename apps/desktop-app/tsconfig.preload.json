@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUncheckedIndexedAccess": false,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2024"
+    ],
+    "types": [
+      "node"
+    ],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/preload.cts"
+  ]
+}

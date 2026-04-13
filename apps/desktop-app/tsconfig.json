@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUncheckedIndexedAccess": false,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2024"
+    ],
+    "types": [
+      "node"
+    ],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/main/**/*",
+    "src/common/**/*"
+  ],
+  "exclude": [
+    "src/preload.cts",
+    "src/renderer/**/*"
+  ]
+}

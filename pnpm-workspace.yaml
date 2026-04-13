@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  fs-xattr: true
+  get-windows: true
+  koffi: true
+  macos-alias: true

@@ -38,7 +38,7 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
 
 ## How it works ⚙️
 
-The extension (`extension/`) runs in the page and continuously collects playback information (URL, play state, timestamp), pushing updates via WebSocket to the local desktop app (`desktop-app/`). The desktop application is the control center and is responsible for:
+The extension (`apps/extension/`) runs in the page and continuously collects playback information (URL, play state, timestamp), pushing updates via WebSocket to the local desktop app (`apps/desktop-app/`). The desktop application is the control center and is responsible for:
 
 1. (For web pages) invoking `yt-dlp` to obtain all subtitle tracks for a given URL.
 2. (For Jellyfinemby) synchronizing session and subtitle information in real time via a WebSocket API.
@@ -49,18 +49,19 @@ The extension (`extension/`) runs in the page and continuously collects playback
 
 ## Directory Structure
 
-```
-extension/     # Chromium/Firefox MV3 extension built with TypeScript + esbuild
-desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
+```text
+apps/desktop-app   # Electron + Vue 3.5 + TypeScript desktop application
+apps/extension     # Chromium/Firefox MV3 extension built with TypeScript + esbuild
+packages/contracts # Shared desktop-extension transport contracts
 ```
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 24+ and npm
-- Direct dependencies in both apps are pinned to exact versions; prefer `npm ci` over `npm install`
-- Playwright 1.59.1 Chromium for desktop renderer tests: `cd desktop-app && npx playwright install chromium`
+- Node.js 24+ and pnpm 10
+- Install dependencies once from the repository root with `pnpm install`
+- Playwright 1.59.1 Chromium for desktop renderer tests: `cd apps/desktop-app && pnpm exec playwright install chromium`
 - Supported browsers:
   - **Chrome / Edge / Chromium-based browser**: Version 110+
   - **Firefox**: Version 109+ (Manifest V3 support required)
@@ -69,9 +70,8 @@ desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 ### Start Desktop App
 
 ```bash
-cd desktop-app
-npm ci
-npm run start   # Build TypeScript and start Electron
+pnpm install
+pnpm --filter @immersive-subs/desktop-app start
 ```
 
 The desktop app now targets Electron 41 / Chromium 146.
@@ -94,25 +94,24 @@ By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address an
 First, build the extension for your target browser:
 
 ```bash
-cd extension
-npm ci
-npm run typecheck      # TypeScript compile check
-npm run build:chrome   # For Chrome/Edge/Chromium
-npm run build:firefox  # For Firefox
-npm run build:all      # Build both versions
+pnpm install
+pnpm --filter @immersive-subs/extension typecheck
+pnpm --filter @immersive-subs/extension build:chrome
+pnpm --filter @immersive-subs/extension build:firefox
+pnpm --filter @immersive-subs/extension build
 ```
 
 **Chrome / Edge / Chromium:**
 
 1. Open `chrome://extensions`
 2. Enable "Developer mode"
-3. Select "Load unpacked", pointing to the `extension/dist/chrome` directory
+3. Select "Load unpacked", pointing to the `apps/extension/dist/chrome` directory
 
 **Firefox:**
 
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on..."
-3. Navigate to `extension/dist/firefox` and select `manifest.json`
+3. Navigate to `apps/extension/dist/firefox` and select `manifest.json`
 
 > **Note**: Firefox temporary add-ons are removed when the browser closes. For persistent installation, the extension needs to be signed through [Firefox Add-ons](https://addons.mozilla.org/).
 
@@ -134,21 +133,17 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 
 | Location | Command | Description |
 | ---- | ---- | ---- |
-| `desktop-app` | `npm run start` | Build + start Electron (watch-free) |
-| `desktop-app` | `npm run build` | Build TypeScript and static assets to `dist/` only |
-| `desktop-app` | `npm run test:renderer` | Run the full renderer suite across Vitest Browser Mode and jsdom |
-| `desktop-app` | `npm run test:renderer:browser` | Run browser-mode renderer tests in Playwright 1.59.1 Chromium, including visual regression checks |
-| `desktop-app` | `npm run test:renderer:jsdom` | Run jsdom-only renderer unit tests |
-| `desktop-app` | `npm run typecheck:renderer` | Run `vue-tsc` against the renderer app source before packaging or larger refactors |
-| `desktop-app` | `npm run package` | Build the app and create an unpacked Electron Forge package in `out/` |
-| `desktop-app` | `npm run make` | Build the app and generate Electron Forge distributables for the current host platform |
-| `desktop-app` | `npm run dist:win/mac/linux` | Build the app and run `electron-forge make` for that target; run on the matching host platform |
-| `extension` | `npm run typecheck` | Run the extension TypeScript compile check |
-| `extension` | `npm run build` | Type-check and build both Chrome and Firefox extension bundles |
-| `extension` | `npm run build:chrome` | Build Chrome/Edge/Chromium extension to `dist/chrome/` |
-| `extension` | `npm run build:firefox` | Build Firefox extension to `dist/firefox/` |
-| `extension` | `npm run build:all` | Build both Chrome and Firefox versions |
-| `extension` | `npm run test` | Run the extension test suite on Vitest 4 + jsdom 29.0.2 |
+| `root` | `pnpm build` | Build all workspace packages |
+| `root` | `pnpm test` | Run all workspace test suites |
+| `root` | `pnpm typecheck` | Run all workspace type checks |
+| `root` | `pnpm --filter @immersive-subs/desktop-app start` | Build + start Electron |
+| `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer` | Run the desktop renderer suite |
+| `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer:browser` | Run browser-mode renderer tests |
+| `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer:jsdom` | Run jsdom-only desktop renderer tests |
+| `root` | `pnpm --filter @immersive-subs/extension typecheck` | Run the extension TypeScript compile check |
+| `root` | `pnpm --filter @immersive-subs/extension build` | Type-check and build the extension |
+| `root` | `pnpm --filter @immersive-subs/extension test` | Run the extension test suite |
+| `root` | `pnpm --filter @immersive-subs/desktop-app dist:win/mac/linux` | Build Electron Forge distributables; run on the matching host platform |
 
 ## Deployment and Distribution
 
@@ -156,8 +151,8 @@ For detailed procedures (including extension packaging, Electron Forge distribut
 
 ## Troubleshooting
 
-- **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
-- **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Check the extension popup's `Desktop Apps` endpoint list first; the default endpoint is configured in `extension/src/background.ts` and persisted through the background endpoint manager, rather than a hard-coded legacy `extension/background.js` file.
+- **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `apps/desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
+- **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Check the extension popup's `Desktop Apps` endpoint list first; the default endpoint is configured in `apps/extension/src/background.ts` and persisted through the background endpoint manager, rather than a hard-coded legacy `extension/background.js` file.
 - **Missing subtitles**: Some videos don't provide subtitles or `yt-dlp` cannot fetch them. Check the desktop app console/terminal logs for `yt-dlp` output.
 - **Windows PowerShell log garbled text**:
   - **Cause**: Windows PowerShell defaults to GBK encoding, while the app logs use UTF-8 encoding, causing Chinese characters to display as garbled text.

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "checkJs": false
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@immersive-subs/extension",
+  "version": "0.0.1",
+  "private": true,
+  "author": "sheixunixitang3@gmail.com",
+  "scripts": {
+    "typecheck": "pnpm --filter @immersive-subs/contracts build && tsc -p tsconfig.json --noEmit",
+    "build": "pnpm run typecheck && pnpm run build:chrome && pnpm run build:firefox",
+    "build:chrome": "tsx ./esbuild.config.ts chrome",
+    "build:firefox": "tsx ./esbuild.config.ts firefox",
+    "build:all": "pnpm run build:chrome && pnpm run build:firefox",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@immersive-subs/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.26",
+    "@types/node": "^24.5.2",
+    "esbuild": "0.28.0",
+    "jsdom": "29.0.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "4.1.4"
+  }
+}
