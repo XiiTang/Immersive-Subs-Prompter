@@ -50,7 +50,7 @@ The extension (`extension/`) runs in the page and continuously collects playback
 ## Directory Structure
 
 ```
-extension/     # Chromium MV3 plugin source code, responsible for browser-side injection and communication
+extension/     # Chromium/Firefox MV3 extension built with TypeScript + esbuild
 desktop-app/   # Electron + Vue 3.5 + TypeScript desktop application
 ```
 
@@ -86,7 +86,7 @@ By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address an
 
 - `desktop-app` renderer tests run on **Vitest Browser Mode** with **Playwright 1.59.1 Chromium** for component interaction, layout, and visual regression coverage.
 - `desktop-app` jsdom tests remain for lightweight renderer unit tests and upgrade/config assertions on **jsdom 29.0.2**.
-- `extension` tests run on **Vitest 4 + jsdom 29.0.2**.
+- `extension` runs on **TypeScript + esbuild**, with **Vitest 4 + jsdom 29.0.2** for tests and `tsc --noEmit` for type checks.
 - Browser-mode screenshot baselines live in `__screenshots__/` directories next to the browser test files that own them.
 
 ### Load Browser Extension
@@ -96,6 +96,7 @@ First, build the extension for your target browser:
 ```bash
 cd extension
 npm ci
+npm run typecheck      # TypeScript compile check
 npm run build:chrome   # For Chrome/Edge/Chromium
 npm run build:firefox  # For Firefox
 npm run build:all      # Build both versions
@@ -142,7 +143,8 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `desktop-app` | `npm run package` | Build the app and create an unpacked Electron Forge package in `out/` |
 | `desktop-app` | `npm run make` | Build the app and generate Electron Forge distributables for the current host platform |
 | `desktop-app` | `npm run dist:win/mac/linux` | Build the app and run `electron-forge make` for that target; run on the matching host platform |
-| `extension` | `npm run build` | Build Chrome extension (default) |
+| `extension` | `npm run typecheck` | Run the extension TypeScript compile check |
+| `extension` | `npm run build` | Type-check and build both Chrome and Firefox extension bundles |
 | `extension` | `npm run build:chrome` | Build Chrome/Edge/Chromium extension to `dist/chrome/` |
 | `extension` | `npm run build:firefox` | Build Firefox extension to `dist/firefox/` |
 | `extension` | `npm run build:all` | Build both Chrome and Firefox versions |
@@ -155,7 +157,7 @@ For detailed procedures (including extension packaging, Electron Forge distribut
 ## Troubleshooting
 
 - **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
-- **Extension shows disconnected**: Ensure Electron is running and WebSocket listening port is not occupied. If necessary, modify `WS_ENDPOINT` in `extension/background.js` to match the desktop app.
+- **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Extension endpoints are managed in the popup and background TypeScript source under `extension/src/`, not a hard-coded `extension/background.js` file anymore.
 - **Missing subtitles**: Some videos don't provide subtitles or `yt-dlp` cannot fetch them. Check the desktop app console/terminal logs for `yt-dlp` output.
 - **Windows PowerShell log garbled text**:
   - **Cause**: Windows PowerShell defaults to GBK encoding, while the app logs use UTF-8 encoding, causing Chinese characters to display as garbled text.

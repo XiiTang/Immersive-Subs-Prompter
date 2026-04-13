@@ -4,16 +4,21 @@
   "private": true,
   "author": "sheixunixitang3@gmail.com",
   "scripts": {
-    "build": "npm run build:chrome && npm run build:firefox",
-    "build:chrome": "node ./build.js chrome",
-    "build:firefox": "node ./build.js firefox",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run typecheck && npm run build:chrome && npm run build:firefox",
+    "build:chrome": "tsx ./esbuild.config.ts chrome",
+    "build:firefox": "tsx ./esbuild.config.ts firefox",
     "build:all": "npm run build:chrome && npm run build:firefox",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/chrome": "^0.1.26",
+    "@types/node": "^24.5.2",
     "esbuild": "0.28.0",
     "jsdom": "29.0.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
     "vitest": "4.1.4"
   }
 }
