@@ -54,9 +54,9 @@ export class ContentMessageRouter {
   }
 
   handleMessage(tabId: number, frameId: number, message: ContentToBackgroundMessage) {
-    this.ingestMediaMessage(tabId, frameId, message);
-
     if (!message || typeof message !== "object") return;
+
+    this.ingestMediaMessage(tabId, frameId, message);
 
     if (message.type === "video-ended") {
       this.connectionPool.broadcast({
@@ -108,9 +108,7 @@ export class ContentMessageRouter {
   }
 
   ingestMediaMessage(tabId: number, frameId: number, message: ContentToBackgroundMessage) {
-    if (!message || typeof message !== "object") return;
     const { type, payload } = message;
-    if (!type) return;
 
     this.logger.debug("msg", `Tab${tabId} ->${type}`);
 

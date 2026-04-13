@@ -3,25 +3,23 @@ import type {
   ControlLoopCommandMessage,
   ControlSeekCommandMessage,
   FromExtensionMessage,
+  LoopSession,
   LoopSnapshot,
+  LoopStartedMessage,
   PlaybackSnapshot,
   ToExtensionMessage,
   VideoStateSnapshot
-} from "./index";
+} from "./index.js";
 
 describe("@immersive-subs/contracts", () => {
   it("requires action-specific payloads for control commands", () => {
     expectTypeOf<ControlSeekCommandMessage["payload"]>().toEqualTypeOf<{ time: number }>();
-    expectTypeOf<ControlLoopCommandMessage["payload"]>().toEqualTypeOf<{
-      mode: "single" | "ab";
-      startMs: number;
-      endMs: number;
-      startCueIndex: number | null;
-      endCueIndex: number | null;
-      anchorCueIndex: number | null;
-      origin: "single-loop" | "ab-loop";
-    }>();
+    expectTypeOf<ControlLoopCommandMessage["payload"]>().toEqualTypeOf<LoopSession>();
     expectTypeOf<Extract<ToExtensionMessage, { type: "heartbeat" }>>().not.toHaveProperty("payload");
+  });
+
+  it("constrains loop-started payload to the LoopSession shape", () => {
+    expectTypeOf<LoopStartedMessage["payload"]>().toEqualTypeOf<LoopSession>();
   });
 
   it("exports representative extension-to-desktop protocol shapes", () => {

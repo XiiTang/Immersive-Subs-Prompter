@@ -5,8 +5,6 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "noUncheckedIndexedAccess": false,
-    "verbatimModuleSyntax": false,
     "lib": [
       "ESNext",
       "DOM",

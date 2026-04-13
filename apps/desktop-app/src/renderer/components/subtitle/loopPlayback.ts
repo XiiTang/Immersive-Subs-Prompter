@@ -1,4 +1,4 @@
-import type { LoopMode, PlaybackLoop } from "../../../main/types";
+import type { LoopMode, LoopSnapshot } from "@immersive-subs/contracts";
 
 type KeepTimeInsideLoopWindowInput = {
   time: number;
@@ -13,7 +13,7 @@ export type LoopWindow = {
   end: number;
 };
 
-export function getLoopWindow(loop: PlaybackLoop | null): LoopWindow | null {
+export function getLoopWindow(loop: LoopSnapshot | null): LoopWindow | null {
   if (!loop || !Number.isFinite(loop.startMs) || !Number.isFinite(loop.endMs) || loop.endMs <= loop.startMs) {
     return null;
   }
@@ -25,7 +25,7 @@ export function getLoopWindow(loop: PlaybackLoop | null): LoopWindow | null {
   };
 }
 
-export function getSingleLoopCueIndex(loop: PlaybackLoop | null): number | null {
+export function getSingleLoopCueIndex(loop: LoopSnapshot | null): number | null {
   if (loop?.mode !== "single") {
     return null;
   }
@@ -33,7 +33,7 @@ export function getSingleLoopCueIndex(loop: PlaybackLoop | null): number | null 
   return loop.startCueIndex;
 }
 
-export function getLoopWrapCueIndex(loop: PlaybackLoop | null): number | null {
+export function getLoopWrapCueIndex(loop: LoopSnapshot | null): number | null {
   if (loop?.mode !== "ab" || loop.boundaryTransition !== "loop-wrap") {
     return null;
   }

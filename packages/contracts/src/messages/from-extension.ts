@@ -1,4 +1,4 @@
-import type { LoopSnapshot } from "../core/loop.js";
+import type { LoopSession } from "../core/loop.js";
 import type { PageUrlChangedPayload } from "../core/transport.js";
 import type { VideoStateSnapshot } from "../core/video.js";
 
@@ -38,7 +38,7 @@ export interface VideoEndedMessage extends FromExtensionTabMessage {
 
 export interface LoopStartedMessage extends FromExtensionTabMessage {
   type: "loop-started";
-  payload: LoopSnapshot;
+  payload: LoopSession;
 }
 
 export interface LoopClearedMessage extends FromExtensionTabMessage {

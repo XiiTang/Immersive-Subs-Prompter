@@ -4,9 +4,9 @@ import { JellyfinembySubtitleService } from "./jellyfinemby/index.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import { normalizeServerUrl } from "./jellyfinembyUtils.js";
+import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import {
   AppSettings,
-  ExtensionMessage,
   MediaServerConfig,
   MediaServerPlaybackPayload,
   MediaServerSessionSummary,
@@ -152,7 +152,7 @@ export class MediaServerController {
   }
 
   private async processMediaServerVideoContext(
-    message: Extract<ExtensionMessage, { type: "video-context" }>,
+    message: Extract<FromExtensionBroadcastMessage, { type: "video-context" }>,
     url: string
   ) {
     const state = this.options.stateManager.getState();
@@ -559,7 +559,7 @@ export class MediaServerController {
   }
 
   private extractItemId(
-    payload: Extract<ExtensionMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
+    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
     fallbackUrl: string
   ): string | null {
     const extractFromUrl = (candidate: string | null | undefined): string | null => {

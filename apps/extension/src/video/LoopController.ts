@@ -1,10 +1,9 @@
 import { log, state } from "../content/state";
 import { send } from "../connection/MessageSender";
 import { handleTimeUpdate } from "./VideoStateGatherer";
-import type { LoopSnapshot } from "../shared/types";
 import type { LoopSession } from "@immersive-subs/contracts";
 
-function buildLoopPayload(): LoopSnapshot | null {
+function buildLoopPayload(): LoopSession | null {
   if (!state.loop.isLooping || state.loop.startMs === null || state.loop.endMs === null || !state.loop.mode) {
     return null;
   }
@@ -16,10 +15,7 @@ function buildLoopPayload(): LoopSnapshot | null {
     startCueIndex: state.loop.startCueIndex,
     endCueIndex: state.loop.endCueIndex,
     anchorCueIndex: state.loop.anchorCueIndex,
-    origin: state.loop.origin as LoopSession["origin"],
-    status: "running",
-    boundaryTransition: state.loop.boundaryTransition,
-    programmaticSeekReason: state.loop.programmaticSeekReason
+    origin: state.loop.origin as LoopSession["origin"]
   };
 }
 

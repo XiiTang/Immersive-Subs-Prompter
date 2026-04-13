@@ -1,8 +1,8 @@
 import { EventEmitter } from "events";
 import { WebSocket } from "ws";
+import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import type {
   DesktopState,
-  ExtensionMessage,
   MediaServerPlaybackPayload,
   MediaServerSessionSummary,
   MediaServerStatusPayload,
@@ -13,7 +13,7 @@ import type {
 type MediaServerSessions = MediaServerSessionSummary[];
 
 export interface ConnectionMessageEvent {
-  message: ExtensionMessage;
+  message: FromExtensionBroadcastMessage;
   resolvedUrl: string | null;
   handled: boolean;
   markHandled: () => void;

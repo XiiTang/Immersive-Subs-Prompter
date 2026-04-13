@@ -12,7 +12,6 @@ import type {
 } from "@immersive-subs/contracts";
 import {
   AppSettings,
-  ExtensionMessage,
   NetworkSettings,
   SubtitleTrack,
   TranscriptionConfig,
@@ -315,7 +314,7 @@ export class ConnectionManager {
     }
   }
 
-  private async handleMessage(message: ExtensionMessage, resolvedUrl: string | null) {
+  private async handleMessage(message: FromExtensionBroadcastMessage, resolvedUrl: string | null) {
     switch (message.type) {
       case "video-context": {
         this.options.stateManager.setPageContext(message.tabId, {
@@ -451,7 +450,12 @@ export class ConnectionManager {
         }
 
         this.options.stateManager.updatePlayback({
-          loop: message.payload
+          loop: {
+            ...message.payload,
+            status: "running",
+            boundaryTransition: "none",
+            programmaticSeekReason: "manual-control"
+          }
         });
         break;
       }
@@ -590,7 +594,7 @@ export class ConnectionManager {
   }
 
   private resolveVideoUrl(
-    payload: Extract<ExtensionMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]
+    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]
   ): string | null {
     const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
     const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;

@@ -1,21 +1,13 @@
 import type {
-  FromExtensionBroadcastMessage,
   LoopCommandPayload,
-  LoopMode,
-  LoopOrigin,
   LoopSnapshot
 } from "@immersive-subs/contracts";
-
-export type { LoopMode, LoopOrigin };
 
 export interface SubtitleCue {
   start: number; // milliseconds
   end: number; // milliseconds
   text: string;
 }
-
-export type PlaybackLoop = LoopSnapshot;
-export type ExtensionMessage = FromExtensionBroadcastMessage;
 
 export interface SubtitleTrack {
   id: string;
@@ -32,7 +24,7 @@ export interface PlaybackState {
   duration: number | null;
   playbackRate: number;
   lastUpdate: number | null;
-  loop: PlaybackLoop | null;
+  loop: LoopSnapshot | null;
 }
 
 export interface DesktopState {

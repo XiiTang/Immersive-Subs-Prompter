@@ -1,4 +1,5 @@
-import type { PlaybackLoop, VideoControlCommand } from "../../../main/types";
+import type { LoopSnapshot } from "@immersive-subs/contracts";
+import type { VideoControlCommand } from "../../../main/types";
 
 export type AbLoopSelectionState =
   | { kind: "idle" }
@@ -21,7 +22,7 @@ export function createAbLoopSelectionState(): AbLoopSelectionState {
   return { kind: "idle" };
 }
 
-export function deriveAbLoopSelectionState(loop: PlaybackLoop | null): AbLoopSelectionState {
+export function deriveAbLoopSelectionState(loop: LoopSnapshot | null): AbLoopSelectionState {
   if (loop?.mode === "ab" && loop.startCueIndex !== null && loop.endCueIndex !== null) {
     return {
       kind: "active",

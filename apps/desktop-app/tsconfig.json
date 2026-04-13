@@ -6,8 +6,6 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "src",
-    "noUncheckedIndexedAccess": false,
-    "verbatimModuleSyntax": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [

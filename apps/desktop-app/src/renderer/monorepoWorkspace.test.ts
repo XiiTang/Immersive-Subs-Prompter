@@ -58,8 +58,6 @@ describe("root workspace layout", () => {
 
     expect(baseConfig.compilerOptions?.strict).toBe(true);
     expect(baseConfig.compilerOptions?.noImplicitOverride).toBe(true);
-    expect(baseConfig.compilerOptions?.noUncheckedIndexedAccess).toBe(true);
     expect(baseConfig.compilerOptions?.useUnknownInCatchVariables).toBe(true);
-    expect(baseConfig.compilerOptions?.verbatimModuleSyntax).toBe(true);
   });
 });

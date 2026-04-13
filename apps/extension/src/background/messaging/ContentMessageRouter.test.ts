@@ -46,10 +46,7 @@ describe("ContentMessageRouter", () => {
         startCueIndex: 1,
         endCueIndex: 2,
         anchorCueIndex: 1,
-        origin: "ab-loop",
-        status: "running",
-        boundaryTransition: "none",
-        programmaticSeekReason: "manual-control"
+        origin: "ab-loop"
       }
     });
 
@@ -64,10 +61,7 @@ describe("ContentMessageRouter", () => {
         startCueIndex: 1,
         endCueIndex: 2,
         anchorCueIndex: 1,
-        origin: "ab-loop",
-        status: "running",
-        boundaryTransition: "none",
-        programmaticSeekReason: "manual-control"
+        origin: "ab-loop"
       }
     });
   });
