@@ -21,12 +21,6 @@ const SETTINGS_SECTION_DEFS = [
     anchorId: "settings-section-rules"
   },
   {
-    id: "transcription",
-    labelKey: "section-transcription",
-    fallback: "Speech Transcription",
-    anchorId: "settings-section-transcription"
-  },
-  {
     id: "media-server",
     labelKey: "section-mediaserver",
     fallback: "Media Server Integration",
@@ -37,6 +31,12 @@ const SETTINGS_SECTION_DEFS = [
     labelKey: "section-cache",
     fallback: "Subtitle Cache",
     anchorId: "settings-section-cache"
+  },
+  {
+    id: "plugins",
+    labelKey: "section-plugins",
+    fallback: "Plugins",
+    anchorId: "settings-section-plugins"
   }
 ] as const;
 
@@ -48,4 +48,4 @@ export function buildSettingsSections(language: SupportedLanguage) {
   }));
 }
 
-export type SettingsSectionId = (typeof SETTINGS_SECTION_DEFS)[number]["id"];
+export type SettingsSectionId = string;

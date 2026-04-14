@@ -1,29 +1,36 @@
-import { AppSettings } from "../types.js";
+import { AppSettings, PluginSettingsRecord } from "../types.js";
 import { sanitizeGlobalSettings } from "./sanitizers/globalSanitizer.js";
 import { sanitizeNetworkSettings } from "./sanitizers/networkSanitizer.js";
 import { sanitizeProfiles } from "./sanitizers/profileSanitizer.js";
 import { sanitizeRules } from "./sanitizers/ruleSanitizer.js";
 import { sanitizeMediaServerSettings } from "./sanitizers/mediaServerSanitizer.js";
-import { sanitizeTranscriptionSettings } from "./sanitizers/transcriptionSanitizer.js";
+import { sanitizeTranscriptionPluginConfig } from "./sanitizers/transcriptionSanitizer.js";
 import { sanitizeCacheSettings } from "./sanitizers/cacheSanitizer.js";
 import defaultSettings from "../default-settings.json" with { type: "json" };
+import { TRANSCRIPTION_PLUGIN_ID } from "../../common/pluginIds.js";
+
+function sanitizePluginSettings(
+  input: Partial<AppSettings>["plugins"]
+): Record<string, PluginSettingsRecord> {
+  if (!input || typeof input !== "object") return {};
+  const result: Record<string, PluginSettingsRecord> = {};
+  for (const [pluginId, record] of Object.entries(input as Record<string, unknown>)) {
+    if (!record || typeof record !== "object") continue;
+    const config = (record as { config?: unknown }).config;
+    result[pluginId] = {
+      config:
+        pluginId === TRANSCRIPTION_PLUGIN_ID
+          ? (sanitizeTranscriptionPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>)
+          : config && typeof config === "object"
+            ? (config as Record<string, unknown>)
+            : {}
+    };
+  }
+  return result;
+}
 
 export function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSettings {
   if (!input || typeof input !== "object") {
-    return DEFAULT_SETTINGS_FACTORY();
-  }
-
-  const looksModern =
-    "global" in input ||
-    "network" in input ||
-    "profiles" in input ||
-    "rules" in input ||
-    "defaultProfileId" in input ||
-    "mediaServer" in input ||
-    "transcription" in input ||
-    "cache" in input;
-
-  if (!looksModern) {
     return DEFAULT_SETTINGS_FACTORY();
   }
 
@@ -40,7 +47,7 @@ export function sanitizeSettings(input: Partial<AppSettings> | null | undefined)
     : profiles[0].id;
   const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
   const mediaServer = sanitizeMediaServerSettings(raw.mediaServer);
-  const transcription = sanitizeTranscriptionSettings(raw.transcription);
+  const plugins = sanitizePluginSettings(raw.plugins);
   const cache = sanitizeCacheSettings(raw.cache);
   return {
     global,
@@ -49,7 +56,7 @@ export function sanitizeSettings(input: Partial<AppSettings> | null | undefined)
     defaultProfileId,
     rules,
     mediaServer,
-    transcription,
+    plugins,
     cache
   };
 }
@@ -62,7 +69,7 @@ export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): A
     defaultProfileId: base.defaultProfileId,
     rules: base.rules,
     mediaServer: base.mediaServer,
-    transcription: base.transcription,
+    plugins: base.plugins,
     cache: base.cache
   };
 
@@ -87,11 +94,8 @@ export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): A
       ...(patch as any).mediaServer
     };
   }
-  if (patch.transcription) {
-    next.transcription = {
-      ...next.transcription,
-      ...patch.transcription
-    };
+  if (patch.plugins) {
+    next.plugins = { ...base.plugins, ...patch.plugins };
   }
   if (patch.cache) {
     next.cache = {

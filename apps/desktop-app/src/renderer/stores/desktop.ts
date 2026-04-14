@@ -14,10 +14,12 @@ import type {
   SubtitleCacheSettings,
   SubtitleCue,
   SubtitleTrack,
-  TranscriptionConfig,
+  PluginSettingsRecord,
   TranscriptionState,
   VideoControlCommand
 } from "../../main/types";
+import { TRANSCRIPTION_PLUGIN_ID } from "../../common/pluginIds.js";
+import type { PluginCatalogRow } from "../../main/plugins/pluginTypes";
 import { BASE_TRANSCRIPTION_CONFIG } from "../../common/transcriptionDefaults.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { buildTranscriptBlocks } from "../components/subtitle/transcript/buildTranscriptBlocks";
@@ -72,7 +74,15 @@ type CacheStats = {
   newestEntry: number | null;
 };
 
-const DEFAULT_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = { ...BASE_TRANSCRIPTION_CONFIG };
+const DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG = {
+  activeConfigId: "default-transcription",
+  configs: [
+    {
+      id: "default-transcription",
+      ...BASE_TRANSCRIPTION_CONFIG
+    }
+  ]
+};
 
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -121,7 +131,8 @@ export const useDesktopStore = defineStore("desktop", {
     isInitializing: false,
     initError: null as string | null,
     editingProfileId: null as string | null,
-    cacheStats: null as CacheStats | null
+    cacheStats: null as CacheStats | null,
+    pluginCatalog: [] as PluginCatalogRow[]
   }),
   getters: {
     subtitleTracks(state): SubtitleTrack[] {
@@ -170,17 +181,6 @@ export const useDesktopStore = defineStore("desktop", {
 
     transcriptionState(state): TranscriptionState | null {
       return state.desktopState?.transcription ?? null;
-    },
-    activeTranscriptionConfig(state): TranscriptionConfig | null {
-      const transcription = state.settings?.transcription;
-      if (!transcription) {
-        return null;
-      }
-      return (
-        transcription.configs.find((config) => config.id === transcription.activeConfigId) ??
-        transcription.configs[0] ??
-        null
-      );
     }
   },
   actions: {
@@ -195,6 +195,7 @@ export const useDesktopStore = defineStore("desktop", {
         this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId ?? settings.profiles[0]?.id ?? null;
         this.attachIpcListeners();
         await this.refreshCacheStats();
+        await this.refreshPluginCatalog();
       } catch (error) {
         this.initError = error instanceof Error ? error.message : String(error);
       } finally {
@@ -219,6 +220,9 @@ export const useDesktopStore = defineStore("desktop", {
         }
         this.refreshCacheStats();
       });
+      window.usp.onPluginCatalogChange((catalog) => {
+        this.pluginCatalog = catalog;
+      });
       window.usp.onLoopCleared(() => {
         if (this.playback) {
           this.playback = { ...this.playback, loop: null };
@@ -237,6 +241,39 @@ export const useDesktopStore = defineStore("desktop", {
         return;
       }
       this.settings = mergePartial(this.settings, partial);
+    },
+    setPluginConfig(pluginId: string, config: PluginSettingsRecord["config"]) {
+      if (!this.settings) {
+        return;
+      }
+      this.updateSettings({
+        plugins: {
+          [pluginId]: { config }
+        }
+      });
+    },
+    isPluginEnabled(pluginId: string) {
+      return this.pluginCatalog.some((plugin) => plugin.id === pluginId && plugin.enabled);
+    },
+    getTranscriptionPluginConfig() {
+      const rawConfig = this.settings?.plugins[TRANSCRIPTION_PLUGIN_ID]?.config;
+      if (!rawConfig || typeof rawConfig !== "object") {
+        return DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG;
+      }
+
+      const candidate = rawConfig as Partial<typeof DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG>;
+      const configs = Array.isArray(candidate.configs) && candidate.configs.length
+        ? candidate.configs
+        : DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG.configs;
+      const activeConfigId =
+        typeof candidate.activeConfigId === "string" && configs.some((config) => config.id === candidate.activeConfigId)
+          ? candidate.activeConfigId
+          : configs[0]?.id ?? DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG.activeConfigId;
+
+      return {
+        activeConfigId,
+        configs
+      };
     },
     async updateSettings(partial: Partial<AppSettings>) {
       if (!this.settings) {
@@ -498,96 +535,12 @@ export const useDesktopStore = defineStore("desktop", {
         }
       });
     },
-    setTranscriptionEnabled(enabled: boolean) {
-      if (!this.settings) {
-        return;
-      }
-      this.updateSettings({
-        transcription: {
-          ...this.settings.transcription,
-          enabled
-        }
-      });
-    },
     updateCacheSetting<Key extends keyof SubtitleCacheSettings>(key: Key, value: SubtitleCacheSettings[Key]) {
       if (!this.settings) {
         return;
       }
       const nextCache = { ...this.settings.cache, [key]: value } as SubtitleCacheSettings;
       this.updateSettings({ cache: nextCache });
-    },
-    setActiveTranscriptionConfig(configId: string) {
-      if (!this.settings) {
-        return;
-      }
-      const configs = this.settings.transcription.configs;
-      const exists = configs.some((config) => config.id === configId);
-      const nextActive = exists ? configId : configs[0]?.id ?? null;
-      this.updateSettings({
-        transcription: {
-          ...this.settings.transcription,
-          activeConfigId: nextActive
-        }
-      });
-    },
-    addTranscriptionConfig() {
-      if (!this.settings) {
-        return null;
-      }
-      const id = createId("transcription");
-      const newConfig: TranscriptionConfig = {
-        ...DEFAULT_TRANSCRIPTION_CONFIG,
-        id
-      };
-      const configs = [...this.settings.transcription.configs, newConfig];
-      this.updateSettings({
-        transcription: {
-          ...this.settings.transcription,
-          configs,
-          activeConfigId: this.settings.transcription.activeConfigId ?? id
-        }
-      });
-      return id;
-    },
-    updateTranscriptionConfig(configId: string, patch: Partial<TranscriptionConfig>) {
-      if (!this.settings) {
-        return;
-      }
-      const configs = this.settings.transcription.configs.map((config) =>
-        config.id === configId ? mergePartial(config, patch) : config
-      );
-      this.updateSettings({
-        transcription: {
-          ...this.settings.transcription,
-          configs
-        }
-      });
-    },
-    deleteTranscriptionConfig(configId: string) {
-      if (!this.settings) {
-        return;
-      }
-      let configs = this.settings.transcription.configs.filter((config) => config.id !== configId);
-      if (!configs.length) {
-        const id = createId("transcription");
-        configs = [
-          {
-            ...DEFAULT_TRANSCRIPTION_CONFIG,
-            id
-          }
-        ];
-      }
-      const activeConfigId =
-        this.settings.transcription.activeConfigId === configId
-          ? configs[0]?.id ?? null
-          : this.settings.transcription.activeConfigId;
-      this.updateSettings({
-        transcription: {
-          ...this.settings.transcription,
-          configs,
-          activeConfigId
-        }
-      });
     },
     async startTranscription() {
       try {
@@ -598,6 +551,15 @@ export const useDesktopStore = defineStore("desktop", {
       } catch (error) {
         console.error("[Renderer] Transcription IPC failed", error);
       }
+    },
+    async refreshPluginCatalog() {
+      this.pluginCatalog = await window.usp.getPluginCatalog();
+    },
+    async enablePlugin(pluginId: string) {
+      this.pluginCatalog = await window.usp.enablePlugin(pluginId);
+    },
+    async disablePlugin(pluginId: string) {
+      this.pluginCatalog = await window.usp.disablePlugin(pluginId);
     },
     addRule(payload: Omit<ProfileRule, "id">) {
       if (!this.settings) {

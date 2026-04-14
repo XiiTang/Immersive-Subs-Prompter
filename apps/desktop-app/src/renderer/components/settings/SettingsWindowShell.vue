@@ -3,7 +3,7 @@
     <header class="settings-window-shell__header">{{ settingsTitle }}</header>
     <div class="settings-window-shell__body">
       <SettingsNav
-        :sections="sections"
+        :sections="allSections"
         :current-section="currentSection"
         :nav-aria-label="settingsNavAriaLabel"
         @select="scrollToSection"
@@ -16,13 +16,13 @@
       >
         <div class="settings-document">
           <section
-            v-for="section in sections"
+            v-for="section in allSections"
             :id="section.anchorId"
             :key="section.id"
             :data-testid="section.anchorId"
             class="settings-document__section"
           >
-            <component :is="sectionComponents[section.id]" />
+            <component :is="resolveComponent(section.id)" />
           </section>
         </div>
       </main>
@@ -31,46 +31,70 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import SettingsRules from "./SettingsRules.vue";
-import SettingsTranscription from "./SettingsTranscription.vue";
 import SettingsMediaServer from "./SettingsMediaServer.vue";
 import SettingsCache from "./SettingsCache.vue";
+import SettingsPlugins from "./SettingsPlugins.vue";
 import SettingsNav from "./SettingsNav.vue";
 import { buildSettingsSections, type SettingsSectionId } from "./settingsSections";
 import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
+import { resolvePluginSettingsComponent } from "../../plugins/pluginSettingsRegistry";
 
 const store = useDesktopStore();
 const language = computed(() => normalizeLanguage(store.settings?.global.language ?? DEFAULT_LANGUAGE));
 const { t } = useI18n(language);
 const settingsTitle = computed(() => t("settings-title", "Settings"));
 const settingsNavAriaLabel = computed(() => t("settings-nav-aria-label", "Settings sections"));
-const sections = computed(() => buildSettingsSections(language.value));
+
+const hostSections = computed(() => buildSettingsSections(language.value));
+
+const pluginSections = computed(() => {
+  return store.pluginCatalog
+    .filter((p) => p.enabled)
+    .flatMap((plugin) =>
+      (plugin.settings ?? []).map((section) => ({
+        id: section.id,
+        label: section.title,
+        anchorId: section.anchorId
+      }))
+    );
+});
+
+const allSections = computed(() => [...hostSections.value, ...pluginSections.value]);
+
 const currentSection = ref<SettingsSectionId>("general");
 const contentRef = ref<HTMLElement | null>(null);
 let sectionObserver: IntersectionObserver | null = null;
 
-const sectionComponents: Record<SettingsSectionId, unknown> = {
+const hostComponentMap: Record<string, unknown> = {
   general: SettingsGlobal,
   profiles: SettingsProfiles,
   rules: SettingsRules,
-  transcription: SettingsTranscription,
   "media-server": SettingsMediaServer,
-  cache: SettingsCache
+  cache: SettingsCache,
+  plugins: SettingsPlugins
 };
 
+function resolveComponent(sectionId: string): unknown {
+  return hostComponentMap[sectionId] ?? resolvePluginSettingsComponent(sectionId);
+}
+
 function sectionIdFromAnchor(anchorId: string): SettingsSectionId {
-  return anchorId.replace("settings-section-", "") as SettingsSectionId;
+  const pluginSection = store.pluginCatalog
+    .find((plugin) => plugin.enabled && plugin.settings?.some((section) => section.anchorId === anchorId))
+    ?.settings?.find((section) => section.anchorId === anchorId);
+  return (pluginSection?.id ?? anchorId.replace("settings-section-", "")) as SettingsSectionId;
 }
 
 function scrollToSection(id: SettingsSectionId) {
-  const target = document.getElementById(`settings-section-${id}`);
-  if (!target) {
-    return;
-  }
+  const section = allSections.value.find((s) => s.id === id);
+  if (!section) return;
+  const target = document.getElementById(section.anchorId);
+  if (!target) return;
 
   currentSection.value = id;
   target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -99,12 +123,21 @@ onMounted(() => {
     }
   );
 
-  for (const section of sections.value) {
-    const element = document.getElementById(section.anchorId);
-    if (element) {
-      sectionObserver.observe(element);
-    }
-  }
+  watch(
+    () => allSections.value.map((section) => section.anchorId),
+    async () => {
+      if (!sectionObserver) return;
+      sectionObserver.disconnect();
+      await nextTick();
+      for (const section of allSections.value) {
+        const element = document.getElementById(section.anchorId);
+        if (element) {
+          sectionObserver.observe(element);
+        }
+      }
+    },
+    { immediate: true, flush: "post" }
+  );
 });
 
 onBeforeUnmount(() => {

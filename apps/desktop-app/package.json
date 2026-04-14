@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/plugin-sdk build && pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
     "typecheck:renderer": "vue-tsc --noEmit -p tsconfig.renderer.json",
@@ -24,7 +24,7 @@
     "dist:win": "pnpm run build && electron-forge make . --app-path . --platform=win32",
     "dist:mac": "pnpm run build && electron-forge make . --app-path . --platform=darwin",
     "dist:linux": "pnpm run build && electron-forge make . --app-path . --platform=linux",
-    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
+    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/plugin-sdk build && pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
   },
   "keywords": [
     "electron",
@@ -35,6 +35,7 @@
   "license": "MIT",
   "dependencies": {
     "@immersive-subs/contracts": "workspace:*",
+    "@immersive-subs/plugin-sdk": "workspace:*",
     "@chenglou/pretext": "0.0.5",
     "decompress": "4.2.1",
     "get-windows": "9.3.0",

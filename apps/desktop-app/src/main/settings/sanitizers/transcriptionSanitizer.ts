@@ -1,9 +1,9 @@
 import { randomUUID } from "crypto";
-import { TranscriptionConfig, TranscriptionSettings } from "../../types.js";
+import { TranscriptionConfig, TranscriptionPluginConfig } from "../../types.js";
 import {
   DEFAULT_TRANSCRIPTION_CONFIG,
   DEFAULT_TRANSCRIPTION_CONFIG_ID,
-  DEFAULT_TRANSCRIPTION_SETTINGS,
+  DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG,
   DEFAULT_TRANSCRIPTION_YTDLP_ARGS
 } from "../constants.js";
 
@@ -135,11 +135,10 @@ export function sanitizeTranscriptionConfig(
   };
 }
 
-export function sanitizeTranscriptionSettings(
-  input: Partial<TranscriptionSettings> | null | undefined
-): TranscriptionSettings {
+export function sanitizeTranscriptionPluginConfig(
+  input: Partial<TranscriptionPluginConfig> | null | undefined
+): TranscriptionPluginConfig {
   const source = input ?? {};
-  const enabled = typeof source.enabled === "boolean" ? source.enabled : DEFAULT_TRANSCRIPTION_SETTINGS.enabled;
   let configs: TranscriptionConfig[] = [];
   if (Array.isArray(source.configs)) {
     configs = source.configs.map((config, index) =>
@@ -154,13 +153,12 @@ export function sanitizeTranscriptionSettings(
   const requestedActiveId =
     typeof source.activeConfigId === "string" && source.activeConfigId.trim()
       ? source.activeConfigId.trim()
-      : configs[0].id;
+      : configs[0]?.id ?? DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG.activeConfigId;
   const activeConfigId = configs.some((config) => config.id === requestedActiveId)
     ? requestedActiveId
-    : configs[0].id;
+    : configs[0]?.id ?? DEFAULT_TRANSCRIPTION_CONFIG_ID;
 
   return {
-    enabled,
     activeConfigId,
     configs
   };

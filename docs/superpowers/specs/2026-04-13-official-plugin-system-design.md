@@ -1,5 +1,7 @@
 # Official Plugin System Design
 
+> Note on current code: the repository currently implements a narrower bundled first-party plugin host. Downloadable plugin packages, package installation, and standalone renderer/main plugin artifacts are not implemented yet.
+
 ## Goal
 
 将当前 desktop app 演进为“官方按需下载功能包”架构，让语音转录、句内高亮、词典、AI 总结等能力以独立插件包形式发布、安装、启用和更新，同时保持宿主对窗口、状态、设置框架和主界面结构的控制权。

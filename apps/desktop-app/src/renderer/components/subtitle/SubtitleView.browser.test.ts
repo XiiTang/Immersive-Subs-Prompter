@@ -9,8 +9,21 @@ import { useDesktopStore } from "../../stores/desktop";
 
 const videoInfoSectionStub = defineComponent({
   name: "VideoInfoSectionStub",
+  props: {
+    transcriptionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    transcriptionConfigs: {
+      type: Array,
+      default: () => []
+    }
+  },
   render() {
-    return h("div", { class: "video-info-section-stub" });
+    return h("div", { class: "video-info-section-stub" }, [
+      h("div", { "data-testid": "transcription-enabled" }, String(this.transcriptionEnabled)),
+      h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length))
+    ]);
   }
 });
 
@@ -78,11 +91,7 @@ function createSettings(): AppSettings {
       enabled: false,
       configs: []
     },
-    transcription: {
-      enabled: true,
-      activeConfigId: null,
-      configs: []
-    },
+    plugins: {},
     cache: {
       enabled: false,
       path: "",
@@ -646,5 +655,50 @@ describe("SubtitleView", () => {
     expect(updatedQuietMetaRows[0]?.attributes("data-auto-hide-quiet")).toBe("false");
 
     wrapper.unmount();
+  });
+
+  it("hides transcription controls when the transcription plugin is not enabled", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.transcription",
+        version: "1.0.0",
+        displayName: "Speech Transcription",
+        description: "Transcribe video audio.",
+        status: "disabled",
+        enabled: false,
+        error: null
+      }
+    ];
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          VideoInfoSection: videoInfoSectionStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("false");
+    expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("0");
+
+    store.pluginCatalog = [
+      {
+        ...store.pluginCatalog[0]!,
+        status: "enabled",
+        enabled: true
+      }
+    ];
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("true");
   });
 });

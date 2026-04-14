@@ -4,9 +4,9 @@ import { FasterWhisperManager } from "../fasterWhisperManager.js";
 import { StateManager } from "../stateManager.js";
 import { SettingsStore } from "../settings/index.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
-import { TranscriptionService } from "../transcriptionService.js";
 import { AppSettings } from "../types.js";
 import { DisplayManager } from "../window/displayManager.js";
+import { PluginHost } from "../plugins/pluginHost.js";
 import { createLogger } from "../logger.js";
 import { registerStateHandlers } from "./handlers/stateHandlers.js";
 import { registerSettingsHandlers } from "./handlers/settingsHandlers.js";
@@ -15,17 +15,20 @@ import { registerTranscriptionHandlers } from "./handlers/transcriptionHandlers.
 import { registerCacheHandlers } from "./handlers/cacheHandlers.js";
 import { registerFasterWhisperHandlers } from "./handlers/fasterWhisperHandlers.js";
 import { registerWindowHandlers } from "./handlers/windowHandlers.js";
+import { registerPluginHandlers } from "./handlers/pluginHandlers.js";
 
 export type IpcContext = {
   stateManager: StateManager;
   connectionManager: ConnectionManager;
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
-  transcriptionService: TranscriptionService;
+  transcriptionService: import("../transcriptionService.js").TranscriptionService;
   fasterWhisperManager: FasterWhisperManager;
+  pluginHost: PluginHost;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
   updateAppSettings: (partial: Partial<AppSettings>) => AppSettings;
+  pushPluginCatalog: () => Promise<void>;
   displayManager: DisplayManager;
   getMainWindow: () => BrowserWindow | null;
   openSettingsWindow: () => BrowserWindow | null;
@@ -43,5 +46,6 @@ export class IpcRouter {
     registerCacheHandlers(this.context);
     registerFasterWhisperHandlers(this.context);
     registerWindowHandlers(this.context);
+    registerPluginHandlers(this.context);
   }
 }

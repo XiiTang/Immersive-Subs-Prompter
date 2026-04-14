@@ -82,6 +82,7 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "yt-dlp-args-label": "yt-dlp 参数",
   "yt-dlp-args-hint": "留空则使用默认参数",
   "section-cache": "字幕缓存",
+  "section-plugins": "插件",
   "enable-cache-label": "启用缓存",
   "cache-path-label": "缓存路径",
   "cache-path-hint": "留空则使用默认位置",
@@ -219,7 +220,14 @@ export const CHINESE_TRANSLATIONS: Record<string, string> = {
   "transcription-faster-download-success": "下载完成：",
   "transcription-faster-model-success": "模型已下载至：",
   "transcription-faster-download-start": "准备下载...",
-  "transcription-faster-model-start": "准备下载模型..."
+  "transcription-faster-model-start": "准备下载模型...",
+  "plugin-enable": "启用",
+  "plugin-disable": "禁用",
+  "plugin-status-disabled": "未启用",
+  "plugin-status-enabled": "已启用",
+  "plugin-status-broken": "异常",
+  "plugin-section-title": "插件管理",
+  "plugin-empty": "暂无可用插件"
 };
 
 export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {

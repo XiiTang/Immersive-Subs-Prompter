@@ -92,11 +92,7 @@ function createSettings(): AppSettings {
       enabled: false,
       configs: []
     },
-    transcription: {
-      enabled: true,
-      activeConfigId: null,
-      configs: []
-    },
+    plugins: {},
     cache: {
       enabled: false,
       path: "",
@@ -155,6 +151,7 @@ function createDesktopState(): DesktopState {
 }
 
 function installRendererApi(state: DesktopState, settings: AppSettings) {
+  let pluginCatalogListener: ((catalog: unknown[]) => void) | null = null;
   const api: Partial<RendererApi> = {
     getInitialState: vi.fn().mockResolvedValue(state),
     getSettings: vi.fn().mockResolvedValue(settings),
@@ -164,10 +161,14 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       oldestEntry: null,
       newestEntry: null
     }),
+    getPluginCatalog: vi.fn().mockResolvedValue([]),
     onStateChange: vi.fn(),
     onPlayback: vi.fn(),
     onLoopCleared: vi.fn(),
     onSettingsChange: vi.fn(),
+    onPluginCatalogChange: vi.fn((listener: (catalog: unknown[]) => void) => {
+      pluginCatalogListener = listener;
+    }),
     openSettingsWindow: vi.fn().mockResolvedValue({ success: true })
   };
 
@@ -175,6 +176,12 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
     configurable: true,
     value: api
   });
+
+  return {
+    emitPluginCatalog(catalog: unknown[]) {
+      pluginCatalogListener?.(catalog);
+    }
+  };
 }
 
 describe("desktop store profile selection", () => {
@@ -220,5 +227,37 @@ describe("desktop store profile selection", () => {
     };
 
     expect(store.transcriptBlocks).toBe(initialBlocks);
+  });
+
+  it("updates plugin catalog from main-process broadcasts", async () => {
+    const bridge = installRendererApi(createDesktopState(), createSettings());
+
+    const store = useDesktopStore();
+    await store.initialize();
+
+    expect(store.pluginCatalog).toEqual([]);
+
+    bridge.emitPluginCatalog([
+      {
+        id: "official.transcription",
+        version: "1.0.0",
+        displayName: "Speech Transcription",
+        description: "Transcribe video audio.",
+        enabled: true,
+        status: "enabled",
+        error: null,
+        settings: [
+          {
+            id: "official.transcription.settings",
+            title: "Speech Transcription",
+            anchorId: "settings-section-plugin-official-transcription",
+            componentId: "official.transcription.settings"
+          }
+        ]
+      }
+    ]);
+
+    expect(store.pluginCatalog).toHaveLength(1);
+    expect(store.pluginCatalog[0]?.enabled).toBe(true);
   });
 });

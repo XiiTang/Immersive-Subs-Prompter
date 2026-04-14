@@ -1,15 +1,11 @@
 <template>
   <section class="settings-section">
-    <header class="settings-section__intro settings-section__intro--with-toggle">
+    <header class="settings-section__intro">
       <div>
         <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
       </div>
-      <label class="toggle toggle--sm settings-section__toggle">
-        <input type="checkbox" v-model="transcriptionEnabled" />
-        <span class="toggle__text">{{ t("transcription-enable-label", "Enable Transcription") }}</span>
-      </label>
     </header>
-    <div class="transcription-settings settings-surface settings-surface--split" v-if="transcriptionEnabled">
+    <div class="transcription-settings settings-surface settings-surface--split">
       <div class="transcription-settings__sidebar">
         <div class="transcription-settings__actions">
           <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
@@ -362,9 +358,11 @@
 <script setup lang="ts">
 import { computed, onWatcherCleanup, ref, watch } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import type { TranscriptionConfig } from "../../../main/types";
+import type { TranscriptionConfig, TranscriptionPluginConfig } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { IconAdd, IconDelete } from "../icons";
+import { BASE_TRANSCRIPTION_CONFIG } from "../../../common/transcriptionDefaults";
+import { TRANSCRIPTION_PLUGIN_ID } from "../../../common/pluginIds";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -381,16 +379,19 @@ const fasterWhisperModels = [
   { label: "large-v3-turbo", value: "large-v3-turbo" }
 ];
 
-const transcriptionEnabled = computed({
-  get: () => store.settings?.transcription.enabled ?? true,
-  set: (value: boolean) => store.setTranscriptionEnabled(value)
-});
-
-const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
+const transcriptionPluginConfig = computed<TranscriptionPluginConfig>(() => store.getTranscriptionPluginConfig());
+const transcriptionConfigs = computed(() => transcriptionPluginConfig.value.configs);
 const activeConfigId = computed({
-  get: () =>
-    store.settings?.transcription.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
-  set: (value: string) => store.setActiveTranscriptionConfig(value)
+  get: () => transcriptionPluginConfig.value.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
+  set: (value: string) => {
+    const nextActiveId = transcriptionConfigs.value.some((config) => config.id === value)
+      ? value
+      : transcriptionConfigs.value[0]?.id ?? null;
+    writePluginConfig({
+      ...transcriptionPluginConfig.value,
+      activeConfigId: nextActiveId
+    });
+  }
 });
 
 const activeConfig = computed(() =>
@@ -456,14 +457,14 @@ const extraParamsText = computed({
     }
     const trimmed = value.trim();
     if (!trimmed.length) {
-      store.updateTranscriptionConfig(activeConfig.value.id, { extraParams: {} });
+      updateConfig({ extraParams: {} });
       extraParamsError.value = null;
       return;
     }
     try {
       const parsed = JSON.parse(trimmed);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        store.updateTranscriptionConfig(activeConfig.value.id, { extraParams: parsed as Record<string, string> });
+        updateConfig({ extraParams: parsed as Record<string, string> });
         extraParamsError.value = null;
       } else {
         extraParamsError.value = t("transcription-extra-params-invalid", "Please enter a valid JSON object.");
@@ -476,7 +477,7 @@ const extraParamsText = computed({
 });
 
 function shouldUseFasterWhisper() {
-  return transcriptionEnabled.value && isFasterWhisper.value && !!activeConfig.value;
+  return isFasterWhisper.value && !!activeConfig.value;
 }
 
 function ensureDownloadSubscription() {
@@ -512,21 +513,45 @@ function updateConfig(patch: Record<string, unknown>) {
   if (!activeConfig.value) {
     return;
   }
-  store.updateTranscriptionConfig(activeConfig.value.id, patch);
+  writePluginConfig({
+    ...transcriptionPluginConfig.value,
+    configs: transcriptionConfigs.value.map((config) =>
+      config.id === activeConfig.value?.id ? { ...config, ...patch } : config
+    )
+  });
 }
 
 function handleAddConfig() {
-  const id = store.addTranscriptionConfig();
-  if (id) {
-    store.setActiveTranscriptionConfig(id);
-  }
+  const id = createTranscriptionConfigId();
+  writePluginConfig({
+    activeConfigId: id,
+    configs: [
+      ...transcriptionConfigs.value,
+      {
+        id,
+        ...BASE_TRANSCRIPTION_CONFIG
+      }
+    ]
+  });
 }
 
 function handleDeleteConfig() {
   if (!activeConfig.value) {
     return;
   }
-  store.deleteTranscriptionConfig(activeConfig.value.id);
+  let configs = transcriptionConfigs.value.filter((config) => config.id !== activeConfig.value?.id);
+  if (!configs.length) {
+    configs = [
+      {
+        id: createTranscriptionConfigId(),
+        ...BASE_TRANSCRIPTION_CONFIG
+      }
+    ];
+  }
+  writePluginConfig({
+    activeConfigId: configs[0]?.id ?? null,
+    configs
+  });
 }
 
 const configName = computed({
@@ -558,6 +583,17 @@ const fasterWhisperModel = computed({
   get: () => activeConfig.value?.fasterWhisperModel ?? "",
   set: (value: string) => updateConfig({ fasterWhisperModel: value })
 });
+
+function writePluginConfig(config: TranscriptionPluginConfig) {
+  store.setPluginConfig(TRANSCRIPTION_PLUGIN_ID, config as unknown as Record<string, unknown>);
+}
+
+function createTranscriptionConfigId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `transcription-${(crypto as Crypto).randomUUID()}`;
+  }
+  return `transcription-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
 
 const fasterWhisperModelDir = computed({
   get: () => activeConfig.value?.fasterWhisperModelDir ?? "",
@@ -597,7 +633,7 @@ watch(customModelInput, (value) => {
 });
 
 watch(
-  [transcriptionEnabled, isFasterWhisper, activeConfig],
+  [isFasterWhisper, activeConfig],
   () => {
     if (!shouldUseFasterWhisper()) {
       teardownDownloadSubscription();

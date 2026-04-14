@@ -34,7 +34,7 @@ describe("SettingsWindowShell browser layout", () => {
       defaultProfileId: "",
       rules: [],
       mediaServer: { enabled: false, configs: [] },
-      transcription: { enabled: false, activeConfigId: null, configs: [] },
+      plugins: {},
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
   });
@@ -49,9 +49,9 @@ describe("SettingsWindowShell browser layout", () => {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsRules: sectionStub("settings-section-rules-content"),
-          SettingsTranscription: sectionStub("settings-section-transcription-content"),
           SettingsMediaServer: sectionStub("settings-section-media-server-content"),
-          SettingsCache: sectionStub("settings-section-cache-content")
+          SettingsCache: sectionStub("settings-section-cache-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
     });

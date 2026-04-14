@@ -7,7 +7,7 @@ import {
   ProfileSettings,
   SubtitleCacheSettings,
   TranscriptionConfig,
-  TranscriptionSettings,
+  TranscriptionPluginConfig,
   UrlMatchType
 } from "../types.js";
 import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
@@ -80,8 +80,7 @@ export const DEFAULT_TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   fasterWhisperModelDir: DEFAULT_FASTER_WHISPER_MODEL_DIR
 };
 
-export const DEFAULT_TRANSCRIPTION_SETTINGS: TranscriptionSettings = {
-  enabled: true,
+export const DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG: TranscriptionPluginConfig = {
   activeConfigId: DEFAULT_TRANSCRIPTION_CONFIG_ID,
   configs: [DEFAULT_TRANSCRIPTION_CONFIG]
 };

@@ -76,6 +76,7 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
 import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
 import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
+import { TRANSCRIPTION_PLUGIN_ID } from "../../../common/pluginIds.js";
 
 const store = useDesktopStore();
 const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
@@ -84,8 +85,11 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
-const transcriptionEnabled = computed(() => store.settings?.transcription.enabled ?? true);
-const transcriptionConfigs = computed(() => store.settings?.transcription.configs ?? []);
+const transcriptionEnabled = computed(() => store.isPluginEnabled(TRANSCRIPTION_PLUGIN_ID));
+const transcriptionPluginConfig = computed(() => store.getTranscriptionPluginConfig());
+const transcriptionConfigs = computed(() => (
+  transcriptionEnabled.value ? transcriptionPluginConfig.value.configs : []
+));
 const transcriptionConfigNames = computed(() =>
   transcriptionConfigs.value
     .map((config: any) => config.name?.trim())
@@ -259,12 +263,21 @@ const sliderFillStyle = computed(() => {
 });
 
 const activeTranscriptionId = computed({
-  get: () =>
-    store.settings?.transcription.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
-  set: (value: string) => store.setActiveTranscriptionConfig(value)
+  get: () => transcriptionPluginConfig.value.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
+  set: (value: string) => {
+    const configs = transcriptionPluginConfig.value.configs;
+    const nextActiveId = configs.some((config) => config.id === value) ? value : configs[0]?.id ?? null;
+    store.setPluginConfig(TRANSCRIPTION_PLUGIN_ID, {
+      ...transcriptionPluginConfig.value,
+      activeConfigId: nextActiveId
+    });
+  }
 });
 const isTranscribing = computed(() => transcriptionState.value?.status === "running");
 const canTranscribe = computed(() => {
+  if (!transcriptionEnabled.value) {
+    return false;
+  }
   if (!transcriptionConfigs.value.length) {
     return false;
   }

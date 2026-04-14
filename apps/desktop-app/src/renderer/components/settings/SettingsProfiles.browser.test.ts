@@ -54,11 +54,7 @@ function createSettings(): AppSettings {
       enabled: false,
       configs: []
     },
-    transcription: {
-      enabled: true,
-      activeConfigId: null,
-      configs: []
-    },
+    plugins: {},
     cache: {
       enabled: false,
       path: "",

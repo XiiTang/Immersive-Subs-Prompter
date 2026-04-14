@@ -21,6 +21,7 @@ const api = {
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
+  onPluginCatalogChange: (listener: Listener<any[]>) => subscribe("usp:plugin-catalog", listener),
   getFasterWhisperPaths: (): Promise<{
     binaryDir: string;
     modelsDir: string;
@@ -74,7 +75,13 @@ const api = {
   startWindowDrag: (): Promise<{ success: boolean; native?: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:start-window-drag"),
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("usp:open-settings-window")
+    ipcRenderer.invoke("usp:open-settings-window"),
+  getPluginCatalog: (): Promise<any[]> =>
+    ipcRenderer.invoke("usp:get-plugin-catalog"),
+  enablePlugin: (pluginId: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:enable-plugin", pluginId),
+  disablePlugin: (pluginId: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:disable-plugin", pluginId)
 };
 
 contextBridge.exposeInMainWorld("usp", api);

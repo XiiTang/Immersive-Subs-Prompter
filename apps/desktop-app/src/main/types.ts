@@ -127,8 +127,7 @@ export interface TranscriptionConfig {
   fasterWhisperUseKim2: boolean;
 }
 
-export interface TranscriptionSettings {
-  enabled: boolean;
+export interface TranscriptionPluginConfig {
   activeConfigId: string | null;
   configs: TranscriptionConfig[];
 }
@@ -178,6 +177,10 @@ export interface ProfileRule {
   isEnabled: boolean;
 }
 
+export interface PluginSettingsRecord {
+  config: Record<string, unknown>;
+}
+
 export interface AppSettings {
   global: GlobalSettings;
   network: NetworkSettings;
@@ -185,7 +188,7 @@ export interface AppSettings {
   defaultProfileId: string;
   rules: ProfileRule[];
   mediaServer: MediaServerSettings;
-  transcription: TranscriptionSettings;
+  plugins: Record<string, PluginSettingsRecord>;
   cache: SubtitleCacheSettings;
 }
 

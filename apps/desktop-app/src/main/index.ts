@@ -37,8 +37,7 @@ const connectionManager = new ConnectionManager({
   getSettings,
   subtitleService,
   stateManager,
-  bus,
-  cacheManager
+  bus
 });
 const mediaServerController = new MediaServerController({
   bus,

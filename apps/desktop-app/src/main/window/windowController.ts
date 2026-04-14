@@ -18,6 +18,12 @@ import { WindowManager } from "./windowManager.js";
 import { SettingsWindowManager } from "./settingsWindowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
+import { PluginHost } from "../plugins/pluginHost.js";
+import { PluginRegistryStore } from "../plugins/pluginRegistryStore.js";
+import { getRegistryPath } from "../plugins/pluginPaths.js";
+import { TRANSCRIPTION_MANIFEST } from "../plugins/official/transcription/manifest.js";
+import { registerTranscriptionPluginMain } from "../plugins/official/transcription/registerMain.js";
+import { TRANSCRIPTION_PLUGIN_ID } from "../../common/pluginIds.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -43,6 +49,7 @@ export class WindowController {
   private readonly settingsWindowManager: SettingsWindowManager;
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
+  private readonly pluginHost: PluginHost;
 
   constructor(private readonly options: WindowControllerOptions) {
     this.displayManager = new DisplayManager(options.stateManager);
@@ -78,6 +85,19 @@ export class WindowController {
       onBlocked: () => this.shortcutManager.blockForGame(),
       onUnblocked: () => this.shortcutManager.unblockAfterGame()
     });
+
+    const registryStore = new PluginRegistryStore(getRegistryPath());
+    this.pluginHost = new PluginHost(registryStore);
+    this.pluginHost.registerBundledPlugin(TRANSCRIPTION_MANIFEST, () =>
+      registerTranscriptionPluginMain({
+        stateManager: this.options.stateManager,
+        transcriptionService: this.options.transcriptionService,
+        cacheManager: this.options.cacheManager,
+        getTranscriptionSettings: () => this.options.getSettings().plugins[TRANSCRIPTION_PLUGIN_ID]?.config,
+        logger: this.log
+      })
+    );
+
     this.ipcRouter = new IpcRouter({
       stateManager: this.options.stateManager,
       connectionManager: this.options.connectionManager,
@@ -85,9 +105,11 @@ export class WindowController {
       cacheManager: this.options.cacheManager,
       transcriptionService: this.options.transcriptionService,
       fasterWhisperManager: this.options.fasterWhisperManager,
+      pluginHost: this.pluginHost,
       getSettings: this.options.getSettings,
       setSettings: this.options.setSettings,
       updateAppSettings: (partial) => this.updateAppSettings(partial),
+      pushPluginCatalog: () => this.pushPluginCatalog(),
       displayManager: this.displayManager,
       getMainWindow: () => this.windowManager.getWindow(),
       openSettingsWindow: () => this.openSettingsWindow(),
@@ -109,6 +131,9 @@ export class WindowController {
     this.gameProcessMonitor.start();
     this.setupBusListeners();
     this.ipcRouter.register();
+    this.pluginHost.loadEnabledPlugins().catch((err) => {
+      this.log.error("Failed to load enabled plugins", err);
+    });
     this.windowManager.createWindow();
 
     preloadNativeAPIs().catch((err) => {
@@ -190,6 +215,12 @@ export class WindowController {
     const settings = this.options.getSettings();
     this.windowManager.getWindow()?.webContents.send("usp:settings", settings);
     this.settingsWindowManager.getWindow()?.webContents.send("usp:settings", settings);
+  }
+
+  private async pushPluginCatalog() {
+    const catalog = await this.pluginHost.listCatalog();
+    this.windowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
+    this.settingsWindowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
   }
 
   private applyGlobalShortcut() {

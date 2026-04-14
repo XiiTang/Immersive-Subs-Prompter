@@ -32,7 +32,7 @@ describe("SettingsRules", () => {
       defaultProfileId: "profile-1",
       rules: [{ id: "rule-1", name: "Netflix", matchType: "contains", pattern: "netflix.com", profileId: "profile-1", isEnabled: true }],
       mediaServer: { enabled: false, configs: [] },
-      transcription: { enabled: false, activeConfigId: null, configs: [] },
+      plugins: {},
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as any;
 
