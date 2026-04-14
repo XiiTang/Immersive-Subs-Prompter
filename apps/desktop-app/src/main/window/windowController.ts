@@ -8,7 +8,6 @@ import { AppSettings, DesktopState, PlaybackState } from "../types.js";
 import { MediaServerController } from "../mediaServerController.js";
 import { TranscriptionService } from "../transcriptionService.js";
 import { FasterWhisperManager } from "../fasterWhisperManager.js";
-import { preloadNativeAPIs } from "../nativeWindowDrag.js";
 import { AutoLaunchManager } from "./autoLaunchManager.js";
 import { DisplayManager } from "./displayManager.js";
 import { GameProcessMonitor } from "./gameProcessMonitor.js";
@@ -135,10 +134,6 @@ export class WindowController {
       this.log.error("Failed to load enabled plugins", err);
     });
     this.windowManager.createWindow();
-
-    preloadNativeAPIs().catch((err) => {
-      this.log.warn("Failed to preload native drag APIs", err);
-    });
   }
 
   handleBeforeQuit() {

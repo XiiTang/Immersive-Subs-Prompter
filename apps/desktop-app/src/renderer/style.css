@@ -50,6 +50,7 @@ body {
   overflow: visible;
   transform: translateZ(0);
   pointer-events: auto;
+  -webkit-app-region: drag;
 }
 
 .window__title {
@@ -67,6 +68,7 @@ body {
   margin-left: 8px;
   display: flex;
   gap: 6px;
+  -webkit-app-region: no-drag;
 }
 
 .transcription-inline {
@@ -132,6 +134,14 @@ body {
   align-items: center;
   width: 60px;
   margin-right: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.window__header .icon-button,
+.window__header .slider,
+.window__header input,
+.window__header button {
+  -webkit-app-region: no-drag;
 }
 
 .header-slider {
