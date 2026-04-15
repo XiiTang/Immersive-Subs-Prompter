@@ -1,4 +1,3 @@
-import { clampAutoHideZoneHeight } from "../../../common/autoHide.js";
 import { CloseBehavior, GlobalSettings } from "../../types.js";
 import { DEFAULT_GLOBAL_SETTINGS, SUPPORTED_LANGUAGES } from "../constants.js";
 import { sanitizeProcessList } from "../utils.js";
@@ -17,7 +16,6 @@ export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | u
       : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);
   const autoHidePanels = typeof source.autoHidePanels === "boolean" ? source.autoHidePanels : DEFAULT_GLOBAL_SETTINGS.autoHidePanels;
-  const autoHideActiveZoneHeight = clampAutoHideZoneHeight(Number(source.autoHideActiveZoneHeight));
   let alwaysOnTop: "off" | "floating" | "screen-saver" = DEFAULT_GLOBAL_SETTINGS.alwaysOnTop;
   if (typeof source.alwaysOnTop === "boolean") {
     alwaysOnTop = source.alwaysOnTop ? "floating" : "off";
@@ -41,7 +39,6 @@ export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | u
     toggleWindowShortcut,
     gameProcessBlacklist,
     autoHidePanels,
-    autoHideActiveZoneHeight,
     alwaysOnTop,
     panelOpacity,
     language

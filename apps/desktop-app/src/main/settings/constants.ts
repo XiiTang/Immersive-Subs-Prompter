@@ -10,7 +10,7 @@ import {
   TranscriptionPluginConfig,
   UrlMatchType
 } from "../types.js";
-import { DEFAULT_AUTO_HIDE_ZONE_HEIGHT } from "../../common/autoHide.js";
+
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { clampPort } from "./utils.js";
 import { BASE_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
@@ -34,7 +34,6 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   toggleWindowShortcut: "CommandOrControl+Shift+S",
   gameProcessBlacklist: [],
   autoHidePanels: false,
-  autoHideActiveZoneHeight: DEFAULT_AUTO_HIDE_ZONE_HEIGHT,
   alwaysOnTop: "off",
   panelOpacity: 100,
   language: DEFAULT_LANGUAGE

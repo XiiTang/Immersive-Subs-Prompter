@@ -21,11 +21,7 @@ describe("Vue 3.5 upgrade", () => {
   });
 
   it("replaces legacy template refs with useTemplateRef", () => {
-    const files = [
-      "src/renderer/components/HeaderBar.vue",
-      "src/renderer/components/subtitle/TranscriptSurface.vue",
-      "src/renderer/components/subtitle/VideoInfoSection.vue"
-    ];
+    const files = ["src/renderer/components/subtitle/TranscriptSurface.vue"];
 
     for (const file of files) {
       const source = readDesktopFile(file);
@@ -38,14 +34,14 @@ describe("Vue 3.5 upgrade", () => {
     const files = [
       "src/renderer/components/icons/IconAdd.vue",
       "src/renderer/components/icons/IconDelete.vue",
+      "src/renderer/components/top-panel/TopControlPanel.vue",
       "src/renderer/components/subtitle/CueAnchorRail.vue",
       "src/renderer/components/subtitle/PlaybackControls.vue",
       "src/renderer/components/subtitle/StatusBanner.vue",
       "src/renderer/components/subtitle/TrackSelector.vue",
       "src/renderer/components/subtitle/TranscriptionControls.vue",
       "src/renderer/components/subtitle/TranscriptBlock.vue",
-      "src/renderer/components/subtitle/TranscriptSurface.vue",
-      "src/renderer/components/subtitle/VideoInfoSection.vue"
+      "src/renderer/components/subtitle/TranscriptSurface.vue"
     ];
 
     for (const file of files) {

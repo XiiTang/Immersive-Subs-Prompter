@@ -1,6 +1,6 @@
 <template>
   <div class="subtitle-view">
-    <VideoInfoSection
+    <TopControlPanel
       :title="titleText"
       :profile-label="profileLabel"
       :display-url="displayUrl"
@@ -67,8 +67,8 @@ import {
   deriveAbLoopSelectionState,
   selectAbLoopCue
 } from "./abLoopSelection";
+import TopControlPanel from "../top-panel/TopControlPanel.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
-import VideoInfoSection from "./VideoInfoSection.vue";
 import { usePlaybackPrediction } from "./composables/usePlaybackPrediction";
 import { usePlaybackScrubbing } from "./composables/usePlaybackScrubbing";
 import { clamp, formatSourceFile } from "../../utils/formatters";

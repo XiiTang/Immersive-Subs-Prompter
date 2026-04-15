@@ -7,8 +7,8 @@ import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
-const videoInfoSectionStub = defineComponent({
-  name: "VideoInfoSectionStub",
+const topControlPanelStub = defineComponent({
+  name: "TopControlPanelStub",
   props: {
     transcriptionEnabled: {
       type: Boolean,
@@ -20,17 +20,17 @@ const videoInfoSectionStub = defineComponent({
     }
   },
   render() {
-    return h("div", { class: "video-info-section-stub" }, [
+    return h("div", { class: "top-control-panel-stub" }, [
       h("div", { "data-testid": "transcription-enabled" }, String(this.transcriptionEnabled)),
       h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length))
     ]);
   }
 });
 
-const tallVideoInfoSectionStub = defineComponent({
-  name: "TallVideoInfoSectionStub",
+const tallTopControlPanelStub = defineComponent({
+  name: "TallTopControlPanelStub",
   render() {
-    return h("section", { class: "video-info-section video-info-section-stub" });
+    return h("section", { class: "top-control-panel top-control-panel-stub" });
   }
 });
 
@@ -75,7 +75,6 @@ function createSettings(): AppSettings {
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
       autoHidePanels: false,
-      autoHideActiveZoneHeight: 80,
       alwaysOnTop: "off",
       panelOpacity: 100,
       language: "en"
@@ -164,6 +163,30 @@ describe("SubtitleView", () => {
     setActivePinia(createPinia());
   });
 
+  it("renders a unified top control panel instead of the legacy video info section shell", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.find(".video-info-section").exists()).toBe(false);
+    expect(wrapper.find(".top-control-panel-stub").exists()).toBe(true);
+
+    wrapper.unmount();
+  });
+
   it("keeps the transcript surface geometry independent from the control cap height", async () => {
     const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
     const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
@@ -171,7 +194,7 @@ describe("SubtitleView", () => {
     Object.defineProperty(HTMLElement.prototype, "clientHeight", {
       configurable: true,
       get() {
-        if (this.classList?.contains("video-info-section-stub")) {
+        if (this.classList?.contains("top-control-panel-stub")) {
           return 96;
         }
         return 220;
@@ -195,7 +218,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: tallVideoInfoSectionStub
+          TopControlPanel: tallTopControlPanelStub
         }
       }
     });
@@ -230,7 +253,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -322,7 +345,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -386,7 +409,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -441,7 +464,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -523,7 +546,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -567,7 +590,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -627,7 +650,7 @@ describe("SubtitleView", () => {
     const wrapper = mount(SubtitleView, {
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });
@@ -679,7 +702,7 @@ describe("SubtitleView", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          VideoInfoSection: videoInfoSectionStub
+          TopControlPanel: topControlPanelStub
         }
       }
     });

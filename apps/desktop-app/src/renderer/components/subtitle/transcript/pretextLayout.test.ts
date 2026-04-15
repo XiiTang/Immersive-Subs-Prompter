@@ -56,8 +56,7 @@ describe("transcript pretext layout", () => {
     fontFamily: "Arial",
     primarySecondaryGap: 6,
     blockGap: 12,
-    metaRowHeight: 18,
-    metaRowGap: 6
+    metaRowHeight: 18
   } as const;
 
   beforeEach(() => {

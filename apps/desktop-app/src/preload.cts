@@ -69,6 +69,8 @@ const api = {
   cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup"),
   openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder"),
   toggleDisplayFullscreen: (): Promise<boolean> => ipcRenderer.invoke("usp:toggle-display-fullscreen"),
+  getWindowPointerState: (): Promise<{ insideWindow: boolean; x: number | null; y: number | null }> =>
+    ipcRenderer.invoke("usp:get-window-pointer-state"),
   startTranscription: (): Promise<{ ok: boolean; error?: string; trackId?: string }> =>
     ipcRenderer.invoke("usp:start-transcription"),
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>

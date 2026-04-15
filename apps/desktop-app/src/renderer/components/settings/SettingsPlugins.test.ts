@@ -18,7 +18,6 @@ describe("SettingsPlugins", () => {
         toggleWindowShortcut: "CommandOrControl+Shift+S",
         gameProcessBlacklist: [],
         autoHidePanels: false,
-        autoHideActiveZoneHeight: 80,
         alwaysOnTop: "off",
         panelOpacity: 100,
         language: "en"

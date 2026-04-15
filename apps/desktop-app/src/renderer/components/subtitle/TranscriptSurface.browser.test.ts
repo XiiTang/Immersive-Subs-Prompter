@@ -162,7 +162,7 @@ describe("TranscriptSurface", () => {
     await nextTick();
     await nextTick();
 
-    expect(wrapper.get(".transcript-block__line").attributes("style")).toContain("top: 24px;");
+    expect(wrapper.get(".transcript-block__line").attributes("style")).toContain("top: 18px;");
 
     wrapper.unmount();
   });

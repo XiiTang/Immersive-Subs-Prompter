@@ -111,7 +111,6 @@ const lastAnchor = ref<TranscriptViewportAnchor | null>(null);
 const preparedTextCache = createTranscriptPreparedTextCache();
 const WINDOW_OVERSCAN_PX = 240;
 const META_ROW_HEIGHT_PX = 18;
-const META_ROW_GAP_PX = 6;
 let scrollRafId: number | null = null;
 
 const surfaceStyle = computed(() => subtitlePanelStyle);
@@ -129,7 +128,6 @@ const layout = computed(() =>
     primarySecondaryGap,
     blockGap,
     metaRowHeight: META_ROW_HEIGHT_PX,
-    metaRowGap: META_ROW_GAP_PX,
     preparedTextCache
   })
 );

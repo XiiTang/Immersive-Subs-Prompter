@@ -44,7 +44,6 @@ export type TranscriptLayoutBlock = {
   primaryLineHeight: number;
   secondaryLineHeight: number;
   metaRowHeight: number;
-  metaRowGap: number;
   primarySecondaryGap: number;
   primaryPreparedTextKey: TranscriptPreparedTextKey;
   secondaryPreparedTextKey: TranscriptPreparedTextKey | null;

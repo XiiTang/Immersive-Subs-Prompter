@@ -23,7 +23,6 @@ type LayoutTranscriptBlocksInput = {
   primarySecondaryGap: number;
   blockGap: number;
   metaRowHeight: number;
-  metaRowGap: number;
   preparedTextCache?: TranscriptPreparedTextCache;
 };
 
@@ -143,7 +142,6 @@ export function measureTranscriptLayout({
   primarySecondaryGap,
   blockGap,
   metaRowHeight,
-  metaRowGap,
   preparedTextCache
 }: LayoutTranscriptBlocksInput): TranscriptLayoutResult {
   const scopedPreparedTextCache = preparedTextCache ?? createTranscriptPreparedTextCache();
@@ -153,17 +151,16 @@ export function measureTranscriptLayout({
   const safeBlockGap = Math.max(blockGap, 0);
   const secondaryGap = Math.max(primarySecondaryGap, 0);
   const safeMetaRowHeight = Math.max(metaRowHeight, 0);
-  const safeMetaRowGap = Math.max(metaRowGap, 0);
   const layoutBlocks: TranscriptLayoutBlock[] = [];
   let top = 0;
   let nextLineStart = 0;
 
   blocks.forEach((block) => {
     const blockTop = top;
-    const textTop = blockTop + safeMetaRowHeight + safeMetaRowGap;
+    const textTop = blockTop + safeMetaRowHeight;
     const primaryPrepared = getPreparedText(block.primaryText, primaryFont, scopedPreparedTextCache);
     const primaryLineCount = countPreparedLines(primaryPrepared.prepared, safeWidth);
-    let blockHeight = safeMetaRowHeight + safeMetaRowGap + primaryLineCount * primaryLinePixelHeight;
+    let blockHeight = safeMetaRowHeight + primaryLineCount * primaryLinePixelHeight;
     let secondaryPreparedKey: TranscriptPreparedTextKey | null = null;
     let secondaryLineCount = 0;
 
@@ -189,7 +186,6 @@ export function measureTranscriptLayout({
       primaryLineHeight: primaryLinePixelHeight,
       secondaryLineHeight: secondaryLinePixelHeight,
       metaRowHeight: safeMetaRowHeight,
-      metaRowGap: safeMetaRowGap,
       primarySecondaryGap: secondaryLineCount > 0 ? secondaryGap : 0,
       primaryPreparedTextKey: primaryPrepared.key,
       secondaryPreparedTextKey: secondaryPreparedKey
@@ -225,7 +221,7 @@ export function materializeTranscriptBlockLines({
     block.primaryLineHeight,
     block.blockId,
     "primary",
-    block.top + block.metaRowHeight + block.metaRowGap,
+    block.top + block.metaRowHeight,
     block.top
   );
 
@@ -239,7 +235,6 @@ export function materializeTranscriptBlockLines({
     const secondaryTop =
       block.top +
       block.metaRowHeight +
-      block.metaRowGap +
       primaryHeight +
       block.primarySecondaryGap;
 

@@ -82,7 +82,6 @@ export interface GlobalSettings {
   toggleWindowShortcut: string;
   gameProcessBlacklist: string[];
   autoHidePanels: boolean;
-  autoHideActiveZoneHeight: number;
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
   language: string;

@@ -22,7 +22,6 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
       autoHidePanels: false,
-      autoHideActiveZoneHeight: 80,
       alwaysOnTop: "off",
       panelOpacity: 100,
       language

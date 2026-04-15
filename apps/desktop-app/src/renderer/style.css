@@ -3,7 +3,7 @@
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   --panel-opacity-factor: 1;
-  --header-height: 45px;
+  --top-panel-collapsed-offset: 0px;
 }
 
 *,
@@ -31,43 +31,94 @@ body {
   overflow: hidden;
 }
 
-.window__header {
+.top-control-panel {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 500;
+  height: 0;
+}
+
+.top-edge-trigger-zone {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--top-panel-header-height, 16px);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+.top-control-panel__surface {
   --panel-opacity-factor: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  background: #121212;
+  border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: transform 200ms ease, opacity 180ms ease;
+  will-change: transform, opacity;
+  transform-origin: top;
+  pointer-events: auto;
+}
+
+.top-control-panel__header {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
   padding: 5px 16px;
-  background: #121212;
-  border-bottom: none;
   font-weight: 600;
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: calc(var(--header-height) + 2px);
-  z-index: 500;
-  overflow: visible;
-  transform: translateZ(0);
-  pointer-events: auto;
+  background: #121212;
+  -webkit-app-region: no-drag;
+}
+
+.top-control-panel__header-main {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.top-control-panel__drag-handle {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
+.top-control-panel--draggable .top-control-panel__drag-handle {
   -webkit-app-region: drag;
 }
 
-.window__title {
+.top-control-panel__header-labels {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.top-control-panel__title {
   font-size: 15px;
   flex: 1 1 auto;
 }
 
-.window__status {
+.top-control-panel__status {
   font-size: 13px;
   color: #67e8f9;
   margin-left: auto;
 }
 
-.window__header-actions {
+.top-control-panel__actions {
   margin-left: 8px;
   display: flex;
   gap: 6px;
+  flex: 0 0 auto;
   -webkit-app-region: no-drag;
 }
 
@@ -137,10 +188,13 @@ body {
   -webkit-app-region: no-drag;
 }
 
-.window__header .icon-button,
-.window__header .slider,
-.window__header input,
-.window__header button {
+.top-control-panel__actions .icon-button,
+.top-control-panel__actions .slider,
+.top-control-panel__actions input,
+.top-control-panel__actions button,
+.top-control-panel .control-panel,
+.top-control-panel .status-row,
+.top-control-panel .playback-row {
   -webkit-app-region: no-drag;
 }
 
@@ -186,19 +240,6 @@ body {
   overflow: hidden;
 }
 
-.video-info-section {
-  --panel-opacity-factor: 1;
-  position: absolute;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  background: #121212;
-  border-bottom: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  z-index: 400;
-  transform: translateZ(0);
-  padding-top: 2px;
-}
-
 .transcript-surface {
   position: absolute;
   inset: 0;
@@ -211,25 +252,25 @@ body {
   background: rgba(18, 18, 18, var(--panel-opacity-factor));
 }
 
-.video-meta {
+.top-control-panel__info {
   padding: 4px 16px 4px;
   opacity: 0.9;
   user-select: text;
 }
 
-.video-meta__title {
+.top-control-panel__info-title {
   margin: 0 0 4px;
   font-size: 15px;
   font-weight: 600;
 }
 
-.video-meta__profile {
+.top-control-panel__info-profile {
   margin: 0 0 4px;
   font-size: 12px;
   color: #cbd5f5;
 }
 
-.video-meta__url {
+.top-control-panel__info-url {
   margin: 0;
   font-size: 12px;
   color: #a1a1aa;
@@ -491,27 +532,10 @@ body {
   transform: scale(1.15);
 }
 
-/* Collapsible panels animation */
-.window__header,
-.video-info-section {
-  transition: transform 240ms ease, opacity 180ms ease;
-  will-change: transform, opacity;
-  transform-origin: top;
-}
-
-.video-info-section .video-meta,
-.video-info-section .control-panel,
-.video-info-section .status-row,
-.video-info-section .playback-row {
-  transition: opacity 200ms ease;
-}
-
-.auto-hide-collapsed .window__header,
-.auto-hide-collapsed .video-info-section {
-  transform: translate3d(0, -100%, 0);
+.top-control-panel--collapsed .top-control-panel__surface {
+  transform: translate3d(0, calc(var(--top-panel-collapsed-offset) * -1), 0);
   opacity: 0;
   pointer-events: none;
-  box-shadow: none;
 }
 
 /* Settings Window */
