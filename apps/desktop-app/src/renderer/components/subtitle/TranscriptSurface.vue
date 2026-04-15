@@ -115,7 +115,7 @@ let scrollRafId: number | null = null;
 
 const surfaceStyle = computed(() => subtitlePanelStyle);
 const contentStyle = computed(() => ({
-  height: `${layout.value.totalHeight}px`
+  height: `${layout.value.totalHeight + projection.value.scrollPaddingBottom}px`
 }));
 
 const layout = computed(() =>

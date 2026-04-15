@@ -94,13 +94,15 @@ export function projectTranscriptViewport({
   const safeViewportHeight = Math.max(viewportHeight, 1);
   const clampedFollowRatio = Math.max(0, Math.min(1, followRatio));
   const focusOffset = safeViewportHeight * clampedFollowRatio;
+  const scrollPaddingBottom = Math.ceil(safeViewportHeight * (1 - clampedFollowRatio));
 
   if (!anchor) {
     return {
       activeBlockId: null,
       activeBlockIndex: -1,
       focusOffset,
-      targetScrollTop: null
+      targetScrollTop: null,
+      scrollPaddingBottom
     };
   }
 
@@ -110,12 +112,13 @@ export function projectTranscriptViewport({
       activeBlockId: null,
       activeBlockIndex: -1,
       focusOffset,
-      targetScrollTop: null
+      targetScrollTop: null,
+      scrollPaddingBottom
     };
   }
 
   const activeBlock = layout.blocks[activeBlockIndex]!;
-  const maxScrollTop = Math.max(layout.totalHeight - safeViewportHeight, 0);
+  const maxScrollTop = Math.max(layout.totalHeight + scrollPaddingBottom - safeViewportHeight, 0);
   const anchorOffset = activeBlock.height * Math.max(0, Math.min(1, anchor.anchorBias));
   const targetScrollTop = Math.max(
     0,
@@ -131,6 +134,7 @@ export function projectTranscriptViewport({
     activeBlockId: projectedActiveBlockIndex === -1 ? null : projectedActiveBlockId,
     activeBlockIndex: projectedActiveBlockIndex,
     focusOffset,
-    targetScrollTop
+    targetScrollTop,
+    scrollPaddingBottom
   };
 }

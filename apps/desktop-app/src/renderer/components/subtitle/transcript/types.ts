@@ -76,6 +76,7 @@ export type TranscriptViewportProjection = {
   activeBlockIndex: number;
   focusOffset: number;
   targetScrollTop: number | null;
+  scrollPaddingBottom: number;
 };
 
 export type TranscriptSeekRequest = {
