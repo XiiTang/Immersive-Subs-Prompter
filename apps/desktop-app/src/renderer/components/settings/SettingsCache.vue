@@ -16,36 +16,34 @@
         <div class="settings-group__header">
           <h4 class="settings-group__title">Storage</h4>
         </div>
-        <div class="fw-row">
-        <div class="fw-field" style="flex: 1; min-width: 0;">
-          <div class="fw-field-header">
-            <span class="label">{{ t("cache-path-label", "Cache Path") }}</span>
+        <div class="cache-field-row">
+        <div class="settings-field cache-field--grow">
+          <div class="settings-field-header">
+            <span class="settings-field__label">{{ t("cache-path-label", "Cache Path") }}</span>
             <button
               type="button"
               class="icon-text-button"
               @click="openCacheFolder"
               :title="t('button-open-cache', 'Open Folder')"
-              style="padding: 0; opacity: 0.8;"
             >
               <span class="icon">📂</span>
             </button>
           </div>
-          <input 
-            type="text" 
-            v-model="cachePath" 
-            class="fw-input-sm" 
+          <input
+            type="text"
+            v-model="cachePath"
+            class="settings-input"
           />
         </div>
-        <div class="fw-field" style="flex: 0 0 auto;">
-          <span class="label">{{ t("cache-retention-label", "Retention (days)") }}</span>
-          <input 
-            type="number" 
-            min="1" 
-            max="9999" 
-            step="1" 
-            v-model.number="cacheRetentionDays" 
-            class="fw-input-sm" 
-            style="width: 75px;"
+        <div class="settings-field cache-field--fixed">
+          <span class="settings-field__label">{{ t("cache-retention-label", "Retention (days)") }}</span>
+          <input
+            type="number"
+            min="1"
+            max="9999"
+            step="1"
+            v-model.number="cacheRetentionDays"
+            class="settings-input cache-field--narrow"
           />
         </div>
       </div>
@@ -56,31 +54,30 @@
          <div class="settings-group__header">
           <h4 class="settings-group__title">Usage</h4>
         </div>
-      <div class="fw-status-row settings-status-row">
-         <div class="fw-status-item">
-           <span class="label">{{ t("cache-stats-entries", "Total entries") }}</span>
-           <span class="fw-badge">{{ cacheStatsDisplay.entries }}</span>
+      <div class="cache-status-row">
+         <div class="cache-status-item">
+           <span class="settings-field__label">{{ t("cache-stats-entries", "Total entries") }}</span>
+           <span class="settings-badge">{{ cacheStatsDisplay.entries }}</span>
          </div>
-         <div class="fw-status-item">
-           <span class="label">{{ t("cache-stats-size", "Total size") }}</span>
-           <span class="fw-badge">{{ cacheStatsDisplay.size }}</span>
+         <div class="cache-status-item">
+           <span class="settings-field__label">{{ t("cache-stats-size", "Total size") }}</span>
+           <span class="settings-badge">{{ cacheStatsDisplay.size }}</span>
          </div>
-         <div class="fw-status-item">
-           <div style="display: flex; align-items: center; gap: 4px;">
-             <span class="label">{{ t("cache-stats-oldest", "Oldest entry").replace("：", "").replace(":", "") }}</span>
-             <button 
-               type="button" 
-               class="icon-text-button" 
-               style="padding: 0; min-height: 0; width: 14px; height: 14px; font-size: 11px; opacity: 0.8;" 
+         <div class="cache-status-item">
+           <div class="cache-inline-row">
+             <span class="settings-field__label">{{ t("cache-stats-oldest", "Oldest entry").replace("：", "").replace(":", "") }}</span>
+             <button
+               type="button"
+               class="cache-refresh-btn"
                :disabled="cacheBusy"
                @click="refreshCacheStats"
                :title="t('button-refresh-stats', 'Refresh Stats')"
              >
                <span class="icon" :style="{ display: 'inline-block', transform: cacheBusy ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s ease' }">🔄</span>
              </button>
-             <span class="label">{{ language === "zh" ? "：" : ":" }}</span>
+             <span class="settings-field__label">{{ language === "zh" ? "：" : ":" }}</span>
            </div>
-           <span class="fw-badge">{{ cacheStatsDisplay.oldest }}</span>
+           <span class="settings-badge">{{ cacheStatsDisplay.oldest }}</span>
          </div>
       </div>
       </div>

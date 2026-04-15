@@ -39,14 +39,14 @@
           <div class="rule-item__actions" v-if="ruleForm.id">
             <button
               type="button"
-              class="rule-item__action"
+              class="settings-action-btn"
               @click="toggleRule(ruleForm.id!, !ruleForm.isEnabled)"
             >
               {{ ruleForm.isEnabled ? t("rule-action-disable", "Disable") : t("rule-action-enable", "Enable") }}
             </button>
             <button
               type="button"
-              class="rule-item__action"
+              class="settings-action-btn"
               :disabled="ruleIndex === 0"
               @click="moveRule(ruleForm.id!, 'up')"
             >
@@ -54,7 +54,7 @@
             </button>
             <button
               type="button"
-              class="rule-item__action"
+              class="settings-action-btn"
               :disabled="ruleIndex === rules.length - 1"
               @click="moveRule(ruleForm.id!, 'down')"
             >
@@ -62,7 +62,7 @@
             </button>
             <button
               type="button"
-              class="rule-item__action icon-button"
+              class="icon-button"
               :title="t('rule-action-delete', 'Delete')"
               :aria-label="t('rule-action-delete', 'Delete')"
               @click="deleteRule(ruleForm.id!)"
@@ -106,7 +106,7 @@
             <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
           </label>
         </div>
-        <button class="rule-form__submit" type="submit">
+        <button class="btn-primary rule-form__submit" type="submit">
           {{ ruleForm.id ? t("rule-form-submit-save", "Save Rule") : t("rule-form-submit-add", "Add Rule") }}
         </button>
       </form>

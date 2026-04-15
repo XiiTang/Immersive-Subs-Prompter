@@ -102,7 +102,7 @@
               <span>{{ process }}</span>
               <button
                 type="button"
-                class="priority-editor__item-remove"
+                class="settings-action-btn--remove"
                 :aria-label="t('game-blacklist-remove', 'Remove')"
                 @click="removeGameProcess(process)"
               >

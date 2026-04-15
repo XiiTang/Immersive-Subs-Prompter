@@ -5,11 +5,11 @@
         <h3 class="settings-section__title">{{ t("section-profiles", "Profiles") }}</h3>
       </div>
     </header>
-    <div class="profile-settings settings-surface settings-surface--split">
-      <div class="profile-settings__sidebar">
-        <div class="profile-settings__actions">
+    <div class="settings-split settings-surface settings-surface--split">
+      <div class="settings-split__sidebar">
+        <div class="settings-split__sidebar-header">
           <span class="settings-field__label">{{ t("profile-list-label", "Profile List") }}</span>
-          <div class="profile-settings__buttons">
+          <div class="settings-split__sidebar-buttons">
             <button
               type="button"
               class="icon-button"
@@ -34,7 +34,7 @@
             </button>
           </div>
         </div>
-        <div class="profile-list">
+        <div class="profile-list settings-list">
           <template v-if="profiles.length">
             <button
               v-for="profile in profiles"
@@ -55,16 +55,18 @@
           </template>
           <div v-else class="profile-list__empty">{{ t("profile-empty", "No profiles") }}</div>
         </div>
-        <button
-          type="button"
-          class="text-button profile-settings__default"
-          :disabled="!editingProfile || editingProfile.id === defaultProfileId"
-          @click="setDefaultProfile"
-        >
-          {{ t("button-set-default", "Set as Default") }}
-        </button>
+        <div class="settings-split__sidebar-actions">
+          <button
+            type="button"
+            class="text-button"
+            :disabled="!editingProfile || editingProfile.id === defaultProfileId"
+            @click="setDefaultProfile"
+          >
+            {{ t("button-set-default", "Set as Default") }}
+          </button>
+        </div>
       </div>
-      <div class="profile-settings__editor" v-if="editingProfile">
+      <div class="settings-split__editor" v-if="editingProfile">
         <label class="settings-field">
           <span class="settings-field__label">{{ t("profile-name-label", "Profile Name") }}</span>
           <input type="text" v-model="profileName" autocomplete="off" />
@@ -238,7 +240,7 @@
                 <span>{{ item }}</span>
                 <button
                   type="button"
-                  class="priority-editor__item-remove"
+                  class="settings-action-btn--remove"
                   :aria-label="t('priority-remove', 'Remove priority')"
                   @click="removePriority('primary', item)"
                 >
@@ -301,7 +303,7 @@
                 <span>{{ item }}</span>
                 <button
                   type="button"
-                  class="priority-editor__item-remove"
+                  class="settings-action-btn--remove"
                   :aria-label="t('priority-remove', 'Remove priority')"
                   @click="removePriority('secondary', item)"
                 >

@@ -5,11 +5,11 @@
         <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
       </div>
     </header>
-    <div class="transcription-settings settings-surface settings-surface--split">
-      <div class="transcription-settings__sidebar">
-        <div class="transcription-settings__actions">
+    <div class="settings-split settings-surface settings-surface--split">
+      <div class="settings-split__sidebar">
+        <div class="settings-split__sidebar-header">
           <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
-          <div class="transcription-settings__buttons">
+          <div class="settings-split__sidebar-buttons">
             <button
               type="button"
               class="icon-button"
@@ -31,7 +31,7 @@
             </button>
           </div>
         </div>
-        <div class="transcription-config-list">
+        <div class="transcription-config-list settings-list">
           <template v-if="transcriptionConfigs.length">
             <button
               v-for="config in transcriptionConfigs"
@@ -62,7 +62,7 @@
           </div>
         </div>
       </div>
-      <div class="transcription-settings__editor" v-if="activeConfig">
+      <div class="settings-split__editor" v-if="activeConfig">
       <label class="settings-field">
         <span class="settings-field__label">{{ t("transcription-name-label", "Config Name") }}</span>
         <input type="text" v-model="configName" />

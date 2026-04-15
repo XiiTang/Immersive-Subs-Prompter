@@ -10,11 +10,11 @@
       </label>
     </header>
 
-    <div class="mediaserver-config-manager settings-surface settings-surface--split" v-if="mediaServerEnabled">
-      <div class="mediaserver-config-manager__sidebar">
-        <div class="mediaserver-config-manager__actions">
+    <div class="settings-split settings-surface settings-surface--split" v-if="mediaServerEnabled">
+      <div class="settings-split__sidebar">
+        <div class="settings-split__sidebar-header">
           <span class="settings-field__label">{{ t("server-list-label", "Server List") }}</span>
-          <div class="mediaserver-config-manager__buttons">
+          <div class="settings-split__sidebar-buttons">
             <button
               type="button"
               class="icon-button"
@@ -36,7 +36,7 @@
             </button>
           </div>
         </div>
-        <div class="mediaserver-config-list" :class="{ 'mediaserver-config-list--empty': !mediaServerConfigs.length }">
+        <div class="mediaserver-config-list settings-list" :class="{ 'mediaserver-config-list--empty': !mediaServerConfigs.length }">
           <template v-if="mediaServerConfigs.length">
             <button
               v-for="config in mediaServerConfigs"
@@ -62,7 +62,7 @@
           </div>
         </div>
       </div>
-      <div class="mediaserver-config-manager__editor" v-if="selectedMediaServerConfig">
+      <div class="settings-split__editor" v-if="selectedMediaServerConfig">
         <label class="settings-field">
           <span class="settings-field__label">{{ t("server-name-label", "Server Name") }}</span>
           <input type="text" v-model="mediaServerName" />
