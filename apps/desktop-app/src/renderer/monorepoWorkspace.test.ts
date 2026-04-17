@@ -26,7 +26,7 @@ describe("root workspace layout", () => {
 
     expect(rootPackage.packageManager).toMatch(/^pnpm@10\./);
     expect(rootPackage.scripts?.build).toBe("pnpm -r build");
-    expect(rootPackage.scripts?.test).toBe("pnpm -r test");
+    expect(rootPackage.scripts?.test).toContain("pnpm -r test");
     expect(rootPackage.scripts?.typecheck).toBe("pnpm -r typecheck");
     expect(desktopPackage.scripts?.test).toBe("node ./scripts/run-renderer-tests.mjs");
     expect(desktopPackage.scripts?.["test:renderer"]).toBe("node ./scripts/run-renderer-tests.mjs");

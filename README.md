@@ -149,6 +149,27 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 
 For detailed procedures (including extension packaging, Electron Forge distributables, and yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
 
+## Engineering Conventions
+
+### Error handling
+
+Empty catch blocks are banned. `pnpm test` (and the `lint:silent-catches` script) fails the build if any code swallows an error without declaring intent. Use one of these three patterns:
+
+- **Propagate**: let the error bubble — prefer this for anything a caller could recover from.
+- **`reportError(err, "scope.operation", { level, extra })`**: log via the shared scoped logger. Use for failures the operator should see but that don't warrant killing the caller.
+- **`swallow(err, "scope.operation", "human-readable reason")`**: declare the failure safe to ignore. The reason string appears in debug logs so reviewers can audit every silent failure.
+
+Imports:
+- Main process: `import { reportError, swallow } from "./errors.js"` (or the correct relative path)
+- Renderer: `import { reportError, swallow } from "../utils/errorBus"`
+- Extension: `import { reportError, swallow } from "../shared/reportError"`
+
+If you genuinely need an empty catch (e.g., defensive fallbacks in hot paths), add a comment ending in `usp-allow-empty-catch` on the line above the `catch` to opt out of the check.
+
+### Internationalization
+
+Locale dictionaries live in [apps/desktop-app/src/renderer/locales](apps/desktop-app/src/renderer/locales/). Each file is a flat `{ key: "translation" }` map and is loaded on demand via dynamic `import()`, so only the active language ships to the client. To add a new key, edit both `en.json` and `zh.json`; callers use `t("key", "English fallback")` inside Vue components.
+
 ## Troubleshooting
 
 - **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `apps/desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.

@@ -1,5 +1,6 @@
 import { computed, onWatcherCleanup, ref, watch, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import type { TranscriptionConfig } from "../../../../../main/types";
+import { reportError } from "../../../../utils/errorBus";
 
 export interface FasterWhisperPaths {
   binaryDir: string;
@@ -123,7 +124,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       }
       modelsBaseDir.value = paths.value?.modelsDir ?? modelsBaseDir.value;
     } catch (error) {
-      console.error("Failed to load Faster-Whisper paths", error);
+      reportError(error, "fasterWhisper.loadPaths");
     }
     await refreshStatus();
   }
@@ -152,7 +153,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       modelsBaseDir.value =
         status.modelsBaseDir || status.paths?.modelsDir || targetDir || modelsBaseDir.value;
     } catch (error) {
-      console.error("Failed to refresh Faster-Whisper status", error);
+      reportError(error, "fasterWhisper.refreshStatus");
     }
   }
 

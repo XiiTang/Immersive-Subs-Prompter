@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
 import { useDesktopStore } from "../../stores/desktop";
+import { loadLocale } from "../../i18n";
 import type { AppSettings } from "../../../main/types";
 
 const sectionStub = (testId: string) =>
@@ -70,8 +71,11 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
 }
 
 describe("SettingsWindowShell", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia());
+    // i18n loads locale dictionaries via dynamic import; preload them so
+    // synchronous mount() calls render real translations instead of fallbacks.
+    await Promise.all([loadLocale("en"), loadLocale("zh")]);
   });
 
   afterEach(() => {
@@ -129,12 +133,13 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
   });
 
-  it("shows top-level settings chrome in Chinese only when language is zh", () => {
+  it("shows top-level settings chrome in Chinese only when language is zh", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("zh");
     store.editingProfileId = "profile-1";
 
     const wrapper = mount(SettingsWindowShell);
+    await nextTick();
     const text = wrapper.text();
     const shellHeaderText = wrapper.get(".settings-window-shell__header").text();
 

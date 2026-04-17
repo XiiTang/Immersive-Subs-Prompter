@@ -1,4 +1,5 @@
 import type { AppSettings, GlobalSettings, NetworkSettings } from "../../../../main/types";
+import { reportError } from "../../../utils/errorBus";
 import { mergePartial, toPlain } from "../helpers";
 import type { DesktopStoreThis } from "../types";
 
@@ -19,7 +20,7 @@ export async function updateSettings(this: DesktopStoreThis, partial: Partial<Ap
     const next = await window.usp.updateSettings(payload);
     this.settings = next;
   } catch (error) {
-    console.error("[Renderer] Failed to update settings", error);
+    reportError(error, "settings.update");
   }
 }
 

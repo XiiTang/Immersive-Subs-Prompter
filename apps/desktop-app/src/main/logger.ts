@@ -98,15 +98,21 @@ async function resolveLogDirectory(): Promise<string> {
   if (!app.isReady()) {
     try {
       await app.whenReady();
-    } catch {
-      // ignore readiness errors, fall back to temp dir
+    } catch (readyError) {
+      // Explicit swallow: app may already be quitting or main disposed — fall through to userData path.
+      process.stderr.write(
+        `[USP][logger] app.whenReady rejected: ${(readyError as Error)?.message ?? readyError}\n`
+      );
     }
   }
   try {
     const dir = path.join(app.getPath("userData"), "logs");
     await fsPromises.mkdir(dir, { recursive: true });
     return dir;
-  } catch {
+  } catch (userDataError) {
+    process.stderr.write(
+      `[USP][logger] userData logs dir unavailable (${(userDataError as Error)?.message ?? userDataError}); using cwd/logs\n`
+    );
     const fallback = path.join(process.cwd(), "logs");
     await fsPromises.mkdir(fallback, { recursive: true });
     return fallback;
@@ -115,17 +121,26 @@ async function resolveLogDirectory(): Promise<string> {
 
 async function rotateArchives(basePath: string, maxBackups: number) {
   if (maxBackups <= 0) {
-    await fsPromises.rm(basePath, { force: true }).catch(() => {});
+    await fsPromises.rm(basePath, { force: true }).catch((error) => {
+      // force:true already ignores ENOENT; anything else (EBUSY/EPERM) is non-fatal here.
+      process.stderr.write(
+        `[USP][logger] Failed to remove base log before rotation: ${(error as Error)?.message ?? error}\n`
+      );
+    });
     return;
   }
-  await fsPromises.rm(`${basePath}.${maxBackups}`, { force: true }).catch(() => {});
+  await fsPromises.rm(`${basePath}.${maxBackups}`, { force: true }).catch((error) => {
+    process.stderr.write(
+      `[USP][logger] Failed to remove oldest archive: ${(error as Error)?.message ?? error}\n`
+    );
+  });
   for (let index = maxBackups - 1; index >= 0; index -= 1) {
     const source = index === 0 ? basePath : `${basePath}.${index}`;
     const target = `${basePath}.${index + 1}`;
     try {
       await fsPromises.access(source);
     } catch {
-      continue;
+      continue; // archive rung does not exist yet; skip
     }
     await fsPromises.rename(source, target);
   }

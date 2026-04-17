@@ -3,6 +3,7 @@
     "strict": true,
     "noImplicitOverride": true,
     "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "allowJs": false,
     "checkJs": false

@@ -4,7 +4,18 @@ const extraArgs = process.argv.slice(2);
 const forwardedArgs = extraArgs[0] === "--" ? extraArgs.slice(1) : extraArgs;
 const result = spawnSync(
   "pnpm",
-  ["exec", "vitest", "run", ...forwardedArgs, "--project", "browser", "--project", "jsdom"],
+  [
+    "exec",
+    "vitest",
+    "run",
+    ...forwardedArgs,
+    "--project",
+    "browser",
+    "--project",
+    "jsdom",
+    "--project",
+    "main"
+  ],
   {
     stdio: "inherit",
     shell: process.platform === "win32"

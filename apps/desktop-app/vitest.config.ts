@@ -51,7 +51,18 @@ export default defineConfig({
           exclude: ["src/renderer/**/*.browser.test.ts"],
           setupFiles: sharedSetupFiles
         }
+      }),
+      defineProject({
+        test: {
+          name: "main",
+          environment: "node",
+          globals: true,
+          testTimeout: 15000,
+          setupFiles: ["./src/main/test/setup.ts"],
+          include: ["src/main/**/*.test.ts"]
+        }
       })
     ]
   }
 });
+

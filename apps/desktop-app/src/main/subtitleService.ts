@@ -8,6 +8,7 @@ import { DEFAULT_PROFILE_SETTINGS, DEFAULT_YTDLP_ARGS } from "./settings/index.j
 import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
+import { swallow } from "./errors.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
@@ -180,8 +181,8 @@ export async function runCommand(
       if (process.platform === "win32") {
         try {
           return iconv.decode(chunk, "gbk");
-        } catch {
-          // Fall back to UTF-8 if GBK decode fails
+        } catch (decodeError) {
+          swallow(decodeError, "subtitle.decode.gbk", "falling back to UTF-8");
         }
       }
       return chunk.toString("utf8");

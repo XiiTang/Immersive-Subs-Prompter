@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import { buildWebSocketUrl, createAuthHeaders, JellyfinembyIdentity } from "../jellyfinembyUtils.js";
 import { MediaServerConfig } from "../types.js";
+import { swallow } from "../errors.js";
 import { KEEP_ALIVE_INTERVAL_MS, RECONNECT_DELAY_MS } from "./constants.js";
 
 type Logger = {
@@ -94,8 +95,8 @@ export class JellyfinembyWebSocketTransport {
     if (this.socket) {
       try {
         this.socket.close();
-      } catch {
-        // ignore
+      } catch (error) {
+        swallow(error, "jellyfinemby.ws.disconnect", "socket already closed");
       }
       this.socket = null;
     }

@@ -1,5 +1,6 @@
 import { MEDIA_EVENTS } from "../content/constants";
 import { log, state } from "../content/state";
+import { swallow } from "../shared/reportError";
 
 let mediaEventHandler: EventListener | null = null;
 let videoRemovedHandler: (() => void) | null = null;
@@ -30,7 +31,7 @@ function getShadowRoot(element: Element | null): ShadowRoot | null {
     try {
       return chrome.dom.openOrClosedShadowRoot(element as HTMLElement);
     } catch (err) {
-      // Fallback to normal shadowRoot access
+      swallow(err, "dom.shadowRoot", "chrome.dom unavailable; falling back to element.shadowRoot");
     }
   }
   return element.shadowRoot;

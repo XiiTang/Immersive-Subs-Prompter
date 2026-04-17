@@ -1,14 +1,13 @@
 import { app } from "electron";
 import fs from "fs";
 import path from "path";
-import { createLogger } from "../logger.js";
+import { reportError } from "../errors.js";
 import { AppSettings } from "../types.js";
 import { DEFAULT_SETTINGS_FACTORY, mergeSettings, sanitizeSettings } from "./appSettingsSanitizer.js";
 
 export class SettingsStore {
   private readonly filePath: string;
   private data: AppSettings = DEFAULT_SETTINGS_FACTORY();
-  private readonly log = createLogger("settings");
 
   constructor() {
     this.filePath = path.join(app.getPath("userData"), "settings.json");
@@ -26,7 +25,10 @@ export class SettingsStore {
       const parsed = JSON.parse(raw);
       this.data = sanitizeSettings(parsed);
     } catch (error) {
-      this.log.error("Failed to read settings:", error);
+      reportError(error, "settings.load", {
+        scope: "settings",
+        extra: { filePath: this.filePath }
+      });
       this.data = DEFAULT_SETTINGS_FACTORY();
     }
   }
@@ -36,7 +38,13 @@ export class SettingsStore {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
       fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), "utf-8");
     } catch (error) {
-      this.log.error("Failed to persist settings:", error);
+      reportError(error, "settings.save", {
+        scope: "settings",
+        extra: { filePath: this.filePath }
+      });
+      // Propagate so IPC callers surface the failure to the renderer instead of
+      // silently reporting success while the on-disk state is stale.
+      throw error;
     }
   }
 

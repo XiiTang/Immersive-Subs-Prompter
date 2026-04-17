@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import path from "path";
 import { app } from "electron";
 import { createLogger } from "./logger.js";
+import { swallow } from "./errors.js";
 import { SubtitleLoadResult, SubtitleCacheSettings } from "./types.js";
 
 const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
@@ -185,8 +186,11 @@ export class SubtitleCacheManager {
           }
         } catch (error) {
           // Invalid or corrupted cache file, remove it
-          await fs.unlink(path.join(cacheDir, file)).catch(() => { });
+          await fs.unlink(path.join(cacheDir, file)).catch((unlinkError) => {
+            swallow(unlinkError, "cache.cleanup.unlink", "corrupted cache file may have been removed concurrently");
+          });
           removedCount++;
+          swallow(error, "cache.cleanup.parse", "deleted unreadable cache entry");
         }
       }
     } catch (error) {
@@ -235,8 +239,8 @@ export class SubtitleCacheManager {
           if (stats.newestEntry === null || entry.timestamp > stats.newestEntry) {
             stats.newestEntry = entry.timestamp;
           }
-        } catch {
-          // Ignore invalid cache files
+        } catch (error) {
+          swallow(error, "cache.stats.parse", "skipping unreadable cache entry");
         }
       }
     } catch (error) {
