@@ -7,12 +7,6 @@
     aria-live="polite"
     @pointerdown.stop
   >
-    <header class="word-lookup-popover__header">
-      <div class="word-lookup-popover__title">{{ token }}</div>
-      <button type="button" class="word-lookup-popover__close" aria-label="Close word lookup" @click="$emit('close')">
-        ×
-      </button>
-    </header>
     <div class="word-lookup-popover__content">
       <article v-for="match in matches" :key="`${match.fileOrder}-${match.word}`" class="word-lookup-entry">
         <header class="word-lookup-entry__header">
@@ -31,7 +25,6 @@ import { renderWordLookupMarkdown } from "../../plugins/wordLookupMarkdown";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
 
 const props = defineProps<{
-  token: string;
   x: number;
   y: number;
   width: number;
@@ -46,18 +39,22 @@ const emit = defineEmits<{
 
 const popoverRef = ref<HTMLElement | null>(null);
 let resizeObserver: ResizeObserver | null = null;
+const MIN_WIDTH = 260;
+const MIN_HEIGHT = 180;
 
 const popoverStyle = computed(() => {
   const margin = 12;
   const viewportWidth = window.innerWidth || 1024;
   const viewportHeight = window.innerHeight || 768;
-  const left = Math.max(margin, Math.min(props.x + 12, viewportWidth - props.width - margin));
-  const top = Math.max(margin, Math.min(props.y + 12, viewportHeight - props.height - margin));
+  const width = Math.min(Math.max(props.width, MIN_WIDTH), Math.max(MIN_WIDTH, viewportWidth - margin * 2));
+  const height = Math.min(Math.max(props.height, MIN_HEIGHT), Math.max(MIN_HEIGHT, viewportHeight - margin * 2));
+  const left = Math.max(margin, Math.min(props.x + 12, viewportWidth - width - margin));
+  const top = Math.max(margin, Math.min(props.y + 12, viewportHeight - height - margin));
   return {
     left: `${left}px`,
     top: `${top}px`,
-    width: `${props.width}px`,
-    height: `${props.height}px`
+    width: `${width}px`,
+    height: `${height}px`
   };
 });
 
@@ -91,13 +88,25 @@ function attachResizeObserver() {
     return;
   }
   resizeObserver = new ResizeObserver(([entry]) => {
-    if (!entry) return;
-    emit("resize", {
-      width: Math.round(entry.contentRect.width),
-      height: Math.round(entry.contentRect.height)
-    });
+    if (!entry || !popoverRef.value) return;
+    emit("resize", getBorderBoxSize(popoverRef.value, entry));
   });
   resizeObserver.observe(popoverRef.value);
+}
+
+function getBorderBoxSize(element: HTMLElement, entry: ResizeObserverEntry) {
+  const borderBoxSize = Array.isArray(entry.borderBoxSize) ? entry.borderBoxSize[0] : entry.borderBoxSize;
+  if (borderBoxSize) {
+    return {
+      width: Math.round(borderBoxSize.inlineSize),
+      height: Math.round(borderBoxSize.blockSize)
+    };
+  }
+  const rect = element.getBoundingClientRect();
+  return {
+    width: Math.round(rect.width),
+    height: Math.round(rect.height)
+  };
 }
 
 onMounted(() => {

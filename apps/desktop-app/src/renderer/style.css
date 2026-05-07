@@ -2432,31 +2432,6 @@ body {
   color: #f5f7fa;
 }
 
-.word-lookup-popover__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.word-lookup-popover__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #d6ffe9;
-}
-
-.word-lookup-popover__close {
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e5e7eb;
-  cursor: pointer;
-}
-
 .word-lookup-popover__content {
   flex: 1;
   overflow: auto;

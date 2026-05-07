@@ -25,6 +25,7 @@
           @loop="emit('loop-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop-range="emit('loop-range', block.block.sourceCueRefs.primaryCueIndex)"
           @word-hover="emit('word-hover', $event)"
+          @word-leave="emit('word-leave', $event)"
         />
       </div>
     </div>
@@ -103,6 +104,7 @@ const emit = defineEmits<{
   (e: "loop-cue", cueIndex: number): void;
   (e: "loop-range", cueIndex: number): void;
   (e: "word-hover", payload: WordHoverPayload): void;
+  (e: "word-leave", token: string): void;
 }>();
 
 const viewportRef = useTemplateRef<HTMLElement>("viewportRef");

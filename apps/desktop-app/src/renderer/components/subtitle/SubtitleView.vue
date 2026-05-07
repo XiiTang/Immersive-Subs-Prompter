@@ -56,10 +56,10 @@
       @loop-cue="toggleLoop"
       @loop-range="handleAbLoop"
       @word-hover="handleWordHover"
+      @word-leave="handleWordLeave"
     />
     <WordLookupPopover
       v-if="wordLookupPopover"
-      :token="wordLookupPopover.token"
       :x="wordLookupPopover.x"
       :y="wordLookupPopover.y"
       :width="wordLookupPanelSize.width"
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
 import {
   createAbLoopSelectionState,
@@ -171,11 +171,11 @@ const seekRequestToken = ref(0);
 const seekRequest = ref<TranscriptSeekRequest | null>(null);
 const wordLookupRequestToken = ref(0);
 const wordLookupPopover = ref<{
-  token: string;
   x: number;
   y: number;
   matches: WordLookupResult["matches"];
 } | null>(null);
+const hoveredWordPayload = ref<WordHoverPayload | null>(null);
 const wordLookupPanelSize = computed(() => wordLookupConfig.value.panelSize);
 
 watch([
@@ -459,7 +459,7 @@ function toggleAutoHide() {
   store.updateGlobalSetting("autoHidePanels", !autoHideEnabled.value);
 }
 
-function isWordLookupModifierPressed(payload: WordHoverPayload): boolean {
+function isWordLookupModifierPressed(payload: Pick<WordHoverPayload, "altKey" | "ctrlKey" | "metaKey" | "shiftKey">): boolean {
   switch (wordLookupConfig.value.modifierKey) {
     case "ctrl":
       return payload.ctrlKey || payload.metaKey;
@@ -472,10 +472,14 @@ function isWordLookupModifierPressed(payload: WordHoverPayload): boolean {
 }
 
 async function handleWordHover(payload: WordHoverPayload) {
+  hoveredWordPayload.value = payload;
   if (!wordLookupEnabled.value || !isWordLookupModifierPressed(payload)) {
     return;
   }
+  await openWordLookupPopover(payload);
+}
 
+async function openWordLookupPopover(payload: WordHoverPayload) {
   const requestId = wordLookupRequestToken.value + 1;
   wordLookupRequestToken.value = requestId;
   wordLookupPopover.value = null;
@@ -487,11 +491,33 @@ async function handleWordHover(payload: WordHoverPayload) {
     return;
   }
   wordLookupPopover.value = {
-    token: result.token || payload.token,
     x: payload.clientX,
     y: payload.clientY,
     matches: result.matches
   };
+}
+
+function handleWordLeave(token: string) {
+  if (hoveredWordPayload.value?.token === token) {
+    hoveredWordPayload.value = null;
+  }
+}
+
+function handleWordLookupKeyDown(event: KeyboardEvent) {
+  if (event.repeat || !wordLookupEnabled.value || !hoveredWordPayload.value) {
+    return;
+  }
+  const payload = {
+    ...hoveredWordPayload.value,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    shiftKey: event.shiftKey
+  };
+  if (!isWordLookupModifierPressed(payload)) {
+    return;
+  }
+  void openWordLookupPopover(payload);
 }
 
 function closeWordLookupPopover() {
@@ -509,4 +535,12 @@ function saveWordLookupPanelSize(size: { width: number; height: number }) {
     panelSize: size
   });
 }
+
+onMounted(() => {
+  window.addEventListener("keydown", handleWordLookupKeyDown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleWordLookupKeyDown);
+});
 </script>

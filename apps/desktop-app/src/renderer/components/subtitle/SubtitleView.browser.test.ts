@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../../main/types.js";
@@ -723,5 +723,89 @@ describe("SubtitleView", () => {
     await nextTick();
 
     expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("true");
+  });
+
+  it("opens word lookup when the trigger key is pressed after hovering a token", async () => {
+    const lookupWord = vi.fn().mockResolvedValue({
+      token: "alpha",
+      normalizedToken: "alpha",
+      matches: [
+        {
+          word: "alpha",
+          content: "first letter",
+          aliases: [],
+          fileOrder: 0,
+          matchQuality: 0
+        }
+      ]
+    });
+    const originalUsp = window.usp;
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        ...originalUsp,
+        lookupWord,
+        openExternal: vi.fn()
+      }
+    });
+
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      plugins: {
+        "official.word-lookup": {
+          config: {
+            wordListPath: "/tmp/words.jsonl",
+            modifierKey: "alt",
+            panelSize: { width: 360, height: 300 }
+          }
+        }
+      }
+    };
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.word-lookup",
+        version: "1.0.0",
+        displayName: "Word Lookup",
+        description: "Look up words.",
+        status: "enabled",
+        enabled: true,
+        error: null
+      }
+    ];
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const alphaToken = wrapper.findAll('[data-testid="word-lookup-token"]').find((token) => token.text() === "alpha");
+    expect(alphaToken).toBeTruthy();
+
+    await alphaToken!.trigger("mouseenter", { clientX: 120, clientY: 140 });
+    expect(lookupWord).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+    await flushPromises();
+    await nextTick();
+
+    expect(lookupWord).toHaveBeenCalledWith("alpha");
+    expect(wrapper.get(".word-lookup-popover").exists()).toBe(true);
+
+    wrapper.unmount();
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: originalUsp
+    });
   });
 });

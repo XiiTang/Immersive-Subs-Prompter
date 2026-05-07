@@ -42,6 +42,7 @@
               class="word-lookup-token"
               data-testid="word-lookup-token"
               @mouseenter="handleTokenMouseEnter($event, part.text)"
+              @mouseleave="emit('word-leave', part.text)"
             >{{ part.text }}</span>
             <span v-else>{{ part.text }}</span>
           </template>
@@ -81,6 +82,7 @@ const emit = defineEmits<{
   (e: "loop"): void;
   (e: "loop-range"): void;
   (e: "word-hover", payload: WordHoverPayload): void;
+  (e: "word-leave", token: string): void;
 }>();
 
 const hovered = ref(false);
