@@ -360,6 +360,9 @@ async function syncPointerState() {
   if (!autoHideEnabled || pointerStateSyncInFlight) {
     return;
   }
+  if (typeof window === "undefined") {
+    return;
+  }
   if (!window.usp?.getWindowPointerState) {
     return;
   }
@@ -402,14 +405,14 @@ async function syncPointerState() {
 
 function stopPointerStatePolling() {
   if (pointerStatePollTimerId !== null) {
-    window.clearInterval(pointerStatePollTimerId);
+    globalThis.clearInterval(pointerStatePollTimerId);
     pointerStatePollTimerId = null;
   }
 }
 
 function startPointerStatePolling() {
   stopPointerStatePolling();
-  if (!autoHideEnabled) {
+  if (!autoHideEnabled || typeof window === "undefined") {
     return;
   }
   pointerStatePollTimerId = window.setInterval(() => {

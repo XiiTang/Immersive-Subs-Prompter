@@ -100,6 +100,19 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 - Returns structured errors with line number and reason.
 - Fails the full load if any line is invalid.
 
+`wordListValidator.ts`
+
+- Validates canonical JSONL word lists without throwing.
+- Normalizes JSONL, JSON arrays, single `{ word, content }` objects, and `{ entries: [...] }` objects into canonical JSONL.
+- Can skip invalid rows during conversion while reporting skipped row labels and reasons.
+- Revalidates generated JSONL before returning it.
+
+`wordListCli.ts`
+
+- Exposes the project script `pnpm word-list:normalize`.
+- `pnpm word-list:normalize --check <path>` strictly validates a canonical JSONL file.
+- `pnpm word-list:normalize <input> [output]` writes canonical JSONL and skips invalid rows with a warning.
+
 `wordLookupNormalizer.ts`
 
 - Provides token and key normalization.
