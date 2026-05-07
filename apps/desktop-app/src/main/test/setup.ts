@@ -26,6 +26,15 @@ vi.mock("electron", () => {
       on: () => undefined,
       removeHandler: () => undefined
     },
+    screen: {
+      getDisplayNearestPoint: () => ({
+        workArea: { x: 0, y: 0, width: 1440, height: 900 }
+      }),
+      getDisplayMatching: () => ({
+        workArea: { x: 0, y: 0, width: 1440, height: 900 }
+      }),
+      getCursorScreenPoint: () => ({ x: 0, y: 0 })
+    },
     BrowserWindow: class {
       static getAllWindows() {
         return [];

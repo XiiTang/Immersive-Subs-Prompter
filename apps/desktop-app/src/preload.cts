@@ -85,7 +85,19 @@ const api = {
     ipcRenderer.invoke("usp:disable-plugin", pluginId),
   lookupWord: (token: string): Promise<any> => ipcRenderer.invoke("usp:word-lookup", token),
   refreshWordLookup: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-refresh"),
-  getWordLookupStatus: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-status")
+  getWordLookupStatus: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-status"),
+  openWordLookupWindow: (payload: any): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:word-lookup-window-open", payload),
+  notifyWordLookupWindowPointerEnter: (): Promise<void> =>
+    ipcRenderer.invoke("usp:word-lookup-window-pointer-enter"),
+  notifyWordLookupWindowPointerLeave: (): Promise<void> =>
+    ipcRenderer.invoke("usp:word-lookup-window-pointer-leave"),
+  notifyWordLookupTriggerLeave: (): Promise<void> =>
+    ipcRenderer.invoke("usp:word-lookup-trigger-leave"),
+  resizeWordLookupWindow: (size: { width: number; height: number }): Promise<void> =>
+    ipcRenderer.invoke("usp:word-lookup-window-resize", size),
+  onWordLookupWindowPayload: (listener: Listener<any>) =>
+    subscribe("word-lookup-window:payload", listener)
 };
 
 contextBridge.exposeInMainWorld("usp", api);

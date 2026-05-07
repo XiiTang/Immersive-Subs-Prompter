@@ -15,6 +15,7 @@ import { ShortcutManager } from "./shortcutManager.js";
 import { TrayManager } from "./trayManager.js";
 import { WindowManager } from "./windowManager.js";
 import { SettingsWindowManager } from "./settingsWindowManager.js";
+import { WordLookupWindowManager } from "./wordLookupWindowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
 import { PluginHost } from "../plugins/pluginHost.js";
@@ -48,6 +49,7 @@ export class WindowController {
   private readonly trayManager: TrayManager;
   private readonly windowManager: WindowManager;
   private readonly settingsWindowManager: SettingsWindowManager;
+  private readonly wordLookupWindowManager: WordLookupWindowManager;
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
   private readonly pluginHost: PluginHost;
@@ -72,7 +74,11 @@ export class WindowController {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
       },
-      onClosed: () => this.displayManager.reset()
+      onHide: () => this.wordLookupWindowManager?.close(),
+      onClosed: () => {
+        this.wordLookupWindowManager?.close();
+        this.displayManager.reset();
+      }
     });
     this.settingsWindowManager = new SettingsWindowManager({
       getWindowIconPath: () => this.getWindowIconPath(),
@@ -80,6 +86,12 @@ export class WindowController {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
       }
+    });
+    this.wordLookupWindowManager = new WordLookupWindowManager({
+      getMainWindow: () => this.windowManager.getWindow(),
+      getSettings: this.options.getSettings,
+      updateWordLookupPanelSize: (size) => this.updateWordLookupPanelSize(size),
+      logger: this.log
     });
     this.gameProcessMonitor = new GameProcessMonitor({
       getBlacklist: () => this.options.getSettings().global.gameProcessBlacklist ?? [],
@@ -117,6 +129,7 @@ export class WindowController {
       updateAppSettings: (partial) => this.updateAppSettings(partial),
       pushPluginCatalog: () => this.pushPluginCatalog(),
       displayManager: this.displayManager,
+      wordLookupWindowManager: this.wordLookupWindowManager,
       getMainWindow: () => this.windowManager.getWindow(),
       openSettingsWindow: () => this.openSettingsWindow(),
       logger: this.log
@@ -249,6 +262,7 @@ export class WindowController {
 
     if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop) {
       this.windowManager.updateAlwaysOnTop(appSettings.global.alwaysOnTop);
+      this.wordLookupWindowManager.updateAlwaysOnTop();
     }
 
     if (previousGlobal.language !== appSettings.global.language) {
@@ -266,6 +280,20 @@ export class WindowController {
     this.pushSettings();
     this.gameProcessMonitor.refresh();
     return appSettings;
+  }
+
+  private updateWordLookupPanelSize(size: { width: number; height: number }) {
+    const currentConfig = this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config;
+    this.updateAppSettings({
+      plugins: {
+        [WORD_LOOKUP_PLUGIN_ID]: {
+          config: {
+            ...(currentConfig && typeof currentConfig === "object" ? currentConfig : {}),
+            panelSize: size
+          }
+        }
+      }
+    });
   }
 
   private getWindowIconPath(): string {

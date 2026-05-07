@@ -58,19 +58,6 @@
       @word-hover="handleWordHover"
       @word-leave="handleWordLeave"
     />
-    <Teleport to="body">
-      <WordLookupPopover
-        v-if="wordLookupPopover"
-        :x="wordLookupPopover.x"
-        :y="wordLookupPopover.y"
-        :anchor-rect="wordLookupPopover.anchorRect"
-        :width="wordLookupPanelSize.width"
-        :height="wordLookupPanelSize.height"
-        :matches="wordLookupPopover.matches"
-        @close="closeWordLookupPopover"
-        @resize="saveWordLookupPanelSize"
-      />
-    </Teleport>
   </div>
 </template>
 
@@ -84,7 +71,6 @@ import {
 } from "./abLoopSelection";
 import TopControlPanel from "../top-panel/TopControlPanel.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
-import WordLookupPopover from "./WordLookupPopover.vue";
 import { usePlaybackPrediction } from "./composables/usePlaybackPrediction";
 import { usePlaybackScrubbing } from "./composables/usePlaybackScrubbing";
 import { clamp, formatSourceFile } from "../../utils/formatters";
@@ -173,14 +159,9 @@ const abLoopSelectionState = ref(createAbLoopSelectionState());
 const seekRequestToken = ref(0);
 const seekRequest = ref<TranscriptSeekRequest | null>(null);
 const wordLookupRequestToken = ref(0);
-const wordLookupPopover = ref<{
-  x: number;
-  y: number;
-  anchorRect: WordHoverPayload["anchorRect"];
-  matches: WordLookupResult["matches"];
-} | null>(null);
+const wordLookupOpenedRequestToken = ref(0);
+const wordLookupTriggerLeftRequestToken = ref<number | null>(null);
 const hoveredWordPayload = ref<WordHoverPayload | null>(null);
-const wordLookupPanelSize = computed(() => wordLookupConfig.value.panelSize);
 
 watch([
   () => store.desktopState?.selectedPrimarySubtitleId,
@@ -480,13 +461,14 @@ async function handleWordHover(payload: WordHoverPayload) {
   if (!wordLookupEnabled.value || !isWordLookupModifierPressed(payload)) {
     return;
   }
-  await openWordLookupPopover(payload);
+  await openWordLookupWindow(payload);
 }
 
-async function openWordLookupPopover(payload: WordHoverPayload) {
+async function openWordLookupWindow(payload: WordHoverPayload) {
   const requestId = wordLookupRequestToken.value + 1;
   wordLookupRequestToken.value = requestId;
-  wordLookupPopover.value = null;
+  wordLookupOpenedRequestToken.value = 0;
+  wordLookupTriggerLeftRequestToken.value = null;
   const result = await window.usp.lookupWord(payload.token) as WordLookupResult;
   if (requestId !== wordLookupRequestToken.value) {
     return;
@@ -494,17 +476,29 @@ async function openWordLookupPopover(payload: WordHoverPayload) {
   if (!result.matches.length) {
     return;
   }
-  wordLookupPopover.value = {
-    x: payload.clientX,
-    y: payload.clientY,
+  await window.usp.openWordLookupWindow({
     anchorRect: payload.anchorRect,
+    panelSize: wordLookupConfig.value.panelSize,
     matches: result.matches
-  };
+  });
+  wordLookupOpenedRequestToken.value = requestId;
+  if (
+    wordLookupTriggerLeftRequestToken.value === requestId ||
+    hoveredWordPayload.value?.token !== payload.token
+  ) {
+    void window.usp.notifyWordLookupTriggerLeave();
+  }
 }
 
 function handleWordLeave(token: string) {
   if (hoveredWordPayload.value?.token === token) {
+    const requestId = wordLookupRequestToken.value;
     hoveredWordPayload.value = null;
+    if (wordLookupOpenedRequestToken.value === requestId) {
+      void window.usp.notifyWordLookupTriggerLeave();
+    } else {
+      wordLookupTriggerLeftRequestToken.value = requestId;
+    }
   }
 }
 
@@ -522,23 +516,7 @@ function handleWordLookupKeyDown(event: KeyboardEvent) {
   if (!isWordLookupModifierPressed(payload)) {
     return;
   }
-  void openWordLookupPopover(payload);
-}
-
-function closeWordLookupPopover() {
-  wordLookupRequestToken.value += 1;
-  wordLookupPopover.value = null;
-}
-
-function saveWordLookupPanelSize(size: { width: number; height: number }) {
-  const current = wordLookupConfig.value;
-  if (current.panelSize.width === size.width && current.panelSize.height === size.height) {
-    return;
-  }
-  store.setPluginConfig(WORD_LOOKUP_PLUGIN_ID, {
-    ...current,
-    panelSize: size
-  });
+  void openWordLookupWindow(payload);
 }
 
 onMounted(() => {

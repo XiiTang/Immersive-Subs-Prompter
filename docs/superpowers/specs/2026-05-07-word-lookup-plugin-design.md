@@ -10,6 +10,8 @@ The project has not shipped yet, so this design does not preserve or migrate old
 
 This document describes only the final product behavior and architecture. It intentionally omits brainstorming history and intermediate alternatives.
 
+Floating window behavior for the lookup panel is defined by `2026-05-07-word-lookup-floating-window-design.md`.
+
 ## Goals
 
 - Provide a built-in official plugin named `official.word-lookup`.
@@ -82,7 +84,7 @@ Renderer responsibilities:
 - Extract a token from the hovered text by whitespace and punctuation boundaries.
 - Request lookup results.
 - Render the floating Markdown popup.
-- Close the popup on outside click or Escape.
+- Keep or close the floating panel based on pointer movement into and out of the panel.
 
 Existing subtitle components should not learn word-list parsing, indexing, or Markdown rules. They should expose only the minimal event and DOM information needed for renderer-side lookup interaction.
 
@@ -166,17 +168,24 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 - Tracks the selected modifier key.
 - Handles hover over subtitle text.
 - Requests lookup results.
-- Opens a new popup for a new token by closing the previous popup first.
+- Requests a floating lookup window when a hovered token has matches.
 
-`WordLookupPopover.vue`
+`WordLookupWindowManager`
 
-- Renders a floating, resizable panel near the trigger position.
-- Keeps the panel within the visible window bounds.
-- Allows content scrolling.
-- Closes on outside click or Escape.
+- Owns the transient Electron lookup window lifecycle.
+- Positions the window in screen coordinates.
+- Allows the panel to extend beyond the subtitle window while staying within the display work area.
+- Uses lower-right placement by default and lower-left placement when lower-right would overflow horizontally.
+- Closes the window according to pointer handoff and panel-leave behavior.
 - Remembers size in plugin config.
-- Does not remember position.
+
+`WordLookupWindow.vue`
+
 - Renders all matching entries in sorted order.
+- Allows content scrolling and text selection.
+- Opens safe external links through IPC.
+- Reports pointer enter, pointer leave, and resize events to the main process.
+- Does not remember position.
 
 ## Subtitle Interaction
 
@@ -188,7 +197,7 @@ The only V1 interaction is modifier-key hover.
 - Lookup does not distinguish subtitle roles.
 - Pure hover, pure click, modifier-click, and double-click lookup are not part of V1.
 - Existing subtitle click-to-seek behavior remains unchanged.
-- When a new word is triggered while a popup is open, the old popup closes and a new popup opens.
+- The lookup panel is transient. It stays visible while the pointer moves from the trigger word into the panel or remains inside it, and closes when the pointer leaves the panel or does not enter it within the handoff delay.
 - Lookup opens immediately while the modifier is held; there is no additional hover delay.
 
 Token extraction:
@@ -354,9 +363,10 @@ Subtitle interaction tests:
 - hover without modifier does not trigger lookup
 - hover works on primary and secondary subtitle lines
 - existing subtitle click-to-seek behavior still works
-- outside click closes the popup
-- Escape closes the popup
-- a new token closes the old popup and opens a new popup
+- moving from the trigger token into the floating panel keeps it open
+- leaving the floating panel closes it
+- leaving the trigger token without entering the panel closes it after the handoff delay
+- Escape does not close the panel
 
 ## Acceptance Criteria
 
@@ -366,5 +376,7 @@ Subtitle interaction tests:
 - Holding the configured modifier and hovering a subtitle token opens a Markdown popup when the token matches.
 - Duplicate matches are all shown in deterministic sorted order.
 - The popup is resizable, scrollable, and remembers size.
-- Clicking outside the popup or pressing Escape closes it.
+- The popup can extend outside the subtitle window while staying within the display work area.
+- Pointer movement into and out of the panel controls its lifetime.
+- Escape does not close the popup.
 - Existing subtitle seeking, looping, scrolling, and selection behavior remains intact.

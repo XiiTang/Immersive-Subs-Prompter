@@ -19,7 +19,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "src/renderer/index.html"),
-        settings: path.resolve(__dirname, "src/renderer/settings.html")
+        settings: path.resolve(__dirname, "src/renderer/settings.html"),
+        wordLookupWindow: path.resolve(__dirname, "src/renderer/word-lookup-window.html")
       }
     }
   }

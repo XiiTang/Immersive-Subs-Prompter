@@ -6,6 +6,7 @@ import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from
 import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
+import type { WordLookupResult } from "../../plugins/wordLookupTypes";
 
 const topControlPanelStub = defineComponent({
   name: "TopControlPanelStub",
@@ -726,7 +727,11 @@ describe("SubtitleView", () => {
   });
 
   it("opens word lookup when the trigger key is pressed after hovering a token", async () => {
-    const lookupWord = vi.fn().mockResolvedValue({
+    let resolveLookup: (result: WordLookupResult) => void = () => undefined;
+    const lookupWord = vi.fn().mockImplementation(() => new Promise<WordLookupResult>((resolve) => {
+      resolveLookup = resolve;
+    }));
+    const lookupResult: WordLookupResult = {
       token: "alpha",
       normalizedToken: "alpha",
       matches: [
@@ -738,13 +743,17 @@ describe("SubtitleView", () => {
           matchQuality: 0
         }
       ]
-    });
+    };
+    const openWordLookupWindow = vi.fn().mockResolvedValue({ success: true });
+    const notifyWordLookupTriggerLeave = vi.fn().mockResolvedValue(undefined);
     const originalUsp = window.usp;
     Object.defineProperty(window, "usp", {
       configurable: true,
       value: {
         ...originalUsp,
         lookupWord,
+        openWordLookupWindow,
+        notifyWordLookupTriggerLeave,
         openExternal: vi.fn()
       }
     });
@@ -800,8 +809,33 @@ describe("SubtitleView", () => {
     await nextTick();
 
     expect(lookupWord).toHaveBeenCalledWith("alpha");
-    expect(document.body.querySelector(".word-lookup-popover")).not.toBeNull();
+    await alphaToken!.trigger("mouseleave");
+    expect(openWordLookupWindow).not.toHaveBeenCalled();
+    expect(notifyWordLookupTriggerLeave).not.toHaveBeenCalled();
+
+    resolveLookup(lookupResult);
+    await flushPromises();
+    await nextTick();
+
+    expect(openWordLookupWindow).toHaveBeenCalledWith(expect.objectContaining({
+      panelSize: { width: 360, height: 300 },
+      matches: [
+        {
+          word: "alpha",
+          content: "first letter",
+          aliases: [],
+          fileOrder: 0,
+          matchQuality: 0
+        }
+      ],
+      anchorRect: expect.objectContaining({
+        width: expect.any(Number),
+        height: expect.any(Number)
+      })
+    }));
+    expect(document.body.querySelector(".word-lookup-popover")).toBeNull();
     expect(wrapper.find(".word-lookup-popover").exists()).toBe(false);
+    expect(notifyWordLookupTriggerLeave).toHaveBeenCalledTimes(1);
 
     wrapper.unmount();
     Object.defineProperty(window, "usp", {

@@ -8,6 +8,7 @@ import { AppSettings } from "../types.js";
 import { DisplayManager } from "../window/displayManager.js";
 import { PluginHost } from "../plugins/pluginHost.js";
 import { createLogger } from "../logger.js";
+import { WordLookupWindowManager } from "../window/wordLookupWindowManager.js";
 import { registerStateHandlers } from "./handlers/stateHandlers.js";
 import { registerSettingsHandlers } from "./handlers/settingsHandlers.js";
 import { registerSubtitleHandlers } from "./handlers/subtitleHandlers.js";
@@ -30,6 +31,7 @@ export type IpcContext = {
   updateAppSettings: (partial: Partial<AppSettings>) => AppSettings;
   pushPluginCatalog: () => Promise<void>;
   displayManager: DisplayManager;
+  wordLookupWindowManager: WordLookupWindowManager;
   getMainWindow: () => BrowserWindow | null;
   openSettingsWindow: () => BrowserWindow | null;
   logger: ReturnType<typeof createLogger>;

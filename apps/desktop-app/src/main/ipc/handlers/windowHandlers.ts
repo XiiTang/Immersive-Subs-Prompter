@@ -38,4 +38,24 @@ export function registerWindowHandlers(context: IpcContext) {
       y: cursorPoint.y - bounds.y
     };
   });
+
+  ipcMain.handle("usp:word-lookup-window-open", (_event, payload) => {
+    return context.wordLookupWindowManager.open(payload);
+  });
+
+  ipcMain.handle("usp:word-lookup-window-pointer-enter", () => {
+    context.wordLookupWindowManager.handlePointerEnter();
+  });
+
+  ipcMain.handle("usp:word-lookup-window-pointer-leave", () => {
+    context.wordLookupWindowManager.handlePointerLeave();
+  });
+
+  ipcMain.handle("usp:word-lookup-trigger-leave", () => {
+    context.wordLookupWindowManager.handleTriggerLeave();
+  });
+
+  ipcMain.handle("usp:word-lookup-window-resize", (_event, size) => {
+    context.wordLookupWindowManager.handleResize(size);
+  });
 }
