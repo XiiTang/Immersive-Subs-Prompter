@@ -92,6 +92,8 @@ const contentHeight = ref(1);
 const isScrollbarActive = ref(false);
 const isScrollbarHovering = ref(false);
 const localSize = ref({ width: props.width, height: props.height });
+const manualPosition = ref<{ left: number; top: number } | null>(null);
+const isResizing = ref(false);
 
 const maxScrollTop = computed(() => Math.max(0, contentHeight.value - viewportHeight.value));
 const hasScrollableContent = computed(() => maxScrollTop.value > 1);
@@ -105,14 +107,10 @@ const popoverStyle = computed(() => {
   const viewportHeight = window.innerHeight || 768;
   const width = clamp(localSize.value.width, MIN_WIDTH, Math.max(MIN_WIDTH, viewportWidth - POPOVER_MARGIN * 2));
   const height = clamp(localSize.value.height, MIN_HEIGHT, Math.max(MIN_HEIGHT, viewportHeight - POPOVER_MARGIN * 2));
-  const rightSideLeft = props.anchorRect.right + ANCHOR_GAP;
-  const leftSideLeft = props.anchorRect.left - width - ANCHOR_GAP;
-  const preferredLeft = rightSideLeft + width <= viewportWidth - POPOVER_MARGIN
-    ? rightSideLeft
-    : leftSideLeft;
-  const left = clamp(preferredLeft, POPOVER_MARGIN, viewportWidth - width - POPOVER_MARGIN);
-  const anchorMiddle = props.anchorRect.top + props.anchorRect.height / 2;
-  const top = clamp(anchorMiddle - height / 2, POPOVER_MARGIN, viewportHeight - height - POPOVER_MARGIN);
+  const anchoredPosition = getAnchoredPosition(width, height, viewportWidth, viewportHeight);
+  const position = manualPosition.value ?? anchoredPosition;
+  const left = clamp(position.left, POPOVER_MARGIN, viewportWidth - width - POPOVER_MARGIN);
+  const top = clamp(position.top, POPOVER_MARGIN, viewportHeight - height - POPOVER_MARGIN);
   return {
     left: `${left}px`,
     top: `${top}px`,
@@ -148,6 +146,19 @@ function handleWindowKeyDown(event: KeyboardEvent) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function getAnchoredPosition(width: number, height: number, viewportWidth: number, viewportHeight: number) {
+  const rightSideLeft = props.anchorRect.right + ANCHOR_GAP;
+  const leftSideLeft = props.anchorRect.left - width - ANCHOR_GAP;
+  const preferredLeft = rightSideLeft + width <= viewportWidth - POPOVER_MARGIN
+    ? rightSideLeft
+    : leftSideLeft;
+  const anchorMiddle = props.anchorRect.top + props.anchorRect.height / 2;
+  return {
+    left: preferredLeft,
+    top: anchorMiddle - height / 2
+  };
 }
 
 function handleContentClick(event: MouseEvent) {
@@ -263,23 +274,42 @@ function handleScrollbarThumbPointerDown(event: PointerEvent) {
 }
 
 function handleResizePointerDown(event: PointerEvent) {
+  const rect = popoverRef.value?.getBoundingClientRect();
+  if (!rect) {
+    return;
+  }
   const startClientX = event.clientX;
   const startClientY = event.clientY;
-  const startWidth = localSize.value.width;
-  const startHeight = localSize.value.height;
+  const startWidth = Math.max(MIN_WIDTH, rect.width || localSize.value.width);
+  const startHeight = Math.max(MIN_HEIGHT, rect.height || localSize.value.height);
+  const origin = {
+    left: rect.left,
+    top: rect.top
+  };
+  let latestSize = {
+    width: Math.round(startWidth),
+    height: Math.round(startHeight)
+  };
+  manualPosition.value = origin;
+  isResizing.value = true;
 
   const handleMove = (moveEvent: PointerEvent) => {
     const viewportWidth = window.innerWidth || 1024;
     const viewportHeight = window.innerHeight || 768;
-    const width = clamp(startWidth + moveEvent.clientX - startClientX, MIN_WIDTH, viewportWidth - POPOVER_MARGIN * 2);
-    const height = clamp(startHeight + moveEvent.clientY - startClientY, MIN_HEIGHT, viewportHeight - POPOVER_MARGIN * 2);
+    const width = clamp(startWidth + moveEvent.clientX - startClientX, MIN_WIDTH, viewportWidth - origin.left - POPOVER_MARGIN);
+    const height = clamp(startHeight + moveEvent.clientY - startClientY, MIN_HEIGHT, viewportHeight - origin.top - POPOVER_MARGIN);
     localSize.value = { width, height };
-    emit("resize", { width: Math.round(width), height: Math.round(height) });
+    latestSize = {
+      width: Math.round(width),
+      height: Math.round(height)
+    };
     void nextTick(updateMeasurements);
   };
   const handleUp = () => {
     window.removeEventListener("pointermove", handleMove);
     window.removeEventListener("pointerup", handleUp);
+    isResizing.value = false;
+    emit("resize", latestSize);
   };
 
   window.addEventListener("pointermove", handleMove);
@@ -289,6 +319,9 @@ function handleResizePointerDown(event: PointerEvent) {
 watch(
   () => [props.width, props.height],
   () => {
+    if (isResizing.value) {
+      return;
+    }
     localSize.value = {
       width: props.width,
       height: props.height
@@ -301,6 +334,18 @@ watch(() => props.matches, () => {
   scrollTop.value = 0;
   void nextTick(updateMeasurements);
 });
+
+watch(
+  () => [
+    props.anchorRect.left,
+    props.anchorRect.top,
+    props.anchorRect.right,
+    props.anchorRect.bottom
+  ],
+  () => {
+    manualPosition.value = null;
+  }
+);
 
 onMounted(() => {
   window.addEventListener("pointerdown", handleWindowPointerDown, true);
