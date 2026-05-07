@@ -63,6 +63,8 @@ const api = {
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
   openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
+  selectWordListFile: (): Promise<{ canceled: boolean; path: string | null }> =>
+    ipcRenderer.invoke("usp:select-word-list-file"),
   getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
     ipcRenderer.invoke("usp:cache-stats"),
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),
@@ -80,7 +82,10 @@ const api = {
   enablePlugin: (pluginId: string): Promise<any[]> =>
     ipcRenderer.invoke("usp:enable-plugin", pluginId),
   disablePlugin: (pluginId: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:disable-plugin", pluginId)
+    ipcRenderer.invoke("usp:disable-plugin", pluginId),
+  lookupWord: (token: string): Promise<any> => ipcRenderer.invoke("usp:word-lookup", token),
+  refreshWordLookup: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-refresh"),
+  getWordLookupStatus: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-status")
 };
 
 contextBridge.exposeInMainWorld("usp", api);

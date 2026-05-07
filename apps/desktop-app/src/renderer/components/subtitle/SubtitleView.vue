@@ -55,6 +55,18 @@
       @play-cue="seekToCue"
       @loop-cue="toggleLoop"
       @loop-range="handleAbLoop"
+      @word-hover="handleWordHover"
+    />
+    <WordLookupPopover
+      v-if="wordLookupPopover"
+      :token="wordLookupPopover.token"
+      :x="wordLookupPopover.x"
+      :y="wordLookupPopover.y"
+      :width="wordLookupPanelSize.width"
+      :height="wordLookupPanelSize.height"
+      :matches="wordLookupPopover.matches"
+      @close="closeWordLookupPopover"
+      @resize="saveWordLookupPanelSize"
     />
   </div>
 </template>
@@ -69,6 +81,7 @@ import {
 } from "./abLoopSelection";
 import TopControlPanel from "../top-panel/TopControlPanel.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
+import WordLookupPopover from "./WordLookupPopover.vue";
 import { usePlaybackPrediction } from "./composables/usePlaybackPrediction";
 import { usePlaybackScrubbing } from "./composables/usePlaybackScrubbing";
 import { clamp, formatSourceFile } from "../../utils/formatters";
@@ -76,7 +89,8 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
 import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
 import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
-import { TRANSCRIPTION_PLUGIN_ID } from "../../../common/pluginIds.js";
+import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../common/pluginIds.js";
+import type { WordHoverPayload, WordLookupResult } from "../../plugins/wordLookupTypes";
 
 const store = useDesktopStore();
 const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
@@ -86,6 +100,8 @@ const { t } = useI18n(language);
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
 const transcriptionEnabled = computed(() => store.isPluginEnabled(TRANSCRIPTION_PLUGIN_ID));
+const wordLookupEnabled = computed(() => store.isPluginEnabled(WORD_LOOKUP_PLUGIN_ID));
+const wordLookupConfig = computed(() => store.getWordLookupPluginConfig());
 const transcriptionPluginConfig = computed(() => store.getTranscriptionPluginConfig());
 const transcriptionConfigs = computed(() => (
   transcriptionEnabled.value ? transcriptionPluginConfig.value.configs : []
@@ -153,6 +169,14 @@ const playbackLoop = computed(() => playback.value?.loop ?? null);
 const abLoopSelectionState = ref(createAbLoopSelectionState());
 const seekRequestToken = ref(0);
 const seekRequest = ref<TranscriptSeekRequest | null>(null);
+const wordLookupRequestToken = ref(0);
+const wordLookupPopover = ref<{
+  token: string;
+  x: number;
+  y: number;
+  matches: WordLookupResult["matches"];
+} | null>(null);
+const wordLookupPanelSize = computed(() => wordLookupConfig.value.panelSize);
 
 watch([
   () => store.desktopState?.selectedPrimarySubtitleId,
@@ -433,5 +457,56 @@ function handleAbLoop(index: number) {
 
 function toggleAutoHide() {
   store.updateGlobalSetting("autoHidePanels", !autoHideEnabled.value);
+}
+
+function isWordLookupModifierPressed(payload: WordHoverPayload): boolean {
+  switch (wordLookupConfig.value.modifierKey) {
+    case "ctrl":
+      return payload.ctrlKey || payload.metaKey;
+    case "shift":
+      return payload.shiftKey;
+    case "alt":
+    default:
+      return payload.altKey;
+  }
+}
+
+async function handleWordHover(payload: WordHoverPayload) {
+  if (!wordLookupEnabled.value || !isWordLookupModifierPressed(payload)) {
+    return;
+  }
+
+  const requestId = wordLookupRequestToken.value + 1;
+  wordLookupRequestToken.value = requestId;
+  wordLookupPopover.value = null;
+  const result = await window.usp.lookupWord(payload.token) as WordLookupResult;
+  if (requestId !== wordLookupRequestToken.value) {
+    return;
+  }
+  if (!result.matches.length) {
+    return;
+  }
+  wordLookupPopover.value = {
+    token: result.token || payload.token,
+    x: payload.clientX,
+    y: payload.clientY,
+    matches: result.matches
+  };
+}
+
+function closeWordLookupPopover() {
+  wordLookupRequestToken.value += 1;
+  wordLookupPopover.value = null;
+}
+
+function saveWordLookupPanelSize(size: { width: number; height: number }) {
+  const current = wordLookupConfig.value;
+  if (current.panelSize.width === size.width && current.panelSize.height === size.height) {
+    return;
+  }
+  store.setPluginConfig(WORD_LOOKUP_PLUGIN_ID, {
+    ...current,
+    panelSize: size
+  });
 }
 </script>

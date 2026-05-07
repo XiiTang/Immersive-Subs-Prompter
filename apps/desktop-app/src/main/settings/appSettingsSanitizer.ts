@@ -5,9 +5,10 @@ import { sanitizeProfiles } from "./sanitizers/profileSanitizer.js";
 import { sanitizeRules } from "./sanitizers/ruleSanitizer.js";
 import { sanitizeMediaServerSettings } from "./sanitizers/mediaServerSanitizer.js";
 import { sanitizeTranscriptionPluginConfig } from "./sanitizers/transcriptionSanitizer.js";
+import { sanitizeWordLookupPluginConfig } from "./sanitizers/wordLookupSanitizer.js";
 import { sanitizeCacheSettings } from "./sanitizers/cacheSanitizer.js";
 import defaultSettings from "../default-settings.json" with { type: "json" };
-import { TRANSCRIPTION_PLUGIN_ID } from "../../common/pluginIds.js";
+import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
 
 function sanitizePluginSettings(
   input: Partial<AppSettings>["plugins"]
@@ -21,9 +22,11 @@ function sanitizePluginSettings(
       config:
         pluginId === TRANSCRIPTION_PLUGIN_ID
           ? (sanitizeTranscriptionPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>)
-          : config && typeof config === "object"
-            ? (config as Record<string, unknown>)
-            : {}
+          : pluginId === WORD_LOOKUP_PLUGIN_ID
+            ? (sanitizeWordLookupPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>)
+            : config && typeof config === "object"
+              ? (config as Record<string, unknown>)
+              : {}
     };
   }
   return result;

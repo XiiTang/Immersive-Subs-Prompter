@@ -22,7 +22,9 @@ import { PluginRegistryStore } from "../plugins/pluginRegistryStore.js";
 import { getRegistryPath } from "../plugins/pluginPaths.js";
 import { TRANSCRIPTION_MANIFEST } from "../plugins/official/transcription/manifest.js";
 import { registerTranscriptionPluginMain } from "../plugins/official/transcription/registerMain.js";
-import { TRANSCRIPTION_PLUGIN_ID } from "../../common/pluginIds.js";
+import { WORD_LOOKUP_MANIFEST } from "../plugins/official/wordLookup/manifest.js";
+import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/registerMain.js";
+import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -94,6 +96,11 @@ export class WindowController {
         cacheManager: this.options.cacheManager,
         getTranscriptionSettings: () => this.options.getSettings().plugins[TRANSCRIPTION_PLUGIN_ID]?.config,
         logger: this.log
+      })
+    );
+    this.pluginHost.registerBundledPlugin(WORD_LOOKUP_MANIFEST, () =>
+      registerWordLookupPluginMain({
+        getWordLookupSettings: () => this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config
       })
     );
 

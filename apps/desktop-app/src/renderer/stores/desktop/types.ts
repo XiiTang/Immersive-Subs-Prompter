@@ -17,6 +17,7 @@ import type {
 import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { CacheStats, DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG } from "./defaults";
+import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
 
 export interface DesktopStoreState {
   desktopState: DesktopState | null;
@@ -83,6 +84,7 @@ export interface DesktopStoreActions {
   setPluginConfig(pluginId: string, config: PluginSettingsRecord["config"]): void;
   isPluginEnabled(pluginId: string): boolean;
   getTranscriptionPluginConfig(): typeof DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG;
+  getWordLookupPluginConfig(): WordLookupPluginConfig;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

@@ -36,7 +36,15 @@
           :class="`transcript-block__line--${line.kind}`"
           :style="line.style"
         >
-          {{ line.text }}
+          <template v-for="part in tokenizeLineParts(line.text)" :key="part.key">
+            <span
+              v-if="part.token"
+              class="word-lookup-token"
+              data-testid="word-lookup-token"
+              @mouseenter="handleTokenMouseEnter($event, part.text)"
+            >{{ part.text }}</span>
+            <span v-else>{{ part.text }}</span>
+          </template>
         </div>
       </div>
     </div>
@@ -47,6 +55,8 @@
 import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
+import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
+import type { WordHoverPayload } from "../../plugins/wordLookupTypes";
 
 const {
   showSelectionActions,
@@ -66,14 +76,31 @@ const {
   showSelectionActions: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "play"): void;
   (e: "loop"): void;
   (e: "loop-range"): void;
+  (e: "word-hover", payload: WordHoverPayload): void;
 }>();
 
 const hovered = ref(false);
 const focusedWithin = ref(false);
+
+function tokenizeLineParts(text: string) {
+  return tokenizeWordLookupText(text);
+}
+
+function handleTokenMouseEnter(event: MouseEvent, token: string) {
+  emit("word-hover", {
+    token,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    shiftKey: event.shiftKey
+  });
+}
 
 const metaRowState = computed(() => {
   if (showSelectionActions) {

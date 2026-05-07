@@ -58,7 +58,7 @@ The plugin stores its config under `settings.plugins["official.word-lookup"].con
 Fields:
 
 - `wordListPath`: string. Absolute or user-entered path to the mounted JSONL file.
-- `modifierKey`: `"alt" | "control" | "shift"`. Default is `"alt"` and maps to Alt on Windows/Linux and Option on macOS.
+- `modifierKey`: `"alt" | "ctrl" | "shift"`. Default is `"alt"` and maps to Alt on Windows/Linux and Option on macOS. `"ctrl"` maps to Ctrl on Windows/Linux and Command on macOS.
 - `panelSize`: object with `width` and `height` numbers. The popup remembers size only, not position.
 
 There is no `none` modifier option. Pure mouse hover or pure click lookup is not supported because it conflicts with the existing subtitle click-to-seek workflow.
@@ -121,9 +121,9 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 `official/wordLookup/registerMain.ts`
 
 - Registers plugin commands:
-  - `getWordListStatus`
-  - `reloadWordList`
-  - `lookupWord`
+  - `getStatus`
+  - `refresh`
+  - `lookup`
 
 ## Renderer Components
 
@@ -136,25 +136,31 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 - Shows loaded entry count and file modification time.
 - Shows structured load errors.
 
-`wordLookupRendererContribution.ts`
+`wordLookupTokenize.ts`
 
-- Connects plugin enabled state, settings, and subtitle lookup interaction.
-- Keeps the main subtitle view free of plugin-specific business logic.
+- Extracts lookup token spans from subtitle line text.
+- Uses whitespace and punctuation boundaries for space-delimited text.
+- Does not segment CJK text.
 
-`useWordLookupHover.ts`
+`wordLookupMarkdown.ts`
+
+- Renders the supported Markdown subset to safe HTML.
+- Escapes raw HTML.
+- Keeps only `http` and `https` links clickable.
+
+`SubtitleView.vue`
 
 - Tracks the selected modifier key.
 - Handles hover over subtitle text.
-- Extracts the token under the pointer.
 - Requests lookup results.
 - Opens a new popup for a new token by closing the previous popup first.
-- Closes the popup on outside click or Escape.
 
 `WordLookupPopover.vue`
 
 - Renders a floating, resizable panel near the trigger position.
 - Keeps the panel within the visible window bounds.
 - Allows content scrolling.
+- Closes on outside click or Escape.
 - Remembers size in plugin config.
 - Does not remember position.
 - Renders all matching entries in sorted order.

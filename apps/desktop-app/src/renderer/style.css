@@ -1783,6 +1783,15 @@ body {
   opacity: 0.9;
 }
 
+.word-lookup-token {
+  border-radius: 3px;
+}
+
+.word-lookup-token:hover {
+  background: rgba(125, 211, 166, 0.12);
+  box-shadow: 0 1px 0 rgba(125, 211, 166, 0.55);
+}
+
 .transcript-block__play-btn,
 .transcript-block__ab-btn,
 .transcript-block__loop-btn {
@@ -2403,6 +2412,196 @@ body {
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.word-lookup-popover {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  min-height: 180px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+  resize: both;
+  border: 1px solid rgba(125, 211, 166, 0.24);
+  border-radius: 8px;
+  background: rgba(9, 14, 20, 0.96);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+  color: #f5f7fa;
+}
+
+.word-lookup-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.word-lookup-popover__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #d6ffe9;
+}
+
+.word-lookup-popover__close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.word-lookup-popover__content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.word-lookup-entry + .word-lookup-entry {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.word-lookup-entry__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.word-lookup-entry__word {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.word-lookup-entry__aliases {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.word-lookup-entry__body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #e5e7eb;
+  user-select: text;
+}
+
+.word-lookup-entry__body h1,
+.word-lookup-entry__body h2,
+.word-lookup-entry__body h3,
+.word-lookup-entry__body h4,
+.word-lookup-entry__body h5,
+.word-lookup-entry__body h6,
+.word-lookup-entry__body p,
+.word-lookup-entry__body ul,
+.word-lookup-entry__body ol,
+.word-lookup-entry__body blockquote,
+.word-lookup-entry__body pre,
+.word-lookup-entry__body table {
+  margin: 0 0 8px;
+}
+
+.word-lookup-entry__body h1,
+.word-lookup-entry__body h2,
+.word-lookup-entry__body h3 {
+  font-size: 15px;
+  line-height: 1.35;
+  color: #f8fafc;
+}
+
+.word-lookup-entry__body ul,
+.word-lookup-entry__body ol {
+  padding-left: 20px;
+}
+
+.word-lookup-entry__body code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.word-lookup-entry__body pre {
+  overflow: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.word-lookup-entry__body blockquote {
+  padding-left: 10px;
+  border-left: 2px solid rgba(125, 211, 166, 0.45);
+  color: #cbd5e1;
+}
+
+.word-lookup-entry__body table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.word-lookup-entry__body th,
+.word-lookup-entry__body td {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.word-lookup-entry__body a {
+  color: #7dd3a6;
+}
+
+.word-lookup-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.word-lookup-settings__path-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.word-lookup-settings__actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.word-lookup-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.word-lookup-status div {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.word-lookup-status dt {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.word-lookup-status dd {
+  margin: 0;
+  font-size: 12px;
+  color: #f5f7fa;
+  overflow-wrap: anywhere;
+}
+
+.word-lookup-status__error {
+  color: #fecaca !important;
 }
 
 .fw-message {

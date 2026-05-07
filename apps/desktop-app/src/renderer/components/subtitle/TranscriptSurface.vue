@@ -24,6 +24,7 @@
           @play="emit('play-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop="emit('loop-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop-range="emit('loop-range', block.block.sourceCueRefs.primaryCueIndex)"
+          @word-hover="emit('word-hover', $event)"
         />
       </div>
     </div>
@@ -55,6 +56,7 @@ import type {
   TranscriptSeekRequest,
   TranscriptViewportAnchor
 } from "./transcript/types";
+import type { WordHoverPayload } from "../../plugins/wordLookupTypes";
 
 const {
   blocks,
@@ -100,6 +102,7 @@ const emit = defineEmits<{
   (e: "play-cue", cueIndex: number): void;
   (e: "loop-cue", cueIndex: number): void;
   (e: "loop-range", cueIndex: number): void;
+  (e: "word-hover", payload: WordHoverPayload): void;
 }>();
 
 const viewportRef = useTemplateRef<HTMLElement>("viewportRef");
@@ -108,6 +111,7 @@ const surfaceWidth = ref(640);
 const viewportHeight = ref(1);
 const viewportScrollTop = ref(0);
 const lastAnchor = ref<TranscriptViewportAnchor | null>(null);
+const suppressNextAutoFollowScroll = ref(false);
 const preparedTextCache = createTranscriptPreparedTextCache();
 const WINDOW_OVERSCAN_PX = 240;
 const META_ROW_HEIGHT_PX = 18;
@@ -299,7 +303,8 @@ const autoFollowEnabled = computed(() => !isAutoFollowPaused.value);
 const { scrollToProjectedPosition } = useTranscriptAutoFollow({
   containerEl: viewportRef,
   enabled: autoFollowEnabled,
-  targetScrollTop: computed(() => projection.value.targetScrollTop)
+  targetScrollTop: computed(() => projection.value.targetScrollTop),
+  suppressScheduledScroll: suppressNextAutoFollowScroll
 });
 
 watch(
@@ -311,6 +316,7 @@ watch(
 
     syncViewportMetrics();
     clearAutoFollowPause();
+    suppressNextAutoFollowScroll.value = true;
     lastAnchor.value = resolveTranscriptViewportAnchor({
       layout: layout.value,
       currentTime: seekRequest.time,
@@ -318,6 +324,9 @@ watch(
       reason: "seek-recenter"
     });
     scrollToProjectedPosition("auto");
+    nextTick(() => {
+      suppressNextAutoFollowScroll.value = false;
+    });
   }
 );
 
