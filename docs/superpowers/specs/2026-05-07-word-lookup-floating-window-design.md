@@ -42,7 +42,7 @@ The panel's lifetime follows pointer movement:
 - Leaving the trigger token without entering the lookup panel closes it after a 200 ms handoff delay.
 - The handoff delay covers the physical gap between the subtitle window and the floating lookup window.
 
-The panel remains resizable and scrollable. Resizing stores only the panel size in the existing word lookup plugin configuration.
+The panel remains resizable and scrollable. The visible scrollbar is a custom overlay thumb that appears during scroll or drag activity and auto-hides after inactivity; the browser-native scrollbar is not exposed visually. Resizing is controlled from the panel's lower-right handle, updates the Electron floating window size immediately, and stores only the panel size in the existing word lookup plugin configuration.
 
 ## Architecture
 
@@ -73,6 +73,8 @@ The feature is split across three units.
 - Receives sanitized lookup payloads from the main process.
 - Renders the existing safe Markdown subset.
 - Handles internal scrolling, text selection, external links, and resize events.
+- Uses a hidden native scroll container with a custom auto-hiding scrollbar overlay.
+- Provides the lower-right resize handle used to resize the floating BrowserWindow.
 - Reports pointer enter, pointer leave, and resize events to the main process.
 
 ## Window Behavior
@@ -87,6 +89,8 @@ The floating lookup window uses these Electron window characteristics:
 - No keyboard Escape close behavior.
 - External links open through the existing system-browser IPC path.
 - The lookup window does not navigate itself to word-list links.
+- The visible scrollbar is custom-rendered and auto-hiding.
+- The lower-right resize handle remains inside the panel so resizing does not depend on a frameless-window native border.
 
 The floating lookup window follows the subtitle window's stacking intent. When the subtitle window is always on top, the lookup window is also always on top at the same level. When the subtitle window is not always on top, the lookup window is shown as a transient window above the subtitle window.
 
@@ -133,7 +137,7 @@ Renderer-to-main commands:
   - Starts the handoff close delay unless the pointer has already entered the lookup window.
 - `word-lookup-window:resize`
   - Payload: panel width and height.
-  - Persists panel size in the word lookup plugin config.
+  - Resizes the current floating BrowserWindow and persists the clamped panel size in the word lookup plugin config.
 - `word-lookup-window:open-external`
   - Payload: URL.
   - Uses the existing external-link handling policy.
@@ -189,6 +193,9 @@ Renderer tests:
 - Raw HTML remains escaped.
 - Link clicks use external-link IPC.
 - Resize emits panel size updates.
+- Custom scrollbar appears during scroll or thumb drag and hides after inactivity.
+- Custom scrollbar thumb drag changes the panel scroll position.
+- Lower-right resize handle updates the floating BrowserWindow size.
 - Escape does not close the lookup window.
 - Pointer enter cancels pending handoff close.
 - Pointer leave closes the lookup window.
@@ -213,6 +220,8 @@ End-to-end behavior checks:
 - The panel closes when the pointer leaves the trigger word and does not enter the panel within the 200 ms handoff delay.
 - Escape does not close the panel.
 - The panel remains resizable and scrollable.
+- The panel uses a small custom auto-hiding scrollbar rather than a visible native scrollbar.
+- The panel can be resized from the lower-right handle without closing during the drag.
 - Resizing persists panel size only.
 - Lookup misses and floating-window failures do not show subtitle-view errors.
 - Existing subtitle seeking, looping, scrolling, and selection behavior remains intact.

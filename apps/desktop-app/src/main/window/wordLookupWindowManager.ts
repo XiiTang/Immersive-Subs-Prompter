@@ -222,10 +222,30 @@ export class WordLookupWindowManager {
     if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) {
       return;
     }
-    this.options.updateWordLookupPanelSize({
-      width: Math.round(size.width),
-      height: Math.round(size.height)
+    if (!this.lookupWindow || this.lookupWindow.isDestroyed()) {
+      return;
+    }
+
+    const bounds = this.lookupWindow.getBounds();
+    const workArea = this.resolveWorkArea({
+      x: bounds.x + bounds.width,
+      y: bounds.y + bounds.height
     });
+    const maxWidth = Math.min(
+      WORD_LOOKUP_PANEL_SIZE_LIMITS.maxWidth,
+      Math.max(WORD_LOOKUP_PANEL_SIZE_LIMITS.minWidth, workArea.x + workArea.width - DEFAULT_MARGIN - bounds.x)
+    );
+    const maxHeight = Math.min(
+      WORD_LOOKUP_PANEL_SIZE_LIMITS.maxHeight,
+      Math.max(WORD_LOOKUP_PANEL_SIZE_LIMITS.minHeight, workArea.y + workArea.height - DEFAULT_MARGIN - bounds.y)
+    );
+    const panelSize = {
+      width: clamp(Math.round(size.width), WORD_LOOKUP_PANEL_SIZE_LIMITS.minWidth, maxWidth),
+      height: clamp(Math.round(size.height), WORD_LOOKUP_PANEL_SIZE_LIMITS.minHeight, maxHeight)
+    };
+
+    this.lookupWindow.setBounds(panelSize);
+    this.options.updateWordLookupPanelSize(panelSize);
   }
 
   updateAlwaysOnTop() {

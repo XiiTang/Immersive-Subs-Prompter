@@ -183,6 +183,8 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 
 - Renders all matching entries in sorted order.
 - Allows content scrolling and text selection.
+- Shows a custom auto-hiding scrollbar overlay instead of a visible native scrollbar.
+- Provides the lower-right resize handle for resizing the floating lookup window.
 - Opens safe external links through IPC.
 - Reports pointer enter, pointer leave, and resize events to the main process.
 - Does not remember position.
@@ -356,6 +358,9 @@ Renderer tests:
 - raw HTML is escaped
 - external links use system-browser IPC
 - popup resize updates saved panel size
+- custom scrollbar appears during scroll activity and auto-hides after inactivity
+- custom scrollbar thumb drag updates the popup scroll position
+- lower-right resize handle updates the floating popup size without closing during drag
 
 Subtitle interaction tests:
 
@@ -376,6 +381,8 @@ Subtitle interaction tests:
 - Holding the configured modifier and hovering a subtitle token opens a Markdown popup when the token matches.
 - Duplicate matches are all shown in deterministic sorted order.
 - The popup is resizable, scrollable, and remembers size.
+- The popup uses a small custom auto-hiding scrollbar rather than a visible native scrollbar.
+- The popup can be resized from its lower-right handle.
 - The popup can extend outside the subtitle window while staying within the display work area.
 - Pointer movement into and out of the panel controls its lifetime.
 - Escape does not close the popup.

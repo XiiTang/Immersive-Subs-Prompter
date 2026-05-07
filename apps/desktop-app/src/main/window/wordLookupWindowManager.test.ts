@@ -52,11 +52,16 @@ describe("WordLookupWindowManager", () => {
   function createManager() {
     const destroyed = vi.fn();
     const close = vi.fn(() => destroyed());
+    let windowBounds = { x: 198, y: 228, width: 360, height: 300 };
+    const updateWordLookupPanelSize = vi.fn();
     const window = {
       isDestroyed: vi.fn(() => false),
       close,
       destroy: destroyed,
-      setBounds: vi.fn(),
+      getBounds: vi.fn(() => windowBounds),
+      setBounds: vi.fn((bounds: Partial<typeof windowBounds>) => {
+        windowBounds = { ...windowBounds, ...bounds };
+      }),
       setAlwaysOnTop: vi.fn(),
       showInactive: vi.fn(),
       loadFile: vi.fn(async () => undefined),
@@ -78,13 +83,13 @@ describe("WordLookupWindowManager", () => {
       getSettings: () => ({
         global: { alwaysOnTop: "screen-saver" }
       }) as AppSettings,
-      updateWordLookupPanelSize: vi.fn(),
+      updateWordLookupPanelSize,
       getRendererHtmlPath: () => "/app/word-lookup.html",
       createWindow: vi.fn(() => window as any),
       getDisplayWorkArea: vi.fn(() => workArea),
       logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() } as any
     });
-    return { manager, window, mainWindow };
+    return { manager, window, mainWindow, updateWordLookupPanelSize };
   }
 
   it("opens a floating window using screen-space anchor coordinates", async () => {
@@ -135,5 +140,19 @@ describe("WordLookupWindowManager", () => {
 
     expect(window.close).toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it("resizes the current floating window and persists the clamped panel size", async () => {
+    const { manager, window, updateWordLookupPanelSize } = createManager();
+
+    await manager.open({
+      anchorRect: { left: 100, top: 120, right: 150, bottom: 140, width: 50, height: 20 },
+      panelSize: { width: 360, height: 300 },
+      matches: [{ word: "alpha", content: "first", aliases: [], fileOrder: 0, matchQuality: 0 }]
+    });
+    manager.handleResize({ width: 520, height: 420 });
+
+    expect(window.setBounds).toHaveBeenLastCalledWith({ width: 520, height: 420 });
+    expect(updateWordLookupPanelSize).toHaveBeenLastCalledWith({ width: 520, height: 420 });
   });
 });

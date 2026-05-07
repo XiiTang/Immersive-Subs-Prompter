@@ -2458,6 +2458,18 @@ body {
   overflow: auto;
 }
 
+.word-lookup-popover--window .word-lookup-popover__content-clip--custom {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+
+.word-lookup-popover--window .word-lookup-popover__content-clip--custom::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .word-lookup-popover__content-clip {
   position: relative;
   flex: 1;
@@ -2568,11 +2580,12 @@ body {
   position: absolute;
   top: 8px;
   right: 4px;
-  bottom: 8px;
-  width: 6px;
+  bottom: 24px;
+  width: 8px;
   opacity: 0;
   transition: opacity 0.16s ease;
   pointer-events: none;
+  z-index: 2;
 }
 
 .word-lookup-scrollbar--visible {
@@ -2581,14 +2594,26 @@ body {
 }
 
 .word-lookup-scrollbar__thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
   width: 4px;
-  margin-left: 1px;
   border-radius: 999px;
   background: rgba(229, 231, 235, 0.42);
+  box-shadow: 0 0 0 1px rgba(9, 14, 20, 0.22);
+  cursor: grab;
+  transition: background 0.14s ease, width 0.14s ease, left 0.14s ease;
 }
 
 .word-lookup-scrollbar__thumb:hover {
+  left: 1px;
+  width: 6px;
   background: rgba(229, 231, 235, 0.62);
+}
+
+.word-lookup-scrollbar__thumb:active {
+  cursor: grabbing;
+  background: rgba(229, 231, 235, 0.72);
 }
 
 .word-lookup-resize-handle {
@@ -2602,6 +2627,37 @@ body {
   background: transparent;
   cursor: nwse-resize;
   appearance: none;
+  z-index: 3;
+  -webkit-app-region: no-drag;
+}
+
+.word-lookup-resize-handle::before,
+.word-lookup-resize-handle::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  border-right: 1px solid rgba(229, 231, 235, 0.42);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.42);
+  border-radius: 1px;
+  transition: border-color 0.14s ease;
+}
+
+.word-lookup-resize-handle::before {
+  width: 9px;
+  height: 9px;
+}
+
+.word-lookup-resize-handle::after {
+  width: 4px;
+  height: 4px;
+}
+
+.word-lookup-resize-handle:hover::before,
+.word-lookup-resize-handle:hover::after,
+.word-lookup-resize-handle:active::before,
+.word-lookup-resize-handle:active::after {
+  border-color: rgba(229, 231, 235, 0.72);
 }
 
 .word-lookup-settings {
