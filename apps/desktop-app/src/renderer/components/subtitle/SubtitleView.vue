@@ -58,17 +58,19 @@
       @word-hover="handleWordHover"
       @word-leave="handleWordLeave"
     />
-    <WordLookupPopover
-      v-if="wordLookupPopover"
-      :x="wordLookupPopover.x"
-      :y="wordLookupPopover.y"
-      :anchor-rect="wordLookupPopover.anchorRect"
-      :width="wordLookupPanelSize.width"
-      :height="wordLookupPanelSize.height"
-      :matches="wordLookupPopover.matches"
-      @close="closeWordLookupPopover"
-      @resize="saveWordLookupPanelSize"
-    />
+    <Teleport to="body">
+      <WordLookupPopover
+        v-if="wordLookupPopover"
+        :x="wordLookupPopover.x"
+        :y="wordLookupPopover.y"
+        :anchor-rect="wordLookupPopover.anchorRect"
+        :width="wordLookupPanelSize.width"
+        :height="wordLookupPanelSize.height"
+        :matches="wordLookupPopover.matches"
+        @close="closeWordLookupPopover"
+        @resize="saveWordLookupPanelSize"
+      />
+    </Teleport>
   </div>
 </template>
 

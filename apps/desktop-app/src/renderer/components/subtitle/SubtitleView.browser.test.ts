@@ -800,7 +800,8 @@ describe("SubtitleView", () => {
     await nextTick();
 
     expect(lookupWord).toHaveBeenCalledWith("alpha");
-    expect(wrapper.get(".word-lookup-popover").exists()).toBe(true);
+    expect(document.body.querySelector(".word-lookup-popover")).not.toBeNull();
+    expect(wrapper.find(".word-lookup-popover").exists()).toBe(false);
 
     wrapper.unmount();
     Object.defineProperty(window, "usp", {

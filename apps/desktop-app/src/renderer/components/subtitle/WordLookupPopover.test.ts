@@ -16,7 +16,7 @@ const matches = [
 ];
 
 describe("WordLookupPopover", () => {
-  it("positions itself beside the word anchor instead of the mouse pointer", () => {
+  it("positions itself at the word anchor's lower-right instead of the mouse pointer", () => {
     const wrapper = mount(WordLookupPopover, {
       props: {
         x: 500,
@@ -36,6 +36,7 @@ describe("WordLookupPopover", () => {
     });
 
     expect(wrapper.get(".word-lookup-popover").attributes("style")).toContain("left: 100px;");
+    expect(wrapper.get(".word-lookup-popover").attributes("style")).toContain("top: 112px;");
   });
 
   it("renders custom scroll and resize controls instead of a native scrolling content area", () => {

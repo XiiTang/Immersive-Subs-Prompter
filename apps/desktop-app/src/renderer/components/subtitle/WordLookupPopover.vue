@@ -107,7 +107,7 @@ const popoverStyle = computed(() => {
   const viewportHeight = window.innerHeight || 768;
   const width = clamp(localSize.value.width, MIN_WIDTH, Math.max(MIN_WIDTH, viewportWidth - POPOVER_MARGIN * 2));
   const height = clamp(localSize.value.height, MIN_HEIGHT, Math.max(MIN_HEIGHT, viewportHeight - POPOVER_MARGIN * 2));
-  const anchoredPosition = getAnchoredPosition(width, height, viewportWidth, viewportHeight);
+  const anchoredPosition = getAnchoredPosition();
   const position = manualPosition.value ?? anchoredPosition;
   const left = clamp(position.left, POPOVER_MARGIN, viewportWidth - width - POPOVER_MARGIN);
   const top = clamp(position.top, POPOVER_MARGIN, viewportHeight - height - POPOVER_MARGIN);
@@ -148,16 +148,10 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getAnchoredPosition(width: number, height: number, viewportWidth: number, viewportHeight: number) {
-  const rightSideLeft = props.anchorRect.right + ANCHOR_GAP;
-  const leftSideLeft = props.anchorRect.left - width - ANCHOR_GAP;
-  const preferredLeft = rightSideLeft + width <= viewportWidth - POPOVER_MARGIN
-    ? rightSideLeft
-    : leftSideLeft;
-  const anchorMiddle = props.anchorRect.top + props.anchorRect.height / 2;
+function getAnchoredPosition() {
   return {
-    left: preferredLeft,
-    top: anchorMiddle - height / 2
+    left: props.anchorRect.right + ANCHOR_GAP,
+    top: props.anchorRect.bottom + ANCHOR_GAP
   };
 }
 
