@@ -41,8 +41,8 @@
               v-if="part.token"
               class="word-lookup-token"
               data-testid="word-lookup-token"
-              @mouseenter="handleTokenMouseEnter($event, part.text)"
-              @mouseleave="emit('word-leave', part.text)"
+              @mouseenter="handleTokenMouseEnter($event, part.text, line.key, part.key)"
+              @mouseleave="emit('word-leave', { hoverId: createWordHoverId(line.key, part.key) })"
             >{{ part.text }}</span>
             <span v-else>{{ part.text }}</span>
           </template>
@@ -57,9 +57,10 @@ import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
 import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
-import type { WordHoverPayload } from "../../plugins/wordLookupTypes";
+import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
 const {
+  blockId,
   showSelectionActions,
   isAbPendingSelection,
   isSingleLooping,
@@ -82,7 +83,7 @@ const emit = defineEmits<{
   (e: "loop"): void;
   (e: "loop-range"): void;
   (e: "word-hover", payload: WordHoverPayload): void;
-  (e: "word-leave", token: string): void;
+  (e: "word-leave", payload: WordLeavePayload): void;
 }>();
 
 const hovered = ref(false);
@@ -92,9 +93,14 @@ function tokenizeLineParts(text: string) {
   return tokenizeWordLookupText(text);
 }
 
-function handleTokenMouseEnter(event: MouseEvent, token: string) {
+function createWordHoverId(lineKey: string, partKey: string) {
+  return `${blockId}:${lineKey}:${partKey}`;
+}
+
+function handleTokenMouseEnter(event: MouseEvent, token: string, lineKey: string, partKey: string) {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
   emit("word-hover", {
+    hoverId: createWordHoverId(lineKey, partKey),
     token,
     clientX: event.clientX,
     clientY: event.clientY,

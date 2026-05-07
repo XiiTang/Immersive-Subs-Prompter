@@ -211,6 +211,7 @@ describe("TranscriptBlock", () => {
 
     expect(wrapper.emitted("word-hover")?.[0]?.[0]).toMatchObject({
       token: "hello",
+      hoverId: "block-0:line-0:token-0",
       clientX: 500,
       clientY: 600,
       anchorRect: rect

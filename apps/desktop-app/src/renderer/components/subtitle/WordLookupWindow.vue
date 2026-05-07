@@ -77,7 +77,8 @@ const scrollbarThumbTop = ref(8);
 const isScrollbarDragging = ref(false);
 const isResizeDragging = ref(false);
 let unsubscribePayload: (() => void) | null = null;
-let resizeRafId: number | null = null;
+let resizeDragRafId: number | null = null;
+let pendingResizeDragSize: { width: number; height: number } | null = null;
 let scrollbarHideTimer: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
@@ -137,21 +138,6 @@ function handleContentClick(event: MouseEvent) {
   if (href) {
     void window.usp.openExternal(href);
   }
-}
-
-function reportWindowSize() {
-  resizeRafId = null;
-  void window.usp.resizeWordLookupWindow({
-    width: window.innerWidth,
-    height: window.innerHeight
-  });
-}
-
-function scheduleWindowSizeReport() {
-  if (resizeRafId !== null) {
-    return;
-  }
-  resizeRafId = window.requestAnimationFrame(reportWindowSize);
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -300,7 +286,27 @@ function handleResizeDragMove(event: PointerEvent) {
     MIN_PANEL_HEIGHT,
     Math.round(resizeDragState.startHeight + event.screenY - resizeDragState.startScreenY)
   );
-  void window.usp.resizeWordLookupWindow({ width, height });
+  queueResizeWindow({ width, height });
+}
+
+function queueResizeWindow(size: { width: number; height: number }) {
+  pendingResizeDragSize = size;
+  if (resizeDragRafId !== null) {
+    return;
+  }
+  resizeDragRafId = window.requestAnimationFrame(flushResizeWindow);
+}
+
+function flushResizeWindow() {
+  if (resizeDragRafId !== null) {
+    window.cancelAnimationFrame(resizeDragRafId);
+    resizeDragRafId = null;
+  }
+  const size = pendingResizeDragSize;
+  pendingResizeDragSize = null;
+  if (size) {
+    void window.usp.resizeWordLookupWindow(size);
+  }
 }
 
 function finishResizeDrag(event?: PointerEvent) {
@@ -312,11 +318,11 @@ function finishResizeDrag(event?: PointerEvent) {
   window.removeEventListener("pointermove", handleResizeDragMove);
   window.removeEventListener("pointerup", finishResizeDrag);
   window.removeEventListener("pointercancel", finishResizeDrag);
+  flushResizeWindow();
 }
 
 onMounted(() => {
   unsubscribePayload = window.usp.onWordLookupWindowPayload(handlePayload);
-  window.addEventListener("resize", scheduleWindowSizeReport);
   if (typeof ResizeObserver !== "undefined") {
     resizeObserver = new ResizeObserver(() => {
       updateScrollbarMetrics();
@@ -325,20 +331,15 @@ onMounted(() => {
       resizeObserver.observe(scrollArea.value);
     }
   }
-  scheduleWindowSizeReport();
 });
 
 onBeforeUnmount(() => {
   unsubscribePayload?.();
-  window.removeEventListener("resize", scheduleWindowSizeReport);
   resizeObserver?.disconnect();
   resizeObserver = null;
   finishScrollbarDrag();
   finishResizeDrag();
   clearScrollbarHideTimer();
-  if (resizeRafId !== null) {
-    window.cancelAnimationFrame(resizeRafId);
-    resizeRafId = null;
-  }
+  flushResizeWindow();
 });
 </script>

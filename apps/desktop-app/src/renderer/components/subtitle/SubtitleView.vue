@@ -79,7 +79,7 @@ import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop"
 import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
 import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
 import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../common/pluginIds.js";
-import type { WordHoverPayload, WordLookupResult } from "../../plugins/wordLookupTypes";
+import type { WordHoverPayload, WordLeavePayload, WordLookupResult } from "../../plugins/wordLookupTypes";
 
 const store = useDesktopStore();
 const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
@@ -490,8 +490,8 @@ async function openWordLookupWindow(payload: WordHoverPayload) {
   }
 }
 
-function handleWordLeave(token: string) {
-  if (hoveredWordPayload.value?.token === token) {
+function handleWordLeave(payload: WordLeavePayload) {
+  if (hoveredWordPayload.value?.hoverId === payload.hoverId) {
     const requestId = wordLookupRequestToken.value;
     hoveredWordPayload.value = null;
     if (wordLookupOpenedRequestToken.value === requestId) {

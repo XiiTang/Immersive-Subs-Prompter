@@ -7,6 +7,7 @@ import type {
 export type { WordLookupPluginConfig, WordLookupResult, WordLookupStatus };
 
 export interface WordHoverPayload {
+  hoverId: string;
   token: string;
   clientX: number;
   clientY: number;
@@ -22,4 +23,8 @@ export interface WordHoverPayload {
   ctrlKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
+}
+
+export interface WordLeavePayload {
+  hoverId: string;
 }

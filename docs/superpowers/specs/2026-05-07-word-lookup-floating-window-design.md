@@ -41,6 +41,7 @@ The panel's lifetime follows pointer movement:
 - Leaving the lookup panel closes it.
 - Leaving the trigger token without entering the lookup panel closes it after a 200 ms handoff delay.
 - The handoff delay covers the physical gap between the subtitle window and the floating lookup window.
+- Trigger-token leave is matched by the hovered token instance, not only by word text, so repeated identical words do not close the wrong lookup flow.
 
 The panel remains resizable and scrollable. The visible scrollbar is a custom overlay thumb that appears during scroll or drag activity and auto-hides after inactivity; the browser-native scrollbar is not exposed visually. Resizing is controlled from the panel's lower-right handle, updates the Electron floating window size immediately, and stores only the panel size in the existing word lookup plugin configuration.
 
@@ -75,7 +76,8 @@ The feature is split across three units.
 - Handles internal scrolling, text selection, external links, and resize events.
 - Uses a hidden native scroll container with a custom auto-hiding scrollbar overlay.
 - Provides the lower-right resize handle used to resize the floating BrowserWindow.
-- Reports pointer enter, pointer leave, and resize events to the main process.
+- Reports pointer enter, pointer leave, and explicit resize-handle drag updates to the main process.
+- Does not report passive mount or window resize events back as panel-size changes.
 
 ## Window Behavior
 

@@ -57,7 +57,7 @@ import type {
   TranscriptSeekRequest,
   TranscriptViewportAnchor
 } from "./transcript/types";
-import type { WordHoverPayload } from "../../plugins/wordLookupTypes";
+import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
 const {
   blocks,
@@ -104,7 +104,7 @@ const emit = defineEmits<{
   (e: "loop-cue", cueIndex: number): void;
   (e: "loop-range", cueIndex: number): void;
   (e: "word-hover", payload: WordHoverPayload): void;
-  (e: "word-leave", token: string): void;
+  (e: "word-leave", payload: WordLeavePayload): void;
 }>();
 
 const viewportRef = useTemplateRef<HTMLElement>("viewportRef");

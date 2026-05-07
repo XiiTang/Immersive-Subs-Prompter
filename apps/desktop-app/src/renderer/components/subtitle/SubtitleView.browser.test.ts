@@ -843,4 +843,98 @@ describe("SubtitleView", () => {
       value: originalUsp
     });
   });
+
+  it("does not treat leaving a previous duplicate token as leaving the current hovered token", async () => {
+    const lookupResolvers: Array<(result: WordLookupResult) => void> = [];
+    const lookupWord = vi.fn().mockImplementation((token: string) => new Promise<WordLookupResult>((resolve) => {
+      lookupResolvers.push(resolve);
+    }));
+    const lookupResult: WordLookupResult = {
+      token: "alpha",
+      normalizedToken: "alpha",
+      matches: [
+        {
+          word: "alpha",
+          content: "first letter",
+          aliases: [],
+          fileOrder: 0,
+          matchQuality: 0
+        }
+      ]
+    };
+    const openWordLookupWindow = vi.fn().mockResolvedValue({ success: true });
+    const notifyWordLookupTriggerLeave = vi.fn().mockResolvedValue(undefined);
+    const originalUsp = window.usp;
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        ...originalUsp,
+        lookupWord,
+        openWordLookupWindow,
+        notifyWordLookupTriggerLeave,
+        openExternal: vi.fn()
+      }
+    });
+
+    const store = useDesktopStore();
+    const desktopState = createDesktopState();
+    desktopState.primarySubtitles!.cues[0]!.text = "alpha alpha";
+    store.settings = {
+      ...createSettings(),
+      plugins: {
+        "official.word-lookup": {
+          config: {
+            wordListPath: "/tmp/words.jsonl",
+            modifierKey: "alt",
+            panelSize: { width: 360, height: 300 }
+          }
+        }
+      }
+    };
+    store.desktopState = desktopState;
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.word-lookup",
+        version: "1.0.0",
+        displayName: "Word Lookup",
+        description: "Look up words.",
+        status: "enabled",
+        enabled: true,
+        error: null
+      }
+    ];
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const alphaTokens = wrapper.findAll('[data-testid="word-lookup-token"]').filter((token) => token.text() === "alpha");
+    expect(alphaTokens.length).toBeGreaterThanOrEqual(2);
+
+    await alphaTokens[0]!.trigger("mouseenter", { clientX: 110, clientY: 140, altKey: true });
+    await alphaTokens[1]!.trigger("mouseenter", { clientX: 150, clientY: 140, altKey: true });
+    await alphaTokens[0]!.trigger("mouseleave");
+    lookupResolvers[1]?.(lookupResult);
+    await flushPromises();
+    await nextTick();
+
+    expect(openWordLookupWindow).toHaveBeenCalledTimes(1);
+    expect(notifyWordLookupTriggerLeave).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: originalUsp
+    });
+  });
 });

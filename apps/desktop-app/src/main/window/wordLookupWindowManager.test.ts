@@ -34,7 +34,7 @@ describe("computeWordLookupWindowBounds", () => {
     expect(bounds).toEqual({ x: 952, y: 148, width: 360, height: 300, placement: "lower-left" });
   });
 
-  it("clamps vertical position and panel size to the work area", () => {
+  it("clamps vertical position and panel size to configured limits before opening", () => {
     const bounds = computeWordLookupWindowBounds({
       anchorRect: { left: 120, top: 820, right: 180, bottom: 850, width: 60, height: 30 },
       panelSize: { width: 2000, height: 2000 },
@@ -44,7 +44,7 @@ describe("computeWordLookupWindowBounds", () => {
       minSize: { width: 260, height: 180 }
     });
 
-    expect(bounds).toEqual({ x: 12, y: 36, width: 1416, height: 852, placement: "lower-left" });
+    expect(bounds).toEqual({ x: 188, y: 248, width: 720, height: 640, placement: "lower-right" });
   });
 });
 
@@ -154,5 +154,22 @@ describe("WordLookupWindowManager", () => {
 
     expect(window.setBounds).toHaveBeenLastCalledWith({ width: 520, height: 420 });
     expect(updateWordLookupPanelSize).toHaveBeenLastCalledWith({ width: 520, height: 420 });
+  });
+
+  it("does not reapply the same size when the renderer reports unchanged bounds", async () => {
+    const { manager, window, updateWordLookupPanelSize } = createManager();
+
+    await manager.open({
+      anchorRect: { left: 100, top: 120, right: 150, bottom: 140, width: 50, height: 20 },
+      panelSize: { width: 360, height: 300 },
+      matches: [{ word: "alpha", content: "first", aliases: [], fileOrder: 0, matchQuality: 0 }]
+    });
+    window.setBounds.mockClear();
+    updateWordLookupPanelSize.mockClear();
+
+    manager.handleResize({ width: 360, height: 300 });
+
+    expect(window.setBounds).not.toHaveBeenCalled();
+    expect(updateWordLookupPanelSize).not.toHaveBeenCalled();
   });
 });

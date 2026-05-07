@@ -10,6 +10,7 @@ describe("WordLookupWindow", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     document.body.innerHTML = "";
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -84,6 +85,27 @@ describe("WordLookupWindow", () => {
     return event;
   }
 
+  function installManualAnimationFrame() {
+    const callbacks: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id: number) => {
+      callbacks[id - 1] = () => undefined;
+    });
+    return {
+      runNext() {
+        callbacks.shift()?.(performance.now());
+      },
+      runAll() {
+        while (callbacks.length) {
+          callbacks.shift()?.(performance.now());
+        }
+      }
+    };
+  }
+
   it("keeps the panel on pointer enter and closes it on pointer leave without Escape handling", async () => {
     const api = setupWindowApi();
 
@@ -110,6 +132,22 @@ describe("WordLookupWindow", () => {
     await wrapper.get("a").trigger("click");
 
     expect(api.openExternal).toHaveBeenCalledWith("https://example.com");
+    wrapper.unmount();
+  });
+
+  it("does not report a size update on mount or passive window resize", async () => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
+      callback(performance.now());
+      return 1;
+    });
+    const api = setupWindowApi();
+
+    const wrapper = mount(WordLookupWindow, { attachTo: document.body });
+    await emitPayload(wrapper, api.payloadListener());
+    window.dispatchEvent(new Event("resize"));
+    await nextTick();
+
+    expect(api.resizeWordLookupWindow).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -159,6 +197,7 @@ describe("WordLookupWindow", () => {
   });
 
   it("resizes from the lower-right handle without closing while the pointer leaves during drag", async () => {
+    const animationFrame = installManualAnimationFrame();
     const api = setupWindowApi();
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -176,11 +215,43 @@ describe("WordLookupWindow", () => {
       createPointerEvent("pointerdown", { pointerId: 3, screenX: 360, screenY: 300 })
     );
     window.dispatchEvent(createPointerEvent("pointermove", { pointerId: 3, screenX: 410, screenY: 340 }));
+    animationFrame.runNext();
     await wrapper.get('[data-testid="word-lookup-floating-panel"]').trigger("pointerleave");
 
     expect(api.resizeWordLookupWindow).toHaveBeenCalledWith({ width: 410, height: 340 });
     expect(api.pointerLeave).not.toHaveBeenCalled();
     window.dispatchEvent(createPointerEvent("pointerup", { pointerId: 3 }));
+    wrapper.unmount();
+  });
+
+  it("coalesces resize drag updates to one IPC call per animation frame", async () => {
+    const animationFrame = installManualAnimationFrame();
+    const api = setupWindowApi();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 360
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 300
+    });
+
+    const wrapper = mount(WordLookupWindow, { attachTo: document.body });
+    await emitPayload(wrapper, api.payloadListener());
+
+    wrapper.get('[data-testid="word-lookup-resize-handle"]').element.dispatchEvent(
+      createPointerEvent("pointerdown", { pointerId: 5, screenX: 360, screenY: 300 })
+    );
+    window.dispatchEvent(createPointerEvent("pointermove", { pointerId: 5, screenX: 390, screenY: 330 }));
+    window.dispatchEvent(createPointerEvent("pointermove", { pointerId: 5, screenX: 420, screenY: 360 }));
+
+    expect(api.resizeWordLookupWindow).not.toHaveBeenCalled();
+    animationFrame.runNext();
+
+    expect(api.resizeWordLookupWindow).toHaveBeenCalledTimes(1);
+    expect(api.resizeWordLookupWindow).toHaveBeenCalledWith({ width: 420, height: 360 });
+    window.dispatchEvent(createPointerEvent("pointerup", { pointerId: 5 }));
+    animationFrame.runAll();
     wrapper.unmount();
   });
 });

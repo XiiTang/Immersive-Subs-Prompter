@@ -186,7 +186,8 @@ Existing subtitle components should not learn word-list parsing, indexing, or Ma
 - Shows a custom auto-hiding scrollbar overlay instead of a visible native scrollbar.
 - Provides the lower-right resize handle for resizing the floating lookup window.
 - Opens safe external links through IPC.
-- Reports pointer enter, pointer leave, and resize events to the main process.
+- Reports pointer enter, pointer leave, and explicit resize-handle drag updates to the main process.
+- Does not report passive mount or window resize events as user size changes.
 - Does not remember position.
 
 ## Subtitle Interaction
@@ -200,6 +201,7 @@ The only V1 interaction is modifier-key hover.
 - Pure hover, pure click, modifier-click, and double-click lookup are not part of V1.
 - Existing subtitle click-to-seek behavior remains unchanged.
 - The lookup panel is transient. It stays visible while the pointer moves from the trigger word into the panel or remains inside it, and closes when the pointer leaves the panel or does not enter it within the handoff delay.
+- Trigger-token leave is tracked by the token instance, so moving between repeated identical words does not accidentally close the current lookup flow.
 - Lookup opens immediately while the modifier is held; there is no additional hover delay.
 
 Token extraction:

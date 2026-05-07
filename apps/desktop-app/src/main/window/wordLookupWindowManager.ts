@@ -91,6 +91,7 @@ export function computeWordLookupWindowBounds(input: {
   gap?: number;
   margin?: number;
   minSize?: Size;
+  maxSize?: Size;
 }): WordLookupWindowBounds {
   const gap = input.gap ?? DEFAULT_GAP;
   const margin = input.margin ?? DEFAULT_MARGIN;
@@ -98,8 +99,12 @@ export function computeWordLookupWindowBounds(input: {
     width: WORD_LOOKUP_PANEL_SIZE_LIMITS.minWidth,
     height: WORD_LOOKUP_PANEL_SIZE_LIMITS.minHeight
   };
-  const maxWidth = Math.max(minSize.width, input.workArea.width - margin * 2);
-  const maxHeight = Math.max(minSize.height, input.workArea.height - margin * 2);
+  const maxSize = input.maxSize ?? {
+    width: WORD_LOOKUP_PANEL_SIZE_LIMITS.maxWidth,
+    height: WORD_LOOKUP_PANEL_SIZE_LIMITS.maxHeight
+  };
+  const maxWidth = Math.max(minSize.width, Math.min(maxSize.width, input.workArea.width - margin * 2));
+  const maxHeight = Math.max(minSize.height, Math.min(maxSize.height, input.workArea.height - margin * 2));
   const width = clamp(Math.round(input.panelSize.width), minSize.width, maxWidth);
   const height = clamp(Math.round(input.panelSize.height), minSize.height, maxHeight);
   const rightCandidate = {
@@ -243,6 +248,10 @@ export class WordLookupWindowManager {
       width: clamp(Math.round(size.width), WORD_LOOKUP_PANEL_SIZE_LIMITS.minWidth, maxWidth),
       height: clamp(Math.round(size.height), WORD_LOOKUP_PANEL_SIZE_LIMITS.minHeight, maxHeight)
     };
+
+    if (panelSize.width === bounds.width && panelSize.height === bounds.height) {
+      return;
+    }
 
     this.lookupWindow.setBounds(panelSize);
     this.options.updateWordLookupPanelSize(panelSize);
