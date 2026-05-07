@@ -62,6 +62,7 @@
       v-if="wordLookupPopover"
       :x="wordLookupPopover.x"
       :y="wordLookupPopover.y"
+      :anchor-rect="wordLookupPopover.anchorRect"
       :width="wordLookupPanelSize.width"
       :height="wordLookupPanelSize.height"
       :matches="wordLookupPopover.matches"
@@ -173,6 +174,7 @@ const wordLookupRequestToken = ref(0);
 const wordLookupPopover = ref<{
   x: number;
   y: number;
+  anchorRect: WordHoverPayload["anchorRect"];
   matches: WordLookupResult["matches"];
 } | null>(null);
 const hoveredWordPayload = ref<WordHoverPayload | null>(null);
@@ -493,6 +495,7 @@ async function openWordLookupPopover(payload: WordHoverPayload) {
   wordLookupPopover.value = {
     x: payload.clientX,
     y: payload.clientY,
+    anchorRect: payload.anchorRect,
     matches: result.matches
   };
 }

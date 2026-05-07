@@ -10,6 +10,14 @@ export interface WordHoverPayload {
   token: string;
   clientX: number;
   clientY: number;
+  anchorRect: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+    width: number;
+    height: number;
+  };
   altKey: boolean;
   ctrlKey: boolean;
   metaKey: boolean;

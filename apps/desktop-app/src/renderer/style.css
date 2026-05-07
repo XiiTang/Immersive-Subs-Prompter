@@ -2424,7 +2424,6 @@ body {
   max-width: calc(100vw - 24px);
   max-height: calc(100vh - 24px);
   overflow: hidden;
-  resize: both;
   border: 1px solid rgba(125, 211, 166, 0.24);
   border-radius: 8px;
   background: rgba(9, 14, 20, 0.96);
@@ -2432,10 +2431,17 @@ body {
   color: #f5f7fa;
 }
 
-.word-lookup-popover__content {
+.word-lookup-popover__content-clip {
+  position: relative;
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.word-lookup-popover__content {
   padding: 12px;
+  padding-right: 18px;
+  will-change: transform;
 }
 
 .word-lookup-entry + .word-lookup-entry {
@@ -2529,6 +2535,52 @@ body {
 
 .word-lookup-entry__body a {
   color: #7dd3a6;
+}
+
+.word-lookup-scrollbar {
+  position: absolute;
+  top: 8px;
+  right: 4px;
+  bottom: 8px;
+  width: 6px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+  pointer-events: none;
+}
+
+.word-lookup-scrollbar--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.word-lookup-scrollbar__thumb {
+  width: 4px;
+  margin-left: 1px;
+  border-radius: 999px;
+  background: rgba(229, 231, 235, 0.42);
+}
+
+.word-lookup-scrollbar__thumb:hover {
+  background: rgba(229, 231, 235, 0.62);
+}
+
+.word-lookup-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  padding: 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(229, 231, 235, 0.42) 50%);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.word-lookup-popover:hover .word-lookup-resize-handle,
+.word-lookup-resize-handle:focus-visible {
+  opacity: 1;
 }
 
 .word-lookup-settings {

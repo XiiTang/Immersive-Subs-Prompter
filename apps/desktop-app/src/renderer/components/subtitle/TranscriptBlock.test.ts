@@ -183,4 +183,37 @@ describe("TranscriptBlock", () => {
     expect(stylesheet).toContain("opacity: 0;");
     expect(stylesheet).toContain("visibility: hidden;");
   });
+
+  it("emits the hovered token element rect for word lookup positioning", async () => {
+    const wrapper = mount(TranscriptBlock, {
+      props: {
+        ...defaultProps,
+        lines: [{ key: "line-0", kind: "primary", text: "hello world", style: lineStyle(24, 24) }]
+      }
+    });
+    const token = wrapper.get('[data-testid="word-lookup-token"]');
+    const rect = {
+      left: 40,
+      top: 70,
+      right: 84,
+      bottom: 94,
+      width: 44,
+      height: 24
+    };
+    token.element.getBoundingClientRect = () => ({
+      ...rect,
+      x: rect.left,
+      y: rect.top,
+      toJSON: () => rect
+    } as DOMRect);
+
+    await token.trigger("mouseenter", { clientX: 500, clientY: 600, altKey: true });
+
+    expect(wrapper.emitted("word-hover")?.[0]?.[0]).toMatchObject({
+      token: "hello",
+      clientX: 500,
+      clientY: 600,
+      anchorRect: rect
+    });
+  });
 });

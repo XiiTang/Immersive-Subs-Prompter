@@ -93,10 +93,19 @@ function tokenizeLineParts(text: string) {
 }
 
 function handleTokenMouseEnter(event: MouseEvent, token: string) {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
   emit("word-hover", {
     token,
     clientX: event.clientX,
     clientY: event.clientY,
+    anchorRect: {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height
+    },
     altKey: event.altKey,
     ctrlKey: event.ctrlKey,
     metaKey: event.metaKey,
