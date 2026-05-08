@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,10 @@ function tempWordList(contents: string): string {
   const filePath = join(dir, "words.jsonl");
   writeFileSync(filePath, contents, "utf8");
   return filePath;
+}
+
+function waitForClockTick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 2));
 }
 
 describe("word lookup JSONL parser", () => {
@@ -132,5 +136,89 @@ describe("WordLookupService", () => {
 
     expect(status.ok).toBe(false);
     expect(result.matches.map((match) => match.content)).toEqual(["cached"]);
+  });
+
+  it("deduplicates same-entry alias hits while keeping the best match quality", async () => {
+    const filePath = tempWordList(JSON.stringify({
+      word: "canonical",
+      aliases: ["HELLO", "Hello", "he-llo"],
+      content: "same entry"
+    }));
+    const service = new WordLookupService(() => ({ wordListPath: filePath, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
+
+    await service.refresh();
+    const result = await service.lookup("Hello");
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0]).toMatchObject({
+      content: "same entry",
+      matchQuality: 3
+    });
+  });
+
+  it("deduplicates word and alias hits for one entry with word quality winning", async () => {
+    const filePath = tempWordList(JSON.stringify({
+      word: "Hello",
+      aliases: ["Hello", "HELLO"],
+      content: "word wins"
+    }));
+    const service = new WordLookupService(() => ({ wordListPath: filePath, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
+
+    await service.refresh();
+    const result = await service.lookup("Hello");
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0]).toMatchObject({
+      content: "word wins",
+      matchQuality: 1
+    });
+  });
+
+  it("keeps duplicate alias hits across different entries", async () => {
+    const filePath = tempWordList([
+      JSON.stringify({ word: "first", aliases: ["Hello"], content: "first entry" }),
+      JSON.stringify({ word: "second", aliases: ["Hello"], content: "second entry" })
+    ].join("\n"));
+    const service = new WordLookupService(() => ({ wordListPath: filePath, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
+
+    await service.refresh();
+    const result = await service.lookup("Hello");
+
+    expect(result.matches.map((match) => match.content)).toEqual(["first entry", "second entry"]);
+    expect(result.matches.map((match) => match.matchQuality)).toEqual([3, 3]);
+  });
+
+  it("skips refresh work when path and mtime are unchanged", async () => {
+    const filePath = tempWordList(JSON.stringify({ word: "stable", content: "first content" }));
+    const fileTime = new Date("2026-01-01T00:00:00.000Z");
+    utimesSync(filePath, fileTime, fileTime);
+    const service = new WordLookupService(() => ({ wordListPath: filePath, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
+
+    const firstStatus = await service.refresh();
+    writeFileSync(filePath, JSON.stringify({ word: "stable", content: "changed content" }), "utf8");
+    utimesSync(filePath, fileTime, fileTime);
+    const secondStatus = await service.refresh();
+    const result = await service.lookup("stable");
+
+    expect(secondStatus.loadedAt).toBe(firstStatus.loadedAt);
+    expect(result.matches.map((match) => match.content)).toEqual(["first content"]);
+  });
+
+  it("reloads when the configured file mtime changes", async () => {
+    const filePath = tempWordList(JSON.stringify({ word: "stable", content: "first content" }));
+    const firstFileTime = new Date("2026-01-01T00:00:00.000Z");
+    const secondFileTime = new Date("2026-01-01T00:00:02.000Z");
+    utimesSync(filePath, firstFileTime, firstFileTime);
+    const service = new WordLookupService(() => ({ wordListPath: filePath, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
+
+    const firstStatus = await service.refresh();
+    writeFileSync(filePath, JSON.stringify({ word: "stable", content: "changed content" }), "utf8");
+    utimesSync(filePath, secondFileTime, secondFileTime);
+    await waitForClockTick();
+    const secondStatus = await service.refresh();
+    const result = await service.lookup("stable");
+
+    expect(secondStatus.loadedAt).not.toBe(firstStatus.loadedAt);
+    expect(result.matches.map((match) => match.content)).toEqual(["changed content"]);
   });
 });

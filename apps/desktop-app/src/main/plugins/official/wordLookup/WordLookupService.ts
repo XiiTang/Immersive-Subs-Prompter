@@ -10,13 +10,13 @@ import { parseWordListJsonl } from "./wordListParser.js";
 import { normalizeCase, normalizeLookupKey, normalizeTokenSurface } from "./wordLookupNormalizer.js";
 import { sanitizeWordLookupPluginConfig } from "../../../settings/sanitizers/wordLookupSanitizer.js";
 
-interface IndexedCandidate {
-  entry: WordListEntry;
-  source: "word" | "alias";
-  value: string;
-  exactKey: string;
-  caseKey: string;
-  normalizedKey: string;
+interface WordLookupIndexes {
+  exactWord: Map<string, number[]>;
+  caseWord: Map<string, number[]>;
+  normalizedWord: Map<string, number[]>;
+  exactAlias: Map<string, number[]>;
+  caseAlias: Map<string, number[]>;
+  normalizedAlias: Map<string, number[]>;
 }
 
 interface LoadedIndex {
@@ -24,7 +24,8 @@ interface LoadedIndex {
   fileMtimeMs: number;
   loadedAt: number;
   entryCount: number;
-  candidates: IndexedCandidate[];
+  entries: WordListEntry[];
+  indexes: WordLookupIndexes;
 }
 
 export class WordLookupService {
@@ -69,25 +70,20 @@ export class WordLookupService {
       return { token, normalizedToken, matches: [] };
     }
 
-    const exactToken = token;
+    const index = this.index;
     const caseToken = normalizeCase(token);
-    const matches: WordLookupMatch[] = [];
-    const seen = new Set<string>();
-
-    for (const candidate of this.index.candidates) {
-      const matchQuality = resolveMatchQuality(candidate, exactToken, caseToken, normalizedToken);
-      if (matchQuality === null) continue;
-      const key = `${candidate.entry.fileOrder}:${candidate.source}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      matches.push({
-        word: candidate.entry.word,
-        content: candidate.entry.content,
-        aliases: candidate.entry.aliases,
-        fileOrder: candidate.entry.fileOrder,
+    const matchedEntries = collectMatchingEntryIndexes(index.indexes, token, caseToken, normalizedToken);
+    const matches = Array.from(matchedEntries, ([entryIndex, matchQuality]) => {
+      const entry = index.entries[entryIndex];
+      if (!entry) return null;
+      return {
+        word: entry.word,
+        content: entry.content,
+        aliases: entry.aliases,
+        fileOrder: entry.fileOrder,
         matchQuality
-      });
-    }
+      };
+    }).filter((match): match is WordLookupMatch => match !== null);
 
     matches.sort((left, right) => left.matchQuality - right.matchQuality || left.fileOrder - right.fileOrder);
     return { token, normalizedToken, matches };
@@ -115,6 +111,13 @@ export class WordLookupService {
       const stat = await fs.stat(config.wordListPath);
       if (!stat.isFile()) {
         throw new Error("Configured word list path is not a file.");
+      }
+      if (
+        this.status.ok
+        && this.index?.wordListPath === config.wordListPath
+        && this.index.fileMtimeMs === stat.mtimeMs
+      ) {
+        return this.status;
       }
       const raw = await fs.readFile(config.wordListPath, "utf8");
       const entries = parseWordListJsonl(raw);
@@ -149,46 +152,82 @@ export class WordLookupService {
 }
 
 function buildIndex(entries: WordListEntry[], wordListPath: string, fileMtimeMs: number): LoadedIndex {
-  const candidates: IndexedCandidate[] = [];
-  for (const entry of entries) {
-    candidates.push(createCandidate(entry, "word", entry.word));
+  const indexes = createEmptyIndexes();
+  entries.forEach((entry, entryIndex) => {
+    addSurfaceToIndexes(indexes.exactWord, indexes.caseWord, indexes.normalizedWord, entry.word, entryIndex);
     for (const alias of entry.aliases) {
-      candidates.push(createCandidate(entry, "alias", alias));
+      addSurfaceToIndexes(indexes.exactAlias, indexes.caseAlias, indexes.normalizedAlias, alias, entryIndex);
     }
-  }
+  });
 
   return {
     wordListPath,
     fileMtimeMs,
     loadedAt: Date.now(),
     entryCount: entries.length,
-    candidates
+    entries,
+    indexes
   };
 }
 
-function createCandidate(entry: WordListEntry, source: "word" | "alias", value: string): IndexedCandidate {
-  const surface = normalizeTokenSurface(value);
+function createEmptyIndexes(): WordLookupIndexes {
   return {
-    entry,
-    source,
-    value: surface,
-    exactKey: surface,
-    caseKey: normalizeCase(surface),
-    normalizedKey: normalizeLookupKey(surface)
+    exactWord: new Map(),
+    caseWord: new Map(),
+    normalizedWord: new Map(),
+    exactAlias: new Map(),
+    caseAlias: new Map(),
+    normalizedAlias: new Map()
   };
 }
 
-function resolveMatchQuality(
-  candidate: IndexedCandidate,
-  exactToken: string,
+function addSurfaceToIndexes(
+  exactIndex: Map<string, number[]>,
+  caseIndex: Map<string, number[]>,
+  normalizedIndex: Map<string, number[]>,
+  value: string,
+  entryIndex: number
+) {
+  const surface = normalizeTokenSurface(value);
+  addEntryIndex(exactIndex, surface, entryIndex);
+  addEntryIndex(caseIndex, normalizeCase(surface), entryIndex);
+  addEntryIndex(normalizedIndex, normalizeLookupKey(surface), entryIndex);
+}
+
+function addEntryIndex(index: Map<string, number[]>, key: string, entryIndex: number) {
+  if (!key) return;
+  const bucket = index.get(key);
+  if (!bucket) {
+    index.set(key, [entryIndex]);
+    return;
+  }
+
+  if (bucket[bucket.length - 1] !== entryIndex) {
+    bucket.push(entryIndex);
+  }
+}
+
+function collectMatchingEntryIndexes(
+  indexes: WordLookupIndexes,
+  token: string,
   caseToken: string,
   normalizedToken: string
-): number | null {
-  if (candidate.source === "word" && candidate.exactKey === exactToken) return 1;
-  if (candidate.source === "word" && candidate.caseKey === caseToken) return 2;
-  if (candidate.source === "alias" && candidate.exactKey === exactToken) return 3;
-  if (candidate.source === "alias" && candidate.caseKey === caseToken) return 4;
-  if (candidate.source === "word" && candidate.normalizedKey === normalizedToken) return 5;
-  if (candidate.source === "alias" && candidate.normalizedKey === normalizedToken) return 6;
-  return null;
+): Map<number, number> {
+  const matches = new Map<number, number>();
+  collectBucket(matches, indexes.exactWord.get(token), 1);
+  collectBucket(matches, indexes.caseWord.get(caseToken), 2);
+  collectBucket(matches, indexes.exactAlias.get(token), 3);
+  collectBucket(matches, indexes.caseAlias.get(caseToken), 4);
+  collectBucket(matches, indexes.normalizedWord.get(normalizedToken), 5);
+  collectBucket(matches, indexes.normalizedAlias.get(normalizedToken), 6);
+  return matches;
+}
+
+function collectBucket(matches: Map<number, number>, bucket: number[] | undefined, matchQuality: number) {
+  if (!bucket) return;
+  for (const entryIndex of bucket) {
+    if (!matches.has(entryIndex)) {
+      matches.set(entryIndex, matchQuality);
+    }
+  }
 }

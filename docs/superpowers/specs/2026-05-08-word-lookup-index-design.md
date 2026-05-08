@@ -196,7 +196,7 @@ Main-process tests should cover:
 Expected verification:
 
 ```sh
-pnpm --filter @immersive-subs/desktop-app test:renderer:jsdom -- apps/desktop-app/src/main/plugins/official/wordLookup/wordLookup.test.ts
+pnpm --dir apps/desktop-app exec vitest run --project main src/main/plugins/official/wordLookup/wordLookup.test.ts
 pnpm --filter @immersive-subs/desktop-app typecheck
 ```
 
