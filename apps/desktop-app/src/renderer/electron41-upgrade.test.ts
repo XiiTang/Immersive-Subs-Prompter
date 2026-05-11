@@ -16,13 +16,14 @@ describe("Electron 41 upgrade", () => {
     vi.doUnmock("electron");
   });
 
-  it("pins desktop dependencies to exact Electron 41 era package versions and uses Electron Forge packaging", () => {
+  it("pins desktop dependencies to exact Electron 41 era package versions and uses root pnpm overrides", () => {
     const packageJson = JSON.parse(readDesktopFile("package.json")) as {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
       overrides?: Record<string, string>;
       scripts?: Record<string, string>;
     };
+    const pnpmWorkspace = readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8");
 
     expect(packageJson.dependencies?.["get-windows"]).toBe("9.3.0");
     expect(packageJson.dependencies?.["active-win"]).toBeUndefined();
@@ -40,13 +41,18 @@ describe("Electron 41 upgrade", () => {
     expect(packageJson.scripts?.["dist:win"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:mac"]).toContain("electron-forge make");
     expect(packageJson.scripts?.["dist:linux"]).toContain("electron-forge make");
-    expect(packageJson.overrides).toMatchObject({
-      "@mapbox/node-pre-gyp": "2.0.3",
-      "node-gyp": "12.2.0",
-      "make-fetch-happen": "15.0.5",
-      cacache: "20.0.4",
-      tar: "7.5.13"
-    });
+    expect(packageJson.overrides).toBeUndefined();
+    expect(pnpmWorkspace).toContain("nodeLinker: hoisted");
+    expect(pnpmWorkspace).toContain("peerDependencyRules:");
+    expect(pnpmWorkspace).toContain("allowedVersions:");
+    expect(pnpmWorkspace).toContain('"@electron/fuses": "2.1.1"');
+    expect(pnpmWorkspace).toContain('"@mapbox/node-pre-gyp": "2.0.3"');
+    expect(pnpmWorkspace).toContain('"node-gyp": "12.2.0"');
+    expect(pnpmWorkspace).toContain('"make-fetch-happen": "15.0.5"');
+    expect(pnpmWorkspace).toContain('cacache: "20.0.4"');
+    expect(pnpmWorkspace).toContain('tar: "7.5.13"');
+    expect(pnpmWorkspace).toContain('"@xmldom/xmldom": "0.8.13"');
+    expect(pnpmWorkspace).toContain('"fast-uri": "3.1.2"');
   });
 
   it("targets Chromium 146 in the renderer build", () => {

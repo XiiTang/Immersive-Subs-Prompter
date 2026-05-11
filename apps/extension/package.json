@@ -16,12 +16,12 @@
     "@immersive-subs/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@types/chrome": "0.1.40",
-    "@types/node": "25.6.0",
+    "@types/chrome": "0.1.42",
+    "@types/node": "25.6.2",
     "esbuild": "0.28.0",
-    "jsdom": "29.0.2",
+    "jsdom": "29.1.1",
     "tsx": "4.21.0",
-    "typescript": "6.0.2",
-    "vitest": "4.1.4"
+    "typescript": "6.0.3",
+    "vitest": "4.1.5"
   }
 }

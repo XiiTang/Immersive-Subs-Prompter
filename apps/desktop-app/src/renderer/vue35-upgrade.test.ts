@@ -16,8 +16,8 @@ describe("Vue 3.5 upgrade", () => {
       devDependencies?: Record<string, string>;
     };
 
-    expect(packageJson.dependencies?.vue).toBe("3.5.32");
-    expect(packageJson.devDependencies?.["vue-tsc"]).toBe("3.2.6");
+    expect(packageJson.dependencies?.vue).toBe("3.5.34");
+    expect(packageJson.devDependencies?.["vue-tsc"]).toBe("3.2.8");
   });
 
   it("replaces legacy template refs with useTemplateRef", () => {

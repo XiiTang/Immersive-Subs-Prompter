@@ -160,6 +160,14 @@ describe("TranscriptBlock", () => {
     expect(lines[1]?.attributes("style")).toContain("height: 20px;");
   });
 
+  it("uses the same keep-all word breaking as pretext layout", () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
+    const lineRule = /\.transcript-block__line\s*\{([\s\S]*?)\}/m.exec(stylesheet);
+
+    expect(lineRule?.[1]).toContain("white-space: pre-wrap;");
+    expect(lineRule?.[1]).toContain("word-break: keep-all;");
+  });
+
   it("does not shift the meta row upward on hover or focus-within", () => {
     const stylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
     const metaRowHoverRule = /\.transcript-block__meta-row\[data-meta-state="hover"\],[\s\S]*?\.transcript-block__meta-row\[data-meta-state="focus-within"\]\s*\{([\s\S]*?)\}/m.exec(

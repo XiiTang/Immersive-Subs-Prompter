@@ -1770,7 +1770,7 @@ body {
   left: 0;
   right: 0;
   white-space: pre-wrap;
-  word-break: normal;
+  word-break: keep-all;
   overflow-wrap: normal;
   margin: 0;
 }

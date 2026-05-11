@@ -85,8 +85,8 @@ By default the app listens on `ws://127.0.0.1:44501`; adjust the bind address an
 ### Test Stack
 
 - `desktop-app` renderer tests run on **Vitest Browser Mode** with **Playwright 1.59.1 Chromium** for component interaction, layout, and visual regression coverage.
-- `desktop-app` jsdom tests remain for lightweight renderer unit tests and upgrade/config assertions on **jsdom 29.0.2**.
-- `extension` runs on **TypeScript + esbuild**, with **Vitest 4 + jsdom 29.0.2** for tests and `tsc --noEmit` for type checks.
+- `desktop-app` jsdom tests remain for lightweight renderer unit tests and upgrade/config assertions on **jsdom 29.1.1**.
+- `extension` runs on **TypeScript + esbuild**, with **Vitest 4 + jsdom 29.1.1** for tests and `tsc --noEmit` for type checks.
 - Browser-mode screenshot baselines live in `__screenshots__/` directories next to the browser test files that own them.
 
 ### Load Browser Extension
@@ -127,7 +127,7 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 
 ### Desktop Subtitle Reader
 
-The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext` 0.0.5 using a two-phase pipeline: transcript blocks are measured up front, then visible blocks materialize line text on demand for the virtualized viewport. Subtitle text is prepared with `white-space: pre-wrap` and `word-break: keep-all` so explicit cue breaks are preserved while CJK / Hangul wrapping stays closer to browser behavior. Cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
+The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext` 0.0.7 using a two-phase pipeline: transcript blocks are measured up front, then visible blocks materialize line text on demand for the virtualized viewport. Subtitle text is prepared with `white-space: pre-wrap` and `word-break: keep-all` so explicit cue breaks are preserved while CJK / Hangul wrapping stays closer to browser behavior. Cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
 
 ## Development Scripts
 

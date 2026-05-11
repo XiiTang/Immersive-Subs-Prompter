@@ -12,6 +12,45 @@ function readJson<T>(filePath: string): T {
 }
 
 describe("workspace contracts integration", () => {
+  it("pins current patch versions for the shared build and test toolchain", () => {
+    const desktopPackage = readJson<{
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }>(path.join(desktopAppRoot, "package.json"));
+    const extensionPackage = readJson<{
+      devDependencies?: Record<string, string>;
+    }>(path.join(extensionRoot, "package.json"));
+    const contractsPackage = readJson<{
+      devDependencies?: Record<string, string>;
+    }>(path.join(repoRoot, "packages", "contracts", "package.json"));
+    const pluginSdkPackage = readJson<{
+      devDependencies?: Record<string, string>;
+    }>(path.join(repoRoot, "packages", "plugin-sdk", "package.json"));
+
+    expect(desktopPackage.dependencies?.["@chenglou/pretext"]).toBe("0.0.7");
+    expect(desktopPackage.dependencies?.koffi).toBe("2.16.2");
+    expect(desktopPackage.devDependencies?.["@types/node"]).toBe("25.6.2");
+    expect(desktopPackage.devDependencies?.["@vitejs/plugin-vue"]).toBe("6.0.6");
+    expect(desktopPackage.devDependencies?.["@vitest/browser-playwright"]).toBe("4.1.5");
+    expect(desktopPackage.devDependencies?.["@vue/test-utils"]).toBe("2.4.10");
+    expect(desktopPackage.devDependencies?.jsdom).toBe("29.1.1");
+    expect(desktopPackage.devDependencies?.typescript).toBe("6.0.3");
+    expect(desktopPackage.devDependencies?.vite).toBe("8.0.11");
+    expect(desktopPackage.devDependencies?.vitest).toBe("4.1.5");
+    expect(desktopPackage.devDependencies?.["vue-tsc"]).toBe("3.2.8");
+
+    expect(extensionPackage.devDependencies?.["@types/chrome"]).toBe("0.1.42");
+    expect(extensionPackage.devDependencies?.["@types/node"]).toBe("25.6.2");
+    expect(extensionPackage.devDependencies?.jsdom).toBe("29.1.1");
+    expect(extensionPackage.devDependencies?.typescript).toBe("6.0.3");
+    expect(extensionPackage.devDependencies?.vitest).toBe("4.1.5");
+
+    expect(contractsPackage.devDependencies?.typescript).toBe("6.0.3");
+    expect(contractsPackage.devDependencies?.vitest).toBe("4.1.5");
+    expect(pluginSdkPackage.devDependencies?.typescript).toBe("6.0.3");
+    expect(pluginSdkPackage.devDependencies?.vitest).toBe("4.1.5");
+  });
+
   it("wires both apps to the shared contracts package from the root workspace", () => {
     const desktopPackage = readJson<{
       dependencies?: Record<string, string>;
