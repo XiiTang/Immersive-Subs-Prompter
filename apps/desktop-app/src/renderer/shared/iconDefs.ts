@@ -39,3 +39,21 @@ export const ICON_DELETE: IconDefinition = {
     { tag: "line", attrs: { x1: 9, y1: 8, x2: 9, y2: 11 } }
   ]
 };
+
+export const ICON_FOLDER: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M2.5 5.5V12a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V6.5A1.5 1.5 0 0 0 12 5H7.25L6 3.5H4A1.5 1.5 0 0 0 2.5 5v.5Z" } },
+    { tag: "path", attrs: { d: "M2.5 6h11" } }
+  ]
+};
+
+export const ICON_REFRESH: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M13 8a5 5 0 0 1-8.4 3.65" } },
+    { tag: "path", attrs: { d: "M3 8a5 5 0 0 1 8.4-3.65" } },
+    { tag: "path", attrs: { d: "M11 2.5h1v3" } },
+    { tag: "path", attrs: { d: "M5 13.5H4v-3" } }
+  ]
+};

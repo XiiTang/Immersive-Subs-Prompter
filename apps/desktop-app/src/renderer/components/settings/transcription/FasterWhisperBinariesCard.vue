@@ -54,11 +54,12 @@
           <span class="label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
           <button
             type="button"
-            class="icon-text-button"
+            class="icon-button icon-button--compact"
             @click="$emit('open-path', binaryDir)"
             :title="t('transcription-faster-open-bin', 'Open folder')"
+            :aria-label="t('transcription-faster-open-bin', 'Open folder')"
           >
-            <span class="icon">📂</span>
+            <IconFolder size="sm" />
           </button>
         </div>
         <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" class="fw-input-sm" />
@@ -68,6 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import { IconFolder } from "../../icons";
+
 defineProps<{
   t: (key: string, fallback: string) => string;
   binaryStatus: { cpu: boolean; gpu: boolean };

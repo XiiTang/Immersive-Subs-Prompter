@@ -6,7 +6,7 @@
       </div>
       <label class="toggle toggle--sm settings-section__toggle">
         <input type="checkbox" v-model="mediaServerEnabled" />
-        <span class="toggle__text">{{ t("mediaserver-enable-label", "Enable Media Server") }}</span>
+        <span class="toggle__text">{{ mediaServerEnabled ? t("toggle-on", "On") : t("toggle-off", "Off") }}</span>
       </label>
     </header>
 
@@ -80,10 +80,10 @@
           <input type="text" v-model="mediaServerWsPath" />
         </label>
         <div class="settings-field settings-field--inline">
-          <span class="settings-field__label">{{ t("mediaserver-config-enable-label", "Enable This Server") }}</span>
+          <span class="settings-field__label">{{ t("mediaserver-config-state-label", "Server") }}</span>
           <label class="toggle">
             <input type="checkbox" v-model="mediaServerConfigEnabled" />
-            <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+            <span class="toggle__text">{{ mediaServerConfigEnabled ? t("toggle-on", "On") : t("toggle-off", "Off") }}</span>
           </label>
         </div>
       </div>

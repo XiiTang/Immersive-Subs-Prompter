@@ -2,10 +2,14 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { loadLocale } from "../../i18n";
 import type { AppSettings } from "../../../main/types";
+
+const rendererStylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
 
 const sectionStub = (testId: string) =>
   defineComponent({
@@ -213,5 +217,16 @@ describe("SettingsWindowShell", () => {
     await nextTick();
 
     expect(wrapper.get('[data-testid="settings-section-plugin-official-transcription"]').exists()).toBe(true);
+  });
+
+  it("keeps settings controls outside Electron drag regions", () => {
+    expect(rendererStylesheet).toContain(".settings-window button,");
+    expect(rendererStylesheet).toContain(".settings-window input,");
+    expect(rendererStylesheet).toContain(".settings-window select,");
+    expect(rendererStylesheet).toContain(".settings-window textarea,");
+    expect(rendererStylesheet).toContain(".settings-window-shell__content,");
+    expect(rendererStylesheet).toContain("-webkit-app-region: no-drag;");
+    expect(rendererStylesheet).toContain(".settings-window-shell__header {\n");
+    expect(rendererStylesheet).toContain("-webkit-app-region: drag;");
   });
 });

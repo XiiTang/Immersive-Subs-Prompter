@@ -4,6 +4,7 @@ import { defineComponent, h } from "vue";
 import { beforeEach, describe, expect, it } from "vitest";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
 import { useDesktopStore } from "../../stores/desktop";
+import "../../style.css";
 
 const sectionStub = (testId: string) =>
   defineComponent({
@@ -16,6 +17,9 @@ const sectionStub = (testId: string) =>
 describe("SettingsWindowShell browser layout", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    document.body.innerHTML = "";
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
     const store = useDesktopStore();
     store.settings = {
       global: {
@@ -62,5 +66,41 @@ describe("SettingsWindowShell browser layout", () => {
     expect(shell.classes()).toContain("settings-window-shell--document");
     expect(content.attributes("data-scroll-mode")).toBe("document");
     expect(sections).toHaveLength(6);
+  });
+
+  it("constrains the scrollable document to the visible body row", async () => {
+    const tallSectionStub = (testId: string) =>
+      defineComponent({
+        name: `TallSectionStub${testId}`,
+        render() {
+          return h("section", { "data-testid": testId, style: "height: 520px;" });
+        }
+      });
+
+    const wrapper = shallowMount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          SettingsNav: sectionStub("settings-nav-content"),
+          SettingsGlobal: tallSectionStub("settings-section-general-content"),
+          SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
+          SettingsRules: tallSectionStub("settings-section-rules-content"),
+          SettingsMediaServer: tallSectionStub("settings-section-media-server-content"),
+          SettingsCache: tallSectionStub("settings-section-cache-content"),
+          SettingsPlugins: tallSectionStub("settings-section-plugins-content")
+        }
+      }
+    });
+
+    const content = wrapper.get('[data-testid="settings-content"]').element as HTMLElement;
+    const contentRect = content.getBoundingClientRect();
+    const initialScrollTop = content.scrollTop;
+    content.scrollTop = 300;
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+    expect(contentRect.bottom).toBeLessThanOrEqual(window.innerHeight);
+    expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
+    expect(content.scrollTop).toBeGreaterThan(initialScrollTop);
   });
 });

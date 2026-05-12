@@ -31,11 +31,12 @@
           <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
           <button
             type="button"
-            class="icon-text-button"
+            class="icon-button icon-button--compact"
             @click="$emit('open-path', modelsDir)"
             :title="t('transcription-faster-open-models', 'Open folder')"
+            :aria-label="t('transcription-faster-open-models', 'Open folder')"
           >
-            <span class="icon">📂</span>
+            <IconFolder size="sm" />
           </button>
         </div>
         <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" class="fw-input-sm" />
@@ -45,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { IconFolder } from "../../icons";
 import type { AvailableModel } from "./composables/useFasterWhisper";
 
 defineProps<{

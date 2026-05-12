@@ -160,6 +160,12 @@ body {
   border-color: rgba(255, 255, 255, calc(0.3 * var(--panel-opacity-factor)));
 }
 
+.icon-button--compact {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
 
 .icon-button--active {
   background: rgba(103, 232, 249, calc(0.2 * var(--panel-opacity-factor)));
@@ -541,17 +547,17 @@ body {
 /* Settings Window */
 .settings-window {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(74, 222, 128, 0.08), transparent 28%),
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 24%),
-    #11161d;
+  background: #11161d;
   color: #f3f5f7;
+  -webkit-app-region: no-drag;
 }
 
 .settings-window-shell {
   display: grid;
-  grid-template-rows: 48px 1fr;
+  grid-template-rows: 48px minmax(0, 1fr);
   height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .settings-window-shell__header {
@@ -572,14 +578,30 @@ body {
 .settings-window-shell__body {
   display: grid;
   grid-template-columns: 272px minmax(0, 1fr);
-  height: 100%;
+  min-height: 0;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .settings-window-shell__content {
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
-  padding: 36px 40px 72px;
+  padding: 30px 36px 64px;
+  min-height: 0;
+  -webkit-app-region: no-drag;
+}
+
+.settings-window button,
+.settings-window input,
+.settings-window select,
+.settings-window textarea,
+.settings-window a,
+.settings-window label,
+.settings-window .settings-window-shell__content,
+.settings-window .settings-nav,
+.settings-window .settings-split,
+.settings-window .settings-surface {
+  -webkit-app-region: no-drag;
 }
 
 .settings-window-shell__content::-webkit-scrollbar {
@@ -598,7 +620,7 @@ body {
 .settings-document {
   width: min(100%, 920px);
   margin: 0 auto;
-  padding-right: 20px;
+  padding-right: 12px;
 }
 
 .settings-document__intro {
@@ -633,18 +655,20 @@ body {
 }
 
 .settings-document__section + .settings-document__section {
-  margin-top: 42px;
+  margin-top: 34px;
 }
 
 .settings-nav {
   border-right: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 28px 18px 28px 24px;
+  padding: 22px 16px 22px 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
   background: rgba(12, 17, 24, 0.42);
   backdrop-filter: blur(18px);
+  min-height: 0;
+  -webkit-app-region: no-drag;
 }
 
 .settings-nav__meta {
@@ -682,8 +706,8 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: #9aa8b7;
@@ -698,7 +722,6 @@ body {
 .settings-nav__item:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #ecf3fa;
-  transform: translateX(2px);
 }
 
 .settings-nav__item[aria-current="location"] {
@@ -723,12 +746,12 @@ body {
 .settings-split {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
-  min-height: 480px;
+  min-height: 420px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
+  border-radius: 8px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
 }
 
 .settings-split__sidebar {
@@ -740,7 +763,7 @@ body {
 }
 
 .settings-split__sidebar-header {
-  padding: 18px 18px 12px;
+  padding: 14px 16px 12px;
   font-weight: 600;
   color: #edf2f7;
   font-size: 13px;
@@ -748,13 +771,13 @@ body {
 }
 
 .settings-split__sidebar-actions {
-  padding: 12px 18px 18px;
+  padding: 12px 16px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   margin-top: auto;
 }
 
 .settings-split__editor {
-  padding: 24px;
+  padding: 18px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -846,7 +869,7 @@ body {
 .settings-field input[type="number"],
 .settings-field textarea {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(9, 14, 20, 0.62);
   color: #f5f7fa;
@@ -934,7 +957,7 @@ body {
   flex-direction: column;
   gap: 8px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
 }
@@ -954,7 +977,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 12px;
   border: 1px solid rgba(255, 255, 255, calc(0.16 * var(--panel-opacity-factor)));
   background: rgba(255, 255, 255, calc(0.05 * var(--panel-opacity-factor)));
@@ -1018,7 +1041,7 @@ body {
   gap: 8px;
   min-height: 38px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px dashed rgba(255, 255, 255, calc(0.1 * var(--panel-opacity-factor)));
   background: rgba(255, 255, 255, calc(0.02 * var(--panel-opacity-factor)));
 }
@@ -1037,7 +1060,7 @@ body {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(103, 232, 249, calc(0.1 * var(--panel-opacity-factor)));
   border: 1px solid rgba(103, 232, 249, calc(0.4 * var(--panel-opacity-factor)));
   font-size: 12px;
@@ -1062,7 +1085,7 @@ body {
 
 .settings-subsection {
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px dashed rgba(103, 232, 249, calc(0.35 * var(--panel-opacity-factor)));
   background: rgba(103, 232, 249, calc(0.05 * var(--panel-opacity-factor)));
   display: flex;
@@ -1134,7 +1157,7 @@ body {
 .download-progress__bar {
   width: 100%;
   height: 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
   overflow: hidden;
 }
@@ -1142,7 +1165,7 @@ body {
 .download-progress__bar-fill {
   height: 100%;
   background: linear-gradient(90deg, #22d3ee, #67e8f9);
-  border-radius: 999px;
+  border-radius: 6px;
   width: 0;
   transition: width 0.2s ease;
 }
@@ -1153,7 +1176,7 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(15, 23, 42, calc(0.4 * var(--panel-opacity-factor)));
   border: 1px solid rgba(59, 130, 246, calc(0.2 * var(--panel-opacity-factor)));
 }
@@ -1179,7 +1202,7 @@ body {
 .settings-field__select {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(9, 14, 20, 0.62);
   color: #e5e5e5;
@@ -1203,16 +1226,16 @@ body {
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
 }
 
 .settings-section__title {
   margin: 0;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1.15;
   font-weight: 630;
   color: #f8fafc;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   display: block;
 }
 
@@ -1221,7 +1244,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  padding-top: 8px;
+  padding-top: 4px;
 }
 
 .settings-section__intro--with-toggle {
@@ -1236,18 +1259,22 @@ body {
 .settings-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
+}
+
+.settings-panel.settings-surface {
+  padding: 16px;
 }
 
 .settings-surface {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
 }
 
 .settings-surface--split {
-  min-height: 480px;
+  min-height: 420px;
 }
 
 /* Shared Settings List (sidebar) */
@@ -1263,8 +1290,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   color: #e5e5e5;
@@ -1298,7 +1325,7 @@ body {
 .settings-list__badge {
   font-size: 10px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(34, 197, 94, 0.2);
   color: #bbf7d0;
   flex-shrink: 0;
@@ -1338,7 +1365,7 @@ body {
   display: inline-flex;
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: 6px;
   font-weight: 600;
   width: fit-content;
   line-height: 1.4;
@@ -1385,7 +1412,7 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
 }
@@ -1406,8 +1433,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   color: #e5e5e5;
@@ -1429,7 +1456,7 @@ body {
 .profile-list__badge {
   font-size: 10px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(34, 197, 94, calc(0.2 * var(--panel-opacity-factor)));
   color: #bbf7d0;
 }
@@ -1456,7 +1483,7 @@ body {
   flex-direction: column;
   align-items: flex-start;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   color: #e5e5e5;
@@ -1493,7 +1520,7 @@ body {
 
 .rule-item {
   border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px;
   background: rgba(0, 0, 0, calc(0.2 * var(--panel-opacity-factor)));
   display: flex;
@@ -1536,7 +1563,7 @@ body {
 
 .rule-form {
   border: 1px solid rgba(255, 255, 255, calc(0.08 * var(--panel-opacity-factor)));
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px;
   background: rgba(0, 0, 0, calc(0.25 * var(--panel-opacity-factor)));
   display: flex;
@@ -1616,7 +1643,7 @@ body {
 .toggle input {
   width: 18px;
   height: 18px;
-  accent-color: #38bdf8;
+  accent-color: #7dd3a6;
 }
 
 .toggle__text {
@@ -1885,8 +1912,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   color: #e5e5e5;
@@ -1918,6 +1945,8 @@ body {
 .mediaserver-config-list__toggle {
   margin-left: auto;
   gap: 4px;
+  font-size: 11px;
+  color: #9ca3af;
 }
 
 .mediaserver-config-list__toggle .toggle__text {
@@ -1925,42 +1954,6 @@ body {
   color: #9ca3af;
 }
 
-/* Cache management styles */
-.cache-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(255, 255, 255, calc(0.03 * var(--panel-opacity-factor)));
-  border-radius: 8px;
-  margin-top: 12px;
-}
-
-.cache-stats__item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cache-stats__label {
-  font-size: 13px;
-  color: #9ca3af;
-}
-
-.cache-stats__value {
-  font-size: 14px;
-  font-weight: 500;
-  color: #f5f5f5;
-}
-
-.cache-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-/* Cache field row layout */
 .cache-field-row {
   display: flex;
   gap: 12px;
@@ -1985,45 +1978,28 @@ body {
 }
 
 .cache-status-row {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  padding: 10px 12px;
-  background: rgba(9, 14, 20, 0.36);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
 }
 
 .cache-status-item {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 8px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  background: rgba(9, 14, 20, 0.36);
 }
 
 .cache-inline-row {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.cache-refresh-btn {
-  padding: 0;
-  min-height: 0;
-  width: 14px;
-  height: 14px;
-  font-size: 11px;
-  opacity: 0.8;
-  background: transparent;
-  border: none;
-  color: #a1a1aa;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: color 0.2s, background 0.2s;
-}
-
-.cache-refresh-btn:hover {
-  color: #f5f5f5;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .text-button--danger {
@@ -2082,7 +2058,7 @@ body {
   flex-direction: column;
   gap: 16px;
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: none;
@@ -2096,7 +2072,7 @@ body {
 
 .fw-card {
   background: rgba(255, 255, 255, 0.025);
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: none;
   overflow: hidden;
@@ -2192,7 +2168,7 @@ body {
   padding: 10px 12px;
   background: rgba(7, 12, 18, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .fw-status-item {
@@ -2217,8 +2193,7 @@ body {
   display: inline-flex;
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 12px;
-  /* Pill shape */
+  border-radius: 6px;
   font-weight: 600;
   width: fit-content;
   line-height: 1.4;
@@ -2262,7 +2237,7 @@ body {
   background: rgba(103, 232, 249, 0.1);
   color: #67e8f9;
   border: 1px solid rgba(103, 232, 249, 0.2);
-  border-radius: 99px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2293,7 +2268,7 @@ body {
 .fw-select,
 .fw-input-sm {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(9, 14, 20, 0.62);
   color: #f5f5f5;
@@ -2322,24 +2297,13 @@ body {
 .fw-download-banner {
   background: linear-gradient(90deg, rgba(8, 145, 178, 0.2), rgba(6, 182, 212, 0.1));
   border: 1px solid rgba(8, 145, 178, 0.3);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   position: relative;
   overflow: hidden;
-}
-
-.fw-download-banner::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at top right, rgba(103, 232, 249, 0.1), transparent 60%);
-  pointer-events: none;
 }
 
 .fw-download-banner__info {
@@ -2372,7 +2336,7 @@ body {
   color: #d6ffe9;
   border: 1px solid rgba(125, 211, 166, 0.24);
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -2398,7 +2362,7 @@ body {
   color: #e4e4e7;
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 6px 12px;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
@@ -2750,12 +2714,19 @@ body {
 /* Color Picker Grid */
 .settings-group {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.settings-group--plain {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .settings-group__title {
@@ -2771,7 +2742,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px 20px;
+  padding: 16px;
 }
 
 .plugin-card {
@@ -2780,7 +2751,7 @@ body {
   align-items: flex-start;
   gap: 16px;
   padding: 14px 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -2820,7 +2791,7 @@ body {
 .plugin-card__badge {
   font-size: 10px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-weight: 600;
 }
 
@@ -2980,7 +2951,7 @@ body {
   justify-content: center;
   padding: 8px 10px;
   gap: 4px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(7, 12, 18, 0.36);
   color: #e5e5e5;
@@ -3018,7 +2989,7 @@ body {
 .transcription-config-list__badge {
   font-size: 10px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(103, 232, 249, calc(0.22 * var(--panel-opacity-factor)));
   color: #d8f3ff;
   border: 1px solid rgba(103, 232, 249, calc(0.35 * var(--panel-opacity-factor)));
@@ -3039,7 +3010,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(37, 99, 235, calc(0.16 * var(--panel-opacity-factor)));
   border: 1px solid rgba(103, 232, 249, calc(0.28 * var(--panel-opacity-factor)));
   color: #a5b4fc;
@@ -3075,6 +3046,19 @@ body {
   .settings-fields-grid--two-col,
   .fw-row.three-col {
     grid-template-columns: 1fr;
+  }
+
+  .cache-status-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cache-field-row {
+    flex-direction: column;
+  }
+
+  .cache-field--fixed,
+  .cache-field--narrow {
+    width: 100%;
   }
 
   .settings-split {
@@ -3139,6 +3123,21 @@ svg.icon {
 
 .icon--delete {
   color: #f87171;
+}
+
+.icon--folder,
+.icon--refresh {
+  color: #a7f3d0;
+}
+
+.icon--spinning {
+  animation: icon-spin 700ms linear infinite;
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Icon button wrapper styling */
