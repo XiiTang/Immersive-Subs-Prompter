@@ -58,6 +58,10 @@ export class JellyfinembySubtitleService {
     }
   }
 
+  stop() {
+    this.applySettings({ enabled: false, configs: [] });
+  }
+
   refresh() {
     this.applySettings(this.settingsProvider());
     if (this.settings.enabled) {

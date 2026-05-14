@@ -2,15 +2,16 @@ import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import { normalizeServerUrl } from "../jellyfinembyUtils.js";
 import { createLogger } from "../logger.js";
 import type {
-  AppSettings,
+  JellyfinembyPluginConfig,
   MediaServerConfig,
   MediaServerSessionSummary
 } from "../types.js";
+import { toMediaServerConfig } from "../settings/sanitizers/jellyfinembySanitizer.js";
 
 export class MediaServerUrlResolver {
   private readonly log = createLogger("mediaserver-url-resolver");
 
-  constructor(private readonly getSettings: () => AppSettings) {}
+  constructor(private readonly getConfig: () => JellyfinembyPluginConfig) {}
 
   extractOrigin(url: string | null | undefined): string | null {
     if (!url) {
@@ -32,11 +33,7 @@ export class MediaServerUrlResolver {
   }
 
   resolveMediaServerConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
-    const settings = this.getSettings();
-    if (!settings.mediaServer.enabled || !settings.mediaServer.configs.length) {
-      return null;
-    }
-    const configs = settings.mediaServer.configs.filter((config) => config.type === "jellyfinemby");
+    const configs = this.getMediaServerConfigs();
     for (const candidate of urls) {
       const origin = this.extractOrigin(candidate);
       if (!origin) {
@@ -48,8 +45,7 @@ export class MediaServerUrlResolver {
         }
         try {
           const serverUrl = new URL(normalizeServerUrl(config.serverUrl));
-          const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ":" + serverUrl.port : ""
-            }`;
+          const serverOrigin = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ":" + serverUrl.port : ""}`;
           if (serverOrigin === origin) {
             return config.id;
           }
@@ -97,8 +93,7 @@ export class MediaServerUrlResolver {
   }
 
   resolveMediaServerConfig(configId?: string | null): MediaServerConfig | null {
-    const settings = this.getSettings().mediaServer;
-    const configs = settings.configs.filter((config) => config.type === "jellyfinemby");
+    const configs = this.getMediaServerConfigs();
     if (configId) {
       return configs.find((config) => config.id === configId) ?? null;
     }
@@ -141,5 +136,9 @@ export class MediaServerUrlResolver {
       return null;
     }
     return `${base}/web/index.html#!/details?id=${session.nowPlayingItemId}`;
+  }
+
+  private getMediaServerConfigs(): MediaServerConfig[] {
+    return this.getConfig().servers.map(toMediaServerConfig);
   }
 }

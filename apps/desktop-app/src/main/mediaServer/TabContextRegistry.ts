@@ -32,6 +32,10 @@ export class TabContextRegistry {
     this.tabMediaServerContexts.delete(tabId);
   }
 
+  clearAll() {
+    this.tabMediaServerContexts.clear();
+  }
+
   entries(): IterableIterator<[number, TabMediaServerContext]> {
     return this.tabMediaServerContexts.entries();
   }

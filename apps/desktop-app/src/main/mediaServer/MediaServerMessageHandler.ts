@@ -1,21 +1,25 @@
 import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
-import { ConnectionMessageEvent } from "../appEventBus.js";
-import { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
+import type { ConnectionMessageEvent } from "../appEventBus.js";
+import type { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
 import { createLogger } from "../logger.js";
-import { StateManager } from "../stateManager.js";
-import type { AppSettings, MediaServerSessionSummary } from "../types.js";
+import type { StateManager } from "../stateManager.js";
 import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
 import { TabContextRegistry } from "./TabContextRegistry.js";
+
+type MessageHandlerService = Pick<
+  JellyfinembySubtitleService,
+  "setActiveSession" | "requestSessionsBurst"
+>;
 
 export class MediaServerMessageHandler {
   private readonly log = createLogger("mediaserver-message-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: JellyfinembySubtitleService,
+    private readonly mediaServerService: MessageHandlerService,
     private readonly tabRegistry: TabContextRegistry,
     private readonly urlResolver: MediaServerUrlResolver,
-    private readonly getSettings: () => AppSettings
+    private readonly isActive: () => boolean
   ) {}
 
   handleConnectionMessage(event: ConnectionMessageEvent) {
@@ -34,6 +38,11 @@ export class MediaServerMessageHandler {
 
     if (!isMediaServer) {
       this.handleNonMediaServerSwitch(event.message.tabId);
+      return;
+    }
+
+    event.markHandled();
+    if (!this.isActive()) {
       return;
     }
 
@@ -82,7 +91,6 @@ export class MediaServerMessageHandler {
       return;
     }
 
-    event.markHandled();
     void this.processMediaServerVideoContext(event.message, url);
   }
 
@@ -107,10 +115,11 @@ export class MediaServerMessageHandler {
   ) {
     const state = this.stateManager.getState();
     const itemId = this.urlResolver.extractItemId(message.payload, url);
-
-    // Get the current server config ID from the URL (freshly resolved)
-    const currentServerConfigId = this.urlResolver.resolveMediaServerConfigIdFromUrls([url, message.payload.pageUrl, message.payload.videoSrc]);
-
+    const currentServerConfigId = this.urlResolver.resolveMediaServerConfigIdFromUrls([
+      url,
+      message.payload.pageUrl,
+      message.payload.videoSrc
+    ]);
 
     if (itemId) {
       this.tabRegistry.update(message.tabId, { itemId });
@@ -122,7 +131,7 @@ export class MediaServerMessageHandler {
         ? state.mediaServer.sessions.find((session) => session.id === tabContext.sessionId) ?? null
         : null;
 
-    if (itemId && this.getSettings().mediaServer.enabled) {
+    if (itemId && this.isActive()) {
       this.stateManager.updateState((draft) => {
         draft.activeSource = "mediaserver";
         draft.videoUrl = url;
@@ -146,32 +155,16 @@ export class MediaServerMessageHandler {
         this.mediaServerService.requestSessionsBurst(`mediaserver-video-change:${itemId}`);
       }
 
-      let matchingSession: MediaServerSessionSummary | null = null;
-
-      // Check if stored session is still valid for this itemId AND same server
-      if (storedSession && storedSession.nowPlayingItemId === itemId &&
-        (!currentServerConfigId || storedSession.serverConfigId === currentServerConfigId)) {
-        matchingSession = storedSession;
-      }
-
-      // Try to find a matching session, preferring the current server
-      if (!matchingSession) {
-        // First, try to match on both itemId AND the current server
-        matchingSession =
-          latestState.mediaServer.sessions.find(
-            (session) =>
-              session.nowPlayingItemId === itemId &&
-              currentServerConfigId && session.serverConfigId === currentServerConfigId
-          ) ?? null;
-      }
-
-      // Fallback: match any session with the same itemId (for cases where server detection failed)
-      if (!matchingSession) {
-        matchingSession =
-          latestState.mediaServer.sessions.find(
-            (session) => session.nowPlayingItemId === itemId
-          ) ?? null;
-      }
+      const targetServerConfigId = currentServerConfigId ?? tabContext?.serverConfigId ?? null;
+      const matchingSession =
+        storedSession?.nowPlayingItemId === itemId &&
+        (!targetServerConfigId || storedSession.serverConfigId === targetServerConfigId)
+          ? storedSession
+          : latestState.mediaServer.sessions.find(
+              (session) =>
+                session.nowPlayingItemId === itemId &&
+                (!targetServerConfigId || session.serverConfigId === targetServerConfigId)
+            ) ?? null;
 
       if (matchingSession) {
         this.stateManager.updateState((draft) => {

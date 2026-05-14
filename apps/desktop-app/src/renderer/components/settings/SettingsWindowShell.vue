@@ -35,7 +35,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import SettingsGlobal from "./SettingsGlobal.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import SettingsRules from "./SettingsRules.vue";
-import SettingsMediaServer from "./SettingsMediaServer.vue";
 import SettingsCache from "./SettingsCache.vue";
 import SettingsPlugins from "./SettingsPlugins.vue";
 import SettingsNav from "./SettingsNav.vue";
@@ -74,7 +73,6 @@ const hostComponentMap: Record<string, unknown> = {
   general: SettingsGlobal,
   profiles: SettingsProfiles,
   rules: SettingsRules,
-  "media-server": SettingsMediaServer,
   cache: SettingsCache,
   plugins: SettingsPlugins
 };

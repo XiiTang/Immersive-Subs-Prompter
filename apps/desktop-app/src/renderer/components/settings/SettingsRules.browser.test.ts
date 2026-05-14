@@ -30,8 +30,7 @@ describe("SettingsRules", () => {
       profiles: [{ id: "profile-1", name: "Default", description: null, settings: {} as any }],
       defaultProfileId: "profile-1",
       rules: [{ id: "rule-1", name: "Netflix", matchType: "contains", pattern: "netflix.com", profileId: "profile-1", isEnabled: true }],
-      mediaServer: { enabled: false, configs: [] },
-      plugins: {},
+      plugins: { "official.jellyfinemby": { config: { servers: [] } } },
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as any;
 

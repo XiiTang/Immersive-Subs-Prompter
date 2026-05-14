@@ -61,10 +61,6 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
     ],
     defaultProfileId: "profile-1",
     rules: [],
-    mediaServer: {
-      enabled: false,
-      configs: []
-    },
     plugins: {},
     cache: {
       enabled: false,
@@ -94,7 +90,6 @@ describe("SettingsWindowShell", () => {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsRules: sectionStub("settings-section-rules-content"),
-          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -106,9 +101,9 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-rules"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-media-server"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-cache"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-plugins"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-media-server"]').exists()).toBe(false);
   });
 
   it("scrolls to a section instead of swapping the rendered page", async () => {
@@ -123,7 +118,6 @@ describe("SettingsWindowShell", () => {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsRules: sectionStub("settings-section-rules-content"),
-          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -151,7 +145,6 @@ describe("SettingsWindowShell", () => {
     expect(text).toContain("全局设置");
     expect(text).toContain("配置文件");
     expect(text).toContain("URL 规则");
-    expect(text).toContain("媒体服务器集成");
     expect(text).toContain("字幕缓存");
     expect(text).toContain("插件");
     expect(text).not.toContain("Preferences");
@@ -196,7 +189,6 @@ describe("SettingsWindowShell", () => {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsRules: sectionStub("settings-section-rules-content"),
-          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content"),
           SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
@@ -217,6 +209,58 @@ describe("SettingsWindowShell", () => {
     await nextTick();
 
     expect(wrapper.get('[data-testid="settings-section-plugin-official-transcription"]').exists()).toBe(true);
+  });
+
+  it("shows Jellyfin / Emby settings only when the plugin is enabled", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings("en");
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.jellyfinemby",
+        version: "1.0.0",
+        displayName: "Jellyfin / Emby",
+        description: "Sync playback and subtitles from Jellyfin or Emby media servers.",
+        status: "disabled",
+        enabled: false,
+        error: null,
+        settings: [
+          {
+            id: "official.jellyfinemby.settings",
+            title: "Jellyfin / Emby",
+            anchorId: "settings-section-plugin-official-jellyfinemby"
+          }
+        ]
+      }
+    ];
+
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsRules: sectionStub("settings-section-rules-content"),
+          SettingsCache: sectionStub("settings-section-cache-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content"),
+          SettingsMediaServer: sectionStub("settings-section-plugin-official-jellyfinemby-content")
+        }
+      }
+    });
+
+    expect(wrapper.find('[data-testid="settings-section-plugin-official-jellyfinemby"]').exists()).toBe(false);
+
+    store.pluginCatalog = [
+      {
+        ...store.pluginCatalog[0]!,
+        status: "enabled",
+        enabled: true
+      }
+    ];
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby"]').exists()).toBe(true);
   });
 
   it("keeps settings controls outside Electron drag regions", () => {

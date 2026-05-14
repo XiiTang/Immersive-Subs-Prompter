@@ -52,11 +52,7 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
     profiles: [createTopPanelProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    mediaServer: {
-      enabled: false,
-      configs: []
-    },
-    plugins: {},
+    plugins: { "official.jellyfinemby": { config: { servers: [] } } },
     cache: {
       enabled: false,
       path: "",

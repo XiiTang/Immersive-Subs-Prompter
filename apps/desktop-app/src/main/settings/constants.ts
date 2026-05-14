@@ -2,7 +2,6 @@ import { app } from "electron";
 import path from "path";
 import {
   GlobalSettings,
-  MediaServerSettings,
   NetworkSettings,
   ProfileSettings,
   SubtitleCacheSettings,
@@ -63,11 +62,6 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   subtitleBlockGap: 12,
   primarySubtitlePriority: [],
   secondarySubtitlePriority: []
-};
-
-export const DEFAULT_MEDIA_SERVER_SETTINGS: MediaServerSettings = {
-  enabled: false,
-  configs: []
 };
 
 export const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";

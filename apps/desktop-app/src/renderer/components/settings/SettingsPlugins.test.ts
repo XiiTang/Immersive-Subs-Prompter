@@ -26,8 +26,7 @@ describe("SettingsPlugins", () => {
       profiles: [],
       defaultProfileId: "",
       rules: [],
-      mediaServer: { enabled: false, configs: [] },
-      plugins: {},
+      plugins: { "official.jellyfinemby": { config: { servers: [] } } },
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
     store.pluginCatalog = [

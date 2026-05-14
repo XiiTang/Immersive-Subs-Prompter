@@ -22,6 +22,7 @@ import { cacheActions } from "./desktop/actions/cacheActions";
 import { gameBlacklistActions } from "./desktop/actions/gameBlacklistActions";
 import { playbackActions } from "./desktop/actions/playbackActions";
 import { initActions } from "./desktop/actions/initActions";
+import { JELLYFINEMBY_PLUGIN_ID } from "../../common/pluginIds.js";
 
 export { DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
 
@@ -52,9 +53,14 @@ export const useDesktopStore = defineStore("desktop", {
         return "Connecting...";
       }
       const browser = state.desktopState.connectionCount;
-      const mediaServerEnabled = state.settings?.mediaServer.enabled ?? false;
-      if (mediaServerEnabled) {
-        const enabledServers = state.settings?.mediaServer.configs.filter((c) => c.enabled).length ?? 0;
+      const jellyfinembyEnabled = state.pluginCatalog.some(
+        (plugin) => plugin.id === JELLYFINEMBY_PLUGIN_ID && plugin.enabled
+      );
+      if (jellyfinembyEnabled) {
+        const pluginConfig = state.settings?.plugins[JELLYFINEMBY_PLUGIN_ID]?.config as
+          | { servers?: Array<{ enabled?: boolean }> }
+          | undefined;
+        const enabledServers = pluginConfig?.servers?.filter((server) => server.enabled).length ?? 0;
         return `Extension: ${browser} · Media Server: ${enabledServers}`;
       }
       return `Extension: ${browser}`;

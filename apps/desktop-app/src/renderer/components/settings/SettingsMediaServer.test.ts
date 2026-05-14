@@ -23,25 +23,27 @@ describe("SettingsMediaServer", () => {
       profiles: [],
       defaultProfileId: "",
       rules: [],
-      mediaServer: {
-        enabled: true,
-        configs: [
-          {
-            id: "server-1",
-            name: "Home Jellyfin",
-            serverUrl: "http://localhost:8096",
-            apiKey: "secret",
-            webSocketPath: "/socket",
-            enabled: true
+      plugins: {
+        "official.jellyfinemby": {
+          config: {
+            servers: [
+              {
+                id: "server-1",
+                name: "Home Jellyfin",
+                serverUrl: "http://localhost:8096",
+                apiKey: "secret",
+                webSocketPath: "/socket",
+                enabled: true
+              }
+            ]
           }
-        ]
+        }
       },
-      plugins: {},
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
   });
 
-  it("keeps enable controls concise in the server editor", () => {
+  it("edits plugin-owned servers without a global media-server toggle", () => {
     const wrapper = mount(SettingsMediaServer, {
       global: {
         stubs: {
@@ -53,6 +55,24 @@ describe("SettingsMediaServer", () => {
 
     expect(wrapper.text()).not.toContain("Enable Media Server");
     expect(wrapper.text()).not.toContain("Enable This Server");
-    expect(wrapper.findAll(".toggle__text").map((item) => item.text())).toEqual(["On", "On"]);
+    expect(wrapper.findAll(".toggle__text").map((item) => item.text())).toEqual(["On"]);
+    expect(wrapper.text()).toContain("Home Jellyfin");
+  });
+
+  it("allows deleting the last configured server", async () => {
+    const store = useDesktopStore();
+    const wrapper = mount(SettingsMediaServer, {
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    await wrapper.get(".mediaserver-config-list__item").trigger("click");
+    await wrapper.get('[aria-label="Delete"]').trigger("click");
+
+    expect(store.getJellyfinembyPluginConfig().servers).toEqual([]);
   });
 });

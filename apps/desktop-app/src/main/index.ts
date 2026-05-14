@@ -69,8 +69,8 @@ app.whenReady().then(() => {
   });
 
   windowController.initialize();
-  connectionManager.start();
   mediaServerController.start();
+  connectionManager.start();
 
   app.on("activate", () => {
     windowController?.showMainWindow();

@@ -28,9 +28,72 @@ describe("appSettingsSanitizer", () => {
       expect(result.defaultProfileId).toBe(first);
     });
 
-    it("initializes empty plugin settings when missing", () => {
+    it("initializes Jellyfin / Emby plugin config when missing", () => {
       const result = sanitizeSettings({});
-      expect(result.plugins).toEqual({});
+      expect(result.plugins["official.jellyfinemby"]?.config).toEqual({ servers: [] });
+    });
+
+    it("returns a fresh Jellyfin / Emby plugin config when plugin settings are missing", () => {
+      const a = sanitizeSettings({});
+      const b = sanitizeSettings({});
+      expect(a.plugins["official.jellyfinemby"]?.config).not.toBe(
+        b.plugins["official.jellyfinemby"]?.config
+      );
+    });
+
+    it("does not expose persistent host mediaServer settings", () => {
+      const result = sanitizeSettings({});
+      expect(Object.prototype.hasOwnProperty.call(result, "mediaServer")).toBe(false);
+    });
+
+    it("sanitizes Jellyfin / Emby plugin server config", () => {
+      const result = sanitizeSettings({
+        plugins: {
+          "official.jellyfinemby": {
+            config: {
+              servers: [
+                {
+                  id: " srv-1 ",
+                  name: " Home ",
+                  serverUrl: " http://server.local:8096/ ",
+                  apiKey: " key ",
+                  webSocketPath: "socket",
+                  enabled: true
+                },
+                {
+                  id: "",
+                  name: "",
+                  serverUrl: 42,
+                  apiKey: null,
+                  webSocketPath: "",
+                  enabled: "yes"
+                }
+              ]
+            }
+          }
+        }
+      } as never);
+
+      expect(result.plugins["official.jellyfinemby"]?.config).toEqual({
+        servers: [
+          {
+            id: "srv-1",
+            name: "Home",
+            serverUrl: "http://server.local:8096/",
+            apiKey: "key",
+            webSocketPath: "/socket",
+            enabled: true
+          },
+          {
+            id: "jellyfinemby-server-1",
+            name: "Server 2",
+            serverUrl: "",
+            apiKey: "",
+            webSocketPath: "/socket",
+            enabled: false
+          }
+        ]
+      });
     });
 
     it("returns a fresh object on each factory invocation", () => {
@@ -38,6 +101,9 @@ describe("appSettingsSanitizer", () => {
       const b = DEFAULT_SETTINGS_FACTORY();
       expect(a).not.toBe(b);
       expect(a.profiles).not.toBe(b.profiles);
+      expect(a.plugins["official.jellyfinemby"]?.config).not.toBe(
+        b.plugins["official.jellyfinemby"]?.config
+      );
     });
   });
 
@@ -74,13 +140,38 @@ describe("appSettingsSanitizer", () => {
       expect(JSON.stringify(base)).toBe(snapshot);
     });
 
-    it("merges mediaServer shallowly", () => {
+    it("merges plugin settings shallowly", () => {
       const base = DEFAULT_SETTINGS_FACTORY();
       const merged = mergeSettings(base, {
-        mediaServer: { enabled: false } as typeof base.mediaServer
+        plugins: {
+          "official.jellyfinemby": {
+            config: {
+              servers: [
+                {
+                  id: "server-1",
+                  name: "Home",
+                  serverUrl: "http://server.local:8096",
+                  apiKey: "key",
+                  webSocketPath: "/socket",
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
       });
-      expect(merged.mediaServer.enabled).toBe(false);
-      expect(merged.mediaServer.configs).toEqual(base.mediaServer.configs);
+      expect(merged.plugins["official.jellyfinemby"]?.config).toEqual({
+        servers: [
+          {
+            id: "server-1",
+            name: "Home",
+            serverUrl: "http://server.local:8096",
+            apiKey: "key",
+            webSocketPath: "/socket",
+            enabled: true
+          }
+        ]
+      });
     });
   });
 });

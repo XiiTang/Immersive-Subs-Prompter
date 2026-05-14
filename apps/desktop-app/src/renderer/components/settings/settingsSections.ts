@@ -21,12 +21,6 @@ const SETTINGS_SECTION_DEFS = [
     anchorId: "settings-section-rules"
   },
   {
-    id: "media-server",
-    labelKey: "section-mediaserver",
-    fallback: "Media Server Integration",
-    anchorId: "settings-section-media-server"
-  },
-  {
     id: "cache",
     labelKey: "section-cache",
     fallback: "Subtitle Cache",

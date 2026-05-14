@@ -2,7 +2,8 @@ import type {
   AppSettings,
   DesktopState,
   GlobalSettings,
-  MediaServerConfig,
+  JellyfinembyPluginConfig,
+  JellyfinembyServerConfig,
   NetworkSettings,
   PlaybackState,
   ProfileDefinition,
@@ -67,9 +68,8 @@ export interface DesktopStoreActions {
 
   // media server
   addMediaServerConfig(): string | null;
-  updateMediaServerConfig(configId: string, patch: Partial<MediaServerConfig>): void;
+  updateMediaServerConfig(configId: string, patch: Partial<JellyfinembyServerConfig>): void;
   deleteMediaServerConfig(configId: string): void;
-  setMediaServerEnabled(enabled: boolean): void;
 
   // rules
   addRule(payload: Omit<ProfileRule, "id">): void;
@@ -85,6 +85,7 @@ export interface DesktopStoreActions {
   isPluginEnabled(pluginId: string): boolean;
   getTranscriptionPluginConfig(): typeof DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG;
   getWordLookupPluginConfig(): WordLookupPluginConfig;
+  getJellyfinembyPluginConfig(): JellyfinembyPluginConfig;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

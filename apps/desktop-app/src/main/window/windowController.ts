@@ -25,6 +25,8 @@ import { TRANSCRIPTION_MANIFEST } from "../plugins/official/transcription/manife
 import { registerTranscriptionPluginMain } from "../plugins/official/transcription/registerMain.js";
 import { WORD_LOOKUP_MANIFEST } from "../plugins/official/wordLookup/manifest.js";
 import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/registerMain.js";
+import { JELLYFINEMBY_MANIFEST } from "../plugins/official/jellyfinemby/manifest.js";
+import { registerJellyfinembyPluginMain } from "../plugins/official/jellyfinemby/registerMain.js";
 import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
 
 type WindowControllerOptions = {
@@ -115,6 +117,11 @@ export class WindowController {
         getWordLookupSettings: () => this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config
       })
     );
+    this.pluginHost.registerBundledPlugin(JELLYFINEMBY_MANIFEST, () =>
+      registerJellyfinembyPluginMain({
+        mediaServerController: this.options.mediaServerController
+      })
+    );
 
     this.ipcRouter = new IpcRouter({
       stateManager: this.options.stateManager,
@@ -161,6 +168,7 @@ export class WindowController {
     this.gameProcessMonitor.stop();
     this.shortcutManager.clearRegistration();
     this.options.cacheManager.stop();
+    this.options.mediaServerController.deactivate();
     this.options.connectionManager.stop();
     this.trayManager.destroy();
   }

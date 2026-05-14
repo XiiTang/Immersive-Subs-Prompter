@@ -1,16 +1,18 @@
-import { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
+import type { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
 import { createLogger } from "../logger.js";
-import { StateManager } from "../stateManager.js";
+import type { StateManager } from "../stateManager.js";
 import type { MediaServerSessionSummary } from "../types.js";
 import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
 import { TabContextRegistry } from "./TabContextRegistry.js";
+
+type SessionHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession">;
 
 export class MediaServerSessionHandler {
   private readonly log = createLogger("mediaserver-session-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: JellyfinembySubtitleService,
+    private readonly mediaServerService: SessionHandlerService,
     private readonly tabRegistry: TabContextRegistry,
     private readonly urlResolver: MediaServerUrlResolver
   ) {}

@@ -49,11 +49,7 @@ function createSettings(): AppSettings {
     profiles: [createProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    mediaServer: {
-      enabled: false,
-      configs: []
-    },
-    plugins: {},
+    plugins: { "official.jellyfinemby": { config: { servers: [] } } },
     cache: {
       enabled: false,
       path: "",

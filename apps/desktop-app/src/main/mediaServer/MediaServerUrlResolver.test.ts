@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
-import type { AppSettings, MediaServerConfig } from "../types.js";
+import type { MediaServerConfig } from "../types.js";
 
-function makeSettings(configs: MediaServerConfig[], enabled = true): AppSettings {
-  return {
-    mediaServer: { enabled, configs }
-  } as AppSettings;
+type TestJellyfinembyPluginConfig = {
+  servers: Array<Omit<MediaServerConfig, "type">>;
+};
+
+function makeConfigProvider(configs: MediaServerConfig[]): () => TestJellyfinembyPluginConfig {
+  return () => ({
+    servers: configs.map(({ type: _type, ...config }) => config)
+  });
 }
 
 function makeConfig(overrides: Partial<MediaServerConfig>): MediaServerConfig {
@@ -23,7 +27,7 @@ function makeConfig(overrides: Partial<MediaServerConfig>): MediaServerConfig {
 
 describe("MediaServerUrlResolver", () => {
   describe("extractOrigin", () => {
-    const resolver = new MediaServerUrlResolver(() => makeSettings([]));
+    const resolver = new MediaServerUrlResolver(makeConfigProvider([]) as never);
 
     it("returns null for missing or blank input", () => {
       expect(resolver.extractOrigin(null)).toBeNull();
@@ -48,18 +52,16 @@ describe("MediaServerUrlResolver", () => {
   });
 
   describe("resolveMediaServerConfigIdFromUrls", () => {
-    it("returns null when mediaServer is disabled", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([makeConfig({})], false)
-      );
+    it("matches configured origins without depending on plugin enabled state", () => {
+      const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({})]) as never);
       expect(
-        resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096"])
-      ).toBeNull();
+        resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096/web/index.html"])
+      ).toBe("cfg-1");
     });
 
     it("returns null when no configs match", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([makeConfig({ serverUrl: "http://other:8096" })])
+      const resolver = new MediaServerUrlResolver(
+        makeConfigProvider([makeConfig({ serverUrl: "http://other:8096" })]) as never
       );
       expect(
         resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096/page"])
@@ -67,10 +69,10 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("matches by origin when url and config share protocol+host+port", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([
+      const resolver = new MediaServerUrlResolver(
+        makeConfigProvider([
           makeConfig({ id: "match", serverUrl: "http://server.local:8096" })
-        ])
+        ]) as never
       );
       expect(
         resolver.resolveMediaServerConfigIdFromUrls([
@@ -80,9 +82,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("ignores null entries and continues searching", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([makeConfig({ id: "match" })])
-      );
+      const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({ id: "match" })]) as never);
       expect(
         resolver.resolveMediaServerConfigIdFromUrls([
           null,
@@ -95,38 +95,38 @@ describe("MediaServerUrlResolver", () => {
 
   describe("resolveMediaServerConfig", () => {
     it("returns specific config by id", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([
+      const resolver = new MediaServerUrlResolver(
+        makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: true })
-        ])
+        ]) as never
       );
       expect(resolver.resolveMediaServerConfig("a")?.id).toBe("a");
     });
 
     it("prefers enabled config when no id supplied", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([
+      const resolver = new MediaServerUrlResolver(
+        makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: true })
-        ])
+        ]) as never
       );
       expect(resolver.resolveMediaServerConfig()?.id).toBe("b");
     });
 
     it("falls back to first config if none enabled", () => {
-      const resolver = new MediaServerUrlResolver(() =>
-        makeSettings([
+      const resolver = new MediaServerUrlResolver(
+        makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: false })
-        ])
+        ]) as never
       );
       expect(resolver.resolveMediaServerConfig()?.id).toBe("a");
     });
   });
 
   describe("extractItemId", () => {
-    const resolver = new MediaServerUrlResolver(() => makeSettings([]));
+    const resolver = new MediaServerUrlResolver(makeConfigProvider([]) as never);
 
     it("extracts item id from /videos/:id path", () => {
       const itemId = resolver.extractItemId(
@@ -170,9 +170,7 @@ describe("MediaServerUrlResolver", () => {
   });
 
   describe("buildMediaServerItemUrl / buildMediaServerPageUrl", () => {
-    const resolver = new MediaServerUrlResolver(() =>
-      makeSettings([makeConfig({ id: "cfg-1" })])
-    );
+    const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({ id: "cfg-1" })]) as never);
 
     it("returns null when session has no item id", () => {
       expect(
@@ -190,7 +188,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("falls back to jellyfinemby:// scheme when no base url is found", () => {
-      const empty = new MediaServerUrlResolver(() => makeSettings([]));
+      const empty = new MediaServerUrlResolver(makeConfigProvider([]) as never);
       expect(
         empty.buildMediaServerItemUrl({
           nowPlayingItemId: "9",

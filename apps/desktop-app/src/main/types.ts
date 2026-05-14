@@ -89,14 +89,21 @@ export interface GlobalSettings {
 
 export type MediaServerType = "jellyfinemby";
 
-export interface MediaServerConfig {
+export interface JellyfinembyServerConfig {
   id: string;
   name: string;
-  type: MediaServerType;
   serverUrl: string;
   apiKey: string;
   webSocketPath: string;
   enabled: boolean;
+}
+
+export interface JellyfinembyPluginConfig {
+  servers: JellyfinembyServerConfig[];
+}
+
+export interface MediaServerConfig extends JellyfinembyServerConfig {
+  type: MediaServerType;
 }
 
 export interface MediaServerSettings {
@@ -186,7 +193,6 @@ export interface AppSettings {
   profiles: ProfileDefinition[];
   defaultProfileId: string;
   rules: ProfileRule[];
-  mediaServer: MediaServerSettings;
   plugins: Record<string, PluginSettingsRecord>;
   cache: SubtitleCacheSettings;
 }

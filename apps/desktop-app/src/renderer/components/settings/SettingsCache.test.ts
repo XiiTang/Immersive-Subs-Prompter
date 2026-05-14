@@ -23,8 +23,7 @@ describe("SettingsCache", () => {
       profiles: [],
       defaultProfileId: "",
       rules: [],
-      mediaServer: { enabled: false, configs: [] },
-      plugins: {},
+      plugins: { "official.jellyfinemby": { config: { servers: [] } } },
       cache: { enabled: true, path: "/tmp/immersive-subs-cache", retentionDays: 30 }
     } as never;
     store.cacheStats = {

@@ -1,16 +1,12 @@
 <template>
   <section class="settings-section">
-    <header class="settings-section__intro settings-section__intro--with-toggle">
+    <header class="settings-section__intro">
       <div>
-        <h3 class="settings-section__title">{{ t("section-mediaserver", "Media Server Integration") }}</h3>
+        <h3 class="settings-section__title">{{ t("section-mediaserver", "Jellyfin / Emby") }}</h3>
       </div>
-      <label class="toggle toggle--sm settings-section__toggle">
-        <input type="checkbox" v-model="mediaServerEnabled" />
-        <span class="toggle__text">{{ mediaServerEnabled ? t("toggle-on", "On") : t("toggle-off", "Off") }}</span>
-      </label>
     </header>
 
-    <div class="settings-split settings-surface settings-surface--split" v-if="mediaServerEnabled">
+    <div class="settings-split settings-surface settings-surface--split">
       <div class="settings-split__sidebar">
         <div class="settings-split__sidebar-header">
           <span class="settings-field__label">{{ t("server-list-label", "Server List") }}</span>
@@ -101,12 +97,7 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const mediaServerEnabled = computed({
-  get: () => store.settings?.mediaServer.enabled ?? false,
-  set: (value: boolean) => store.setMediaServerEnabled(value)
-});
-
-const mediaServerConfigs = computed(() => store.settings?.mediaServer.configs ?? []);
+const mediaServerConfigs = computed(() => store.getJellyfinembyPluginConfig().servers);
 const selectedMediaServerConfigId = ref<string | null>(null);
 
 const selectedMediaServerConfig = computed(() =>
@@ -175,9 +166,10 @@ function deleteSelectedMediaServerConfig() {
 watch(
   mediaServerConfigs,
   (configs) => {
-    if (configs.length > 0 && !selectedMediaServerConfigId.value) {
-      selectedMediaServerConfigId.value = configs[0].id;
+    if (selectedMediaServerConfigId.value && configs.some((config) => config.id === selectedMediaServerConfigId.value)) {
+      return;
     }
+    selectedMediaServerConfigId.value = configs[0]?.id ?? null;
   },
   { immediate: true }
 );

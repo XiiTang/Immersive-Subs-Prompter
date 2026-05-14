@@ -161,39 +161,13 @@
       "isEnabled": true
     }
   ],
-  "mediaServer": {
-    "enabled": true,
-    "configs": [
-      {
-        "id": "jellyfin-config-fb1c4b86-efcb-4e8a-a853-92c091c53018",
-        "name": "Desktop",
-        "type": "jellyfinemby",
-        "serverUrl": "http://127.0.0.1:8096",
-        "apiKey": "",
-        "webSocketPath": "/socket",
-        "enabled": true
-      },
-      {
-        "id": "jellyfin-config-1bb31adc-6981-40fd-96f7-e5bbe7f000b9",
-        "name": "Home",
-        "type": "jellyfinemby",
-        "serverUrl": "http://172.25.3.26:8096",
-        "apiKey": "",
-        "webSocketPath": "/socket",
-        "enabled": true
-      },
-      {
-        "id": "jellyfin-5a1d47ca-25be-4f3c-9b32-833c3e34e1c0",
-        "name": "embytest",
-        "type": "jellyfinemby",
-        "serverUrl": "http://172.25.3.26:8097",
-        "apiKey": "",
-        "webSocketPath": "/socket",
-        "enabled": true
+  "plugins": {
+    "official.jellyfinemby": {
+      "config": {
+        "servers": []
       }
-    ]
+    }
   },
-  "plugins": {},
   "cache": {
     "enabled": true,
     "path": "",

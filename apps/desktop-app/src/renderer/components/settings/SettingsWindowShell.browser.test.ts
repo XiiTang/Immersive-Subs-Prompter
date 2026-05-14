@@ -36,8 +36,7 @@ describe("SettingsWindowShell browser layout", () => {
       profiles: [],
       defaultProfileId: "",
       rules: [],
-      mediaServer: { enabled: false, configs: [] },
-      plugins: {},
+      plugins: { "official.jellyfinemby": { config: { servers: [] } } },
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
   });
@@ -52,7 +51,6 @@ describe("SettingsWindowShell browser layout", () => {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsRules: sectionStub("settings-section-rules-content"),
-          SettingsMediaServer: sectionStub("settings-section-media-server-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -65,7 +63,7 @@ describe("SettingsWindowShell browser layout", () => {
 
     expect(shell.classes()).toContain("settings-window-shell--document");
     expect(content.attributes("data-scroll-mode")).toBe("document");
-    expect(sections).toHaveLength(6);
+    expect(sections).toHaveLength(5);
   });
 
   it("constrains the scrollable document to the visible body row", async () => {
@@ -86,7 +84,6 @@ describe("SettingsWindowShell browser layout", () => {
           SettingsGlobal: tallSectionStub("settings-section-general-content"),
           SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
           SettingsRules: tallSectionStub("settings-section-rules-content"),
-          SettingsMediaServer: tallSectionStub("settings-section-media-server-content"),
           SettingsCache: tallSectionStub("settings-section-cache-content"),
           SettingsPlugins: tallSectionStub("settings-section-plugins-content")
         }

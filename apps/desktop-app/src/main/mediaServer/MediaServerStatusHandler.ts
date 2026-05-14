@@ -1,6 +1,6 @@
-import { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
+import type { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
 import { createLogger } from "../logger.js";
-import { StateManager } from "../stateManager.js";
+import type { StateManager } from "../stateManager.js";
 import type {
   MediaServerPlaybackPayload,
   MediaServerStatusPayload,
@@ -8,12 +8,14 @@ import type {
 } from "../types.js";
 import { TabContextRegistry } from "./TabContextRegistry.js";
 
+type StatusHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession" | "requestSessionsBurst">;
+
 export class MediaServerStatusHandler {
   private readonly log = createLogger("mediaserver-status-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: JellyfinembySubtitleService,
+    private readonly mediaServerService: StatusHandlerService,
     private readonly tabRegistry: TabContextRegistry
   ) {}
 

@@ -1,5 +1,5 @@
-import type { PluginSettingsRecord } from "../../../../main/types";
-import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../../common/pluginIds.js";
+import type { JellyfinembyPluginConfig, PluginSettingsRecord } from "../../../../main/types";
+import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../../common/pluginIds.js";
 import { DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG } from "../defaults";
 import type { DesktopStoreThis } from "../types";
 import type { WordLookupPluginConfig } from "../../../plugins/wordLookupTypes";
@@ -11,6 +11,10 @@ const DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG: WordLookupPluginConfig = {
     width: 360,
     height: 300
   }
+};
+
+const DEFAULT_JELLYFINEMBY_PLUGIN_CONFIG: JellyfinembyPluginConfig = {
+  servers: []
 };
 
 export async function refreshPluginCatalog(this: DesktopStoreThis) {
@@ -90,6 +94,18 @@ export function getWordLookupPluginConfig(this: DesktopStoreThis): WordLookupPlu
   };
 }
 
+export function getJellyfinembyPluginConfig(this: DesktopStoreThis): JellyfinembyPluginConfig {
+  const rawConfig = this.settings?.plugins[JELLYFINEMBY_PLUGIN_ID]?.config;
+  if (!rawConfig || typeof rawConfig !== "object") {
+    return DEFAULT_JELLYFINEMBY_PLUGIN_CONFIG;
+  }
+
+  const candidate = rawConfig as Partial<JellyfinembyPluginConfig>;
+  return {
+    servers: Array.isArray(candidate.servers) ? candidate.servers : []
+  };
+}
+
 export const pluginActions = {
   refreshPluginCatalog,
   enablePlugin,
@@ -97,5 +113,6 @@ export const pluginActions = {
   setPluginConfig,
   isPluginEnabled,
   getTranscriptionPluginConfig,
-  getWordLookupPluginConfig
+  getWordLookupPluginConfig,
+  getJellyfinembyPluginConfig
 };

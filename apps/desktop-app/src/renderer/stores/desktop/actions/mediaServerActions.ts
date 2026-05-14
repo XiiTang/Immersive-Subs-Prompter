@@ -1,26 +1,27 @@
-import type { MediaServerConfig } from "../../../../main/types";
+import type { JellyfinembyPluginConfig, JellyfinembyServerConfig } from "../../../../main/types";
+import { JELLYFINEMBY_PLUGIN_ID } from "../../../../common/pluginIds.js";
 import { createId, mergePartial } from "../helpers";
 import type { DesktopStoreThis } from "../types";
+
+function writeJellyfinembyConfig(store: DesktopStoreThis, config: JellyfinembyPluginConfig) {
+  store.setPluginConfig(JELLYFINEMBY_PLUGIN_ID, config as unknown as Record<string, unknown>);
+}
 
 export function addMediaServerConfig(this: DesktopStoreThis): string | null {
   if (!this.settings) {
     return null;
   }
-  const newConfig: MediaServerConfig = {
+  const config = this.getJellyfinembyPluginConfig();
+  const newConfig: JellyfinembyServerConfig = {
     id: createId("mediaserver"),
-    name: `Server ${this.settings.mediaServer.configs.length + 1}`,
-    type: "jellyfinemby",
+    name: `Server ${config.servers.length + 1}`,
     serverUrl: "",
     apiKey: "",
-    webSocketPath: "",
+    webSocketPath: "/socket",
     enabled: true
   };
-  const nextConfigs = [...this.settings.mediaServer.configs, newConfig];
-  this.updateSettings({
-    mediaServer: {
-      ...this.settings.mediaServer,
-      configs: nextConfigs
-    }
+  writeJellyfinembyConfig(this, {
+    servers: [...config.servers, newConfig]
   });
   return newConfig.id;
 }
@@ -28,19 +29,16 @@ export function addMediaServerConfig(this: DesktopStoreThis): string | null {
 export function updateMediaServerConfig(
   this: DesktopStoreThis,
   configId: string,
-  patch: Partial<MediaServerConfig>
+  patch: Partial<JellyfinembyServerConfig>
 ) {
   if (!this.settings) {
     return;
   }
-  const nextConfigs = this.settings.mediaServer.configs.map((config) =>
-    config.id === configId ? mergePartial(config, patch) : config
-  );
-  this.updateSettings({
-    mediaServer: {
-      ...this.settings.mediaServer,
-      configs: nextConfigs
-    }
+  const config = this.getJellyfinembyPluginConfig();
+  writeJellyfinembyConfig(this, {
+    servers: config.servers.map((server) =>
+      server.id === configId ? mergePartial(server, patch) : server
+    )
   });
 }
 
@@ -48,35 +46,14 @@ export function deleteMediaServerConfig(this: DesktopStoreThis, configId: string
   if (!this.settings) {
     return;
   }
-  const configs = this.settings.mediaServer.configs;
-  if (configs.length <= 1 && this.settings.mediaServer.enabled) {
-    console.warn("[Renderer] Cannot delete the last media server configuration while MediaServer is enabled.");
-    return;
-  }
-  const nextConfigs = configs.filter((config) => config.id !== configId);
-  this.updateSettings({
-    mediaServer: {
-      ...this.settings.mediaServer,
-      configs: nextConfigs
-    }
-  });
-}
-
-export function setMediaServerEnabled(this: DesktopStoreThis, enabled: boolean) {
-  if (!this.settings) {
-    return;
-  }
-  this.updateSettings({
-    mediaServer: {
-      ...this.settings.mediaServer,
-      enabled
-    }
+  const config = this.getJellyfinembyPluginConfig();
+  writeJellyfinembyConfig(this, {
+    servers: config.servers.filter((server) => server.id !== configId)
   });
 }
 
 export const mediaServerActions = {
   addMediaServerConfig,
   updateMediaServerConfig,
-  deleteMediaServerConfig,
-  setMediaServerEnabled
+  deleteMediaServerConfig
 };
