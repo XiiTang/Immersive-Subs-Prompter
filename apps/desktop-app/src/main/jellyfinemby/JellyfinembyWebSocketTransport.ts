@@ -2,6 +2,7 @@ import WebSocket from "ws";
 import { buildWebSocketUrl, createAuthHeaders, JellyfinembyIdentity } from "../jellyfinembyUtils.js";
 import { MediaServerConfig } from "../types.js";
 import { swallow } from "../errors.js";
+import { redactUrlSecrets } from "../urlRedaction.js";
 import { KEEP_ALIVE_INTERVAL_MS, RECONNECT_DELAY_MS } from "./constants.js";
 
 type Logger = {
@@ -59,7 +60,9 @@ export class JellyfinembyWebSocketTransport {
       const headers = {
         ...createAuthHeaders(this.config.apiKey, this.identity)
       };
-      this.log.info(`[${this.config.name}] Connecting to Jellyfinemby WebSocket ${wsUrl.toString()}`);
+      this.log.info(
+        `[${this.config.name}] Connecting to Jellyfinemby WebSocket ${redactUrlSecrets(wsUrl.toString())}`
+      );
       this.socket = new WebSocket(wsUrl.toString(), { headers });
     } catch (error) {
       this.log.error(`[${this.config.name}] Failed to create Jellyfinemby WebSocket`, error);

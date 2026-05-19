@@ -39,12 +39,20 @@
         <div class="settings-fields-grid settings-fields-grid--two-col">
           <div class="settings-field">
             <span class="settings-field__label">{{ t("network-host-label", "Bind Address") }}</span>
-            <input type="text" v-model="serverHost" class="settings-input" spellcheck="false" placeholder="0.0.0.0" />
+            <input type="text" v-model="serverHost" class="settings-input" spellcheck="false" placeholder="127.0.0.1" />
           </div>
 
           <div class="settings-field">
             <span class="settings-field__label">{{ t("network-port-label", "Port") }}</span>
             <input type="number" min="1" max="65535" v-model.number="serverPort" class="settings-input" />
+          </div>
+
+          <div class="settings-field settings-field--wide">
+            <span class="settings-field__label">{{ t("network-endpoint-label", "Extension Endpoint") }}</span>
+            <input type="text" :value="extensionEndpoint" class="settings-input" spellcheck="false" readonly />
+            <span class="settings-field__hint">
+              {{ t("network-endpoint-hint", "Use this full URL when the bind address is reachable from another device.") }}
+            </span>
           </div>
         </div>
 
@@ -152,6 +160,27 @@ const serverPort = computed({
   set: (value: number) => store.updateNetworkSetting("port", value)
 });
 
+const extensionEndpoint = computed(() => {
+  const host = serverHost.value || "127.0.0.1";
+  const formattedHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+  try {
+    const url = new URL(`ws://${formattedHost}:${serverPort.value}/`);
+    if (!isLoopbackHost(host)) {
+      const token = store.settings?.network.authToken ?? "";
+      if (token) {
+        url.searchParams.set("token", token);
+      }
+    }
+    return url.toString();
+  } catch (error) {
+    void error;
+    return "";
+  }
+});
+
+function isLoopbackHost(host: string): boolean {
+  return ["127.0.0.1", "localhost", "::1", "[::1]"].includes(host.trim().toLowerCase());
+}
 
 const languageSetting = computed({
   get: () => language.value,

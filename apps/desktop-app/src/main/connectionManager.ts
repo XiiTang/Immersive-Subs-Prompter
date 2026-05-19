@@ -1,8 +1,10 @@
 import { WebSocket, WebSocketServer } from "ws";
+import type { IncomingMessage } from "node:http";
 import { SubtitleService } from "./subtitleService.js";
 import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
+import { isAuthorizedDesktopClient } from "./connectionAuth.js";
 import type {
   ControlLoopCommandMessage,
   ControlSeekCommandMessage,
@@ -54,7 +56,7 @@ export class ConnectionManager {
     if (!forceRestart && this.server && this.currentNetwork && this.isSameNetwork(target, this.currentNetwork)) {
       return;
     }
-    this.log.info("Applying network settings", target);
+    this.log.info("Applying network settings", this.networkLogFields(target));
     this.restartServer(target);
   }
 
@@ -122,7 +124,10 @@ export class ConnectionManager {
       this.server = this.bootstrapWebSocketServer(target);
       this.currentNetwork = { ...target };
     } catch (error) {
-      this.log.error("Failed to start WebSocket server with new settings", { target, error });
+      this.log.error("Failed to start WebSocket server with new settings", {
+        target: this.networkLogFields(target),
+        error
+      });
       this.currentNetwork = null;
     }
   }
@@ -148,7 +153,15 @@ export class ConnectionManager {
   }
 
   private isSameNetwork(a: NetworkSettings, b: NetworkSettings): boolean {
-    return a.host === b.host && a.port === b.port;
+    return a.host === b.host && a.port === b.port && a.authToken === b.authToken;
+  }
+
+  private networkLogFields(network: NetworkSettings) {
+    return {
+      host: network.host,
+      port: network.port,
+      authRequired: true
+    };
   }
 
   private normalizeDuration(value: unknown): number | null {
@@ -159,7 +172,21 @@ export class ConnectionManager {
   }
 
   private bootstrapWebSocketServer(network: NetworkSettings) {
-    const wss = new WebSocketServer({ port: network.port, host: network.host });
+    const wss = new WebSocketServer({
+      port: network.port,
+      host: network.host,
+      verifyClient: ({ req }, done) => {
+        const authorized = this.isAuthorizedRequest(req, network);
+        if (!authorized) {
+          this.log.warn("Rejected unauthorized WebSocket client", {
+            host: network.host,
+            port: network.port,
+            origin: req.headers.origin ?? null
+          });
+        }
+        done(authorized, authorized ? undefined : 401, authorized ? undefined : "Unauthorized");
+      }
+    });
     this.log.info(`WebSocket server listening on ws://${network.host}:${network.port}`);
 
     const connectedClients = new Set<WebSocket>();
@@ -209,6 +236,16 @@ export class ConnectionManager {
     });
 
     return wss;
+  }
+
+  private isAuthorizedRequest(req: IncomingMessage, network: NetworkSettings): boolean {
+    return isAuthorizedDesktopClient(
+      {
+        origin: req.headers.origin,
+        requestUrl: req.url
+      },
+      network
+    );
   }
 
   private async handleSocketMessage(socket: WebSocket, raw: Buffer) {

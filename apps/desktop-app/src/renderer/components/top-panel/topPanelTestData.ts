@@ -47,7 +47,8 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
     },
     network: {
       host: "127.0.0.1",
-      port: 4312
+      port: 4312,
+      authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createTopPanelProfile()],
     defaultProfileId: "profile-1",

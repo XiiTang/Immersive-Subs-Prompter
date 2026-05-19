@@ -147,6 +147,7 @@ export interface SubtitleCacheSettings {
 export interface NetworkSettings {
   host: string;
   port: number;
+  authToken: string;
 }
 
 export interface ProfileSettings {

@@ -13,6 +13,7 @@ import {
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { clampPort } from "./utils.js";
 import { BASE_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
+import { createConnectionAuthToken } from "../connectionAuth.js";
 
 export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --no-playlist --cookies-from-browser firefox";
 export const DEFAULT_PROFILE_ID = "default-profile";
@@ -43,7 +44,8 @@ export const DEFAULT_WS_PORT = clampPort(Number(process.env.USP_WS_PORT ?? 44501
 
 export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   host: DEFAULT_WS_HOST,
-  port: DEFAULT_WS_PORT
+  port: DEFAULT_WS_PORT,
+  authToken: createConnectionAuthToken()
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {

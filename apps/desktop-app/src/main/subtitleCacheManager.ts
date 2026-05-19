@@ -5,6 +5,7 @@ import { app } from "electron";
 import { createLogger } from "./logger.js";
 import { swallow } from "./errors.js";
 import { SubtitleLoadResult, SubtitleCacheSettings } from "./types.js";
+import { redactUrlSecrets } from "./urlRedaction.js";
 
 const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
 
@@ -45,16 +46,17 @@ export class SubtitleCacheManager {
     }
 
     const key = this.getCacheKey(url, source);
+    const redactedUrl = redactUrlSecrets(url);
     const cacheDir = settings.path || DEFAULT_CACHE_DIR;
     const cacheFile = path.join(cacheDir, `${key}.json`);
 
     const refreshTimestamp = async (entry: CacheEntry): Promise<SubtitleLoadResult> => {
-      const refreshed: CacheEntry = { ...entry, timestamp: Date.now() };
+      const refreshed: CacheEntry = { ...entry, url: redactUrlSecrets(entry.url), timestamp: Date.now() };
       this.memoryCache.set(key, refreshed);
       try {
         await fs.writeFile(cacheFile, JSON.stringify(refreshed, null, 2), "utf-8");
       } catch (error) {
-        this.log.warn(`Failed to refresh cache timestamp for ${source}: ${url}`, error);
+        this.log.warn(`Failed to refresh cache timestamp for ${source}: ${redactedUrl}`, error);
       }
       return refreshed.data;
     };
@@ -63,10 +65,10 @@ export class SubtitleCacheManager {
     const memEntry = this.memoryCache.get(key);
     if (memEntry) {
       if (this.isExpired(memEntry.timestamp, settings.retentionDays)) {
-        this.log.debug(`Cache expired for ${source}: ${url}`);
+        this.log.debug(`Cache expired for ${source}: ${redactedUrl}`);
         return null;
       }
-      this.log.debug(`Memory cache hit for ${source}: ${url}`);
+      this.log.debug(`Memory cache hit for ${source}: ${redactedUrl}`);
       return refreshTimestamp(memEntry);
     }
 
@@ -76,15 +78,15 @@ export class SubtitleCacheManager {
       const entry: CacheEntry = JSON.parse(content);
 
       if (this.isExpired(entry.timestamp, settings.retentionDays)) {
-        this.log.debug(`Cache expired for ${source}: ${url}`);
+        this.log.debug(`Cache expired for ${source}: ${redactedUrl}`);
         return null;
       }
 
-      this.log.debug(`Disk cache hit for ${source}: ${url}`);
+      this.log.debug(`Disk cache hit for ${source}: ${redactedUrl}`);
       return refreshTimestamp(entry);
     } catch (error) {
       // Cache miss or error reading cache
-      this.log.debug(`Cache miss for ${source}: ${url}`);
+      this.log.debug(`Cache miss for ${source}: ${redactedUrl}`);
       return null;
     }
   }
@@ -99,8 +101,9 @@ export class SubtitleCacheManager {
     }
 
     const key = this.getCacheKey(url, source);
+    const redactedUrl = redactUrlSecrets(url);
     const entry: CacheEntry = {
-      url,
+      url: redactedUrl,
       data,
       timestamp: Date.now(),
       source
@@ -115,9 +118,9 @@ export class SubtitleCacheManager {
       await fs.mkdir(cacheDir, { recursive: true });
       const cacheFile = path.join(cacheDir, `${key}.json`);
       await fs.writeFile(cacheFile, JSON.stringify(entry, null, 2), "utf-8");
-      this.log.debug(`Cached ${source} subtitles for: ${url}`);
+      this.log.debug(`Cached ${source} subtitles for: ${redactedUrl}`);
     } catch (error) {
-      this.log.error(`Failed to save cache for ${source}: ${url}`, error);
+      this.log.error(`Failed to save cache for ${source}: ${redactedUrl}`, error);
     }
   }
 

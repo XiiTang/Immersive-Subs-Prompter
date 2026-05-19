@@ -61,6 +61,24 @@ describe("SubtitleCacheManager", () => {
     reborn.stop();
   });
 
+  it("redacts secret query values before persisting cache entries", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings());
+    const url = "http://server.local/stream?api_key=secret-123&deviceId=dev";
+    await manager.set(url, "mediaserver", makeData("private"));
+
+    const files = await fsp.readdir(cacheDir);
+    const cacheFile = files.find((file) => file.endsWith(".json"));
+    expect(cacheFile).toBeDefined();
+    const content = await fsp.readFile(path.join(cacheDir, cacheFile!), "utf-8");
+    expect(content).not.toContain("secret-123");
+    expect(JSON.parse(content).url).toBe(
+      "http://server.local/stream?api_key=REDACTED&deviceId=dev"
+    );
+
+    const hit = await manager.get(url, "mediaserver");
+    expect(hit?.tracks[0].cues[0].text).toBe("private");
+  });
+
   it("segregates entries by source", async () => {
     manager = new SubtitleCacheManager(() => makeSettings());
     await manager.set("http://x", "ytdlp", makeData("from-ytdlp"));

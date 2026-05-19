@@ -45,6 +45,8 @@ describe("SettingsStore", () => {
     const settings = store.get();
     expect(settings.profiles.length).toBeGreaterThan(0);
     expect(settings.defaultProfileId).toBe(settings.profiles[0].id);
+    expect(settings.network.host).toBe("127.0.0.1");
+    expect(settings.network.authToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 
   it("persists updates to disk and survives a reload", async () => {

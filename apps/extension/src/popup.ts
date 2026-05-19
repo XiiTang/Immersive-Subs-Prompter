@@ -134,7 +134,7 @@ function renderServers() {
   serverInputEl = document.createElement("input");
   serverInputEl.type = "text";
   serverInputEl.className = "server-input";
-  serverInputEl.placeholder = "ws://192.168.1.10:44501";
+  serverInputEl.placeholder = "ws://192.168.1.10:44501/?token=...";
   serverInputEl.autocomplete = "off";
   serverInputEl.value = previousValue;
   serverInputEl.addEventListener("keydown", (event) => {
