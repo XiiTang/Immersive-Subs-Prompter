@@ -10,7 +10,9 @@ export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallb
   if (!Array.isArray(raw) || !profiles.length) {
     return [];
   }
-  const profileIds = new Set(profiles.map((profile) => profile.id));
+  const profileIds = new Set(
+    profiles.filter((profile) => profile.id !== fallbackProfileId).map((profile) => profile.id)
+  );
   const used = new Set<string>();
   const rules: ProfileRule[] = [];
 
@@ -25,8 +27,10 @@ export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallb
     }
     const id = ensureUniqueId(source.id, used, "rule");
     const matchType = isMatchType(source.matchType) ? source.matchType : "contains";
-    const profileId =
-      typeof source.profileId === "string" && profileIds.has(source.profileId) ? source.profileId : fallbackProfileId;
+    const profileId = typeof source.profileId === "string" ? source.profileId : "";
+    if (!profileIds.has(profileId)) {
+      continue;
+    }
     const name = typeof source.name === "string" && source.name.trim().length ? source.name.trim() : pattern;
     const isEnabled = typeof source.isEnabled === "boolean" ? source.isEnabled : true;
     rules.push({

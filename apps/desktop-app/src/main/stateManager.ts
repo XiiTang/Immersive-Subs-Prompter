@@ -297,13 +297,24 @@ export class StateManager {
   selectProfileForUrl(url: string | null): { profile: ProfileDefinition; rule: ProfileRule | null } {
     const settings = this.getSettings();
     if (url) {
+      const rulesByProfile = new Map<string, ProfileRule[]>();
       for (const rule of settings.rules) {
-        if (!rule.isEnabled) {
+        const rules = rulesByProfile.get(rule.profileId) ?? [];
+        rules.push(rule);
+        rulesByProfile.set(rule.profileId, rules);
+      }
+
+      for (const profile of settings.profiles) {
+        if (profile.id === settings.defaultProfileId) {
           continue;
         }
-        if (matchesRule(url, rule)) {
-          const profile = getProfileById(settings, rule.profileId) ?? getDefaultProfile(settings);
-          return { profile, rule };
+        for (const rule of rulesByProfile.get(profile.id) ?? []) {
+          if (!rule.isEnabled) {
+            continue;
+          }
+          if (matchesRule(url, rule)) {
+            return { profile, rule };
+          }
         }
       }
     }

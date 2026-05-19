@@ -89,7 +89,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsRules: sectionStub("settings-section-rules-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -100,7 +99,7 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-rules"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-rules"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="settings-section-cache"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-section-plugins"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-section-media-server"]').exists()).toBe(false);
@@ -117,7 +116,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsRules: sectionStub("settings-section-rules-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -144,7 +142,6 @@ describe("SettingsWindowShell", () => {
     expect(text).toContain("设置");
     expect(text).toContain("全局设置");
     expect(text).toContain("配置文件");
-    expect(text).toContain("URL 规则");
     expect(text).toContain("字幕缓存");
     expect(text).toContain("插件");
     expect(text).not.toContain("Preferences");
@@ -188,7 +185,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsRules: sectionStub("settings-section-rules-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content"),
           SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
@@ -240,7 +236,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsRules: sectionStub("settings-section-rules-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content"),
           SettingsMediaServer: sectionStub("settings-section-plugin-official-jellyfinemby-content")

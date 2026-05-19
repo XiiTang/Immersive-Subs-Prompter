@@ -15,12 +15,6 @@ const SETTINGS_SECTION_DEFS = [
     anchorId: "settings-section-profiles"
   },
   {
-    id: "rules",
-    labelKey: "section-rules",
-    fallback: "URL Rules",
-    anchorId: "settings-section-rules"
-  },
-  {
     id: "cache",
     labelKey: "section-cache",
     fallback: "Subtitle Cache",

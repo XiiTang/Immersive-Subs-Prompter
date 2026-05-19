@@ -303,4 +303,21 @@ describe("desktop store profile selection", () => {
 
     expect(store.connectionLabel).toBe("Extension: 1 · Media Server: 1");
   });
+
+  it("reorders profiles and removes a deleted profile's URL rules", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+
+    store.reorderProfile(1, 0);
+
+    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
+      "profile-bilibili",
+      "profile-default"
+    ]);
+
+    store.deleteProfile("profile-bilibili");
+
+    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual(["profile-default"]);
+    expect(store.settings?.rules).toEqual([]);
+  });
 });

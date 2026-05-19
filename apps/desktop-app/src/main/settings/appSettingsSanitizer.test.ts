@@ -28,6 +28,54 @@ describe("appSettingsSanitizer", () => {
       expect(result.defaultProfileId).toBe(first);
     });
 
+    it("keeps URL rules only on non-default existing profiles", () => {
+      const result = sanitizeSettings({
+        profiles: [
+          {
+            id: "profile-default",
+            name: "Default",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          },
+          {
+            id: "profile-youtube",
+            name: "YouTube",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          }
+        ],
+        defaultProfileId: "profile-default",
+        rules: [
+          {
+            id: "rule-youtube",
+            name: "YouTube",
+            pattern: "youtube.com",
+            matchType: "contains",
+            profileId: "profile-youtube",
+            isEnabled: true
+          },
+          {
+            id: "rule-default",
+            name: "Default",
+            pattern: "example.com",
+            matchType: "contains",
+            profileId: "profile-default",
+            isEnabled: true
+          },
+          {
+            id: "rule-missing",
+            name: "Missing",
+            pattern: "missing.example",
+            matchType: "contains",
+            profileId: "profile-missing",
+            isEnabled: true
+          }
+        ]
+      });
+
+      expect(result.rules.map((rule) => rule.id)).toEqual(["rule-youtube"]);
+    });
+
     it("initializes Jellyfin / Emby plugin config when missing", () => {
       const result = sanitizeSettings({});
       expect(result.plugins["official.jellyfinemby"]?.config).toEqual({ servers: [] });

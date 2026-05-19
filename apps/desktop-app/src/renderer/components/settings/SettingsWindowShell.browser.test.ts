@@ -50,7 +50,6 @@ describe("SettingsWindowShell browser layout", () => {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsRules: sectionStub("settings-section-rules-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
@@ -63,7 +62,7 @@ describe("SettingsWindowShell browser layout", () => {
 
     expect(shell.classes()).toContain("settings-window-shell--document");
     expect(content.attributes("data-scroll-mode")).toBe("document");
-    expect(sections).toHaveLength(5);
+    expect(sections).toHaveLength(4);
   });
 
   it("constrains the scrollable document to the visible body row", async () => {
@@ -83,7 +82,6 @@ describe("SettingsWindowShell browser layout", () => {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: tallSectionStub("settings-section-general-content"),
           SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
-          SettingsRules: tallSectionStub("settings-section-rules-content"),
           SettingsCache: tallSectionStub("settings-section-cache-content"),
           SettingsPlugins: tallSectionStub("settings-section-plugins-content")
         }

@@ -8,6 +8,7 @@
     <div class="settings-split settings-surface settings-surface--split">
       <ProfileList
         :profiles="profiles"
+        :rules="rules"
         :editing-profile-id="editingProfileId"
         :active-profile-id="activeProfileId"
         :default-profile-id="defaultProfileId"
@@ -17,6 +18,7 @@
         @duplicate="store.duplicateProfile()"
         @delete="deleteEditingProfile"
         @select="(id) => store.setEditingProfile(id)"
+        @reorder="(fromIndex, toIndex) => store.reorderProfile(fromIndex, toIndex)"
         @set-default="setDefaultProfile"
       />
       <div class="settings-split__editor" v-if="editingProfile">
@@ -26,6 +28,11 @@
         </label>
         <SubtitleStyleFields />
         <ColorSchemeGrid />
+        <ProfileUrlRules
+          :profile-id="editingProfile.id"
+          :is-default-profile="editingProfile.id === defaultProfileId"
+          :rules="editingProfileRules"
+        />
 
         <PriorityEditor
           role="primary"
@@ -105,6 +112,7 @@ import ProfileList from "./profiles/ProfileList.vue";
 import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import ColorSchemeGrid from "./profiles/ColorSchemeGrid.vue";
 import PriorityEditor from "./profiles/PriorityEditor.vue";
+import ProfileUrlRules from "./profiles/ProfileUrlRules.vue";
 import {
   usePriorityDragDrop,
   type PriorityRole
@@ -115,10 +123,14 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 
 const profiles = computed(() => store.settings?.profiles ?? []);
+const rules = computed(() => store.settings?.rules ?? []);
 const editingProfile = computed(() => store.editingProfile);
 const editingProfileId = computed(() => store.editingProfile?.id ?? null);
 const activeProfileId = computed(() => store.activeProfileId);
 const defaultProfileId = computed(() => store.settings?.defaultProfileId ?? null);
+const editingProfileRules = computed(() =>
+  editingProfile.value ? rules.value.filter((rule) => rule.profileId === editingProfile.value?.id) : []
+);
 const canDeleteProfile = computed(
   () =>
     Boolean(editingProfileId.value) &&

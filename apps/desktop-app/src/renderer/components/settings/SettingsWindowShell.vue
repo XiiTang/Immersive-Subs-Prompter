@@ -34,7 +34,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
-import SettingsRules from "./SettingsRules.vue";
 import SettingsCache from "./SettingsCache.vue";
 import SettingsPlugins from "./SettingsPlugins.vue";
 import SettingsNav from "./SettingsNav.vue";
@@ -72,7 +71,6 @@ let sectionObserver: IntersectionObserver | null = null;
 const hostComponentMap: Record<string, unknown> = {
   general: SettingsGlobal,
   profiles: SettingsProfiles,
-  rules: SettingsRules,
   cache: SettingsCache,
   plugins: SettingsPlugins
 };

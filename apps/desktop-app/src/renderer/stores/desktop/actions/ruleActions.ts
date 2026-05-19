@@ -30,26 +30,40 @@ export function deleteRule(this: DesktopStoreThis, ruleId: string) {
   this.updateSettings({ rules: nextRules });
 }
 
-export function moveRule(this: DesktopStoreThis, ruleId: string, direction: "up" | "down") {
+export function moveProfileRule(
+  this: DesktopStoreThis,
+  profileId: string,
+  ruleId: string,
+  direction: "up" | "down"
+) {
   if (!this.settings) {
     return;
   }
-  const rules = [...this.settings.rules];
-  const index = rules.findIndex((rule) => rule.id === ruleId);
+  const profileRules = this.settings.rules.filter((rule) => rule.profileId === profileId);
+  const index = profileRules.findIndex((rule) => rule.id === ruleId);
   if (index === -1) {
     return;
   }
   const targetIndex = direction === "up" ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= rules.length) {
+  if (targetIndex < 0 || targetIndex >= profileRules.length) {
     return;
   }
-  [rules[index], rules[targetIndex]] = [rules[targetIndex], rules[index]];
-  this.updateSettings({ rules });
+  [profileRules[index], profileRules[targetIndex]] = [profileRules[targetIndex], profileRules[index]];
+
+  let nextProfileRuleIndex = 0;
+  const nextRules = this.settings.rules.map((rule) => {
+    if (rule.profileId !== profileId) {
+      return rule;
+    }
+    return profileRules[nextProfileRuleIndex++]!;
+  });
+
+  this.updateSettings({ rules: nextRules });
 }
 
 export const ruleActions = {
   addRule,
   updateRule,
   deleteRule,
-  moveRule
+  moveProfileRule
 };

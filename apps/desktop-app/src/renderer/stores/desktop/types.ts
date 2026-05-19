@@ -61,6 +61,7 @@ export interface DesktopStoreActions {
   addProfile(): void;
   duplicateProfile(): void;
   deleteProfile(profileId: string): void;
+  reorderProfile(fromIndex: number, toIndex: number): void;
   setDefaultProfile(profileId: string): void;
   addPriority(role: "primary" | "secondary", value: string): void;
   removePriority(role: "primary" | "secondary", value: string): void;
@@ -75,7 +76,7 @@ export interface DesktopStoreActions {
   addRule(payload: Omit<ProfileRule, "id">): void;
   updateRule(ruleId: string, patch: Partial<ProfileRule>): void;
   deleteRule(ruleId: string): void;
-  moveRule(ruleId: string, direction: "up" | "down"): void;
+  moveProfileRule(profileId: string, ruleId: string, direction: "up" | "down"): void;
 
   // plugins
   refreshPluginCatalog(): Promise<void>;

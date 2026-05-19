@@ -228,4 +228,47 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).toContain("Bilibili");
     expect(wrapper.text()).toContain("Applied");
   });
+
+  it("shows URL rules inside the selected profile and summarizes them in the profile list", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: [
+        {
+          id: "rule-youtube",
+          name: "YouTube",
+          matchType: "contains",
+          pattern: "youtube.com",
+          profileId: "profile-youtube",
+          isEnabled: true
+        },
+        {
+          id: "rule-youtu-be",
+          name: "youtu.be",
+          matchType: "contains",
+          pattern: "youtu.be",
+          profileId: "profile-youtube",
+          isEnabled: true
+        }
+      ]
+    };
+    store.editingProfileId = "profile-youtube";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    expect(wrapper.get('[data-testid="profile-url-rules"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("Applies to these URLs");
+    expect(wrapper.text()).toContain("youtube.com");
+    expect(wrapper.text()).toContain("youtu.be");
+  });
 });

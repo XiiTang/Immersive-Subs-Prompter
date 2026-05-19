@@ -92,8 +92,27 @@ export function deleteProfile(this: DesktopStoreThis, profileId: string) {
   this.editingProfileId = nextDefault ?? nextProfiles[0]?.id ?? null;
   this.updateSettings({
     profiles: nextProfiles,
-    defaultProfileId: nextDefault ?? undefined
+    defaultProfileId: nextDefault ?? undefined,
+    rules: this.settings.rules.filter((rule) => rule.profileId !== profileId)
   });
+}
+
+export function reorderProfile(this: DesktopStoreThis, fromIndex: number, toIndex: number) {
+  if (!this.settings || fromIndex === toIndex) {
+    return;
+  }
+  const profiles = [...this.settings.profiles];
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= profiles.length ||
+    toIndex >= profiles.length
+  ) {
+    return;
+  }
+  const [moved] = profiles.splice(fromIndex, 1);
+  profiles.splice(toIndex, 0, moved);
+  this.updateSettings({ profiles });
 }
 
 export function setDefaultProfile(this: DesktopStoreThis, profileId: string) {
@@ -159,6 +178,7 @@ export const profileActions = {
   addProfile,
   duplicateProfile,
   deleteProfile,
+  reorderProfile,
   setDefaultProfile,
   addPriority,
   removePriority,
