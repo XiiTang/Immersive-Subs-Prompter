@@ -98,6 +98,24 @@ export function createDefaultProfile(): ProfileDefinition {
   };
 }
 
+export function ensureFallbackProfileLast(
+  profiles: ProfileDefinition[],
+  fallbackProfileId: string
+): ProfileDefinition[] {
+  const fallback =
+    profiles.find((profile) => profile.id === fallbackProfileId) ??
+    (fallbackProfileId === DEFAULT_PROFILE_ID ? createDefaultProfile() : null);
+
+  if (!fallback) {
+    return profiles;
+  }
+
+  return [
+    ...profiles.filter((profile) => profile.id !== fallback.id),
+    fallback
+  ];
+}
+
 export function sanitizeProfiles(input: unknown): ProfileDefinition[] {
   if (!Array.isArray(input) || !input.length) {
     return [createDefaultProfile()];

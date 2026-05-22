@@ -1,7 +1,7 @@
 import type { AppSettings, PluginSettingsRecord } from "../types.js";
 import { sanitizeGlobalSettings } from "./sanitizers/globalSanitizer.js";
 import { sanitizeNetworkSettings } from "./sanitizers/networkSanitizer.js";
-import { sanitizeProfiles } from "./sanitizers/profileSanitizer.js";
+import { ensureFallbackProfileLast, sanitizeProfiles } from "./sanitizers/profileSanitizer.js";
 import { sanitizeRules } from "./sanitizers/ruleSanitizer.js";
 import { sanitizeTranscriptionPluginConfig } from "./sanitizers/transcriptionSanitizer.js";
 import { sanitizeWordLookupPluginConfig } from "./sanitizers/wordLookupSanitizer.js";
@@ -9,6 +9,7 @@ import { sanitizeJellyfinembyPluginConfig } from "./sanitizers/jellyfinembySanit
 import { sanitizeCacheSettings } from "./sanitizers/cacheSanitizer.js";
 import defaultSettings from "../default-settings.json" with { type: "json" };
 import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
+import { DEFAULT_PROFILE_ID } from "./constants.js";
 
 function sanitizePluginConfig(pluginId: string, config: unknown): Record<string, unknown> {
   if (pluginId === JELLYFINEMBY_PLUGIN_ID) {
@@ -50,14 +51,15 @@ export function sanitizeSettings(input: Partial<AppSettings> | null | undefined)
   const raw = input as Partial<AppSettings>;
   const global = sanitizeGlobalSettings(raw.global);
   const network = sanitizeNetworkSettings(raw.network);
-  const profiles = sanitizeProfiles(raw.profiles);
+  const sanitizedProfiles = sanitizeProfiles(raw.profiles);
   const requestedDefaultId =
     typeof raw.defaultProfileId === "string" && raw.defaultProfileId.trim().length
       ? raw.defaultProfileId.trim()
-      : profiles[0].id;
-  const defaultProfileId = profiles.some((profile) => profile.id === requestedDefaultId)
+      : DEFAULT_PROFILE_ID;
+  const defaultProfileId = sanitizedProfiles.some((profile) => profile.id === requestedDefaultId)
     ? requestedDefaultId
-    : profiles[0].id;
+    : DEFAULT_PROFILE_ID;
+  const profiles = ensureFallbackProfileLast(sanitizedProfiles, defaultProfileId);
   const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
   const plugins = sanitizePluginSettings(raw.plugins);
   const cache = sanitizeCacheSettings(raw.cache);
@@ -94,9 +96,6 @@ export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): A
   }
   if (patch.rules) {
     next.rules = patch.rules;
-  }
-  if (typeof patch.defaultProfileId === "string") {
-    next.defaultProfileId = patch.defaultProfileId;
   }
   if (patch.plugins) {
     next.plugins = { ...base.plugins, ...patch.plugins };

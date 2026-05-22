@@ -166,6 +166,10 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       newestEntry: null
     }),
     getPluginCatalog: vi.fn().mockResolvedValue([]),
+    updateSettings: vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...settings,
+      ...partial
+    })),
     onStateChange: vi.fn(),
     onPlayback: vi.fn(),
     onLoopCleared: vi.fn(),
@@ -322,6 +326,56 @@ describe("desktop store profile selection", () => {
 
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual(["profile-default"]);
     expect(store.settings?.rules).toEqual([]);
+  });
+
+  it("keeps the fallback profile at the bottom when profiles are reordered", () => {
+    const store = useDesktopStore();
+    const settings = createSettings();
+    const youtubeProfile = {
+      ...settings.profiles[1]!,
+      id: "profile-youtube",
+      name: "YouTube"
+    };
+    store.settings = {
+      ...settings,
+      profiles: [settings.profiles[0]!, settings.profiles[1]!, youtubeProfile]
+    };
+
+    store.reorderProfile(1, 0);
+
+    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
+      "profile-bilibili",
+      "profile-youtube",
+      "profile-default"
+    ]);
+
+    store.reorderProfile(2, 0);
+
+    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
+      "profile-bilibili",
+      "profile-youtube",
+      "profile-default"
+    ]);
+  });
+
+  it("adds and duplicates profiles above the fallback profile", () => {
+    const store = useDesktopStore();
+    const settings = createSettings();
+    store.settings = {
+      ...settings,
+      profiles: [settings.profiles[1]!, settings.profiles[0]!]
+    };
+    store.editingProfileId = "profile-bilibili";
+
+    store.addProfile();
+
+    expect(store.settings?.profiles.at(-1)?.id).toBe("profile-default");
+    expect(store.settings?.profiles.at(-2)?.name).toBe("Profile 3");
+
+    store.duplicateProfile();
+
+    expect(store.settings?.profiles.at(-1)?.id).toBe("profile-default");
+    expect(store.settings?.profiles.map((profile) => profile.id)).toContain("profile-bilibili");
   });
 
   it("reorders URL rules within one profile without moving other profile rules", () => {

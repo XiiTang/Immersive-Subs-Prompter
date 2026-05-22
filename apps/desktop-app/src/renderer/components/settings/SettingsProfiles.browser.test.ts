@@ -273,6 +273,35 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).toContain("youtu.be");
   });
 
+  it("renders the fallback profile as a fixed bottom row without set-default controls", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-youtube", "YouTube"), createProfile("profile-default", "Fallback")],
+      defaultProfileId: "profile-default",
+      rules: []
+    };
+    store.editingProfileId = "profile-youtube";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const items = wrapper.findAll(".profile-list__item");
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.attributes("draggable")).toBe("true");
+    expect(items[1]?.attributes("draggable")).toBe("false");
+    expect(items[1]?.text()).toContain("Fallback");
+    expect(wrapper.text()).not.toContain("Set as Default");
+  });
+
   it("uses drag ordering controls and a textless leading enable checkbox for profile URL rules", () => {
     const store = useDesktopStore();
     store.settings = {

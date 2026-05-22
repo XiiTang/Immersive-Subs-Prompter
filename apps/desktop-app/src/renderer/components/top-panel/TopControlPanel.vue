@@ -30,9 +30,6 @@
               class="top-control-panel__header-labels"
               data-testid="top-control-panel-header-labels"
             >
-              <div class="top-control-panel__title" data-testid="top-control-panel-title">
-                Immersive Subs Prompter
-              </div>
               <div class="top-control-panel__status" data-testid="top-control-panel-status">
                 {{ connectionText }}
               </div>

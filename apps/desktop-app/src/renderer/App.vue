@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 import SubtitleView from "./components/subtitle/SubtitleView.vue";
 import { useDesktopStore } from "./stores/desktop";
 import { normalizeLanguage } from "./i18n.js";
@@ -19,7 +19,12 @@ const store = useDesktopStore();
 useDocumentTheme(computed(() => store.settings?.global.appearance.theme));
 
 onMounted(() => {
+  document.body.classList.add("main-window-body");
   store.initialize();
+});
+
+onBeforeUnmount(() => {
+  document.body.classList.remove("main-window-body");
 });
 
 watch(

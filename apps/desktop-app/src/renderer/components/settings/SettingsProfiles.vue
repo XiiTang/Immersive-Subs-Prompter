@@ -8,13 +8,11 @@
         :active-profile-id="activeProfileId"
         :default-profile-id="defaultProfileId"
         :can-delete="canDeleteProfile"
-        :can-set-default="Boolean(editingProfile) && editingProfile?.id !== defaultProfileId"
         @add="store.addProfile()"
         @duplicate="store.duplicateProfile()"
         @delete="deleteEditingProfile"
         @select="(id) => store.setEditingProfile(id)"
         @reorder="(fromIndex, toIndex) => store.reorderProfile(fromIndex, toIndex)"
-        @set-default="setDefaultProfile"
       />
       <div class="settings-split__editor" v-if="editingProfile">
         <UiField id="profile-name" :label="t('profile-name-label', 'Profile Name')">
@@ -165,12 +163,6 @@ const {
 function deleteEditingProfile() {
   if (editingProfileId.value) {
     store.deleteProfile(editingProfileId.value);
-  }
-}
-
-function setDefaultProfile() {
-  if (editingProfileId.value) {
-    store.setDefaultProfile(editingProfileId.value);
   }
 }
 

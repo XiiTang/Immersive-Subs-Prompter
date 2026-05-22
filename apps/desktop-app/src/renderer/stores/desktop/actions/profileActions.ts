@@ -3,6 +3,21 @@ import { createId, mergePartial } from "../helpers";
 import { DEFAULT_PROFILE_TEMPLATE } from "../defaults";
 import type { DesktopStoreThis } from "../types";
 
+function keepFallbackLast(profiles: ProfileDefinition[], fallbackProfileId: string): ProfileDefinition[] {
+  const fallbackProfile = profiles.find((profile) => profile.id === fallbackProfileId);
+  return fallbackProfile
+    ? [...profiles.filter((profile) => profile.id !== fallbackProfile.id), fallbackProfile]
+    : profiles;
+}
+
+function appendBeforeFallback(
+  profiles: ProfileDefinition[],
+  profile: ProfileDefinition,
+  fallbackProfileId: string
+): ProfileDefinition[] {
+  return keepFallbackLast([...profiles, profile], fallbackProfileId);
+}
+
 export function setEditingProfile(this: DesktopStoreThis, profileId: string) {
   if (!this.settings) {
     return;
@@ -55,7 +70,7 @@ export function addProfile(this: DesktopStoreThis) {
   };
   this.editingProfileId = newProfile.id;
   this.updateSettings({
-    profiles: [...this.settings.profiles, newProfile]
+    profiles: appendBeforeFallback(this.settings.profiles, newProfile, this.settings.defaultProfileId)
   });
 }
 
@@ -75,7 +90,7 @@ export function duplicateProfile(this: DesktopStoreThis) {
   };
   this.editingProfileId = copy.id;
   this.updateSettings({
-    profiles: [...this.settings.profiles, copy]
+    profiles: appendBeforeFallback(this.settings.profiles, copy, this.settings.defaultProfileId)
   });
 }
 
@@ -83,16 +98,19 @@ export function deleteProfile(this: DesktopStoreThis, profileId: string) {
   if (!this.settings) {
     return;
   }
+  if (profileId === this.settings.defaultProfileId) {
+    console.warn("[Renderer] Cannot delete the fallback profile.");
+    return;
+  }
   if (this.settings.profiles.length <= 1) {
     console.warn("[Renderer] At least one profile must remain.");
     return;
   }
   const nextProfiles = this.settings.profiles.filter((profile) => profile.id !== profileId);
-  const nextDefault = this.settings.defaultProfileId === profileId ? nextProfiles[0]?.id : this.settings.defaultProfileId;
-  this.editingProfileId = nextDefault ?? nextProfiles[0]?.id ?? null;
+  const orderedProfiles = keepFallbackLast(nextProfiles, this.settings.defaultProfileId);
+  this.editingProfileId = orderedProfiles[0]?.id ?? this.settings.defaultProfileId ?? null;
   this.updateSettings({
-    profiles: nextProfiles,
-    defaultProfileId: nextDefault ?? undefined,
+    profiles: orderedProfiles,
     rules: this.settings.rules.filter((rule) => rule.profileId !== profileId)
   });
 }
@@ -111,15 +129,16 @@ export function reorderProfile(this: DesktopStoreThis, fromIndex: number, toInde
     return;
   }
   const [moved] = profiles.splice(fromIndex, 1);
-  profiles.splice(toIndex, 0, moved);
-  this.updateSettings({ profiles });
-}
-
-export function setDefaultProfile(this: DesktopStoreThis, profileId: string) {
-  if (!this.settings) {
+  if (!moved || moved.id === this.settings.defaultProfileId) {
     return;
   }
-  this.updateSettings({ defaultProfileId: profileId });
+  const fallbackProfile = profiles.find((profile) => profile.id === this.settings?.defaultProfileId);
+  const sortableProfiles = profiles.filter((profile) => profile.id !== this.settings?.defaultProfileId);
+  const targetIndex = Math.min(toIndex, sortableProfiles.length);
+  sortableProfiles.splice(targetIndex, 0, moved);
+  this.updateSettings({
+    profiles: fallbackProfile ? [...sortableProfiles, fallbackProfile] : sortableProfiles
+  });
 }
 
 export function addPriority(this: DesktopStoreThis, role: "primary" | "secondary", value: string) {
@@ -179,7 +198,6 @@ export const profileActions = {
   duplicateProfile,
   deleteProfile,
   reorderProfile,
-  setDefaultProfile,
   addPriority,
   removePriority,
   reorderPriority

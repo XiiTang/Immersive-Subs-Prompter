@@ -205,6 +205,13 @@ describe("TopControlPanel", () => {
     expect(surface.find('[data-testid="top-control-panel-body"]').exists()).toBe(true);
   });
 
+  it("does not render the static product title in the main window header", async () => {
+    const { wrapper } = mountTopControlPanel({ autoHidePanels: false });
+
+    expect(wrapper.find('[data-testid="top-control-panel-title"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("Immersive Subs Prompter");
+  });
+
   it("cancels collapse when the pointer re-enters the unified surface before the timer fires", async () => {
     vi.useFakeTimers();
     mockPanelGeometry(28, 112);

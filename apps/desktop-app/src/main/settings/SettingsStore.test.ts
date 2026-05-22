@@ -44,7 +44,7 @@ describe("SettingsStore", () => {
     const store = await loadStore();
     const settings = store.get();
     expect(settings.profiles.length).toBeGreaterThan(0);
-    expect(settings.defaultProfileId).toBe(settings.profiles[0].id);
+    expect(settings.defaultProfileId).toBe(settings.profiles.at(-1)?.id);
     expect(settings.network.host).toBe("127.0.0.1");
     expect(settings.network.authToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
@@ -74,6 +74,17 @@ describe("SettingsStore", () => {
     const store = await loadStore();
     const current = store.get();
     store.update({ defaultProfileId: "does-not-exist" });
-    expect(store.get().defaultProfileId).toBe(current.profiles[0].id);
+    expect(store.get().defaultProfileId).toBe(current.defaultProfileId);
+  });
+
+  it("does not change the fallback profile through settings updates", async () => {
+    const store = await loadStore();
+    const current = store.get();
+    const nonFallback = current.profiles.find((profile) => profile.id !== current.defaultProfileId);
+
+    store.update({ defaultProfileId: nonFallback?.id ?? "does-not-exist" });
+
+    expect(store.get().defaultProfileId).toBe(current.defaultProfileId);
+    expect(store.get().profiles.at(-1)?.id).toBe(current.defaultProfileId);
   });
 });

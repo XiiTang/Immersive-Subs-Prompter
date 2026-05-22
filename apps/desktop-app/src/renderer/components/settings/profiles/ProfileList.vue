@@ -28,9 +28,9 @@
           class="profile-list__item"
           :class="{ 'is-drag-over': dragOverIndex === index }"
           :selected="profile.id === editingProfileId"
-          draggable="true"
+          :draggable="!isFallbackProfile(profile.id)"
           @click="$emit('select', profile.id)"
-          @dragstart="onDragStart($event, index)"
+          @dragstart="onDragStart($event, index, profile.id)"
           @dragover.prevent="dragOverIndex = index"
           @dragleave="dragOverIndex = null"
           @drop.prevent="onDrop(index)"
@@ -45,17 +45,12 @@
               {{ t("active-badge", "Applied") }}
             </UiBadge>
             <UiBadge v-else-if="profile.id === defaultProfileId">
-              {{ t("default-badge", "Default") }}
+              {{ t("profile-url-default-summary", "Fallback") }}
             </UiBadge>
           </span>
         </UiListItem>
       </template>
       <UiEmptyState v-else :message="t('profile-empty', 'No profiles')" />
-    </div>
-    <div class="settings-split__sidebar-actions">
-      <UiButton variant="secondary" :disabled="!canSetDefault" @click="$emit('set-default')">
-        {{ t("button-set-default", "Set as Default") }}
-      </UiButton>
     </div>
   </div>
 </template>
@@ -75,7 +70,6 @@ interface Props {
   activeProfileId: string | null;
   defaultProfileId: string | null;
   canDelete: boolean;
-  canSetDefault: boolean;
 }
 
 const props = defineProps<Props>();
@@ -90,10 +84,13 @@ const emit = defineEmits<{
   (e: "add"): void;
   (e: "duplicate"): void;
   (e: "delete"): void;
-  (e: "set-default"): void;
   (e: "select", profileId: string): void;
   (e: "reorder", fromIndex: number, toIndex: number): void;
 }>();
+
+function isFallbackProfile(profileId: string): boolean {
+  return profileId === props.defaultProfileId;
+}
 
 function profileRuleSummary(profileId: string): string {
   if (profileId === props.defaultProfileId) {
@@ -110,7 +107,11 @@ function profileRuleSummary(profileId: string): string {
   return remaining > 0 ? `${visible} +${remaining}` : visible;
 }
 
-function onDragStart(event: DragEvent, index: number) {
+function onDragStart(event: DragEvent, index: number, profileId: string) {
+  if (isFallbackProfile(profileId)) {
+    event.preventDefault();
+    return;
+  }
   dragIndex.value = index;
   dragOverIndex.value = index;
   event.dataTransfer?.setData("text/plain", String(index));

@@ -5,6 +5,7 @@ import {
   mergeSettings,
   sanitizeSettings
 } from "./appSettingsSanitizer.js";
+import { DEFAULT_PROFILE_ID } from "./constants.js";
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
@@ -17,15 +18,85 @@ describe("appSettingsSanitizer", () => {
       );
     });
 
-    it("falls back to first profile id when defaultProfileId is unknown", () => {
+    it("falls back to the fixed fallback profile id when defaultProfileId is unknown", () => {
       const result = sanitizeSettings({ defaultProfileId: "does-not-exist" });
-      expect(result.defaultProfileId).toBe(result.profiles[0].id);
+      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
+      expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
     });
 
-    it("preserves a defaultProfileId that matches an existing profile", () => {
-      const first = DEFAULT_SETTINGS.profiles[0].id;
-      const result = sanitizeSettings({ defaultProfileId: first });
-      expect(result.defaultProfileId).toBe(first);
+    it("preserves an existing defaultProfileId as the fixed fallback profile", () => {
+      const result = sanitizeSettings({
+        profiles: [
+          {
+            id: "profile-default",
+            name: "Default",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          },
+          {
+            id: "profile-youtube",
+            name: "YouTube",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          }
+        ],
+        defaultProfileId: "profile-youtube"
+      });
+
+      expect(result.defaultProfileId).toBe("profile-youtube");
+      expect(result.profiles.at(-1)?.id).toBe("profile-youtube");
+    });
+
+    it("keeps the fallback profile last while preserving non-fallback profile order", () => {
+      const result = sanitizeSettings({
+        profiles: [
+          {
+            id: "profile-default",
+            name: "Default",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          },
+          {
+            id: "profile-youtube",
+            name: "YouTube",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          },
+          {
+            id: "profile-bilibili",
+            name: "Bilibili",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          }
+        ],
+        defaultProfileId: "profile-default"
+      });
+
+      expect(result.profiles.map((profile) => profile.id)).toEqual([
+        "profile-youtube",
+        "profile-bilibili",
+        "profile-default"
+      ]);
+    });
+
+    it("creates the fixed fallback profile when saved profiles do not contain one", () => {
+      const result = sanitizeSettings({
+        profiles: [
+          {
+            id: "profile-youtube",
+            name: "YouTube",
+            description: null,
+            settings: DEFAULT_SETTINGS.profiles[0].settings
+          }
+        ],
+        defaultProfileId: "does-not-exist"
+      });
+
+      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
+      expect(result.profiles.map((profile) => profile.id)).toEqual([
+        "profile-youtube",
+        DEFAULT_PROFILE_ID
+      ]);
     });
 
     it("keeps URL rules only on non-default existing profiles", () => {
@@ -189,10 +260,10 @@ describe("appSettingsSanitizer", () => {
       expect(merged.rules).toEqual([]);
     });
 
-    it("updates defaultProfileId when provided", () => {
+    it("ignores defaultProfileId patches so the fallback profile cannot be changed", () => {
       const base = DEFAULT_SETTINGS_FACTORY();
       const merged = mergeSettings(base, { defaultProfileId: "some-new-id" });
-      expect(merged.defaultProfileId).toBe("some-new-id");
+      expect(merged.defaultProfileId).toBe(base.defaultProfileId);
     });
 
     it("does not mutate the base object", () => {

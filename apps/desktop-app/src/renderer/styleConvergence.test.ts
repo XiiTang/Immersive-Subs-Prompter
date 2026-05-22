@@ -49,7 +49,13 @@ describe("desktop CSS convergence", () => {
   });
 
   it("keeps transcript background opacity wired to the panel opacity setting", () => {
-    expect(css).toContain("background: rgb(18 18 18 / var(--panel-opacity-factor));");
+    expect(css).toContain("background: rgb(24 24 24 / var(--panel-opacity-factor));");
+  });
+
+  it("uses the requested black-gray main window palette", () => {
+    expect(css).toContain("--ui-surface: #181818;");
+    expect(css).toContain("body.main-window-body,");
+    expect(css).toContain("color-scheme: dark;");
   });
 
   it("contains final primitive styles for the open-source UI foundation", () => {
