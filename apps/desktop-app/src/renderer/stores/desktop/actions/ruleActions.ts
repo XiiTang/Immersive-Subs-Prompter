@@ -30,25 +30,24 @@ export function deleteRule(this: DesktopStoreThis, ruleId: string) {
   this.updateSettings({ rules: nextRules });
 }
 
-export function moveProfileRule(
+export function reorderProfileRule(
   this: DesktopStoreThis,
   profileId: string,
-  ruleId: string,
-  direction: "up" | "down"
+  fromIndex: number,
+  toIndex: number
 ) {
-  if (!this.settings) {
-    return;
-  }
+  if (!this.settings || fromIndex === toIndex) return;
   const profileRules = this.settings.rules.filter((rule) => rule.profileId === profileId);
-  const index = profileRules.findIndex((rule) => rule.id === ruleId);
-  if (index === -1) {
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= profileRules.length ||
+    toIndex >= profileRules.length
+  ) {
     return;
   }
-  const targetIndex = direction === "up" ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= profileRules.length) {
-    return;
-  }
-  [profileRules[index], profileRules[targetIndex]] = [profileRules[targetIndex], profileRules[index]];
+  const [moved] = profileRules.splice(fromIndex, 1);
+  profileRules.splice(toIndex, 0, moved);
 
   let nextProfileRuleIndex = 0;
   const nextRules = this.settings.rules.map((rule) => {
@@ -65,5 +64,5 @@ export const ruleActions = {
   addRule,
   updateRule,
   deleteRule,
-  moveProfileRule
+  reorderProfileRule
 };

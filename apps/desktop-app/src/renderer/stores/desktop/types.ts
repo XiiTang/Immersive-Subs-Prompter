@@ -76,7 +76,7 @@ export interface DesktopStoreActions {
   addRule(payload: Omit<ProfileRule, "id">): void;
   updateRule(ruleId: string, patch: Partial<ProfileRule>): void;
   deleteRule(ruleId: string): void;
-  moveProfileRule(profileId: string, ruleId: string, direction: "up" | "down"): void;
+  reorderProfileRule(profileId: string, fromIndex: number, toIndex: number): void;
 
   // plugins
   refreshPluginCatalog(): Promise<void>;

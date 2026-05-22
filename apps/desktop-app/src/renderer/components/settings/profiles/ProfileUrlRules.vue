@@ -26,40 +26,54 @@
           v-for="(rule, index) in rules"
           :key="rule.id"
           class="profile-url-rule"
-          :class="{ 'is-disabled': !rule.isEnabled }"
+          :class="{ 'is-disabled': !rule.isEnabled, 'is-drag-over': dragOverIndex === index }"
+          draggable="true"
+          @dragstart="onDragStart($event, index)"
+          @dragover.prevent="dragOverIndex = index"
+          @dragleave="dragOverIndex = null"
+          @drop.prevent="onDrop(index)"
+          @dragend="resetDrag"
         >
-          <div class="profile-url-rule__main">
-            <span class="profile-url-rule__pattern">{{ rule.pattern }}</span>
-            <span class="profile-url-rule__meta">{{ matchTypeLabel(rule.matchType) }}</span>
+          <label
+            class="profile-url-rule__toggle"
+            :title="rule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+          >
+            <input
+              type="checkbox"
+              :checked="rule.isEnabled"
+              @change="toggleRule(rule.id, ($event.target as HTMLInputElement).checked)"
+            />
+          </label>
+          <div class="profile-url-rule__fields">
+            <label class="profile-url-rule__field">
+              <select
+                class="profile-url-rule__match-select"
+                data-testid="profile-url-rule-match-type"
+                :value="rule.matchType"
+                :aria-label="t('rule-match-label', 'Match Type')"
+                @change="updateRuleMatchType(rule.id, ($event.target as HTMLSelectElement).value)"
+                @mousedown.stop
+              >
+                <option value="contains">{{ t("rule-match-contains", "Contains") }}</option>
+                <option value="exact">{{ t("rule-match-exact", "Exact Match") }}</option>
+                <option value="regex">{{ t("rule-match-regex", "Regex") }}</option>
+              </select>
+            </label>
+            <label class="profile-url-rule__field profile-url-rule__field--pattern">
+              <input
+                data-testid="profile-url-rule-pattern"
+                type="text"
+                :value="rule.pattern"
+                :placeholder="t('rule-pattern-label', 'Pattern')"
+                :aria-label="t('rule-pattern-label', 'Pattern')"
+                autocomplete="off"
+                @change="commitRulePattern(rule, ($event.target as HTMLInputElement).value)"
+                @keydown.enter.prevent="commitRulePattern(rule, ($event.target as HTMLInputElement).value)"
+                @mousedown.stop
+              />
+            </label>
           </div>
           <div class="profile-url-rule__actions">
-            <label class="toggle toggle--sm">
-              <input
-                type="checkbox"
-                :checked="rule.isEnabled"
-                @change="toggleRule(rule.id, ($event.target as HTMLInputElement).checked)"
-              />
-              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-            </label>
-            <button
-              type="button"
-              class="settings-action-btn"
-              :disabled="index === 0"
-              @click="store.moveProfileRule(profileId, rule.id, 'up')"
-            >
-              {{ t("rule-action-move-up", "Move up") }}
-            </button>
-            <button
-              type="button"
-              class="settings-action-btn"
-              :disabled="index === rules.length - 1"
-              @click="store.moveProfileRule(profileId, rule.id, 'down')"
-            >
-              {{ t("rule-action-move-down", "Move down") }}
-            </button>
-            <button type="button" class="settings-action-btn" @click="editRule(rule)">
-              {{ t("rule-action-edit", "Edit") }}
-            </button>
             <button
               type="button"
               class="icon-button"
@@ -74,51 +88,66 @@
         <div v-if="!rules.length" class="profile-url-rules__empty">
           {{ t("profile-url-empty", "No URL rules") }}
         </div>
-      </div>
 
-      <form class="profile-url-rule-form" @submit.prevent="saveRule">
-        <div class="profile-url-rule-form__grid">
-          <label class="settings-field">
-            <span class="settings-field__label">{{ t("rule-match-label", "Match Type") }}</span>
-            <select v-model="ruleForm.matchType">
-              <option value="contains">{{ t("rule-match-contains", "Contains") }}</option>
-              <option value="exact">{{ t("rule-match-exact", "Exact Match") }}</option>
-              <option value="regex">{{ t("rule-match-regex", "Regex") }}</option>
-            </select>
+        <article class="profile-url-rule profile-url-rule--new">
+          <label
+            class="profile-url-rule__toggle"
+            :title="newRule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+          >
+            <input type="checkbox" v-model="newRule.isEnabled" />
           </label>
-          <label class="settings-field profile-url-rule-form__pattern">
-            <span class="settings-field__label">{{ t("rule-pattern-label", "Pattern") }}</span>
-            <input type="text" v-model="ruleForm.pattern" autocomplete="off" />
-          </label>
-          <div class="settings-field settings-field--inline settings-field--justify-start">
-            <span class="settings-field__label">{{ t("rule-action-enable", "Enable") }}</span>
-            <label class="toggle">
-              <input type="checkbox" v-model="ruleForm.isEnabled" />
-              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
+          <div class="profile-url-rule__fields">
+            <label class="profile-url-rule__field">
+              <select
+                class="profile-url-rule__match-select"
+                v-model="newRule.matchType"
+                :aria-label="t('rule-match-label', 'Match Type')"
+                @mousedown.stop
+              >
+                <option value="contains">{{ t("rule-match-contains", "Contains") }}</option>
+                <option value="exact">{{ t("rule-match-exact", "Exact Match") }}</option>
+                <option value="regex">{{ t("rule-match-regex", "Regex") }}</option>
+              </select>
+            </label>
+            <label class="profile-url-rule__field profile-url-rule__field--pattern">
+              <input
+                data-testid="profile-url-new-rule-pattern"
+                type="text"
+                v-model="newRule.pattern"
+                :placeholder="t('rule-pattern-label', 'Pattern')"
+                :aria-label="t('rule-pattern-label', 'Pattern')"
+                autocomplete="off"
+                @blur="saveNewRule"
+                @keydown.enter.prevent="saveNewRule"
+              />
             </label>
           </div>
-        </div>
-        <div v-if="regexError" class="settings-field__error">{{ regexError }}</div>
-        <div class="profile-url-rule-form__actions">
-          <button class="btn-primary rule-form__submit" type="submit" :disabled="!canSave">
-            {{ ruleForm.id ? t("profile-url-save", "Save URL Rule") : t("profile-url-add", "Add URL Rule") }}
-          </button>
-          <button v-if="ruleForm.id" type="button" class="text-button" @click="resetRuleForm">
-            {{ t("button-cancel", "Cancel") }}
-          </button>
-        </div>
-      </form>
+          <div class="profile-url-rule__actions">
+            <button
+              type="button"
+              class="icon-button profile-url-rule__confirm"
+              :disabled="!canAddRule"
+              :title="t('profile-url-confirm', 'Confirm URL Rule')"
+              :aria-label="t('profile-url-confirm', 'Confirm URL Rule')"
+              @click="saveNewRule"
+            >
+              <IconCheck size="md" />
+            </button>
+          </div>
+        </article>
+        <div v-if="newRuleRegexError" class="settings-field__error">{{ newRuleRegexError }}</div>
+      </div>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { isValidRegex } from "../../../../common/regex.js";
 import type { ProfileRule, UrlMatchType } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
-import { IconDelete } from "../../icons";
+import { IconCheck, IconDelete } from "../../icons";
 
 const props = defineProps<{
   profileId: string;
@@ -129,88 +158,100 @@ const props = defineProps<{
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
+const dragIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 
-const ruleForm = reactive<{
-  id: string | null;
+const newRule = reactive<{
   matchType: UrlMatchType;
   pattern: string;
   isEnabled: boolean;
 }>({
-  id: null,
   matchType: "contains",
   pattern: "",
   isEnabled: true
 });
 
-const regexError = computed(() => {
-  if (ruleForm.matchType !== "regex" || !ruleForm.pattern.trim()) {
+const newRuleRegexError = computed(() => {
+  if (newRule.matchType !== "regex" || !newRule.pattern.trim()) {
     return null;
   }
-  return isValidRegex(ruleForm.pattern) ? null : t("rule-regex-invalid", "Invalid regular expression");
+  return isValidRegex(newRule.pattern) ? null : t("rule-regex-invalid", "Invalid regular expression");
 });
 
-const canSave = computed(() => Boolean(ruleForm.pattern.trim()) && !regexError.value);
+const canAddRule = computed(() => Boolean(newRule.pattern.trim()) && !newRuleRegexError.value);
 
 watch(
   () => props.profileId,
-  () => resetRuleForm()
+  () => resetNewRule()
 );
 
-function matchTypeLabel(matchType: UrlMatchType): string {
-  if (matchType === "exact") {
-    return t("rule-match-exact", "Exact Match");
-  }
-  if (matchType === "regex") {
-    return t("rule-match-regex", "Regex");
-  }
-  return t("rule-match-contains", "Contains");
+function isMatchType(value: string): value is UrlMatchType {
+  return value === "contains" || value === "exact" || value === "regex";
 }
 
-function saveRule() {
-  if (!canSave.value) {
+function saveNewRule() {
+  if (!canAddRule.value) {
     return;
   }
-  const pattern = ruleForm.pattern.trim();
-  const payload = {
+  const pattern = newRule.pattern.trim();
+  store.addRule({
     name: pattern,
-    matchType: ruleForm.matchType,
+    matchType: newRule.matchType,
     pattern,
     profileId: props.profileId,
-    isEnabled: ruleForm.isEnabled
-  };
-
-  if (ruleForm.id) {
-    store.updateRule(ruleForm.id, payload);
-  } else {
-    store.addRule(payload);
-  }
-  resetRuleForm();
+    isEnabled: newRule.isEnabled
+  });
+  resetNewRule();
 }
 
-function editRule(rule: ProfileRule) {
-  ruleForm.id = rule.id;
-  ruleForm.matchType = rule.matchType;
-  ruleForm.pattern = rule.pattern;
-  ruleForm.isEnabled = rule.isEnabled;
+function updateRuleMatchType(ruleId: string, value: string) {
+  if (isMatchType(value)) {
+    store.updateRule(ruleId, { matchType: value });
+  }
+}
+
+function commitRulePattern(rule: ProfileRule, value: string) {
+  const pattern = value.trim();
+  if (!pattern || pattern === rule.pattern) {
+    return;
+  }
+  store.updateRule(rule.id, { name: pattern, pattern });
 }
 
 function toggleRule(ruleId: string, isEnabled: boolean) {
   store.updateRule(ruleId, { isEnabled });
 }
 
-function deleteRule(ruleId: string) {
-  if (confirm(t("rule-delete-confirm", "Delete this rule?"))) {
-    store.deleteRule(ruleId);
-    if (ruleForm.id === ruleId) {
-      resetRuleForm();
-    }
+function onDragStart(event: DragEvent, index: number) {
+  dragIndex.value = index;
+  dragOverIndex.value = index;
+  event.dataTransfer?.setData("text/plain", String(index));
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
   }
 }
 
-function resetRuleForm() {
-  ruleForm.id = null;
-  ruleForm.matchType = "contains";
-  ruleForm.pattern = "";
-  ruleForm.isEnabled = true;
+function onDrop(index: number) {
+  if (dragIndex.value !== null && dragIndex.value !== index) {
+    store.reorderProfileRule(props.profileId, dragIndex.value, index);
+  }
+  resetDrag();
+}
+
+function resetDrag() {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+}
+
+function deleteRule(ruleId: string) {
+  if (confirm(t("rule-delete-confirm", "Delete this rule?"))) {
+    store.deleteRule(ruleId);
+  }
+}
+
+function resetNewRule() {
+  newRule.matchType = "contains";
+  newRule.pattern = "";
+  newRule.isEnabled = true;
 }
 </script>

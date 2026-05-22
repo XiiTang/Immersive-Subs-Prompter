@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import { useDesktopStore } from "../../stores/desktop";
@@ -270,5 +270,222 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).toContain("Applies to these URLs");
     expect(wrapper.text()).toContain("youtube.com");
     expect(wrapper.text()).toContain("youtu.be");
+  });
+
+  it("uses drag ordering controls and a textless leading enable checkbox for profile URL rules", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: [
+        {
+          id: "rule-youtube",
+          name: "YouTube",
+          matchType: "contains",
+          pattern: "youtube.com",
+          profileId: "profile-youtube",
+          isEnabled: true
+        },
+        {
+          id: "rule-youtu-be",
+          name: "youtu.be",
+          matchType: "contains",
+          pattern: "youtu.be",
+          profileId: "profile-youtube",
+          isEnabled: true
+        }
+      ]
+    };
+    store.editingProfileId = "profile-youtube";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const firstRule = wrapper.get(".profile-url-rule");
+
+    expect(firstRule.attributes("draggable")).toBe("true");
+    expect(firstRule.text()).not.toContain("Move up");
+    expect(firstRule.text()).not.toContain("Move down");
+    expect(firstRule.find(".toggle__text").exists()).toBe(false);
+    expect(firstRule.element.firstElementChild?.classList.contains("profile-url-rule__toggle")).toBe(true);
+  });
+
+  it("edits URL rules directly in each rule row instead of a separate edit form", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: [
+        {
+          id: "rule-youtube",
+          name: "YouTube",
+          matchType: "contains",
+          pattern: "youtube.com",
+          profileId: "profile-youtube",
+          isEnabled: true
+        }
+      ]
+    };
+    store.editingProfileId = "profile-youtube";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const firstRule = wrapper.get(".profile-url-rule");
+    const patternInput = firstRule.get<HTMLInputElement>('[data-testid="profile-url-rule-pattern"]');
+    const matchTypeSelect = firstRule.get<HTMLSelectElement>('[data-testid="profile-url-rule-match-type"]');
+
+    expect(wrapper.find(".profile-url-rule-form").exists()).toBe(false);
+    expect(firstRule.text()).not.toContain("Edit");
+    expect(patternInput.element.value).toBe("youtube.com");
+    expect(matchTypeSelect.element.value).toBe("contains");
+  });
+
+  it("uses compact unlabeled URL rule fields with the pattern label as placeholder", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: [
+        {
+          id: "rule-youtube",
+          name: "YouTube",
+          matchType: "contains",
+          pattern: "youtube.com",
+          profileId: "profile-youtube",
+          isEnabled: true
+        }
+      ]
+    };
+    store.editingProfileId = "profile-youtube";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const firstRule = wrapper.get(".profile-url-rule");
+    const select = firstRule.get('[data-testid="profile-url-rule-match-type"]');
+    const newRulePattern = wrapper.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
+
+    expect(firstRule.text()).not.toContain("Match Type");
+    expect(firstRule.text()).not.toContain("Pattern");
+    expect(select.classes()).toContain("profile-url-rule__match-select");
+    expect(newRulePattern.attributes("placeholder")).toBe("Pattern");
+    expect(newRulePattern.element.value).toBe("");
+  });
+
+  it("adds a URL rule from the inline new-rule input on blur without an add button", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: []
+    };
+    store.editingProfileId = "profile-youtube";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const newRulePattern = wrapper.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
+    await newRulePattern.setValue("music.youtube.com");
+    await newRulePattern.trigger("blur");
+
+    expect(wrapper.text()).not.toContain("Add URL Rule");
+    expect(store.settings.rules).toEqual([
+      expect.objectContaining({
+        matchType: "contains",
+        pattern: "music.youtube.com",
+        profileId: "profile-youtube",
+        isEnabled: true
+      })
+    ]);
+    expect((newRulePattern.element as HTMLInputElement).value).toBe("");
+  });
+
+  it("shows a confirm icon in the unsaved URL rule action slot", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: "profile-default",
+      rules: [
+        {
+          id: "rule-youtube",
+          name: "YouTube",
+          matchType: "contains",
+          pattern: "youtube.com",
+          profileId: "profile-youtube",
+          isEnabled: true
+        }
+      ]
+    };
+    store.editingProfileId = "profile-youtube";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconCheck: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const savedRule = wrapper.get(".profile-url-rule:not(.profile-url-rule--new)");
+    const newRule = wrapper.get(".profile-url-rule--new");
+    const newRulePattern = newRule.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
+
+    expect(savedRule.get('[aria-label="Delete"]').exists()).toBe(true);
+    expect(newRule.find('[aria-label="Delete"]').exists()).toBe(false);
+    expect(newRule.get('[aria-label="Confirm URL Rule"]').exists()).toBe(true);
+
+    await newRulePattern.setValue("youtu.be");
+    await newRule.get('[aria-label="Confirm URL Rule"]').trigger("click");
+
+    expect(store.settings.rules.map((rule) => rule.pattern)).toEqual(["youtube.com", "youtu.be"]);
   });
 });

@@ -320,4 +320,45 @@ describe("desktop store profile selection", () => {
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual(["profile-default"]);
     expect(store.settings?.rules).toEqual([]);
   });
+
+  it("reorders URL rules within one profile without moving other profile rules", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      rules: [
+        {
+          id: "rule-other",
+          name: "Other",
+          pattern: "example.com",
+          matchType: "contains",
+          profileId: "profile-default",
+          isEnabled: true
+        },
+        {
+          id: "rule-first",
+          name: "First",
+          pattern: "bilibili.com",
+          matchType: "contains",
+          profileId: "profile-bilibili",
+          isEnabled: true
+        },
+        {
+          id: "rule-second",
+          name: "Second",
+          pattern: "b23.tv",
+          matchType: "contains",
+          profileId: "profile-bilibili",
+          isEnabled: true
+        }
+      ]
+    };
+
+    store.reorderProfileRule("profile-bilibili", 1, 0);
+
+    expect(store.settings?.rules.map((rule) => rule.id)).toEqual([
+      "rule-other",
+      "rule-second",
+      "rule-first"
+    ]);
+  });
 });

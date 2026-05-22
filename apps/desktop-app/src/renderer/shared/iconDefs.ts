@@ -40,6 +40,13 @@ export const ICON_DELETE: IconDefinition = {
   ]
 };
 
+export const ICON_CHECK: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M3.5 8.5 6.5 11.5 12.5 4.5" } }
+  ]
+};
+
 export const ICON_FOLDER: IconDefinition = {
   viewBox: "0 0 16 16",
   segments: [
