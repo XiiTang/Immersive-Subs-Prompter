@@ -246,9 +246,10 @@ describe("TopControlPanel", () => {
     const { wrapper, setPointerState } = mountTopControlPanel({ autoHidePanels: true });
 
     expect(wrapper.classes()).not.toContain("top-control-panel--draggable");
-    expect(rendererStylesheet).toContain(".top-control-panel__drag-handle {");
+    expect(rendererStylesheet).toContain(".top-control-panel__header {");
     expect(rendererStylesheet).toContain("-webkit-app-region: no-drag;");
-    expect(rendererStylesheet).toContain(".top-control-panel--draggable .top-control-panel__drag-handle {");
+    expect(rendererStylesheet).toContain(".top-control-panel--draggable .top-control-panel__header {");
+    expect(rendererStylesheet).toContain(".top-control-panel__actions,");
 
     setPointerState({ insideWindow: true, x: 40, y: 12 });
     await wrapper.get('[data-testid="top-edge-trigger-zone"]').trigger("pointerenter");

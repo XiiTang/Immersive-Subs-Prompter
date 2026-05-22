@@ -47,4 +47,8 @@ describe("desktop CSS convergence", () => {
     expect(css).not.toContain("--ui-accent-soft");
     expect(css).not.toContain("--ui-control-bg");
   });
+
+  it("keeps transcript background opacity wired to the panel opacity setting", () => {
+    expect(css).toContain("background: rgb(18 18 18 / var(--panel-opacity-factor));");
+  });
 });

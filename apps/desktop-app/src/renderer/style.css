@@ -685,7 +685,7 @@ svg.icon {
   flex: 1;
 }
 
-.top-control-panel--draggable .top-control-panel__drag-handle {
+.top-control-panel--draggable .top-control-panel__header {
   -webkit-app-region: drag;
 }
 
@@ -711,6 +711,7 @@ svg.icon {
 }
 
 .top-control-panel__actions,
+.top-control-panel__actions *,
 .transcription-inline,
 .control-panel,
 .status-row,
@@ -1368,7 +1369,7 @@ svg.icon {
   overflow: hidden;
   padding-top: 0;
   z-index: 0;
-  background: #121212;
+  background: rgb(18 18 18 / var(--panel-opacity-factor));
 }
 
 .transcript-surface__viewport {
