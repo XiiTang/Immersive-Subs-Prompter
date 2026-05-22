@@ -18,12 +18,18 @@ const topControlPanelStub = defineComponent({
     transcriptionConfigs: {
       type: Array,
       default: () => []
+    },
+    statusBanner: {
+      type: Object,
+      default: () => ({ text: "", tone: "info" })
     }
   },
   render() {
     return h("div", { class: "top-control-panel-stub" }, [
       h("div", { "data-testid": "transcription-enabled" }, String(this.transcriptionEnabled)),
-      h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length))
+      h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length)),
+      h("div", { "data-testid": "status-banner-tone" }, String((this.statusBanner as any).tone)),
+      h("div", { "data-testid": "status-banner-text" }, String((this.statusBanner as any).text))
     ]);
   }
 });
@@ -180,6 +186,34 @@ describe("SubtitleView", () => {
 
     expect(wrapper.find(".video-info-section").exists()).toBe(false);
     expect(wrapper.find(".top-control-panel-stub").exists()).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it("passes semantic status tones to the top control panel", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = {
+      ...createDesktopState(),
+      status: "error",
+      error: "Timed out"
+    };
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="status-banner-tone"]').text()).toBe("danger");
+    expect(wrapper.get('[data-testid="status-banner-text"]').text()).toContain("Timed out");
 
     wrapper.unmount();
   });

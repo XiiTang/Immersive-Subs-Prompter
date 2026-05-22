@@ -135,7 +135,7 @@ export function createTopControlPanelProps(overrides: Record<string, unknown> = 
     isTranscribing: false,
     statusBanner: {
       text: "Subtitles loaded",
-      modifier: "status-banner--ready"
+      tone: "success"
     },
     hasActiveVideo: true,
     isPlaying: true,

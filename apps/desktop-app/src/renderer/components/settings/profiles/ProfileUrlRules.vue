@@ -42,7 +42,7 @@
             @update:model-value="toggleRule(rule.id, $event)"
           />
           <div class="profile-url-rule__fields">
-            <label class="profile-url-rule__field">
+            <div class="profile-url-rule__field">
               <UiSelect
                 class="profile-url-rule__match-select"
                 data-testid="profile-url-rule-match-type"
@@ -52,8 +52,8 @@
                 @update:model-value="updateRuleMatchType(rule.id, $event)"
                 @mousedown.stop
               />
-            </label>
-            <label class="profile-url-rule__field profile-url-rule__field--pattern">
+            </div>
+            <div class="profile-url-rule__field profile-url-rule__field--pattern">
               <UiInput
                 data-testid="profile-url-rule-pattern"
                 type="text"
@@ -65,7 +65,7 @@
                 @keydown.enter.prevent="commitRulePattern(rule, ($event.target as HTMLInputElement).value)"
                 @mousedown.stop
               />
-            </label>
+            </div>
           </div>
           <div class="profile-url-rule__actions">
             <UiIconButton variant="danger" :label="t('rule-action-delete', 'Delete')" @click="deleteRule(rule.id)">
@@ -83,7 +83,7 @@
             :label="newRule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
           />
           <div class="profile-url-rule__fields">
-            <label class="profile-url-rule__field">
+            <div class="profile-url-rule__field">
               <UiSelect
                 class="profile-url-rule__match-select"
                 v-model="newRule.matchType"
@@ -91,8 +91,8 @@
                 :aria-label="t('rule-match-label', 'Match Type')"
                 @mousedown.stop
               />
-            </label>
-            <label class="profile-url-rule__field profile-url-rule__field--pattern">
+            </div>
+            <div class="profile-url-rule__field profile-url-rule__field--pattern">
               <UiInput
                 data-testid="profile-url-new-rule-pattern"
                 type="text"
@@ -103,7 +103,7 @@
                 @blur="saveNewRule"
                 @keydown.enter.prevent="saveNewRule"
               />
-            </label>
+            </div>
           </div>
           <div class="profile-url-rule__actions">
             <UiIconButton

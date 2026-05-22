@@ -1,13 +1,13 @@
 <template>
   <div class="transcription-controls">
-    <label class="track-picker transcription-picker">
+    <div class="track-picker transcription-picker">
       <UiSelect
         :model-value="activeId"
         :options="configOptions"
         :aria-label="t('transcription-config-select', 'Transcription Config')"
         @update:model-value="$emit('update:activeId', $event)"
       />
-    </label>
+    </div>
     <UiIconButton
       class="transcription-btn"
       :disabled="!canTranscribe || isTranscribing"

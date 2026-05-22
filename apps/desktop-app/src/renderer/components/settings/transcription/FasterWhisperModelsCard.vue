@@ -13,7 +13,11 @@
         </template>
         <UiEmptyState v-else :message="t('transcription-faster-model-missing', 'No downloaded models detected')" />
         <div class="settings-inline settings-inline--end">
-          <UiSelect v-model="selectedModel" :options="fasterWhisperModels" />
+          <UiSelect
+            v-model="selectedModel"
+            :options="fasterWhisperModels"
+            :aria-label="t('transcription-faster-download-model-label', 'Model to download')"
+          />
           <UiButton variant="primary" :disabled="isBusy" @click="$emit('download-model')">
             {{ t("transcription-faster-download-model", "Download") }}
           </UiButton>

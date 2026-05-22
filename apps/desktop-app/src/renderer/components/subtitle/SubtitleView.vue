@@ -311,46 +311,46 @@ const statusBanner = computed(() => {
     if (transState.status === "running") {
       return {
         text: transState.message || t("transcription-status-running", "Transcribing..."),
-        modifier: "status-banner--running"
+        tone: "info" as const
       };
     }
     if (transState.status === "error") {
       return {
         text: transState.message || t("transcription-status-error", "Transcription failed"),
-        modifier: "status-banner--error"
+        tone: "danger" as const
       };
     }
   }
 
   const state = store.desktopState;
   if (!state) {
-    return { text: t("status-initializing", "Initializing..."), modifier: "" };
+    return { text: t("status-initializing", "Initializing..."), tone: "info" as const };
   }
 
   switch (state.status) {
     case "idle":
-      return { text: t("status-idle", "Waiting for extension connection..."), modifier: "" };
+      return { text: t("status-idle", "Waiting for extension connection..."), tone: "info" as const };
     case "awaiting-video":
-      return { text: t("status-awaiting-video", "Open a supported video in your browser"), modifier: "" };
+      return { text: t("status-awaiting-video", "Open a supported video in your browser"), tone: "info" as const };
     case "loading-subtitles":
-      return { text: t("status-loading-subtitles", "Downloading subtitles..."), modifier: "" };
+      return { text: t("status-loading-subtitles", "Downloading subtitles..."), tone: "info" as const };
     case "ready":
       if (transState?.status === "success") {
         return {
           text: t("transcription-status-success", "Transcription finished"),
-          modifier: "status-banner--success"
+          tone: "success" as const
         };
       }
-      return { text: t("status-ready", "Subtitles loaded"), modifier: "status-banner--ready" };
+      return { text: t("status-ready", "Subtitles loaded"), tone: "success" as const };
     case "error":
       return {
         text: state.error
           ? `${t("status-error", "Subtitle loading failed")}: ${state.error}`
           : t("status-error", "Subtitle loading failed"),
-        modifier: "status-banner--error"
+        tone: "danger" as const
       };
     default:
-      return { text: t("status-unknown", "Unknown status"), modifier: "" };
+      return { text: t("status-unknown", "Unknown status"), tone: "warning" as const };
   }
 });
 

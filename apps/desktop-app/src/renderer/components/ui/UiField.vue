@@ -1,19 +1,20 @@
 <template>
-  <label class="ui-field" :class="{ 'ui-field--inline': inline }">
+  <div class="ui-field" :class="{ 'ui-field--inline': inline }">
     <span class="ui-field__label-row">
-      <span class="ui-field__label">{{ label }}</span>
+      <span :id="labelId" class="ui-field__label">{{ label }}</span>
       <span v-if="value" class="ui-field__value">{{ value }}</span>
     </span>
-    <span class="ui-field__control" :aria-describedby="describedBy || undefined">
+    <div class="ui-field__control" :aria-describedby="describedBy || undefined">
       <slot />
-    </span>
+    </div>
     <span v-if="hint" :id="`${id}-hint`" class="ui-field__hint">{{ hint }}</span>
     <span v-if="error" :id="`${id}-error`" class="ui-field__error">{{ error }}</span>
-  </label>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, provide } from "vue";
+import { uiFieldContextKey } from "./fieldContext";
 
 const props = withDefaults(
   defineProps<{
@@ -37,4 +38,10 @@ const describedBy = computed(() =>
     .filter(Boolean)
     .join(" ")
 );
+const labelId = computed(() => `${props.id}-label`);
+
+provide(uiFieldContextKey, {
+  labelId,
+  describedBy
+});
 </script>

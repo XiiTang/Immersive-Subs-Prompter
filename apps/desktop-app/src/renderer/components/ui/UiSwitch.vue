@@ -5,7 +5,9 @@
       data-slot="switch"
       :model-value="modelValue"
       :disabled="disabled"
-      :aria-label="label"
+      :aria-label="switchAriaLabel"
+      :aria-labelledby="fieldLabelledBy"
+      :aria-describedby="fieldDescribedBy"
       :data-testid="inputTestId || undefined"
       @update:model-value="$emit('update:modelValue', $event)"
     >
@@ -16,9 +18,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { SwitchRoot, SwitchThumb } from "reka-ui";
+import { useUiFieldControl } from "./fieldContext";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue: boolean;
     label: string;
@@ -34,4 +38,6 @@ withDefaults(
 );
 
 defineEmits<{ "update:modelValue": [value: boolean] }>();
+const { fieldLabelledBy, fieldDescribedBy } = useUiFieldControl();
+const switchAriaLabel = computed(() => (fieldLabelledBy.value ? undefined : props.label));
 </script>

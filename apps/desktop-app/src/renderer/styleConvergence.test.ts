@@ -61,9 +61,7 @@ describe("desktop CSS convergence", () => {
       ".ui-select-item",
       ".ui-switch__control",
       ".ui-slider",
-      ".ui-tooltip",
-      ".ui-popover",
-      ".ui-separator"
+      ".ui-tooltip"
     ]) {
       expect(css).toContain(selector);
     }

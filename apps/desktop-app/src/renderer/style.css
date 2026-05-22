@@ -207,7 +207,6 @@ textarea {
 }
 
 .ui-select-content,
-.ui-popover,
 .ui-tooltip {
   z-index: 10000;
   border: 1px solid var(--ui-border);
@@ -249,17 +248,6 @@ textarea {
 .ui-tooltip {
   padding: 4px 8px;
   font-size: var(--ui-font-sm);
-}
-
-.ui-popover {
-  min-width: 180px;
-  padding: 8px;
-}
-
-.ui-separator {
-  height: 1px;
-  width: 100%;
-  background: var(--ui-border);
 }
 
 .ui-slider {
@@ -310,8 +298,7 @@ textarea {
 }
 
 .ui-field__label-row,
-.ui-field__control,
-.settings-field__label-row {
+.ui-field__control {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -327,10 +314,7 @@ textarea {
 }
 
 .ui-field__value,
-.ui-field__hint,
-.ui-field__hint-inline,
-.settings-field__value,
-.settings-field__hint {
+.ui-field__hint {
   color: var(--ui-text-muted);
   font-size: var(--ui-font-sm);
 }
@@ -814,7 +798,6 @@ svg.icon {
 
 .top-control-panel__actions,
 .top-control-panel__actions *,
-.transcription-inline,
 .control-panel,
 .status-row,
 .playback-row {
@@ -1241,8 +1224,7 @@ svg.icon {
 
 .profile-list__meta,
 .transcription-config-list__meta,
-.transcription-config-list__muted,
-.mediaserver-config-list__empty {
+.transcription-config-list__muted {
   color: var(--ui-text-muted);
   font-size: var(--ui-font-sm);
 }
@@ -1401,44 +1383,6 @@ svg.icon {
 
 .cache-field--fixed {
   flex: 0 0 auto;
-}
-
-.cache-field--narrow {
-  width: 75px;
-}
-
-.cache-status-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.cache-status-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  background: var(--ui-surface);
-  padding: 12px;
-}
-
-.cache-inline-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.text-button,
-.icon-text-button {
-  border: 0;
-  background: transparent;
-  color: var(--ui-text-muted);
-  cursor: pointer;
-}
-
-.text-button--danger {
-  color: var(--ui-danger);
 }
 
 .transcript-surface {
@@ -1973,10 +1917,6 @@ svg.icon {
   overflow-wrap: anywhere;
 }
 
-.word-lookup-status__error {
-  color: var(--ui-danger);
-}
-
 @media (max-width: 1080px) {
   .settings-window-shell__body {
     grid-template-columns: 232px minmax(0, 1fr);
@@ -2000,16 +1940,11 @@ svg.icon {
     border-bottom: 1px solid var(--ui-border);
   }
 
-  .cache-status-row {
-    grid-template-columns: 1fr;
-  }
-
   .cache-field-row {
     flex-direction: column;
   }
 
-  .cache-field--fixed,
-  .cache-field--narrow {
+  .cache-field--fixed {
     width: 100%;
   }
 

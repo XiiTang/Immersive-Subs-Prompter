@@ -1,7 +1,12 @@
 <template>
-  <label class="track-picker" :class="{ 'track-picker--grow': grow }">
-    <UiSelect :model-value="modelValue" :options="options" :aria-label="ariaLabel" @update:model-value="$emit('update:modelValue', $event)" />
-  </label>
+  <div class="track-picker" :class="{ 'track-picker--grow': grow }">
+    <UiSelect
+      :model-value="selectValue"
+      :options="options"
+      :aria-label="ariaLabel"
+      @update:model-value="handleSelectValue"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -31,13 +36,23 @@ const {
   formatSourceFile: (sourceFile: string) => string;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
 }>();
 
+const LEAD_LABEL_VALUE = "__track_selector_lead_label__";
+const NO_TRACK_VALUE = "__track_selector_none__";
+const selectValue = computed(() => (modelValue === "" ? NO_TRACK_VALUE : modelValue));
 const options = computed(() => [
-  ...(leadLabel ? [{ value: "", label: leadLabel, disabled: true }] : []),
-  ...(noneLabel ? [{ value: "", label: noneLabel }] : []),
+  ...(leadLabel ? [{ value: LEAD_LABEL_VALUE, label: leadLabel, disabled: true }] : []),
+  ...(noneLabel ? [{ value: NO_TRACK_VALUE, label: noneLabel }] : []),
   ...tracks.map((track) => ({ value: track.id, label: formatSourceFile(track.sourceFile) }))
 ]);
+
+function handleSelectValue(value: string) {
+  if (value === LEAD_LABEL_VALUE) {
+    return;
+  }
+  emit("update:modelValue", value === NO_TRACK_VALUE ? "" : value);
+}
 </script>

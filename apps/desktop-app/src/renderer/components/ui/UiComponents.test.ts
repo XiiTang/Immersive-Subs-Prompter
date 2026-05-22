@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
+import { defineComponent, nextTick } from "vue";
 import { describe, expect, it } from "vitest";
 import {
   UiBadge,
@@ -9,12 +9,10 @@ import {
   UiIconButton,
   UiInput,
   UiListItem,
-  UiPopover,
   UiProgress,
   UiSection,
   UiSelect,
   UiSegmentedControl,
-  UiSeparator,
   UiSlider,
   UiStatus,
   UiSwitch,
@@ -71,6 +69,30 @@ describe("UI primitives", () => {
     expect(wrapper.text()).toContain("Required");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-hint");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-error");
+  });
+
+  it("labels composite field controls without wrapping button-like primitives in a label", () => {
+    const wrapper = mount(defineComponent({
+      components: { UiField, UiSelect },
+      setup() {
+        return {
+          options: [
+            { value: "system", label: "System" },
+            { value: "dark", label: "Dark" }
+          ]
+        };
+      },
+      template: `
+        <UiField id="theme" label="Theme">
+          <UiSelect model-value="dark" :options="options" />
+        </UiField>
+      `
+    }));
+
+    expect(wrapper.get(".ui-field").element.tagName).toBe("DIV");
+    expect(wrapper.get(".ui-field__label").attributes("id")).toBe("theme-label");
+    expect(wrapper.get('[role="combobox"]').attributes("aria-labelledby")).toBe("theme-label");
+    expect(wrapper.get('[role="combobox"]').attributes("aria-label")).toBeUndefined();
   });
 
   it("emits model updates from form controls", async () => {
@@ -140,7 +162,7 @@ describe("UI primitives", () => {
     expect(slider.emitted("input")?.[0]?.[0]).toBeInstanceOf(Event);
   });
 
-  it("renders tooltip, popover, and separator primitives with stable slots", async () => {
+  it("renders tooltip primitives with stable slots", () => {
     const tooltip = mount(UiTooltip, {
       props: { text: "Refresh cache" },
       slots: { default: "<button>Refresh</button>" },
@@ -148,22 +170,6 @@ describe("UI primitives", () => {
     });
 
     expect(tooltip.get("button").text()).toBe("Refresh");
-
-    const popover = mount(UiPopover, {
-      props: { label: "More actions" },
-      slots: {
-        trigger: "<button>More</button>",
-        default: "<p>Action list</p>"
-      },
-      attachTo: document.body
-    });
-
-    await popover.get("button").trigger("click");
-    expect(document.body.textContent).toContain("Action list");
-
-    const separator = mount(UiSeparator);
-    expect(separator.attributes("role")).toBe("separator");
-    expect(separator.classes()).toContain("ui-separator");
   });
 
   it("renders section, list item, badge, status, and empty state classes", () => {

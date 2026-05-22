@@ -8,7 +8,9 @@
       v-bind="attrs"
       class="ui-select"
       data-slot="select-trigger"
-      :aria-label="ariaLabel"
+      :aria-label="triggerAriaLabel"
+      :aria-labelledby="fieldLabelledBy"
+      :aria-describedby="fieldDescribedBy"
     >
       <span class="ui-select__value">{{ selectedLabel }}</span>
       <SelectIcon class="ui-select__icon" aria-hidden="true">⌄</SelectIcon>
@@ -22,7 +24,7 @@
             class="ui-select-item"
             data-slot="select-item"
             :data-value="option.value"
-            :value="toRekaValue(option.value)"
+            :value="option.value"
             :disabled="option.disabled"
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
@@ -45,11 +47,11 @@ import {
   SelectTrigger,
   SelectViewport
 } from "reka-ui";
+import { useUiFieldControl } from "./fieldContext";
 
 defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
-const EMPTY_VALUE = "__ui_select_empty_value__";
 
 const props = withDefaults(
   defineProps<{
@@ -68,21 +70,20 @@ const props = withDefaults(
 
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-const rekaModelValue = computed(() => toRekaValue(props.modelValue));
+const { fieldLabelledBy, fieldDescribedBy } = useUiFieldControl({
+  hasExplicitLabel: () => Boolean(props.ariaLabel || attrs["aria-label"] || attrs["aria-labelledby"]),
+  describedBy: () => String(attrs["aria-describedby"] ?? "")
+});
+const rekaModelValue = computed(() => props.modelValue);
+const triggerAriaLabel = computed(() => props.ariaLabel || String(attrs["aria-label"] ?? "") || undefined);
 const selectedLabel = computed(() => {
   const selectedOption = props.options.find((option) => option.value === props.modelValue);
   return selectedOption?.label ?? props.placeholder;
 });
 
-function toRekaValue(value: string) {
-  return value === "" ? EMPTY_VALUE : value;
-}
-
 function emitValue(value: string | string[] | undefined) {
   if (typeof value === "string") {
-    emit("update:modelValue", value === EMPTY_VALUE ? "" : value);
-    return;
+    emit("update:modelValue", value);
   }
-  emit("update:modelValue", props.modelValue);
 }
 </script>

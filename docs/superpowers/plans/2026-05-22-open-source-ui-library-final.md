@@ -2010,10 +2010,13 @@ Executed against the final design in `docs/superpowers/specs/2026-05-22-open-sou
 
 Final state:
 
-- Desktop UI primitives contain the shadcn-vue/Reka-inspired component boundary.
+- Desktop UI primitives contain the shadcn-vue/Reka-inspired component boundary used by current product surfaces.
 - `reka-ui` usage is contained in `components/ui`.
 - Lucide icons are exposed through local `components/icons` wrappers.
 - Desktop settings, official plugin settings, top controls, subtitle-panel controls, and word lookup chrome use shared primitives or primitive-compatible chrome.
+- Post-review cleanup removed unused primitive exports and stale CSS for old buttons, cache status rows, obsolete status modifiers, and unused popover/separator styles.
+- Status banners now use a semantic `tone` contract instead of legacy modifier-class strings.
+- `UiField` no longer wraps composite controls in a native label; field labels are connected to controls through local primitive context.
 - Transcript body components were not modified.
 
 Verification passed:

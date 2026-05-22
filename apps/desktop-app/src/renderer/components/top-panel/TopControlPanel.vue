@@ -157,7 +157,7 @@ interface SubtitleTrackOption {
 
 interface StatusBannerState {
   text: string;
-  modifier: string;
+  tone: "neutral" | "success" | "warning" | "danger" | "info";
 }
 
 const AUTO_HIDE_COLLAPSE_DELAY_MS = 200;
