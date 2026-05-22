@@ -1,21 +1,29 @@
 <template>
   <div class="subtitle-style-fields">
-    <UiField id="subtitle-font" :label="t('subtitle-font-label', 'Subtitle Font')">
-      <UiSelect v-model="subtitleFontFamily" data-testid="subtitle-font-select" :options="subtitleFontOptions" />
-    </UiField>
-    <UiField id="subtitle-font-size" :label="t('subtitle-font-size-label', 'Subtitle Font Size')">
-      <UiInput v-model="subtitleFontSize" type="number" min="10" max="48" step="1" />
-    </UiField>
-    <UiField id="subtitle-meta-auto-hide" :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Actions')" inline>
-      <UiSwitch
-        v-model="subtitleAutoHideMetaRow"
-        input-test-id="subtitle-meta-auto-hide-toggle"
-        :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
-      />
-    </UiField>
-    <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
-      <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
-    </UiField>
+    <div class="subtitle-style-fields__row">
+      <UiField id="subtitle-font" :label="t('subtitle-font-label', 'Subtitle Font')">
+        <UiSelect v-model="subtitleFontFamily" data-testid="subtitle-font-select" :options="subtitleFontOptions" />
+      </UiField>
+      <UiField id="subtitle-font-size" :label="t('subtitle-font-size-label', 'Subtitle Font Size')">
+        <UiInput v-model="subtitleFontSize" type="number" min="10" max="48" step="1" />
+      </UiField>
+    </div>
+    <div class="subtitle-style-fields__row">
+      <UiField
+        id="subtitle-meta-auto-hide"
+        :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Action Bar')"
+        inline
+      >
+        <UiSwitch
+          v-model="subtitleAutoHideMetaRow"
+          input-test-id="subtitle-meta-auto-hide-toggle"
+          :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+        />
+      </UiField>
+      <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
+        <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
+      </UiField>
+    </div>
     <UiField
       id="subtitle-scroll-position"
       :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"

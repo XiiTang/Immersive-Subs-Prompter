@@ -85,7 +85,7 @@ describe("SettingsWindowShell", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders only the active top-level section", async () => {
+  it("keeps appearance and subtitle cache inside global settings instead of separate nav sections", async () => {
     const wrapper = mount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
@@ -101,12 +101,14 @@ describe("SettingsWindowShell", () => {
 
     expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBe("section");
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-nav-item-appearance"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-cache"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
 
-    await wrapper.get('[data-testid="settings-nav-item-appearance"]').trigger("click");
+    await wrapper.get('[data-testid="settings-nav-item-profiles"]').trigger("click");
 
-    expect(wrapper.get('[data-testid="settings-section-appearance-content"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-profiles-content"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-section-general-content"]').exists()).toBe(false);
   });
 

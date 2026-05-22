@@ -59,6 +59,8 @@
       <UiEmptyState v-else :message="t('game-blacklist-none', 'No processes yet.')" />
     </div>
   </UiSection>
+  <SettingsAppearance />
+  <SettingsCache />
 </template>
 
 <script setup lang="ts">
@@ -67,6 +69,8 @@ import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
 import { UiEmptyState, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
+import SettingsAppearance from "./SettingsAppearance.vue";
+import SettingsCache from "./SettingsCache.vue";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

@@ -9,11 +9,13 @@ export type PriorityDragState = {
 };
 
 export type ReorderPriority = (role: PriorityRole, fromIndex: number, toIndex: number) => void;
+export type RemovePriority = (role: PriorityRole, index: number) => void;
 
 export type PriorityListLengthGetter = (role: PriorityRole) => number;
 
 export interface UsePriorityDragDropOptions {
   reorderPriority: ReorderPriority;
+  removePriority: RemovePriority;
   getListLength: PriorityListLengthGetter;
 }
 
@@ -30,7 +32,7 @@ export interface UsePriorityDragDropReturn {
 }
 
 export function usePriorityDragDrop(options: UsePriorityDragDropOptions): UsePriorityDragDropReturn {
-  const { reorderPriority, getListLength } = options;
+  const { reorderPriority, removePriority, getListLength } = options;
 
   const priorityDragState = ref<PriorityDragState>({
     role: null,
@@ -44,6 +46,14 @@ export function usePriorityDragDrop(options: UsePriorityDragDropOptions): UsePri
       fromIndex: null,
       overIndex: null
     };
+  }
+
+  function removeDraggedPriority() {
+    const { role, fromIndex } = priorityDragState.value;
+    if (role !== null && fromIndex !== null) {
+      removePriority(role, fromIndex);
+    }
+    resetPriorityDragState();
   }
 
   function onPriorityDragStart(role: PriorityRole, index: number, event: DragEvent) {
@@ -73,7 +83,7 @@ export function usePriorityDragDrop(options: UsePriorityDragDropOptions): UsePri
   function onPriorityDrop(role: PriorityRole, index: number) {
     const { role: draggingRole, fromIndex } = priorityDragState.value;
     if (draggingRole !== role || fromIndex === null) {
-      resetPriorityDragState();
+      removeDraggedPriority();
       return;
     }
     if (fromIndex !== index) {
@@ -85,7 +95,7 @@ export function usePriorityDragDrop(options: UsePriorityDragDropOptions): UsePri
   function onPriorityListDrop(role: PriorityRole) {
     const { role: draggingRole, fromIndex, overIndex } = priorityDragState.value;
     if (draggingRole !== role || fromIndex === null) {
-      resetPriorityDragState();
+      removeDraggedPriority();
       return;
     }
     const listLength = getListLength(role);
@@ -97,7 +107,7 @@ export function usePriorityDragDrop(options: UsePriorityDragDropOptions): UsePri
   }
 
   function onPriorityDragEnd() {
-    resetPriorityDragState();
+    removeDraggedPriority();
   }
 
   function isPriorityDragOver(role: PriorityRole, index: number) {

@@ -22,9 +22,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import SettingsGlobal from "./SettingsGlobal.vue";
-import SettingsAppearance from "./SettingsAppearance.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
-import SettingsCache from "./SettingsCache.vue";
 import SettingsPlugins from "./SettingsPlugins.vue";
 import SettingsNav from "./SettingsNav.vue";
 import { buildSettingsSections, type SettingsSectionId } from "./settingsSections";
@@ -58,9 +56,7 @@ const currentSection = ref<SettingsSectionId>("general");
 
 const hostComponentMap: Record<string, unknown> = {
   general: SettingsGlobal,
-  appearance: SettingsAppearance,
   profiles: SettingsProfiles,
-  cache: SettingsCache,
   plugins: SettingsPlugins
 };
 

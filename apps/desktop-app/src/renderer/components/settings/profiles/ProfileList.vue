@@ -24,7 +24,7 @@
         <UiListItem
           v-for="(profile, index) in profiles"
           :key="profile.id"
-          as="button"
+          as="div"
           class="profile-list__item"
           :class="{ 'is-drag-over': dragOverIndex === index }"
           :selected="profile.id === editingProfileId"
@@ -37,7 +37,32 @@
           @dragend="resetDrag"
         >
           <span class="profile-list__content">
-            <span class="profile-list__name">{{ profile.name }}</span>
+            <UiInput
+              v-if="editingNameProfileId === profile.id"
+              class="profile-list__name-input"
+              data-testid="profile-list-name-input"
+              :data-profile-id="profile.id"
+              v-model="draftProfileName"
+              :aria-label="t('profile-name-label', 'Profile Name')"
+              @click.stop
+              @mousedown.stop
+              @dragstart.stop
+              @keydown.enter.prevent.stop="($event.target as HTMLInputElement).blur()"
+              @keydown.escape.prevent.stop="cancelProfileNameEdit"
+              @blur="commitProfileName(profile.id)"
+            />
+            <UiButton
+              v-else
+              variant="ghost"
+              size="sm"
+              class="profile-list__name-action"
+              data-testid="profile-list-name-action"
+              @click.stop="startProfileNameEdit(profile)"
+              @mousedown.stop
+              @dragstart.stop
+            >
+              {{ profile.name }}
+            </UiButton>
             <span class="profile-list__meta">{{ profileRuleSummary(profile.id) }}</span>
           </span>
           <span class="profile-list__badges">
@@ -56,12 +81,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { IconAdd, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";
-import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiListItem } from "../../ui";
+import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem } from "../../ui";
 
 interface Props {
   profiles: readonly ProfileDefinition[];
@@ -79,6 +104,8 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 const dragIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
+const editingNameProfileId = ref<string | null>(null);
+const draftProfileName = ref("");
 
 const emit = defineEmits<{
   (e: "add"): void;
@@ -86,6 +113,7 @@ const emit = defineEmits<{
   (e: "delete"): void;
   (e: "select", profileId: string): void;
   (e: "reorder", fromIndex: number, toIndex: number): void;
+  (e: "rename", profileId: string, name: string): void;
 }>();
 
 function isFallbackProfile(profileId: string): boolean {
@@ -105,6 +133,33 @@ function profileRuleSummary(profileId: string): string {
   const visible = patterns.slice(0, 2).join(", ");
   const remaining = patterns.length - 2;
   return remaining > 0 ? `${visible} +${remaining}` : visible;
+}
+
+async function startProfileNameEdit(profile: ProfileDefinition) {
+  emit("select", profile.id);
+  editingNameProfileId.value = profile.id;
+  draftProfileName.value = profile.name;
+  await nextTick();
+  const input = Array.from(document.querySelectorAll<HTMLInputElement>('[data-testid="profile-list-name-input"]')).find(
+    (element) => element.dataset.profileId === profile.id
+  );
+  input?.focus();
+  input?.select();
+}
+
+function cancelProfileNameEdit() {
+  editingNameProfileId.value = null;
+  draftProfileName.value = "";
+}
+
+function commitProfileName(profileId: string) {
+  const name = draftProfileName.value.trim();
+  editingNameProfileId.value = null;
+  draftProfileName.value = "";
+  if (!name.length) {
+    return;
+  }
+  emit("rename", profileId, name);
 }
 
 function onDragStart(event: DragEvent, index: number, profileId: string) {

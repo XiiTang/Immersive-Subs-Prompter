@@ -11,11 +11,12 @@ import {
 } from "../types.js";
 
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
+import { DEFAULT_YTDLP_ARGS } from "../../common/ytdlpDefaults.js";
 import { clampPort } from "./utils.js";
 import { BASE_TRANSCRIPTION_CONFIG, DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
 
-export const DEFAULT_YTDLP_ARGS = "--skip-download --write-subs --all-subs --no-playlist --cookies-from-browser firefox";
+export { DEFAULT_YTDLP_ARGS };
 export const DEFAULT_PROFILE_ID = "default-profile";
 export const DEFAULT_PROFILE_NAME = "Default Profile";
 

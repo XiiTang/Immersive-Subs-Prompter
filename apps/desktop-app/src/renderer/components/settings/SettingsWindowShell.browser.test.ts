@@ -101,4 +101,46 @@ describe("SettingsWindowShell browser layout", () => {
     expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
     expect(content.scrollTop).toBeGreaterThan(initialScrollTop);
   });
+
+  it("keeps the main settings navigation compact", () => {
+    const wrapper = shallowMount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          SettingsNav: sectionStub("settings-nav-content"),
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsAppearance: sectionStub("settings-section-appearance-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsCache: sectionStub("settings-section-cache-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
+        }
+      }
+    });
+
+    const bodyGrid = wrapper.get(".settings-window-shell__body").element;
+    const navColumnWidth = Number.parseFloat(getComputedStyle(bodyGrid).gridTemplateColumns.split(" ")[0] ?? "0");
+
+    expect(navColumnWidth).toBeLessThanOrEqual(216);
+  });
+
+  it("allows selecting text inside settings content while keeping the title bar non-selectable", () => {
+    const wrapper = shallowMount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          SettingsNav: sectionStub("settings-nav-content"),
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsAppearance: sectionStub("settings-section-appearance-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsCache: sectionStub("settings-section-cache-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
+        }
+      }
+    });
+
+    expect(getComputedStyle(wrapper.get('[data-testid="settings-content"]').element).userSelect).toBe("text");
+    expect(getComputedStyle(wrapper.get(".settings-window-shell__header").element).userSelect).toBe("none");
+  });
 });

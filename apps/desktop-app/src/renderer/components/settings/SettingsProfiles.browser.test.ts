@@ -2,8 +2,10 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
+import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import { useDesktopStore } from "../../stores/desktop";
+import "../../style.css";
 
 function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
   return {
@@ -184,6 +186,74 @@ describe("SettingsProfiles", () => {
     expect(profileItems[1]?.text()).toContain("Applied");
   });
 
+  it("edits profile names inline in the profile list instead of a separate editor field", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-1", "Default"), createProfile("profile-2", "Bilibili")]
+    };
+    store.editingProfileId = "profile-1";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const nameActions = wrapper.findAll<HTMLButtonElement>('[data-testid="profile-list-name-action"]');
+
+    expect(wrapper.find("#profile-name").exists()).toBe(false);
+    expect(wrapper.find('[data-testid="profile-list-name-input"]').exists()).toBe(false);
+    expect(nameActions).toHaveLength(2);
+
+    const nameActionStyle = getComputedStyle(nameActions[1]!.element);
+    const actionTextLeftOffset =
+      Number.parseFloat(nameActionStyle.borderLeftWidth) + Number.parseFloat(nameActionStyle.paddingLeft);
+    const actionTextTopOffset =
+      Number.parseFloat(nameActionStyle.borderTopWidth) + Number.parseFloat(nameActionStyle.paddingTop);
+    const profileMeta = wrapper.findAll<HTMLElement>(".profile-list__meta")[1]!;
+    expect(profileMeta.element.getBoundingClientRect().left - nameActions[1]!.element.getBoundingClientRect().left).toBe(
+      actionTextLeftOffset
+    );
+    const profileItemHeightBeforeEdit = wrapper
+      .findAll<HTMLElement>(".profile-list__item")[1]!
+      .element.getBoundingClientRect().height;
+
+    await nameActions[1]!.trigger("click");
+
+    const nameInput = wrapper.get<HTMLInputElement>('[data-testid="profile-list-name-input"]');
+    const nameInputStyle = getComputedStyle(nameInput.element);
+    expect(Number.parseFloat(nameInputStyle.height)).toBeLessThanOrEqual(24);
+    expect(nameInputStyle.borderTopWidth).toBe("1px");
+    expect(nameInputStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(Number.parseFloat(nameInputStyle.borderLeftWidth) + Number.parseFloat(nameInputStyle.paddingLeft)).toBe(
+      actionTextLeftOffset
+    );
+    expect(Number.parseFloat(nameInputStyle.borderTopWidth) + Number.parseFloat(nameInputStyle.paddingTop)).toBe(
+      actionTextTopOffset
+    );
+    expect(wrapper.findAll<HTMLElement>(".profile-list__item")[1]!.element.getBoundingClientRect().height).toBe(
+      profileItemHeightBeforeEdit
+    );
+
+    await nameInput.setValue("Streaming");
+    await nameInput.trigger("blur");
+
+    expect(store.settings.profiles[1]?.name).toBe("Streaming");
+    expect(store.editingProfileId).toBe("profile-2");
+    expect(wrapper.find('[data-testid="profile-list-name-input"]').exists()).toBe(false);
+  });
+
   it("renders a profile-level toggle for auto-hiding transcript timestamps and actions", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
@@ -203,6 +273,34 @@ describe("SettingsProfiles", () => {
     expect(toggle.element.tagName).toBe("BUTTON");
     expect(toggle.attributes("role")).toBe("switch");
     expect(toggle.attributes("aria-checked")).toBe("true");
+  });
+
+  it("renders compact paired subtitle fields and uses default yt-dlp args as the empty placeholder", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const fontField = wrapper.get("#subtitle-font-label").element.closest(".ui-field") as HTMLElement;
+    const fontSizeField = wrapper.get("#subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
+    const metaAutoHideField = wrapper.get("#subtitle-meta-auto-hide-label").element.closest(".ui-field") as HTMLElement;
+    const autoScrollField = wrapper.get("#subtitle-autoscroll-label").element.closest(".ui-field") as HTMLElement;
+    const ytDlpTextarea = wrapper.get<HTMLTextAreaElement>('textarea[aria-labelledby="yt-dlp-args-label"]');
+
+    expect(fontField.getBoundingClientRect().top).toBe(fontSizeField.getBoundingClientRect().top);
+    expect(metaAutoHideField.getBoundingClientRect().top).toBe(autoScrollField.getBoundingClientRect().top);
+    expect(wrapper.text()).not.toContain("Leave blank to use default arguments.");
+    expect(ytDlpTextarea.attributes("placeholder")).toBe(DEFAULT_YTDLP_ARGS);
+    expect(ytDlpTextarea.element.value).toBe("");
   });
 
   it("renders the default profile editor with the applied profile selected", () => {
@@ -226,7 +324,11 @@ describe("SettingsProfiles", () => {
 
     expect(wrapper.findAll(".profile-list__item")).toHaveLength(2);
     expect(wrapper.find('[data-testid="subtitle-font-select"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Bilibili");
+    expect(
+      wrapper
+        .findAll<HTMLButtonElement>('[data-testid="profile-list-name-action"]')
+        .some((button) => button.text() === "Bilibili")
+    ).toBe(true);
     expect(wrapper.text()).toContain("Applied");
   });
 
@@ -518,5 +620,133 @@ describe("SettingsProfiles", () => {
     await newRule.get('[aria-label="Confirm URL Rule"]').trigger("click");
 
     expect(store.settings.rules.map((rule) => rule.pattern)).toEqual(["youtube.com", "youtu.be"]);
+  });
+
+  it("renders subtitle priorities as wrapping pill chips without per-item delete buttons", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: ["eng.*", "en", "ai-en", "English"],
+            secondarySubtitlePriority: ["zh-Hans", "zh", "cmn-Hans"]
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const list = wrapper.get(".priority-editor__list");
+    const firstChip = wrapper.get(".priority-editor__item");
+    const listStyle = getComputedStyle(list.element);
+    const chipStyle = getComputedStyle(firstChip.element);
+
+    expect(listStyle.display).toBe("flex");
+    expect(listStyle.flexWrap).toBe("wrap");
+    expect(chipStyle.borderRadius).toBe("999px");
+    expect(firstChip.attributes("draggable")).toBe("true");
+    expect(wrapper.find(".priority-editor__item [aria-label='Remove priority']").exists()).toBe(false);
+  });
+
+  it("adds subtitle priorities from the trailing blank pill on blur", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: ["en"],
+            secondarySubtitlePriority: []
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const primaryEditor = wrapper.findAll(".priority-editor")[0]!;
+    const draftPill = primaryEditor.get(".priority-editor__draft");
+    const draftInput = draftPill.get<HTMLInputElement>('[data-testid="priority-draft-input"]');
+
+    expect(wrapper.find(".priority-editor__controls").exists()).toBe(false);
+    expect(draftPill.attributes("draggable")).toBeUndefined();
+
+    await draftInput.setValue("ai-en");
+    await draftInput.trigger("blur");
+
+    expect(store.settings.profiles[0]?.settings.primarySubtitlePriority).toEqual(["en", "ai-en"]);
+    expect(primaryEditor.findAll(".priority-editor__draft")).toHaveLength(1);
+    expect(primaryEditor.get<HTMLInputElement>('[data-testid="priority-draft-input"]').element.value).toBe("");
+  });
+
+  it("uses the regex term inside the priority hint as the only documentation link", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: [],
+            secondarySubtitlePriority: []
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const primaryEditor = wrapper.findAll(".priority-editor")[0]!;
+    const hintLink = primaryEditor.get(".priority-editor__hint a");
+
+    expect(wrapper.text()).not.toContain("No priorities yet");
+    expect(wrapper.text()).not.toContain("View regex examples");
+    expect(wrapper.text().match(/regular expressions/g)).toHaveLength(1);
+    expect(hintLink.text()).toBe("regular expressions");
+    expect(hintLink.attributes("href")).toContain("subtitle-priority-regex.md");
+    expect(primaryEditor.find(".priority-editor__draft").exists()).toBe(true);
   });
 });

@@ -9,22 +9,10 @@ const SETTINGS_SECTION_DEFS = [
     anchorId: "settings-section-general"
   },
   {
-    id: "appearance",
-    labelKey: "section-appearance",
-    fallback: "Appearance",
-    anchorId: "settings-section-appearance"
-  },
-  {
     id: "profiles",
     labelKey: "section-profiles",
     fallback: "Profiles",
     anchorId: "settings-section-profiles"
-  },
-  {
-    id: "cache",
-    labelKey: "section-cache",
-    fallback: "Subtitle Cache",
-    anchorId: "settings-section-cache"
   },
   {
     id: "plugins",

@@ -13,11 +13,9 @@
         @delete="deleteEditingProfile"
         @select="(id) => store.setEditingProfile(id)"
         @reorder="(fromIndex, toIndex) => store.reorderProfile(fromIndex, toIndex)"
+        @rename="updateProfileName"
       />
       <div class="settings-split__editor" v-if="editingProfile">
-        <UiField id="profile-name" :label="t('profile-name-label', 'Profile Name')">
-          <UiInput v-model="profileName" autocomplete="off" />
-        </UiField>
         <SubtitleStyleFields />
         <ColorSchemeGrid />
         <ProfileUrlRules
@@ -38,12 +36,8 @@
             )
           "
           :placeholder="t('primary-priority-placeholder', 'e.g.: en or zh-Hans')"
-          :empty-text="t('priority-empty', 'No priorities yet')"
-          :add-button-label="t('button-add', 'Add')"
-          :remove-label="t('priority-remove', 'Remove priority')"
           :error="primaryPriorityError"
           :doc-url="regexDocUrl"
-          :doc-link-text="t('priority-regex-examples', '查看正则示例')"
           :is-drag-over="isPriorityDragOver"
           :on-drag-start="onPriorityDragStart"
           :on-drag-enter="onPriorityDragEnter"
@@ -52,7 +46,6 @@
           :on-drag-end="onPriorityDragEnd"
           :on-list-drop="onPriorityListDrop"
           @add="addPriority('primary')"
-          @remove="(value) => removePriority('primary', value)"
           @doc-link-click="openRegexDoc"
         />
 
@@ -68,9 +61,6 @@
             )
           "
           :placeholder="t('secondary-priority-placeholder', 'e.g.: en or zh-Hans')"
-          :empty-text="t('priority-empty', 'No priorities yet')"
-          :add-button-label="t('button-add', 'Add')"
-          :remove-label="t('priority-remove', 'Remove priority')"
           :error="secondaryPriorityError"
           :is-drag-over="isPriorityDragOver"
           :on-drag-start="onPriorityDragStart"
@@ -80,11 +70,10 @@
           :on-drag-end="onPriorityDragEnd"
           :on-list-drop="onPriorityListDrop"
           @add="addPriority('secondary')"
-          @remove="(value) => removePriority('secondary', value)"
         />
 
-        <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label', 'yt-dlp Arguments')" :hint="t('yt-dlp-args-hint', 'Leave blank to use default arguments')">
-          <UiTextarea v-model="ytDlpArgs" :rows="3" />
+        <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label', 'yt-dlp Arguments')">
+          <UiTextarea v-model="ytDlpArgs" :rows="3" :placeholder="defaultYtDlpArgs" />
         </UiField>
       </div>
     </div>
@@ -96,12 +85,13 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { isValidRegex } from "../../../common/regex.js";
+import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import ProfileList from "./profiles/ProfileList.vue";
 import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import ColorSchemeGrid from "./profiles/ColorSchemeGrid.vue";
 import PriorityEditor from "./profiles/PriorityEditor.vue";
 import ProfileUrlRules from "./profiles/ProfileUrlRules.vue";
-import { UiField, UiInput, UiSection, UiTextarea } from "../ui";
+import { UiField, UiSection, UiTextarea } from "../ui";
 import {
   usePriorityDragDrop,
   type PriorityRole
@@ -127,15 +117,11 @@ const canDeleteProfile = computed(
     (profiles.value.length ?? 0) > 1
 );
 
-const profileName = computed({
-  get: () => editingProfile.value?.name ?? "",
-  set: (value: string) => store.updateProfileMeta({ name: value })
-});
-
 const ytDlpArgs = computed({
   get: () => store.editingProfileSettings.ytDlpArgs,
   set: (value: string) => store.updateProfileSetting("ytDlpArgs", value)
 });
+const defaultYtDlpArgs = DEFAULT_YTDLP_ARGS;
 
 const primaryPriority = computed(() => store.editingProfileSettings.primarySubtitlePriority ?? []);
 const secondaryPriority = computed(() => store.editingProfileSettings.secondarySubtitlePriority ?? []);
@@ -156,6 +142,7 @@ const {
   isPriorityDragOver
 } = usePriorityDragDrop({
   reorderPriority: (role, fromIndex, toIndex) => store.reorderPriority(role, fromIndex, toIndex),
+  removePriority: (role, index) => removePriorityAtIndex(role, index),
   getListLength: (role: PriorityRole) =>
     role === "primary" ? primaryPriority.value.length : secondaryPriority.value.length
 });
@@ -166,14 +153,32 @@ function deleteEditingProfile() {
   }
 }
 
+function updateProfileName(profileId: string, name: string) {
+  if (!store.settings) {
+    return;
+  }
+  const nextName = name.trim();
+  if (!nextName.length) {
+    return;
+  }
+  const profiles = store.settings.profiles.map((profile) =>
+    profile.id === profileId ? { ...profile, name: nextName } : profile
+  );
+  store.updateSettings({ profiles });
+}
+
 function addPriority(role: PriorityRole) {
   const input = role === "primary" ? primaryPriorityInput : secondaryPriorityInput;
   store.addPriority(role, input.value);
   input.value = "";
 }
 
-function removePriority(role: PriorityRole, value: string) {
-  store.removePriority(role, value);
+function removePriorityAtIndex(role: PriorityRole, index: number) {
+  const list = role === "primary" ? primaryPriority.value : secondaryPriority.value;
+  const value = list[index];
+  if (value) {
+    store.removePriority(role, value);
+  }
 }
 
 async function openRegexDoc() {
