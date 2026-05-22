@@ -260,6 +260,15 @@ Required verification:
 - Guardrail tests enforce that feature components do not import `reka-ui` directly.
 - Guardrail tests enforce that non-transcript UI does not reintroduce feature-specific visual systems, shadows, gradients, glass effects, or plugin-only palettes.
 
+## Local Reference Projects
+
+Implementation planning and component design should explicitly inspect these local reference projects:
+
+- shadcn-vue: `/Users/cq-laptop/Projects/referrence projects/shadcn-vue`
+- Reka UI: `/Users/cq-laptop/Projects/referrence projects/reka-ui`
+- Lucide icons: `/Users/cq-laptop/Projects/referrence projects/lucide`
+- UI reference project: `/Users/cq-laptop/Projects/referrence projects/ui`
+
 ## References
 
 - shadcn-vue introduction: https://www.shadcn-vue.com/docs/introduction
