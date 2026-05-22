@@ -34,14 +34,16 @@
           @dragend="onDragEnd"
         >
           <span>{{ item }}</span>
-          <button
-            type="button"
+          <UiIconButton
             class="ui-chip__remove"
+            size="sm"
+            variant="ghost"
             :aria-label="removeLabel"
+            :label="removeLabel"
             @click="$emit('remove', item)"
           >
-            x
-          </button>
+            <IconDelete size="sm" />
+          </UiIconButton>
         </span>
       </template>
       <UiEmptyState v-else :message="emptyText" />
@@ -62,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconAdd } from "../../icons";
+import { IconAdd, IconDelete } from "../../icons";
 import type { PriorityRole } from "./composables/usePriorityDragDrop";
 import { UiEmptyState, UiIconButton, UiInput } from "../../ui";
 

@@ -16,56 +16,60 @@
     <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
       <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
     </UiField>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">
-          {{ t("subtitle-scroll-position-label", "Subtitle Scroll Position") }}
-        </span>
-        <span class="settings-field__value">{{ subtitleScrollPosition }}%</span>
-      </div>
-      <input type="range" min="0" max="100" step="1" class="slider" v-model.number="subtitleScrollPosition" />
-      <small class="settings-field__hint">
-        {{
-          t(
-            "subtitle-scroll-position-hint",
-            "Where active subtitles sit in the panel (0% top, 50% middle, 100% bottom)"
-          )
-        }}
-      </small>
-    </label>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">
-          {{ t("subtitle-primary-secondary-gap-label", "Primary to Secondary Subtitle Gap") }}
-        </span>
-        <span class="settings-field__value">{{ subtitlePrimarySecondaryGap }}px</span>
-      </div>
-      <input
-        type="range"
-        min="0"
-        max="60"
-        step="1"
-        class="slider"
-        v-model.number="subtitlePrimarySecondaryGap"
+    <UiField
+      id="subtitle-scroll-position"
+      :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
+      :value="`${subtitleScrollPosition}%`"
+      :hint="t('subtitle-scroll-position-hint', 'Where active subtitles sit in the panel (0% top, 50% middle, 100% bottom)')"
+    >
+      <UiSlider
+        v-model="subtitleScrollPosition"
+        :min="0"
+        :max="100"
+        :step="1"
+        :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
       />
-    </label>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">{{ t("subtitle-line-height-label", "Line Height") }}</span>
-        <span class="settings-field__value">{{ subtitleLineHeight }}</span>
-      </div>
-      <input type="range" min="1" max="3" step="0.05" class="slider" v-model.number="subtitleLineHeight" />
-    </label>
-    <label class="settings-field">
-      <div class="settings-field__label-row">
-        <span class="settings-field__label">{{ t("subtitle-block-gap-label", "Block Gap") }}</span>
-        <span class="settings-field__value">{{ subtitleBlockGap }}px</span>
-      </div>
-      <input type="range" min="0" max="60" step="1" class="slider" v-model.number="subtitleBlockGap" />
-      <small class="settings-field__hint">
-        {{ t("subtitle-block-gap-hint", "Gap between subtitle text blocks") }}
-      </small>
-    </label>
+    </UiField>
+    <UiField
+      id="subtitle-primary-secondary-gap"
+      :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
+      :value="`${subtitlePrimarySecondaryGap}px`"
+    >
+      <UiSlider
+        v-model="subtitlePrimarySecondaryGap"
+        :min="0"
+        :max="60"
+        :step="1"
+        :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
+      />
+    </UiField>
+    <UiField
+      id="subtitle-line-height"
+      :label="t('subtitle-line-height-label', 'Line Height')"
+      :value="String(subtitleLineHeight)"
+    >
+      <UiSlider
+        v-model="subtitleLineHeight"
+        :min="1"
+        :max="3"
+        :step="0.05"
+        :label="t('subtitle-line-height-label', 'Line Height')"
+      />
+    </UiField>
+    <UiField
+      id="subtitle-block-gap"
+      :label="t('subtitle-block-gap-label', 'Block Gap')"
+      :value="`${subtitleBlockGap}px`"
+      :hint="t('subtitle-block-gap-hint', 'Gap between subtitle text blocks')"
+    >
+      <UiSlider
+        v-model="subtitleBlockGap"
+        :min="0"
+        :max="60"
+        :step="1"
+        :label="t('subtitle-block-gap-label', 'Block Gap')"
+      />
+    </UiField>
   </div>
 </template>
 
@@ -74,7 +78,7 @@ import { computed } from "vue";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
-import { UiField, UiInput, UiSelect, UiSwitch } from "../../ui";
+import { UiField, UiInput, UiSelect, UiSlider, UiSwitch } from "../../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

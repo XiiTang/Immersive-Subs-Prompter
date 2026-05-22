@@ -51,4 +51,25 @@ describe("desktop CSS convergence", () => {
   it("keeps transcript background opacity wired to the panel opacity setting", () => {
     expect(css).toContain("background: rgb(18 18 18 / var(--panel-opacity-factor));");
   });
+
+  it("contains final primitive styles for the open-source UI foundation", () => {
+    for (const selector of [
+      ".ui-button",
+      ".ui-icon-button",
+      ".ui-select",
+      ".ui-select-content",
+      ".ui-select-item",
+      ".ui-switch__control",
+      ".ui-slider",
+      ".ui-tooltip",
+      ".ui-popover",
+      ".ui-separator"
+    ]) {
+      expect(css).toContain(selector);
+    }
+  });
+
+  it("keeps Tailwind utility classes out of app styles", () => {
+    expect(activeCss).not.toMatch(/\.(?:items-center|justify-center|rounded-md|text-sm|bg-primary|text-muted-foreground|border-input)\b/);
+  });
 });

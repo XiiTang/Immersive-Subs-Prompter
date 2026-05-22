@@ -42,7 +42,7 @@ describe("SettingsCache", () => {
     expect(wrapper.text()).not.toContain("Usage");
     expect(wrapper.text()).not.toContain("📂");
     expect(wrapper.text()).not.toContain("🔄");
-    expect(wrapper.get('[data-testid="cache-settings-surface"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="cache-settings-stack"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="cache-stats-refresh"]').text()).toBe("");
   });
 });

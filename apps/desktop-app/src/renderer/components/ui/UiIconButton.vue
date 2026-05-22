@@ -2,6 +2,9 @@
   <button
     class="ui-icon-button"
     :class="[`ui-icon-button--${variant}`, `ui-icon-button--${size}`, { 'is-active': active }]"
+    data-slot="icon-button"
+    :data-variant="variant"
+    :data-size="size"
     type="button"
     :disabled="disabled"
     :aria-label="label"
@@ -18,7 +21,7 @@ withDefaults(
     label: string;
     title?: string;
     variant?: "ghost" | "secondary" | "danger";
-    size?: "sm" | "md";
+    size?: "sm" | "md" | "lg";
     disabled?: boolean;
     active?: boolean;
     pressed?: boolean | "true" | "false" | "mixed";

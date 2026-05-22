@@ -1,10 +1,12 @@
 <template>
-  <div class="ui-segmented" role="radiogroup" :aria-label="label">
+  <div class="ui-segmented" data-slot="segmented-control" role="radiogroup" :aria-label="label">
     <button
       v-for="option in options"
       :key="option.value"
       type="button"
       class="ui-segmented__item"
+      data-slot="segmented-control-item"
+      :data-state="modelValue === option.value ? 'checked' : 'unchecked'"
       :class="{ 'is-selected': modelValue === option.value }"
       role="radio"
       :aria-checked="modelValue === option.value"

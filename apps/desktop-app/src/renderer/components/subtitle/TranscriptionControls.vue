@@ -18,13 +18,15 @@
       "
       @click="$emit('start')"
     >
-      <span aria-hidden="true">{{ isTranscribing ? "⏳" : "▶" }}</span>
+      <IconRefresh v-if="isTranscribing" size="md" class="icon--spinning" />
+      <IconPlay v-else size="md" />
     </UiIconButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { IconPlay, IconRefresh } from "../icons";
 import { UiIconButton, UiSelect } from "../ui";
 
 const {

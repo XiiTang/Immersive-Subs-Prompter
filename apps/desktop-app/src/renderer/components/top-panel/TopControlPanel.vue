@@ -40,38 +40,44 @@
           </div>
         </div>
         <div class="top-control-panel__actions" data-testid="top-control-panel-actions">
-          <div class="transparency-inline">
-            <input
-              class="slider header-slider"
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              v-model.number="panelOpacityValue"
-              aria-label="Background opacity"
-              title="Background Opacity"
-            />
-          </div>
-          <UiIconButton
-            :label="pinLabel"
-            :pressed="isPinned"
-            :active="isPinned"
-            @click="cyclePin"
-          >
-            <IconPin v-if="alwaysOnTop === 'off'" size="md" />
-            <IconPin v-else-if="alwaysOnTop === 'floating'" size="md" />
-            <IconLock v-else size="md" />
-          </UiIconButton>
-          <UiIconButton
-            :label="store.desktopState?.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
-            :pressed="store.desktopState?.isFullscreen"
-            @click="store.toggleFullscreen()"
-          >
-            <IconFullscreen size="md" />
-          </UiIconButton>
-          <UiIconButton label="Open settings" @click="openSettingsWindow">
-            <IconSettings size="md" />
-          </UiIconButton>
+          <UiTooltip text="Background opacity">
+            <div class="transparency-inline">
+              <UiSlider
+                v-model="panelOpacityValue"
+                class="header-slider"
+                :min="0"
+                :max="100"
+                :step="1"
+                label="Background opacity"
+              />
+            </div>
+          </UiTooltip>
+          <UiTooltip :text="pinLabel">
+            <UiIconButton
+              :label="pinLabel"
+              :pressed="isPinned"
+              :active="isPinned"
+              @click="cyclePin"
+            >
+              <IconPin v-if="alwaysOnTop === 'off'" size="md" />
+              <IconPin v-else-if="alwaysOnTop === 'floating'" size="md" />
+              <IconLock v-else size="md" />
+            </UiIconButton>
+          </UiTooltip>
+          <UiTooltip :text="fullscreenLabel">
+            <UiIconButton
+              :label="fullscreenLabel"
+              :pressed="store.desktopState?.isFullscreen"
+              @click="store.toggleFullscreen()"
+            >
+              <IconFullscreen size="md" />
+            </UiIconButton>
+          </UiTooltip>
+          <UiTooltip text="Open settings">
+            <UiIconButton label="Open settings" @click="openSettingsWindow">
+              <IconSettings size="md" />
+            </UiIconButton>
+          </UiTooltip>
         </div>
       </header>
       <div class="top-control-panel__body" data-testid="top-control-panel-body">
@@ -141,7 +147,7 @@ import StatusBanner from "../subtitle/StatusBanner.vue";
 import TrackSelector from "../subtitle/TrackSelector.vue";
 import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiIconButton } from "../ui";
+import { UiIconButton, UiSlider, UiTooltip } from "../ui";
 import { IconFullscreen, IconLock, IconPin, IconSettings } from "../icons";
 
 interface SubtitleTrackOption {
@@ -255,6 +261,9 @@ const pinLabels: Record<string, string> = {
 };
 const pinLabel = computed(() => pinLabels[alwaysOnTop.value] ?? "Pinned");
 const isPinned = computed(() => alwaysOnTop.value !== "off");
+const fullscreenLabel = computed(() =>
+  store.desktopState?.isFullscreen ? "Exit fullscreen" : "Enter fullscreen"
+);
 const panelOpacityValue = computed({
   get: () => store.panelOpacity,
   set: (value: number) => store.updateGlobalSetting("panelOpacity", value)

@@ -1,28 +1,17 @@
 <template>
-  <svg
-    class="icon icon--delete"
-    :class="[sizeClass]"
-    xmlns="http://www.w3.org/2000/svg"
-    :viewBox="ICON_DELETE.viewBox"
-    v-bind="ICON_STROKE_PROPS"
+  <Trash2
+    :class="iconClass(size)"
+    :size="iconSizePx[size]"
+    :stroke-width="2"
     aria-hidden="true"
-  >
-    <component
-      v-for="(segment, index) in ICON_DELETE.segments"
-      :is="segment.tag"
-      :key="index"
-      v-bind="segment.attrs"
-    />
-  </svg>
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { ICON_DELETE, ICON_STROKE_PROPS } from "../../shared/iconDefs";
+import { Trash2 } from "lucide-vue-next";
+import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
 
 const { size = "md" } = defineProps<{
-  size?: "sm" | "md" | "lg";
+  size?: IconSize;
 }>();
-
-const sizeClass = computed(() => `icon--${size}`);
 </script>

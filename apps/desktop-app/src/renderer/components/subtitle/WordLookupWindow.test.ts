@@ -254,4 +254,13 @@ describe("WordLookupWindow", () => {
     animationFrame.runAll();
     wrapper.unmount();
   });
+
+  it("uses primitive-compatible chrome for resize and scroll affordances", () => {
+    setupWindowApi();
+    const wrapper = mount(WordLookupWindow, { attachTo: document.body });
+
+    expect(wrapper.get('[data-testid="word-lookup-resize-handle"]').classes()).toContain("ui-resize-handle");
+    expect(wrapper.get('[data-testid="word-lookup-scrollbar"]').classes()).toContain("ui-scrollbar");
+    wrapper.unmount();
+  });
 });

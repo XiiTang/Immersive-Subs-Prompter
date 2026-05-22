@@ -27,3 +27,17 @@ Object.defineProperty(HTMLElement.prototype, "scrollTo", {
     }
   }
 });
+
+if (!("hasPointerCapture" in HTMLElement.prototype)) {
+  Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
+    value() {
+      return false;
+    }
+  });
+}
+
+if (!("releasePointerCapture" in HTMLElement.prototype)) {
+  Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+    value() {}
+  });
+}

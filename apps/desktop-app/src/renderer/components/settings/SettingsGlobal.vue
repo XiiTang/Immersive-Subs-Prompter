@@ -1,6 +1,6 @@
 <template>
   <UiSection :title="t('section-global-settings', 'Global Settings')">
-    <div class="settings-panel">
+    <div class="settings-stack">
       <div class="settings-fields-grid settings-fields-grid--two-col">
         <UiField id="language" :label="t('language-label', 'Language')">
           <UiSelect v-model="languageSetting" :options="languageOptions" />
@@ -45,9 +45,15 @@
       <div v-if="gameProcesses.length" class="ui-chip-list">
         <span v-for="process in gameProcesses" :key="process" class="ui-chip">
           {{ process }}
-          <button type="button" class="ui-chip__remove" :aria-label="t('game-blacklist-remove', 'Remove')" @click="removeGameProcess(process)">
-            x
-          </button>
+          <UiIconButton
+            class="ui-chip__remove"
+            size="sm"
+            variant="ghost"
+            :label="t('game-blacklist-remove', 'Remove')"
+            @click="removeGameProcess(process)"
+          >
+            <IconDelete size="sm" />
+          </UiIconButton>
         </span>
       </div>
       <UiEmptyState v-else :message="t('game-blacklist-none', 'No processes yet.')" />
@@ -59,7 +65,7 @@
 import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import { IconAdd } from "../icons";
+import { IconAdd, IconDelete } from "../icons";
 import { UiEmptyState, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
 
 const store = useDesktopStore();

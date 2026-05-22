@@ -115,11 +115,6 @@ async function handlePathChange(event: Event) {
   await refresh();
 }
 
-function handleModifierChange(event: Event) {
-  const value = event.target instanceof HTMLSelectElement ? event.target.value : config.value.modifierKey;
-  handleModifierInput(value);
-}
-
 function handleModifierInput(value: string) {
   if (value === "alt" || value === "ctrl" || value === "shift") {
     void updateConfig({ modifierKey: value });

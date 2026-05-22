@@ -1,26 +1,28 @@
 <template>
   <div class="playback-row">
-    <UiIconButton
-      class="playback-toggle-btn"
-      variant="secondary"
-      :disabled="!hasActiveVideo"
-      :label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
-      @click="$emit('toggle-playback')"
-    >
-      <IconPause v-if="isPlaying" size="md" />
-      <IconPlay v-else size="md" />
-    </UiIconButton>
+    <UiTooltip :text="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')">
+      <UiIconButton
+        class="playback-toggle-btn"
+        variant="secondary"
+        :disabled="!hasActiveVideo"
+        :label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
+        @click="$emit('toggle-playback')"
+      >
+        <IconPause v-if="isPlaying" size="md" />
+        <IconPlay v-else size="md" />
+      </UiIconButton>
+    </UiTooltip>
     <div class="playback-progress">
       <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
-      <input
+      <UiSlider
         class="playback-slider"
-        type="range"
-        min="0"
+        :model-value="sliderValue"
+        :min="0"
         :max="sliderMax"
         :step="sliderStep"
-        :value="sliderValue"
         :disabled="!sliderEnabled"
-        :style="sliderFillStyle"
+        :fill-style="sliderFillStyle"
+        :label="t('playback-position-label', 'Playback Position')"
         @pointerdown="$emit('scrub-start')"
         @pointercancel="$emit('scrub-cancel')"
         @input="$emit('scrub-input', $event)"
@@ -28,23 +30,25 @@
       />
       <span class="playback-progress__time">{{ formatTime(playbackDuration || 0) }}</span>
     </div>
-    <UiIconButton
-      class="auto-hide-toggle"
-      :pressed="autoHideEnabled"
-      :active="autoHideEnabled"
-      label="Toggle auto hide panels"
-      @click="$emit('toggle-auto-hide')"
-    >
-      <IconChevronUp v-if="autoHideEnabled" size="md" />
-      <IconChevronDown v-else size="md" />
-    </UiIconButton>
+    <UiTooltip text="Toggle auto hide panels">
+      <UiIconButton
+        class="auto-hide-toggle"
+        :pressed="autoHideEnabled"
+        :active="autoHideEnabled"
+        label="Toggle auto hide panels"
+        @click="$emit('toggle-auto-hide')"
+      >
+        <IconChevronUp v-if="autoHideEnabled" size="md" />
+        <IconChevronDown v-else size="md" />
+      </UiIconButton>
+    </UiTooltip>
   </div>
 </template>
 
 <script setup lang="ts">
 import { formatTime } from "../../utils/formatters";
 import { IconChevronDown, IconChevronUp, IconPause, IconPlay } from "../icons";
-import { UiIconButton } from "../ui";
+import { UiIconButton, UiSlider, UiTooltip } from "../ui";
 
 const {
   isPlaying,

@@ -2033,3 +2033,21 @@ git commit -m "docs: record desktop ui library implementation result"
 ```
 
 Expected: commit succeeds.
+
+## Implementation Result
+
+Executed against the final design in `docs/superpowers/specs/2026-05-22-open-source-ui-library-final-design.md`.
+
+Final state:
+
+- Desktop UI primitives contain the shadcn-vue/Reka-inspired component boundary.
+- `reka-ui` usage is contained in `components/ui`.
+- Lucide icons are exposed through local `components/icons` wrappers.
+- Desktop settings, official plugin settings, top controls, subtitle-panel controls, and word lookup chrome use shared primitives or primitive-compatible chrome.
+- Transcript body components were not modified.
+
+Verification passed:
+
+- `pnpm --filter @immersive-subs/desktop-app test:renderer`
+- `pnpm --filter @immersive-subs/desktop-app typecheck`
+- `pnpm test`

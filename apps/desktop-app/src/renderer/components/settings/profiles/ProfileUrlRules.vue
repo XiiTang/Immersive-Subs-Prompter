@@ -43,24 +43,21 @@
           />
           <div class="profile-url-rule__fields">
             <label class="profile-url-rule__field">
-              <select
+              <UiSelect
                 class="profile-url-rule__match-select"
                 data-testid="profile-url-rule-match-type"
-                :value="rule.matchType"
+                :model-value="rule.matchType"
+                :options="matchTypeOptions"
                 :aria-label="t('rule-match-label', 'Match Type')"
-                @change="updateRuleMatchType(rule.id, ($event.target as HTMLSelectElement).value)"
+                @update:model-value="updateRuleMatchType(rule.id, $event)"
                 @mousedown.stop
-              >
-                <option value="contains">{{ t("rule-match-contains", "Contains") }}</option>
-                <option value="exact">{{ t("rule-match-exact", "Exact Match") }}</option>
-                <option value="regex">{{ t("rule-match-regex", "Regex") }}</option>
-              </select>
+              />
             </label>
             <label class="profile-url-rule__field profile-url-rule__field--pattern">
-              <input
+              <UiInput
                 data-testid="profile-url-rule-pattern"
                 type="text"
-                :value="rule.pattern"
+                :model-value="rule.pattern"
                 :placeholder="t('rule-pattern-label', 'Pattern')"
                 :aria-label="t('rule-pattern-label', 'Pattern')"
                 autocomplete="off"
@@ -87,19 +84,16 @@
           />
           <div class="profile-url-rule__fields">
             <label class="profile-url-rule__field">
-              <select
+              <UiSelect
                 class="profile-url-rule__match-select"
                 v-model="newRule.matchType"
+                :options="matchTypeOptions"
                 :aria-label="t('rule-match-label', 'Match Type')"
                 @mousedown.stop
-              >
-                <option value="contains">{{ t("rule-match-contains", "Contains") }}</option>
-                <option value="exact">{{ t("rule-match-exact", "Exact Match") }}</option>
-                <option value="regex">{{ t("rule-match-regex", "Regex") }}</option>
-              </select>
+              />
             </label>
             <label class="profile-url-rule__field profile-url-rule__field--pattern">
-              <input
+              <UiInput
                 data-testid="profile-url-new-rule-pattern"
                 type="text"
                 v-model="newRule.pattern"
@@ -135,7 +129,7 @@ import type { ProfileRule, UrlMatchType } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
 import { IconCheck, IconDelete } from "../../icons";
-import { UiBadge, UiEmptyState, UiIconButton, UiListItem, UiSwitch } from "../../ui";
+import { UiBadge, UiEmptyState, UiIconButton, UiInput, UiListItem, UiSelect, UiSwitch } from "../../ui";
 
 const props = defineProps<{
   profileId: string;
@@ -165,6 +159,12 @@ const newRuleRegexError = computed(() => {
   }
   return isValidRegex(newRule.pattern) ? null : t("rule-regex-invalid", "Invalid regular expression");
 });
+
+const matchTypeOptions = computed(() => [
+  { value: "contains", label: t("rule-match-contains", "Contains") },
+  { value: "exact", label: t("rule-match-exact", "Exact Match") },
+  { value: "regex", label: t("rule-match-regex", "Regex") }
+]);
 
 const canAddRule = computed(() => Boolean(newRule.pattern.trim()) && !newRuleRegexError.value);
 

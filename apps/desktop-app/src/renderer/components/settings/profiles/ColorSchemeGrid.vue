@@ -16,9 +16,9 @@
         </label>
         <div class="color-swatch-info">
           <span class="color-swatch-label">{{ swatch.label }}</span>
-          <input
+          <UiInput
             type="text"
-            :value="swatch.value"
+            :model-value="swatch.value"
             class="color-swatch-input"
             spellcheck="false"
             @input="onColorInput(swatch.settingKey, $event)"
@@ -33,6 +33,7 @@
 import { computed } from "vue";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
+import { UiInput } from "../../ui";
 
 type ColorSettingKey =
   | "subtitlePrimaryColor"

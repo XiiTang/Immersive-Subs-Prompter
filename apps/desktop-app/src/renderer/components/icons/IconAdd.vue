@@ -1,28 +1,17 @@
 <template>
-  <svg
-    class="icon icon--add"
-    :class="[sizeClass]"
-    xmlns="http://www.w3.org/2000/svg"
-    :viewBox="ICON_ADD.viewBox"
-    v-bind="ICON_STROKE_PROPS"
+  <Plus
+    :class="iconClass(size)"
+    :size="iconSizePx[size]"
+    :stroke-width="2"
     aria-hidden="true"
-  >
-    <component
-      v-for="(segment, index) in ICON_ADD.segments"
-      :is="segment.tag"
-      :key="index"
-      v-bind="segment.attrs"
-    />
-  </svg>
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { ICON_ADD, ICON_STROKE_PROPS } from "../../shared/iconDefs";
+import { Plus } from "lucide-vue-next";
+import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
 
 const { size = "md" } = defineProps<{
-  size?: "sm" | "md" | "lg";
+  size?: IconSize;
 }>();
-
-const sizeClass = computed(() => `icon--${size}`);
 </script>

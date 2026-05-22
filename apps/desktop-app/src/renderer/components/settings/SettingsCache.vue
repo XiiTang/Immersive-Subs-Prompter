@@ -4,7 +4,7 @@
       <UiSwitch v-model="cacheEnabled" :label="cacheEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
     </template>
 
-    <div v-if="cacheEnabled" class="settings-panel" data-testid="cache-settings-surface">
+    <div v-if="cacheEnabled" class="settings-stack" data-testid="cache-settings-stack">
       <div class="cache-field-row">
         <UiField id="cache-path" class="cache-field--grow" :label="t('cache-path-label', 'Cache Path')">
           <div class="ui-inline-control">

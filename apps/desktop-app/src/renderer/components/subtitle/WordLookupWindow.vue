@@ -34,7 +34,7 @@
       </div>
       <div
         v-show="scrollbarScrollable"
-        class="word-lookup-scrollbar"
+        class="word-lookup-scrollbar ui-scrollbar"
         :class="{ 'word-lookup-scrollbar--visible': scrollbarVisible }"
         data-testid="word-lookup-scrollbar"
         @pointerenter="handleScrollAreaActivity"
@@ -46,15 +46,14 @@
           @pointerdown="beginScrollbarDrag"
         />
       </div>
-      <button
-        class="word-lookup-resize-handle"
-        type="button"
-        aria-label="调整单词面板尺寸"
+      <UiIconButton
+        class="word-lookup-resize-handle ui-resize-handle"
+        label="调整单词面板尺寸"
         data-testid="word-lookup-resize-handle"
         @pointerdown="beginResizeDrag"
       >
         <span aria-hidden="true" />
-      </button>
+      </UiIconButton>
     </section>
   </main>
 </template>
@@ -63,6 +62,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { renderWordLookupMarkdown } from "../../plugins/wordLookupMarkdown";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
+import { UiIconButton } from "../ui";
 
 type WordLookupWindowPayload = {
   matches: WordLookupResult["matches"];

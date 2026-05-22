@@ -131,8 +131,9 @@ describe("SettingsProfiles", () => {
     const fontSelect = wrapper.find('[data-testid="subtitle-font-select"]');
 
     expect(fontSelect.exists()).toBe(true);
-    expect(fontSelect.element.tagName).toBe("SELECT");
-    expect(fontSelect.findAll("option").length).toBeGreaterThan(1);
+    expect(fontSelect.element.tagName).toBe("BUTTON");
+    expect(fontSelect.attributes("role")).toBe("combobox");
+    expect(fontSelect.text()).toContain("Helvetica Neue");
     expect(
       wrapper
         .findAll('input[type="text"]')
@@ -199,9 +200,9 @@ describe("SettingsProfiles", () => {
 
     const toggle = wrapper.get('[data-testid="subtitle-meta-auto-hide-toggle"]');
 
-    expect(toggle.element.tagName).toBe("INPUT");
-    expect(toggle.attributes("type")).toBe("checkbox");
-    expect((toggle.element as HTMLInputElement).checked).toBe(true);
+    expect(toggle.element.tagName).toBe("BUTTON");
+    expect(toggle.attributes("role")).toBe("switch");
+    expect(toggle.attributes("aria-checked")).toBe("true");
   });
 
   it("renders the default profile editor with the applied profile selected", () => {
@@ -349,12 +350,13 @@ describe("SettingsProfiles", () => {
 
     const firstRule = wrapper.get(".profile-url-rule");
     const patternInput = firstRule.get<HTMLInputElement>('[data-testid="profile-url-rule-pattern"]');
-    const matchTypeSelect = firstRule.get<HTMLSelectElement>('[data-testid="profile-url-rule-match-type"]');
+    const matchTypeSelect = firstRule.get('[data-testid="profile-url-rule-match-type"]');
 
     expect(wrapper.find(".profile-url-rule-form").exists()).toBe(false);
     expect(firstRule.text()).not.toContain("Edit");
     expect(patternInput.element.value).toBe("youtube.com");
-    expect(matchTypeSelect.element.value).toBe("contains");
+    expect(matchTypeSelect.attributes("role")).toBe("combobox");
+    expect(matchTypeSelect.text()).toContain("Contains");
   });
 
   it("uses compact unlabeled URL rule fields with the pattern label as placeholder", () => {

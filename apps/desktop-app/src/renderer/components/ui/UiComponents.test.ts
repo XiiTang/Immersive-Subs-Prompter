@@ -1,4 +1,5 @@
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { describe, expect, it } from "vitest";
 import {
   UiBadge,
@@ -8,14 +9,29 @@ import {
   UiIconButton,
   UiInput,
   UiListItem,
+  UiPopover,
   UiProgress,
   UiSection,
   UiSelect,
   UiSegmentedControl,
+  UiSeparator,
+  UiSlider,
   UiStatus,
   UiSwitch,
-  UiTextarea
+  UiTextarea,
+  UiTooltip
 } from "./index";
+
+function createPointerEvent(type: string, init: Partial<PointerEvent>) {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
+  for (const [key, value] of Object.entries(init)) {
+    Object.defineProperty(event, key, {
+      configurable: true,
+      value
+    });
+  }
+  return event;
+}
 
 describe("UI primitives", () => {
   it("renders button variants with stable classes", () => {
@@ -69,18 +85,85 @@ describe("UI primitives", () => {
     const select = mount(UiSelect, {
       props: {
         modelValue: "dark",
+        ariaLabel: "Theme",
         options: [
           { value: "system", label: "System" },
           { value: "dark", label: "Dark" }
         ]
-      }
+      },
+      attachTo: document.body
     });
-    await select.get("select").setValue("system");
+    expect(select.find("select").exists()).toBe(false);
+    expect(select.get('[role="combobox"]').attributes("aria-label")).toBe("Theme");
+    select.get('[role="combobox"]').element.dispatchEvent(
+      createPointerEvent("pointerdown", {
+        button: 0,
+        ctrlKey: false,
+        pageX: 0,
+        pageY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
+    await nextTick();
+    const systemOption = document.body.querySelector('[data-value="system"]');
+    expect(systemOption).toBeInstanceOf(HTMLElement);
+    (systemOption as HTMLElement).focus();
+    systemOption?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    await nextTick();
+    await nextTick();
     expect(select.emitted("update:modelValue")?.[0]).toEqual(["system"]);
 
     const toggle = mount(UiSwitch, { props: { modelValue: false, label: "On" } });
-    await toggle.get("input").setValue(true);
+    expect(toggle.find('input[type="checkbox"]').exists()).toBe(false);
+    expect(toggle.get('[role="switch"]').attributes("aria-checked")).toBe("false");
+    await toggle.get('[role="switch"]').trigger("click");
     expect(toggle.emitted("update:modelValue")?.[0]).toEqual([true]);
+  });
+
+  it("renders slider with native event passthrough for playback scrubbing", async () => {
+    const slider = mount(UiSlider, {
+      props: {
+        modelValue: 10,
+        min: 0,
+        max: 100,
+        step: 1,
+        label: "Playback position"
+      }
+    });
+
+    const input = slider.get('input[type="range"]');
+    expect(input.attributes("aria-label")).toBe("Playback position");
+    await input.setValue("42");
+
+    expect(slider.emitted("update:modelValue")?.[0]).toEqual([42]);
+    expect(slider.emitted("input")?.[0]?.[0]).toBeInstanceOf(Event);
+  });
+
+  it("renders tooltip, popover, and separator primitives with stable slots", async () => {
+    const tooltip = mount(UiTooltip, {
+      props: { text: "Refresh cache" },
+      slots: { default: "<button>Refresh</button>" },
+      attachTo: document.body
+    });
+
+    expect(tooltip.get("button").text()).toBe("Refresh");
+
+    const popover = mount(UiPopover, {
+      props: { label: "More actions" },
+      slots: {
+        trigger: "<button>More</button>",
+        default: "<p>Action list</p>"
+      },
+      attachTo: document.body
+    });
+
+    await popover.get("button").trigger("click");
+    expect(document.body.textContent).toContain("Action list");
+
+    const separator = mount(UiSeparator);
+    expect(separator.attributes("role")).toBe("separator");
+    expect(separator.classes()).toContain("ui-separator");
   });
 
   it("renders section, list item, badge, status, and empty state classes", () => {
