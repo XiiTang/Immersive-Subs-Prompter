@@ -53,23 +53,24 @@
             />
           </div>
           <UiIconButton
-            :class="pinButtonClass"
             :label="pinLabel"
             :pressed="isPinned"
             :active="isPinned"
             @click="cyclePin"
           >
-            <span aria-hidden="true">{{ pinIcon }}</span>
+            <IconPin v-if="alwaysOnTop === 'off'" size="md" />
+            <IconPin v-else-if="alwaysOnTop === 'floating'" size="md" />
+            <IconLock v-else size="md" />
           </UiIconButton>
           <UiIconButton
             :label="store.desktopState?.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
             :pressed="store.desktopState?.isFullscreen"
             @click="store.toggleFullscreen()"
           >
-            <span aria-hidden="true">{{ fullscreenIcon }}</span>
+            <IconFullscreen size="md" />
           </UiIconButton>
           <UiIconButton label="Open settings" @click="openSettingsWindow">
-            <span aria-hidden="true">⚙</span>
+            <IconSettings size="md" />
           </UiIconButton>
         </div>
       </header>
@@ -141,6 +142,7 @@ import TrackSelector from "../subtitle/TrackSelector.vue";
 import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { UiIconButton } from "../ui";
+import { IconFullscreen, IconLock, IconPin, IconSettings } from "../icons";
 
 interface SubtitleTrackOption {
   id: string;
@@ -251,25 +253,12 @@ const pinLabels: Record<string, string> = {
   floating: "Pinned",
   "screen-saver": "Pinned (screen saver)"
 };
-const pinIcons: Record<string, string> = {
-  off: "📍",
-  floating: "📌",
-  "screen-saver": "🔒"
-};
 const pinLabel = computed(() => pinLabels[alwaysOnTop.value] ?? "Pinned");
-const pinIcon = computed(() => pinIcons[alwaysOnTop.value] ?? "📍");
 const isPinned = computed(() => alwaysOnTop.value !== "off");
-const pinButtonClass = computed(() => ({
-  "icon-button--active": alwaysOnTop.value !== "off",
-  "icon-button--screen-saver": alwaysOnTop.value === "screen-saver"
-}));
 const panelOpacityValue = computed({
   get: () => store.panelOpacity,
   set: (value: number) => store.updateGlobalSetting("panelOpacity", value)
 });
-const fullscreenIcon = computed(() =>
-  store.desktopState?.isFullscreen ? "🗗" : "⛶"
-);
 const panelClasses = computed(() => ({
   "top-control-panel--force-expanded": panelMode.value === "force-expanded",
   "top-control-panel--collapsed": panelMode.value === "collapsed",

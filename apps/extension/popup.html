@@ -9,15 +9,15 @@
 </head>
 
 <body>
-  <header class="usp-header">
-    <div class="usp-header__meta">
-      <span class="usp-status" id="status-indicator">Connecting…</span>
+  <header class="popup-header">
+    <div class="popup-header__meta">
+      <span class="popup-status" id="status-indicator">Connecting…</span>
     </div>
-    <div class="usp-header__actions">
-      <button type="button" class="usp-icon-button" id="appearance-btn" title="Appearance" aria-label="Appearance">
+    <div class="popup-header__actions">
+      <button type="button" class="popup-icon-button" id="appearance-btn" title="Appearance" aria-label="Appearance">
         <span aria-hidden="true">Aa</span>
       </button>
-      <button type="button" class="usp-icon-button" id="connections-btn" title="Connections" aria-label="Connections">
+      <button type="button" class="popup-icon-button" id="connections-btn" title="Connections" aria-label="Connections">
         <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
@@ -28,7 +28,7 @@
           </svg>
         </span>
       </button>
-      <button type="button" class="usp-icon-button" id="blacklist-btn" title="Blacklist" aria-label="Blacklist">
+      <button type="button" class="popup-icon-button" id="blacklist-btn" title="Blacklist" aria-label="Blacklist">
         <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
@@ -40,7 +40,7 @@
       </button>
     </div>
   </header>
-  <main class="usp-main">
+  <main class="popup-main">
     <section id="media-root" class="media-root">
       <div class="empty-state">
         <strong>No media detected</strong>
@@ -100,20 +100,20 @@
     </div>
   </section>
 
-  <template id="media-card-template">
-    <article class="media-card">
-      <div class="media-card__header">
-        <div class="media-card__title"></div>
-        <span class="media-card__status"></span>
+  <template id="media-row-template">
+    <article class="media-row">
+      <div class="media-row__header">
+        <div class="media-row__title"></div>
+        <span class="media-row__status"></span>
       </div>
-      <div class="media-card__subtitle"></div>
-      <div class="media-card__meta"></div>
-      <div class="media-card__progress">
-        <div class="media-card__progress-bar"></div>
+      <div class="media-row__subtitle"></div>
+      <div class="media-row__meta"></div>
+      <div class="media-row__progress">
+        <div class="media-row__progress-bar"></div>
       </div>
-      <div class="media-card__time"></div>
-      <div class="media-card__actions">
-        <a class="media-card__link" target="_blank" rel="noreferrer noopener">Open tab</a>
+      <div class="media-row__time"></div>
+      <div class="media-row__actions">
+        <a class="media-row__link" target="_blank" rel="noreferrer noopener">Open tab</a>
       </div>
     </article>
   </template>

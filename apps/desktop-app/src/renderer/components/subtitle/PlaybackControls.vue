@@ -7,7 +7,8 @@
       :label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
       @click="$emit('toggle-playback')"
     >
-      {{ isPlaying ? "⏸" : "▶" }}
+      <IconPause v-if="isPlaying" size="md" />
+      <IconPlay v-else size="md" />
     </UiIconButton>
     <div class="playback-progress">
       <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
@@ -34,13 +35,15 @@
       label="Toggle auto hide panels"
       @click="$emit('toggle-auto-hide')"
     >
-      {{ autoHideEnabled ? "▲" : "▼" }}
+      <IconChevronUp v-if="autoHideEnabled" size="md" />
+      <IconChevronDown v-else size="md" />
     </UiIconButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { formatTime } from "../../utils/formatters";
+import { IconChevronDown, IconChevronUp, IconPause, IconPlay } from "../icons";
 import { UiIconButton } from "../ui";
 
 const {

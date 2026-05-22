@@ -8,8 +8,10 @@ import {
   UiIconButton,
   UiInput,
   UiListItem,
+  UiProgress,
   UiSection,
   UiSelect,
+  UiSegmentedControl,
   UiStatus,
   UiSwitch,
   UiTextarea
@@ -87,5 +89,34 @@ describe("UI primitives", () => {
     expect(mount(UiBadge, { props: { tone: "success" }, slots: { default: "Ready" } }).classes()).toContain("ui-badge--success");
     expect(mount(UiStatus, { props: { tone: "danger" }, slots: { default: "Error" } }).classes()).toContain("ui-status--danger");
     expect(mount(UiEmptyState, { props: { message: "No items" } }).text()).toBe("No items");
+  });
+
+  it("renders segmented controls and emits selected values", async () => {
+    const segmented = mount(UiSegmentedControl, {
+      props: {
+        modelValue: "system",
+        label: "Theme",
+        options: [
+          { value: "system", label: "System" },
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" }
+        ]
+      }
+    });
+
+    expect(segmented.attributes("role")).toBe("radiogroup");
+    expect(segmented.find('[aria-checked="true"]').text()).toBe("System");
+    await segmented.findAll("button")[1]?.trigger("click");
+    expect(segmented.emitted("update:modelValue")?.[0]).toEqual(["light"]);
+  });
+
+  it("renders progress with an accessible numeric value", () => {
+    const progress = mount(UiProgress, {
+      props: { value: 42, label: "Download progress" }
+    });
+
+    expect(progress.attributes("role")).toBe("progressbar");
+    expect(progress.attributes("aria-valuenow")).toBe("42");
+    expect(progress.get(".ui-progress__bar").attributes("style")).toContain("42%");
   });
 });

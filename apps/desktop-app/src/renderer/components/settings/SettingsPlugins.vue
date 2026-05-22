@@ -1,7 +1,7 @@
 <template>
   <UiSection :title="t('plugin-section-title', 'Plugin Management')">
     <div v-if="catalog.length" class="ui-list plugin-list">
-      <UiListItem v-for="plugin in catalog" :key="plugin.id" as="article" class="plugin-card">
+      <UiListItem v-for="plugin in catalog" :key="plugin.id" as="article">
         <div class="ui-list-item__main">
           <div class="ui-list-item__title-row">
             <span class="ui-list-item__title">{{ plugin.displayName }}</span>

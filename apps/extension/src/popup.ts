@@ -21,7 +21,7 @@ const appearancePanel = document.getElementById("appearance-panel");
 const appearanceButton = document.getElementById("appearance-btn");
 const appearanceBackButton = document.getElementById("appearance-back");
 const appearanceOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-theme-option]"));
-const template = document.getElementById("media-card-template") as HTMLTemplateElement | null;
+const template = document.getElementById("media-row-template") as HTMLTemplateElement | null;
 const blacklistPanel = document.getElementById("blacklist-panel");
 const blacklistButton = document.getElementById("blacklist-btn");
 const blacklistBackButton = document.getElementById("blacklist-back");
@@ -149,16 +149,16 @@ function renderServers() {
 
   const previousValue = serverInputEl?.value ?? "";
   const card = document.createElement("div");
-  card.className = "server-card";
+  card.className = "popup-section";
 
   const header = document.createElement("div");
-  header.className = "server-card__header";
+  header.className = "popup-section__header";
   const titleWrap = document.createElement("div");
   const title = document.createElement("div");
-  title.className = "server-card__title";
+  title.className = "popup-section__title";
   title.textContent = "Desktop Apps";
   const subtitle = document.createElement("div");
-  subtitle.className = "server-card__subtitle";
+  subtitle.className = "popup-section__subtitle";
   const total = serverEndpoints.length || connectionStatuses.length;
   const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
   subtitle.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
@@ -489,13 +489,13 @@ function renderCards(items: MediaInfo[]) {
     const blueprint = template.content.firstElementChild;
     if (!blueprint) return;
     const clone = blueprint.cloneNode(true) as HTMLElement;
-    const titleEl = clone.querySelector(".media-card__title") as HTMLElement | null;
-    const statusEl = clone.querySelector(".media-card__status") as HTMLElement | null;
-    const subtitleEl = clone.querySelector(".media-card__subtitle") as HTMLElement | null;
-    const metaEl = clone.querySelector(".media-card__meta") as HTMLElement | null;
-    const timeEl = clone.querySelector(".media-card__time") as HTMLElement | null;
-    const linkEl = clone.querySelector(".media-card__link") as HTMLAnchorElement | null;
-    const progressBar = clone.querySelector(".media-card__progress-bar") as HTMLElement | null;
+    const titleEl = clone.querySelector(".media-row__title") as HTMLElement | null;
+    const statusEl = clone.querySelector(".media-row__status") as HTMLElement | null;
+    const subtitleEl = clone.querySelector(".media-row__subtitle") as HTMLElement | null;
+    const metaEl = clone.querySelector(".media-row__meta") as HTMLElement | null;
+    const timeEl = clone.querySelector(".media-row__time") as HTMLElement | null;
+    const linkEl = clone.querySelector(".media-row__link") as HTMLAnchorElement | null;
+    const progressBar = clone.querySelector(".media-row__progress-bar") as HTMLElement | null;
 
     clone.classList.toggle("playing", !!item.isPlaying);
     clone.classList.toggle("paused", !item.isPlaying);

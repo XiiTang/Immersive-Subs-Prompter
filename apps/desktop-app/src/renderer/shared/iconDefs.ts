@@ -64,3 +64,64 @@ export const ICON_REFRESH: IconDefinition = {
     { tag: "path", attrs: { d: "M5 13.5H4v-3" } }
   ]
 };
+
+export const ICON_CHEVRON_DOWN: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [{ tag: "path", attrs: { d: "M4.5 6.5 8 10l3.5-3.5" } }]
+};
+
+export const ICON_CHEVRON_UP: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [{ tag: "path", attrs: { d: "M4.5 9.5 8 6l3.5 3.5" } }]
+};
+
+export const ICON_FULLSCREEN: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M5.5 2.5h-3v3" } },
+    { tag: "path", attrs: { d: "M10.5 2.5h3v3" } },
+    { tag: "path", attrs: { d: "M13.5 10.5v3h-3" } },
+    { tag: "path", attrs: { d: "M2.5 10.5v3h3" } }
+  ]
+};
+
+export const ICON_LOCK: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M4.5 7.5h7v5h-7z" } },
+    { tag: "path", attrs: { d: "M5.75 7.5v-2.25a2.25 2.25 0 0 1 4.5 0V7.5" } }
+  ]
+};
+
+export const ICON_PAUSE: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "line", attrs: { x1: 6, y1: 4, x2: 6, y2: 12 } },
+    { tag: "line", attrs: { x1: 10, y1: 4, x2: 10, y2: 12 } }
+  ]
+};
+
+export const ICON_PIN: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M5 2.5h6l-1.5 4 2 2-3 3-2-2-4 1.5 1.5-4-2-2 3-3Z" } },
+    { tag: "line", attrs: { x1: 7.5, y1: 10.5, x2: 4, y2: 14 } }
+  ]
+};
+
+export const ICON_PLAY: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [{ tag: "path", attrs: { d: "M5.5 3.5v9l7-4.5-7-4.5Z" } }]
+};
+
+export const ICON_SETTINGS: IconDefinition = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "line", attrs: { x1: 3, y1: 4.5, x2: 13, y2: 4.5 } },
+    { tag: "circle", attrs: { cx: 6, cy: 4.5, r: 1.2 } },
+    { tag: "line", attrs: { x1: 3, y1: 8, x2: 13, y2: 8 } },
+    { tag: "circle", attrs: { cx: 10, cy: 8, r: 1.2 } },
+    { tag: "line", attrs: { x1: 3, y1: 11.5, x2: 13, y2: 11.5 } },
+    { tag: "circle", attrs: { cx: 7.5, cy: 11.5, r: 1.2 } }
+  ]
+};

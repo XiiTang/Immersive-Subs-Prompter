@@ -27,18 +27,16 @@
           />
         </template>
         <template v-else-if="isFasterWhisper">
-          <div class="fw-management-section">
-            <div v-if="downloadProgress" class="fw-download-banner">
-              <div class="fw-download-banner__info">
-                <span class="fw-download-banner__status">{{ downloadProgress.status }}</span>
-                <span class="fw-download-banner__percent">{{ downloadProgress.percent }}%</span>
+          <div class="settings-stack">
+            <div v-if="downloadProgress" class="settings-progress">
+              <div class="settings-progress__info">
+                <span>{{ downloadProgress.status }}</span>
+                <span>{{ downloadProgress.percent }}%</span>
               </div>
-              <div class="fw-progress-bar">
-                <div class="fw-progress-bar__fill" :style="{ width: downloadProgress.percent + '%' }"></div>
-              </div>
+              <UiProgress :value="downloadProgress.percent" :label="t('transcription-download-progress', 'Download progress')" />
             </div>
 
-            <div class="fw-grid">
+            <div class="settings-grid settings-grid--two">
               <FasterWhisperBinariesCard
                 :t="t"
                 :binary-status="binaryStatus"
@@ -74,8 +72,8 @@
               v-model:prompt="prompt"
             />
 
-            <p v-if="downloadMessage" class="fw-message fw-message--info">{{ downloadMessage }}</p>
-            <p v-if="downloadError" class="fw-message fw-message--error">{{ downloadError }}</p>
+            <p v-if="downloadMessage" class="ui-message ui-message--info">{{ downloadMessage }}</p>
+            <p v-if="downloadError" class="ui-message ui-message--error">{{ downloadError }}</p>
           </div>
         </template>
         <UiField
@@ -106,7 +104,7 @@ import FasterWhisperModelsCard from "./transcription/FasterWhisperModelsCard.vue
 import FasterWhisperRuntimeCard from "./transcription/FasterWhisperRuntimeCard.vue";
 import { useTranscriptionConfig } from "./transcription/composables/useTranscriptionConfig";
 import { useFasterWhisper } from "./transcription/composables/useFasterWhisper";
-import { UiField, UiInput, UiSection, UiSelect, UiTextarea } from "../ui";
+import { UiField, UiInput, UiProgress, UiSection, UiSelect, UiTextarea } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

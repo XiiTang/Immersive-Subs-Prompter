@@ -1,20 +1,11 @@
 <template>
   <UiSection :title="t('section-appearance', 'Appearance')">
     <UiField id="appearance-theme" :label="t('appearance-theme-label', 'Theme')">
-      <div class="ui-segmented" role="radiogroup" :aria-label="t('appearance-theme-label', 'Theme')">
-        <button
-          v-for="option in themeOptions"
-          :key="option.value"
-          type="button"
-          class="ui-segmented__item"
-          :class="{ 'is-selected': appearanceTheme === option.value }"
-          role="radio"
-          :aria-checked="appearanceTheme === option.value"
-          @click="appearanceTheme = option.value"
-        >
-          {{ option.label }}
-        </button>
-      </div>
+      <UiSegmentedControl
+        v-model="appearanceTheme"
+        :label="t('appearance-theme-label', 'Theme')"
+        :options="themeOptions"
+      />
     </UiField>
   </UiSection>
 </template>
@@ -24,7 +15,7 @@ import { computed } from "vue";
 import type { AppearanceTheme } from "../../../main/types";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiField, UiSection } from "../ui";
+import { UiField, UiSection, UiSegmentedControl } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

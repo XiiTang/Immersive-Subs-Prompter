@@ -1,13 +1,13 @@
 <template>
-  <div class="fw-card">
-    <div class="fw-card__header">
-      <div class="fw-card__title">{{ t("transcription-runtime-config", "Runtime Configuration") }}</div>
-    </div>
+  <section class="ui-group">
+    <header class="ui-group__header">
+      <h3 class="ui-group__title">{{ t("transcription-runtime-config", "Runtime Configuration") }}</h3>
+    </header>
 
-    <div class="fw-card__content">
-      <div class="fw-row two-col">
+    <div class="ui-group__body">
+      <div class="settings-row settings-row--two">
         <UiField id="fw-active-model" :label="t('transcription-faster-model', 'Active Model')">
-          <div class="fw-select-group">
+          <div class="settings-inline">
             <UiSelect v-model="selectedDownloadedModel" :options="downloadedModelOptions" />
             <UiInput
               v-if="selectedDownloadedModel === 'custom'"
@@ -22,7 +22,7 @@
         </UiField>
       </div>
 
-      <div class="fw-row three-col">
+      <div class="settings-row settings-row--three">
         <UiField id="fw-vad-filter" :label="t('transcription-faster-vad-filter', 'VAD Filter')" inline>
           <UiSwitch v-model="fasterWhisperVadFilter" :label="fasterWhisperVadFilter ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
         </UiField>
@@ -36,7 +36,7 @@
         </UiField>
       </div>
 
-      <div class="fw-row two-col">
+      <div class="settings-row settings-row--two">
         <UiField id="fw-language" :label="t('transcription-language-label', 'Language')">
           <UiInput v-model="languageField" placeholder="auto" />
         </UiField>
@@ -46,13 +46,13 @@
         </UiField>
       </div>
 
-      <div class="fw-row">
+      <div class="settings-row">
         <UiField id="fw-kim2" :label="t('transcription-faster-kim2', 'Voice Separation (Kim2)')" inline>
           <UiSwitch v-model="fasterWhisperUseKim2" :label="fasterWhisperUseKim2 ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
         </UiField>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">

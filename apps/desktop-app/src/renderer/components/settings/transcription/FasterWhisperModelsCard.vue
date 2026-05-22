@@ -1,20 +1,18 @@
 <template>
-  <div class="fw-card">
-    <div class="fw-card__header">
-      <div class="fw-card__title">{{ t("transcription-faster-models-available", "AI Models") }}</div>
-    </div>
+  <section class="ui-group">
+    <header class="ui-group__header">
+      <h3 class="ui-group__title">{{ t("transcription-faster-models-available", "AI Models") }}</h3>
+    </header>
 
-    <div class="fw-card__content">
-      <div class="fw-model-row">
+    <div class="ui-group__body">
+      <div class="settings-model-row">
         <template v-if="availableModels.length">
-          <span v-for="m in availableModels" :key="m.path" class="fw-model-chip">
+          <UiBadge v-for="m in availableModels" :key="m.path">
             {{ m.name }}
-          </span>
+          </UiBadge>
         </template>
-        <span v-else class="fw-model-empty-hint">
-          {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
-        </span>
-        <div class="fw-model-download">
+        <UiEmptyState v-else :message="t('transcription-faster-model-missing', 'No downloaded models detected')" />
+        <div class="settings-inline settings-inline--end">
           <UiSelect v-model="selectedModel" :options="fasterWhisperModels" />
           <UiButton variant="primary" :disabled="isBusy" @click="$emit('download-model')">
             {{ t("transcription-faster-download-model", "Download") }}
@@ -22,9 +20,9 @@
         </div>
       </div>
 
-      <div class="fw-folder-input">
-        <div class="fw-field-header">
-          <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
+      <div class="settings-field-stack">
+        <div class="settings-row settings-row--between">
+          <span class="ui-field__label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
           <UiIconButton
             size="sm"
             @click="$emit('open-path', modelsDir)"
@@ -36,13 +34,13 @@
         <UiInput v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" />
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import { IconFolder } from "../../icons";
 import type { AvailableModel } from "./composables/useFasterWhisper";
-import { UiButton, UiIconButton, UiInput, UiSelect } from "../../ui";
+import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiInput, UiSelect } from "../../ui";
 
 defineProps<{
   t: (key: string, fallback: string) => string;
