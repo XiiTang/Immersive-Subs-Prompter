@@ -3,56 +3,46 @@
     <div class="settings-split__sidebar-header">
       <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
       <div class="settings-split__sidebar-buttons">
-        <button
-          type="button"
-          class="icon-button"
-          :title="t('button-add', 'Add')"
-          :aria-label="t('button-add', 'Add')"
-          @click="$emit('add')"
-        >
+        <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
           <IconAdd size="md" />
-        </button>
-        <button
-          type="button"
-          class="icon-button"
+        </UiIconButton>
+        <UiIconButton
           :disabled="transcriptionConfigs.length <= 1"
-          :title="t('button-delete', 'Delete')"
-          :aria-label="t('button-delete', 'Delete')"
+          variant="danger"
+          :label="t('button-delete', 'Delete')"
           @click="$emit('delete')"
         >
           <IconDelete size="md" />
-        </button>
+        </UiIconButton>
       </div>
     </div>
-    <div class="transcription-config-list settings-list">
+    <div class="transcription-config-list ui-list">
       <template v-if="transcriptionConfigs.length">
-        <button
+        <UiListItem
           v-for="config in transcriptionConfigs"
           :key="config.id"
-          type="button"
+          as="button"
           class="transcription-config-list__item"
-          :class="{ 'is-selected': config.id === activeConfigId }"
+          :selected="config.id === activeConfigId"
           @click="$emit('select', config.id)"
         >
           <div class="transcription-config-list__name">
             <span class="transcription-config-list__label">{{ config.name || config.id }}</span>
-            <span v-if="config.id === activeConfigId" class="transcription-config-list__badge">
+            <UiBadge v-if="config.id === activeConfigId" tone="info">
               {{ t("transcription-config-active-badge", "Active") }}
-            </span>
+            </UiBadge>
           </div>
           <div class="transcription-config-list__meta">
-            <span class="transcription-config-list__pill">
+            <UiBadge>
               {{ getProviderLabel(config.provider) }}
-            </span>
+            </UiBadge>
             <span class="transcription-config-list__muted">
               {{ getModelLabel(config) }}
             </span>
           </div>
-        </button>
+        </UiListItem>
       </template>
-      <div v-else class="transcription-config-list__empty">
-        {{ t("transcription-config-empty", "No transcription configs yet") }}
-      </div>
+      <UiEmptyState v-else :message="t('transcription-config-empty', 'No transcription configs yet')" />
     </div>
   </div>
 </template>
@@ -60,6 +50,7 @@
 <script setup lang="ts">
 import type { TranscriptionConfig } from "../../../../main/types";
 import { IconAdd, IconDelete } from "../../icons";
+import { UiBadge, UiEmptyState, UiIconButton, UiListItem } from "../../ui";
 
 const props = defineProps<{
   transcriptionConfigs: TranscriptionConfig[];

@@ -1,130 +1,58 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro">
-      <div>
-        <h3 class="settings-section__title">{{ t("section-global-settings", "Global Settings") }}</h3>
-      </div>
-    </header>
-
+  <UiSection :title="t('section-global-settings', 'Global Settings')">
     <div class="settings-panel">
-      <div class="settings-group">
-        <div class="settings-group__header">
-          <h4 class="settings-group__title">{{ t("global-general", "General") }}</h4>
-        </div>
+      <div class="settings-fields-grid settings-fields-grid--two-col">
+        <UiField id="language" :label="t('language-label', 'Language')">
+          <UiSelect v-model="languageSetting" :options="languageOptions" />
+        </UiField>
 
-        <div class="settings-fields-grid settings-fields-grid--two-col">
-          <div class="settings-field">
-            <span class="settings-field__label">{{ t("language-label", "Language") }}</span>
-            <select v-model="languageSetting" class="settings-select">
-              <option value="en">{{ t("language-option-en", "English") }}</option>
-              <option value="zh">{{ t("language-option-zh", "中文") }}</option>
-            </select>
-          </div>
-
-          <div class="settings-field settings-field--inline">
-            <span class="settings-field__label">{{ t("auto-start-label", "Auto Start") }}</span>
-            <label class="toggle">
-              <input type="checkbox" v-model="autoLaunch" />
-              <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-            </label>
-          </div>
-        </div>
+        <UiField id="auto-start" :label="t('auto-start-label', 'Auto Start')" inline>
+          <UiSwitch v-model="autoLaunch" :label="autoLaunch ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+        </UiField>
       </div>
 
-      <div class="settings-group">
-        <div class="settings-group__header">
-          <h4 class="settings-group__title">{{ t("global-network", "Network & Connections") }}</h4>
-        </div>
+      <div class="settings-fields-grid settings-fields-grid--two-col">
+        <UiField id="network-host" :label="t('network-host-label', 'Bind Address')" :hint="t('network-host-hint', 'Use 0.0.0.0 only when another extension client must connect over your LAN.')">
+          <UiInput v-model="serverHost" placeholder="127.0.0.1" />
+        </UiField>
 
-        <div class="settings-fields-grid settings-fields-grid--two-col">
-          <div class="settings-field">
-            <span class="settings-field__label">{{ t("network-host-label", "Bind Address") }}</span>
-            <input type="text" v-model="serverHost" class="settings-input" spellcheck="false" placeholder="127.0.0.1" />
-          </div>
+        <UiField id="network-port" :label="t('network-port-label', 'Port')" :hint="t('network-port-hint', 'Changing host/port restarts the desktop WebSocket server.')">
+          <UiInput v-model="serverPort" type="number" min="1" max="65535" />
+        </UiField>
 
-          <div class="settings-field">
-            <span class="settings-field__label">{{ t("network-port-label", "Port") }}</span>
-            <input type="number" min="1" max="65535" v-model.number="serverPort" class="settings-input" />
-          </div>
-
-          <div class="settings-field settings-field--wide">
-            <span class="settings-field__label">{{ t("network-endpoint-label", "Extension Endpoint") }}</span>
-            <input type="text" :value="extensionEndpoint" class="settings-input" spellcheck="false" readonly />
-            <span class="settings-field__hint">
-              {{ t("network-endpoint-hint", "Use this full URL when the bind address is reachable from another device.") }}
-            </span>
-          </div>
-        </div>
-
-        <div class="settings-note">
-          <small class="settings-field__hint">
-            {{ t("network-port-hint", "Changing host/port restarts the desktop WebSocket server.") }}
-          </small>
-          <small class="settings-field__hint">
-            {{ t("network-host-hint", "Use 0.0.0.0 to allow phones/tablets on your LAN to connect.") }}
-          </small>
-        </div>
+        <UiField id="network-endpoint" class="settings-field--wide" :label="t('network-endpoint-label', 'Extension Endpoint')" :hint="t('network-endpoint-hint', 'Use this full URL when the bind address is reachable from another device.')">
+          <UiInput :model-value="extensionEndpoint" readonly />
+        </UiField>
       </div>
 
-      <div class="settings-group">
-        <div class="settings-group__header">
-          <h4 class="settings-group__title">{{ t("global-shortcuts", "Shortcuts & Interaction") }}</h4>
+      <UiField id="toggle-shortcut" :label="t('toggle-shortcut-label', 'Toggle Window Shortcut')" :hint="t('toggle-shortcut-hint', 'Use modifiers with keys.')">
+        <UiInput v-model="toggleShortcut" placeholder="CommandOrControl+Shift+S" />
+      </UiField>
+
+      <UiField id="process-blacklist" :label="t('process-blacklist-label', 'Process Blacklist')" :hint="t('process-blacklist-hint', 'Disable shortcuts when these processes are foregrounded.')">
+        <div class="ui-inline-control">
+          <UiInput
+            v-model="gameProcessInput"
+            :placeholder="t('process-blacklist-placeholder', 'e.g.: r5apex_dx12.exe, csgo.exe, vlc.exe')"
+            @keyup.enter="addGameProcess"
+          />
+          <UiIconButton :label="t('button-add', 'Add')" @click="addGameProcess">
+            <IconAdd size="md" />
+          </UiIconButton>
         </div>
+      </UiField>
 
-        <div class="settings-field settings-field--compact">
-          <span class="settings-field__label">{{ t("toggle-shortcut-label", "Toggle Window Shortcut") }}</span>
-          <input type="text" v-model="toggleShortcut" class="settings-input" placeholder="CommandOrControl+Shift+S" />
-          <span class="settings-field__hint">{{ t("toggle-shortcut-hint", "Use modifiers with keys.") }}</span>
-        </div>
-
-        <div class="settings-field">
-          <div class="settings-field-header">
-            <span class="settings-field__label">{{ t("process-blacklist-label", "Process Blacklist") }}</span>
-            <span class="settings-field__hint-inline">
-              {{ t("process-blacklist-hint", "Disable shortcuts when these processes are foregrounded.") }}
-            </span>
-          </div>
-
-          <div class="game-blacklist-editor__controls">
-            <input
-              type="text"
-              v-model="gameProcessInput"
-              class="settings-input"
-              :placeholder="t('process-blacklist-placeholder', 'e.g.: r5apex_dx12.exe, csgo.exe, vlc.exe')"
-              autocomplete="off"
-              @keyup.enter="addGameProcess"
-            />
-            <button
-              type="button"
-              class="icon-button"
-              :title="t('button-add', 'Add')"
-              :aria-label="t('button-add', 'Add')"
-              @click="addGameProcess"
-            >
-              <IconAdd size="md" />
-            </button>
-          </div>
-
-          <div class="priority-editor__list" v-if="gameProcesses.length">
-            <div v-for="process in gameProcesses" :key="process" class="priority-editor__item">
-              <span>{{ process }}</span>
-              <button
-                type="button"
-                class="settings-action-btn--remove"
-                :aria-label="t('game-blacklist-remove', 'Remove')"
-                @click="removeGameProcess(process)"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div v-else class="priority-editor__empty">
-            {{ t("game-blacklist-none", "No processes yet.") }}
-          </div>
-        </div>
+      <div v-if="gameProcesses.length" class="ui-chip-list">
+        <span v-for="process in gameProcesses" :key="process" class="ui-chip">
+          {{ process }}
+          <button type="button" class="ui-chip__remove" :aria-label="t('game-blacklist-remove', 'Remove')" @click="removeGameProcess(process)">
+            x
+          </button>
+        </span>
       </div>
+      <UiEmptyState v-else :message="t('game-blacklist-none', 'No processes yet.')" />
     </div>
-  </section>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -132,12 +60,16 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd } from "../icons";
+import { UiEmptyState, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-
+const languageOptions = computed(() => [
+  { value: "en", label: t("language-option-en", "English") },
+  { value: "zh", label: t("language-option-zh", "中文") }
+]);
 
 const autoLaunch = computed({
   get: () => store.settings?.global.autoLaunch ?? false,

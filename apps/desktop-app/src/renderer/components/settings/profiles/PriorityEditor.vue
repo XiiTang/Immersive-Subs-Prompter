@@ -23,7 +23,7 @@
         <span
           v-for="(item, index) in items"
           :key="item"
-          class="priority-editor__item"
+          class="ui-chip priority-editor__item"
           :class="{ 'priority-editor__item--dragover': isDragOver(role, index) }"
           draggable="true"
           @dragstart="onDragStart(role, index, $event)"
@@ -36,33 +36,26 @@
           <span>{{ item }}</span>
           <button
             type="button"
-            class="settings-action-btn--remove"
+            class="ui-chip__remove"
             :aria-label="removeLabel"
             @click="$emit('remove', item)"
           >
-            ✕
+            x
           </button>
         </span>
       </template>
-      <span v-else class="priority-editor__empty">{{ emptyText }}</span>
+      <UiEmptyState v-else :message="emptyText" />
     </div>
     <div class="priority-editor__controls">
-      <input
-        type="text"
-        :value="modelValue"
+      <UiInput
+        :model-value="modelValue"
         :placeholder="placeholder"
-        @input="onInput"
+        @update:model-value="onInputValue"
         @keyup.enter="$emit('add')"
       />
-      <button
-        type="button"
-        class="icon-button"
-        :title="addButtonLabel"
-        :aria-label="addButtonLabel"
-        @click="$emit('add')"
-      >
+      <UiIconButton :label="addButtonLabel" @click="$emit('add')">
         <IconAdd size="md" />
-      </button>
+      </UiIconButton>
     </div>
     <div v-if="error" class="settings-field__error">{{ error }}</div>
   </div>
@@ -71,6 +64,7 @@
 <script setup lang="ts">
 import { IconAdd } from "../../icons";
 import type { PriorityRole } from "./composables/usePriorityDragDrop";
+import { UiEmptyState, UiIconButton, UiInput } from "../../ui";
 
 interface Props {
   role: PriorityRole;
@@ -103,9 +97,8 @@ const emit = defineEmits<{
   (e: "doc-link-click"): void;
 }>();
 
-function onInput(event: Event) {
-  const target = event.target as HTMLInputElement;
-  emit("update:modelValue", target.value);
+function onInputValue(value: string | number) {
+  emit("update:modelValue", String(value));
 }
 
 function onDocLinkClick() {

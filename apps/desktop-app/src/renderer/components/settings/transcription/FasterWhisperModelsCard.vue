@@ -15,31 +15,25 @@
           {{ t("transcription-faster-model-missing", "No downloaded models detected") }}
         </span>
         <div class="fw-model-download">
-          <select v-model="selectedModel" class="fw-select">
-            <option v-for="modelOption in fasterWhisperModels" :key="modelOption.value" :value="modelOption.value">
-              {{ modelOption.label }}
-            </option>
-          </select>
-          <button type="button" class="btn-primary" @click="$emit('download-model')" :disabled="isBusy">
+          <UiSelect v-model="selectedModel" :options="fasterWhisperModels" />
+          <UiButton variant="primary" :disabled="isBusy" @click="$emit('download-model')">
             {{ t("transcription-faster-download-model", "Download") }}
-          </button>
+          </UiButton>
         </div>
       </div>
 
       <div class="fw-folder-input">
         <div class="fw-field-header">
           <span class="label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
-          <button
-            type="button"
-            class="icon-button icon-button--compact"
+          <UiIconButton
+            size="sm"
             @click="$emit('open-path', modelsDir)"
-            :title="t('transcription-faster-open-models', 'Open folder')"
-            :aria-label="t('transcription-faster-open-models', 'Open folder')"
+            :label="t('transcription-faster-open-models', 'Open folder')"
           >
             <IconFolder size="sm" />
-          </button>
+          </UiIconButton>
         </div>
-        <input type="text" v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" class="fw-input-sm" />
+        <UiInput v-model="fasterWhisperModelDir" placeholder="~/models/faster-whisper" />
       </div>
     </div>
   </div>
@@ -48,6 +42,7 @@
 <script setup lang="ts">
 import { IconFolder } from "../../icons";
 import type { AvailableModel } from "./composables/useFasterWhisper";
+import { UiButton, UiIconButton, UiInput, UiSelect } from "../../ui";
 
 defineProps<{
   t: (key: string, fallback: string) => string;

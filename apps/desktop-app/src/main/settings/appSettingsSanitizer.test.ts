@@ -94,6 +94,20 @@ describe("appSettingsSanitizer", () => {
       expect(Object.prototype.hasOwnProperty.call(result, "mediaServer")).toBe(false);
     });
 
+    it("keeps supported appearance themes", () => {
+      expect(sanitizeSettings({ global: { appearance: { theme: "light" } } } as never).global.appearance.theme).toBe("light");
+      expect(sanitizeSettings({ global: { appearance: { theme: "dark" } } } as never).global.appearance.theme).toBe("dark");
+      expect(sanitizeSettings({ global: { appearance: { theme: "system" } } } as never).global.appearance.theme).toBe("system");
+    });
+
+    it("falls back to system appearance for unsupported themes", () => {
+      const result = sanitizeSettings({
+        global: { appearance: { theme: "blue" } }
+      } as never);
+
+      expect(result.global.appearance.theme).toBe("system");
+    });
+
     it("sanitizes Jellyfin / Emby plugin server config", () => {
       const result = sanitizeSettings({
         plugins: {

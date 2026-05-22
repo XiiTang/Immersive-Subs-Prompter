@@ -1,40 +1,33 @@
 <template>
   <div class="settings-split__sidebar">
     <div class="settings-split__sidebar-header">
-      <span class="settings-field__label">{{ t("profile-list-label", "Profile List") }}</span>
+      <span class="ui-field__label">{{ t("profile-list-label", "Profile List") }}</span>
       <div class="settings-split__sidebar-buttons">
-        <button
-          type="button"
-          class="icon-button"
-          :title="t('button-add', 'Add')"
-          :aria-label="t('button-add', 'Add')"
-          @click="$emit('add')"
-        >
+        <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
           <IconAdd size="md" />
-        </button>
-        <button type="button" class="text-button" @click="$emit('duplicate')">
+        </UiIconButton>
+        <UiButton variant="ghost" @click="$emit('duplicate')">
           {{ t("button-duplicate", "Duplicate") }}
-        </button>
-        <button
-          type="button"
-          class="icon-button"
+        </UiButton>
+        <UiIconButton
           :disabled="!canDelete"
-          :title="t('button-delete', 'Delete')"
-          :aria-label="t('button-delete', 'Delete')"
+          variant="danger"
+          :label="t('button-delete', 'Delete')"
           @click="$emit('delete')"
         >
           <IconDelete size="md" />
-        </button>
+        </UiIconButton>
       </div>
     </div>
-    <div class="profile-list settings-list">
+    <div class="profile-list ui-list">
       <template v-if="profiles.length">
-        <button
+        <UiListItem
           v-for="(profile, index) in profiles"
           :key="profile.id"
-          type="button"
+          as="button"
           class="profile-list__item"
-          :class="{ 'is-selected': profile.id === editingProfileId, 'is-drag-over': dragOverIndex === index }"
+          :class="{ 'is-drag-over': dragOverIndex === index }"
+          :selected="profile.id === editingProfileId"
           draggable="true"
           @click="$emit('select', profile.id)"
           @dragstart="onDragStart($event, index)"
@@ -48,26 +41,21 @@
             <span class="profile-list__meta">{{ profileRuleSummary(profile.id) }}</span>
           </span>
           <span class="profile-list__badges">
-            <span v-if="profile.id === activeProfileId" class="profile-list__badge">
+            <UiBadge v-if="profile.id === activeProfileId" tone="info">
               {{ t("active-badge", "Applied") }}
-            </span>
-            <span v-else-if="profile.id === defaultProfileId" class="profile-list__badge">
+            </UiBadge>
+            <UiBadge v-else-if="profile.id === defaultProfileId">
               {{ t("default-badge", "Default") }}
-            </span>
+            </UiBadge>
           </span>
-        </button>
+        </UiListItem>
       </template>
-      <div v-else class="profile-list__empty">{{ t("profile-empty", "No profiles") }}</div>
+      <UiEmptyState v-else :message="t('profile-empty', 'No profiles')" />
     </div>
     <div class="settings-split__sidebar-actions">
-      <button
-        type="button"
-        class="text-button"
-        :disabled="!canSetDefault"
-        @click="$emit('set-default')"
-      >
+      <UiButton variant="secondary" :disabled="!canSetDefault" @click="$emit('set-default')">
         {{ t("button-set-default", "Set as Default") }}
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>
@@ -78,6 +66,7 @@ import { IconAdd, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";
+import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiListItem } from "../../ui";
 
 interface Props {
   profiles: readonly ProfileDefinition[];

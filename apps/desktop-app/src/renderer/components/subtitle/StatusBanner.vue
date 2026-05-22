@@ -1,7 +1,7 @@
 <template>
-  <section class="status-banner" :class="banner.modifier">
+  <p class="status-banner" :class="`status-banner--${banner.modifier}`">
     <span>{{ banner.text }}</span>
-  </section>
+  </p>
 </template>
 
 <script setup lang="ts">

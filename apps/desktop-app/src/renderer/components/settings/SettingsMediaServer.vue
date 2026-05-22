@@ -1,90 +1,64 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro">
-      <div>
-        <h3 class="settings-section__title">{{ t("section-mediaserver", "Jellyfin / Emby") }}</h3>
-      </div>
-    </header>
-
-    <div class="settings-split settings-surface settings-surface--split">
+  <UiSection :title="t('section-mediaserver', 'Jellyfin / Emby')">
+    <div class="settings-split">
       <div class="settings-split__sidebar">
         <div class="settings-split__sidebar-header">
-          <span class="settings-field__label">{{ t("server-list-label", "Server List") }}</span>
+          <span class="ui-field__label">{{ t("server-list-label", "Server List") }}</span>
           <div class="settings-split__sidebar-buttons">
-            <button
-              type="button"
-              class="icon-button"
-              :title="t('button-add', 'Add')"
-              :aria-label="t('button-add', 'Add')"
-              @click="addMediaServerConfig"
-            >
+            <UiIconButton :label="t('button-add', 'Add')" @click="addMediaServerConfig">
               <IconAdd size="md" />
-            </button>
-            <button
-              type="button"
-              class="icon-button"
+            </UiIconButton>
+            <UiIconButton
               :disabled="!selectedMediaServerConfigId"
-              :title="t('button-delete', 'Delete')"
-              :aria-label="t('button-delete', 'Delete')"
+              variant="danger"
+              :label="t('button-delete', 'Delete')"
               @click="deleteSelectedMediaServerConfig"
             >
               <IconDelete size="md" />
-            </button>
+            </UiIconButton>
           </div>
         </div>
-        <div class="mediaserver-config-list settings-list" :class="{ 'mediaserver-config-list--empty': !mediaServerConfigs.length }">
+        <div class="mediaserver-config-list ui-list" :class="{ 'mediaserver-config-list--empty': !mediaServerConfigs.length }">
           <template v-if="mediaServerConfigs.length">
-            <button
+            <UiListItem
               v-for="config in mediaServerConfigs"
               :key="config.id"
-              type="button"
+              as="button"
               class="mediaserver-config-list__item"
-              :class="{
-                'is-selected': config.id === selectedMediaServerConfigId,
-                'is-disabled': !config.enabled
-              }"
+              :selected="config.id === selectedMediaServerConfigId"
+              :disabled="!config.enabled"
               @click="selectedMediaServerConfigId = config.id"
             >
               <div class="mediaserver-config-list__name">
                 {{ config.name || config.serverUrl || t("mediaserver-untitled", "Untitled") }}
               </div>
-              <div class="mediaserver-config-list__toggle">
-                <span>{{ config.enabled ? t("mediaserver-config-enabled", "Enabled") : t("mediaserver-config-disabled", "Disabled") }}</span>
-              </div>
-            </button>
+              <UiBadge :tone="config.enabled ? 'success' : 'neutral'">
+                {{ config.enabled ? t("mediaserver-config-enabled", "Enabled") : t("mediaserver-config-disabled", "Disabled") }}
+              </UiBadge>
+            </UiListItem>
           </template>
-          <div v-else class="mediaserver-config-list__empty">
-            {{ t("mediaserver-no-servers", "No servers configured") }}
-          </div>
+          <UiEmptyState v-else :message="t('mediaserver-no-servers', 'No servers configured')" />
         </div>
       </div>
       <div class="settings-split__editor" v-if="selectedMediaServerConfig">
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("server-name-label", "Server Name") }}</span>
-          <input type="text" v-model="mediaServerName" />
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("server-url-label", "Server URL") }}</span>
-          <input type="text" v-model="mediaServerServerUrl" />
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("api-key-label", "API Key") }}</span>
-          <input type="text" v-model="mediaServerApiKey" />
-        </label>
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("ws-path-label", "WebSocket Path") }}</span>
-          <input type="text" v-model="mediaServerWsPath" />
-        </label>
-        <div class="settings-field settings-field--inline">
-          <span class="settings-field__label">{{ t("mediaserver-config-state-label", "Server") }}</span>
-          <label class="toggle">
-            <input type="checkbox" v-model="mediaServerConfigEnabled" />
-            <span class="toggle__text">{{ mediaServerConfigEnabled ? t("toggle-on", "On") : t("toggle-off", "Off") }}</span>
-          </label>
-        </div>
+        <UiField id="server-name" :label="t('server-name-label', 'Server Name')">
+          <UiInput v-model="mediaServerName" />
+        </UiField>
+        <UiField id="server-url" :label="t('server-url-label', 'Server URL')">
+          <UiInput v-model="mediaServerServerUrl" />
+        </UiField>
+        <UiField id="server-api-key" :label="t('api-key-label', 'API Key')">
+          <UiInput v-model="mediaServerApiKey" />
+        </UiField>
+        <UiField id="server-ws-path" :label="t('ws-path-label', 'WebSocket Path')">
+          <UiInput v-model="mediaServerWsPath" />
+        </UiField>
+        <UiField id="server-enabled" :label="t('mediaserver-config-state-label', 'Server')" inline>
+          <UiSwitch v-model="mediaServerConfigEnabled" :label="mediaServerConfigEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+        </UiField>
       </div>
     </div>
-  </section>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -92,6 +66,7 @@ import { computed, ref, watch } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
+import { UiBadge, UiEmptyState, UiField, UiIconButton, UiInput, UiListItem, UiSection, UiSwitch } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

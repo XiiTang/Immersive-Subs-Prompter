@@ -16,17 +16,17 @@
       </div>
     </header>
 
-    <div v-if="isDefaultProfile" class="profile-url-rules__fallback">
-      {{ t("profile-url-default-summary", "Fallback") }}
-    </div>
+    <UiBadge v-if="isDefaultProfile">{{ t("profile-url-default-summary", "Fallback") }}</UiBadge>
 
     <template v-else>
-      <div class="profile-url-rules__list">
-        <article
+      <div class="profile-url-rules__list ui-list">
+        <UiListItem
           v-for="(rule, index) in rules"
           :key="rule.id"
+          as="article"
           class="profile-url-rule"
-          :class="{ 'is-disabled': !rule.isEnabled, 'is-drag-over': dragOverIndex === index }"
+          :class="{ 'is-drag-over': dragOverIndex === index }"
+          :disabled="!rule.isEnabled"
           draggable="true"
           @dragstart="onDragStart($event, index)"
           @dragover.prevent="dragOverIndex = index"
@@ -34,16 +34,13 @@
           @drop.prevent="onDrop(index)"
           @dragend="resetDrag"
         >
-          <label
+          <UiSwitch
             class="profile-url-rule__toggle"
-            :title="rule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
-          >
-            <input
-              type="checkbox"
-              :checked="rule.isEnabled"
-              @change="toggleRule(rule.id, ($event.target as HTMLInputElement).checked)"
-            />
-          </label>
+            :model-value="rule.isEnabled"
+            :show-label="false"
+            :label="rule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+            @update:model-value="toggleRule(rule.id, $event)"
+          />
           <div class="profile-url-rule__fields">
             <label class="profile-url-rule__field">
               <select
@@ -74,28 +71,20 @@
             </label>
           </div>
           <div class="profile-url-rule__actions">
-            <button
-              type="button"
-              class="icon-button"
-              :title="t('rule-action-delete', 'Delete')"
-              :aria-label="t('rule-action-delete', 'Delete')"
-              @click="deleteRule(rule.id)"
-            >
+            <UiIconButton variant="danger" :label="t('rule-action-delete', 'Delete')" @click="deleteRule(rule.id)">
               <IconDelete size="md" />
-            </button>
+            </UiIconButton>
           </div>
-        </article>
-        <div v-if="!rules.length" class="profile-url-rules__empty">
-          {{ t("profile-url-empty", "No URL rules") }}
-        </div>
+        </UiListItem>
+        <UiEmptyState v-if="!rules.length" :message="t('profile-url-empty', 'No URL rules')" />
 
-        <article class="profile-url-rule profile-url-rule--new">
-          <label
+        <UiListItem as="article" class="profile-url-rule profile-url-rule--new">
+          <UiSwitch
+            v-model="newRule.isEnabled"
             class="profile-url-rule__toggle"
-            :title="newRule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
-          >
-            <input type="checkbox" v-model="newRule.isEnabled" />
-          </label>
+            :show-label="false"
+            :label="newRule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+          />
           <div class="profile-url-rule__fields">
             <label class="profile-url-rule__field">
               <select
@@ -123,18 +112,16 @@
             </label>
           </div>
           <div class="profile-url-rule__actions">
-            <button
-              type="button"
-              class="icon-button profile-url-rule__confirm"
+            <UiIconButton
               :disabled="!canAddRule"
-              :title="t('profile-url-confirm', 'Confirm URL Rule')"
-              :aria-label="t('profile-url-confirm', 'Confirm URL Rule')"
+              class="profile-url-rule__confirm"
+              :label="t('profile-url-confirm', 'Confirm URL Rule')"
               @click="saveNewRule"
             >
               <IconCheck size="md" />
-            </button>
+            </UiIconButton>
           </div>
-        </article>
+        </UiListItem>
         <div v-if="newRuleRegexError" class="settings-field__error">{{ newRuleRegexError }}</div>
       </div>
     </template>
@@ -148,6 +135,7 @@ import type { ProfileRule, UrlMatchType } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
 import { IconCheck, IconDelete } from "../../icons";
+import { UiBadge, UiEmptyState, UiIconButton, UiListItem, UiSwitch } from "../../ui";
 
 const props = defineProps<{
   profileId: string;

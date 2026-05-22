@@ -3,6 +3,11 @@
   "settings-title": "Settings",
   "settings-nav-aria-label": "Settings sections",
   "section-global-settings": "Global Settings",
+  "section-appearance": "Appearance",
+  "appearance-theme-label": "Theme",
+  "appearance-theme-system": "System",
+  "appearance-theme-light": "Light",
+  "appearance-theme-dark": "Dark",
   "global-general": "General",
   "auto-start-label": "Auto Start",
   "global-autohide": "Auto-hide Behavior",
@@ -219,5 +224,7 @@
   "plugin-section-title": "Plugin Management",
   "plugin-empty": "No plugins available.",
   "active-badge": "Applied",
-  "transcription-config-select": "Transcription Config"
+  "transcription-config-select": "Transcription Config",
+  "primary-track-label": "Primary Subtitle",
+  "secondary-track-label": "Secondary Subtitle"
 }

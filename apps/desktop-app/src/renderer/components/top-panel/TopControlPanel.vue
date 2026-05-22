@@ -52,33 +52,25 @@
               title="Background Opacity"
             />
           </div>
-          <button
-            class="icon-button"
+          <UiIconButton
             :class="pinButtonClass"
-            type="button"
-            :aria-pressed="isPinned"
-            :title="pinLabel"
+            :label="pinLabel"
+            :pressed="isPinned"
+            :active="isPinned"
             @click="cyclePin"
           >
             <span aria-hidden="true">{{ pinIcon }}</span>
-          </button>
-          <button
-            class="icon-button"
-            type="button"
-            :aria-pressed="store.desktopState?.isFullscreen"
-            :aria-label="store.desktopState?.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+          </UiIconButton>
+          <UiIconButton
+            :label="store.desktopState?.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            :pressed="store.desktopState?.isFullscreen"
             @click="store.toggleFullscreen()"
           >
             <span aria-hidden="true">{{ fullscreenIcon }}</span>
-          </button>
-          <button
-            class="icon-button"
-            type="button"
-            aria-label="Open settings"
-            @click="openSettingsWindow"
-          >
+          </UiIconButton>
+          <UiIconButton label="Open settings" @click="openSettingsWindow">
             <span aria-hidden="true">⚙</span>
-          </button>
+          </UiIconButton>
         </div>
       </header>
       <div class="top-control-panel__body" data-testid="top-control-panel-body">
@@ -91,8 +83,8 @@
           <TrackSelector
             v-model="localPrimaryTrackId"
             :tracks="subtitleTracks"
-            :placeholder="t('primary-track-placeholder', 'Primary Subtitle')"
-            :aria-label="t('primary-track-placeholder', 'Primary Subtitle')"
+            :lead-label="t('primary-track-label', 'Primary Subtitle')"
+            :aria-label="t('primary-track-label', 'Primary Subtitle')"
             :grow="!transcriptionEnabled"
             :format-source-file="formatSourceFile"
           />
@@ -148,6 +140,7 @@ import StatusBanner from "../subtitle/StatusBanner.vue";
 import TrackSelector from "../subtitle/TrackSelector.vue";
 import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
+import { UiIconButton } from "../ui";
 
 interface SubtitleTrackOption {
   id: string;

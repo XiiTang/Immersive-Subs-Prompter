@@ -14,8 +14,11 @@
       <span class="usp-status" id="status-indicator">Connecting…</span>
     </div>
     <div class="usp-header__actions">
-      <button type="button" class="usp-pill-button" id="connections-btn" title="Connections" aria-label="Connections">
-        <span class="usp-pill-button__icon" aria-hidden="true">
+      <button type="button" class="usp-icon-button" id="appearance-btn" title="Appearance" aria-label="Appearance">
+        <span aria-hidden="true">Aa</span>
+      </button>
+      <button type="button" class="usp-icon-button" id="connections-btn" title="Connections" aria-label="Connections">
+        <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="6" cy="6" r="2.5" />
@@ -25,8 +28,8 @@
           </svg>
         </span>
       </button>
-      <button type="button" class="usp-pill-button" id="blacklist-btn" title="Blacklist" aria-label="Blacklist">
-        <span class="usp-pill-button__icon" aria-hidden="true">
+      <button type="button" class="usp-icon-button" id="blacklist-btn" title="Blacklist" aria-label="Blacklist">
+        <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 5h16v3H4zM4 10h16v10H4z" />
@@ -48,10 +51,9 @@
 
   <section class="drawer-panel connections-panel" id="connections-panel" aria-hidden="true">
     <div class="drawer-panel__header">
-      <button type="button" class="drawer-back" id="connections-back">← Back</button>
+      <button type="button" class="drawer-back" id="connections-back">Back</button>
       <div>
         <h2>Connections</h2>
-        <p>Manage desktop endpoints for syncing.</p>
       </div>
     </div>
     <div class="drawer-panel__body">
@@ -61,10 +63,9 @@
 
   <section class="drawer-panel blacklist-panel" id="blacklist-panel" aria-hidden="true">
     <div class="drawer-panel__header">
-      <button type="button" class="drawer-back" id="blacklist-back">← Back</button>
+      <button type="button" class="drawer-back" id="blacklist-back">Back</button>
       <div>
         <h2>Blacklist</h2>
-        <p>URLs matching these rules will not be detected.</p>
       </div>
     </div>
     <div class="drawer-panel__actions">
@@ -81,9 +82,22 @@
     </div>
     <div class="blacklist-empty" id="blacklist-empty-state">
       <p>No rules added yet.</p>
-      <p>Click "Add rule" to create.</p>
     </div>
     <div class="blacklist-list" id="blacklist-list"></div>
+  </section>
+
+  <section class="drawer-panel appearance-panel" id="appearance-panel" aria-hidden="true">
+    <div class="drawer-panel__header">
+      <button type="button" class="drawer-back" id="appearance-back">Back</button>
+      <div>
+        <h2>Appearance</h2>
+      </div>
+    </div>
+    <div class="appearance-options" role="radiogroup" aria-label="Theme">
+      <button type="button" class="appearance-option" data-theme-option="system" role="radio">System</button>
+      <button type="button" class="appearance-option" data-theme-option="light" role="radio">Light</button>
+      <button type="button" class="appearance-option" data-theme-option="dark" role="radio">Dark</button>
+    </div>
   </section>
 
   <template id="media-card-template">

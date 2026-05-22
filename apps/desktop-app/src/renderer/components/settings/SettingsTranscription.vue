@@ -1,11 +1,6 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro">
-      <div>
-        <h3 class="settings-section__title">{{ t("section-transcription", "Speech Transcription") }}</h3>
-      </div>
-    </header>
-    <div class="settings-split settings-surface settings-surface--split">
+  <UiSection :title="t('section-transcription', 'Speech Transcription')">
+    <div class="settings-split">
       <TranscriptionConfigList
         :transcription-configs="transcriptionConfigs"
         :active-config-id="activeConfigId"
@@ -15,21 +10,12 @@
         @select="(id) => (activeConfigId = id)"
       />
       <div class="settings-split__editor" v-if="activeConfig">
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("transcription-name-label", "Config Name") }}</span>
-          <input type="text" v-model="configName" />
-        </label>
-        <div class="settings-field settings-field--inline settings-field--justify-start">
-          <span class="settings-field__label">{{ t("transcription-provider-label", "Provider") }}</span>
-          <select v-model="provider">
-            <option value="whisper-api">
-              {{ t("transcription-provider-whisper", "Whisper API (OpenAI-compatible)") }}
-            </option>
-            <option value="faster-whisper">
-              {{ t("transcription-provider-faster", "Faster-Whisper (local CLI)") }}
-            </option>
-          </select>
-        </div>
+        <UiField id="transcription-name" :label="t('transcription-name-label', 'Config Name')">
+          <UiInput v-model="configName" />
+        </UiField>
+        <UiField id="transcription-provider" :label="t('transcription-provider-label', 'Provider')">
+          <UiSelect :model-value="provider" :options="providerOptions" @update:model-value="handleProviderInput" />
+        </UiField>
         <template v-if="isWhisperApi">
           <WhisperApiForm
             :t="t"
@@ -92,35 +78,21 @@
             <p v-if="downloadError" class="fw-message fw-message--error">{{ downloadError }}</p>
           </div>
         </template>
-        <label v-if="isWhisperApi" class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">
-              {{ t("transcription-extra-params-label", "Extra Parameters (JSON)") }}
-            </span>
-            <small class="settings-field__hint">
-              {{ t("transcription-extra-params-hint", "Optional Whisper API payload overrides") }}
-            </small>
-          </div>
-          <textarea rows="4" v-model="extraParamsText"></textarea>
-          <small v-if="extraParamsError" class="settings-field__error">{{ extraParamsError }}</small>
-        </label>
-        <label class="settings-field">
-          <div class="settings-field__label-row">
-            <span class="settings-field__label">{{ t("transcription-ytdlp-label", "yt-dlp Audio Args") }}</span>
-            <small class="settings-field__hint">
-              {{
-                t(
-                  "transcription-ytdlp-hint",
-                  "Command line options for downloading audio. Leave empty to use defaults."
-                )
-              }}
-            </small>
-          </div>
-          <input type="text" v-model="ytDlpArgs" placeholder="--extract-audio --audio-format wav --cookies-from-browser firefox ..." />
-        </label>
+        <UiField
+          v-if="isWhisperApi"
+          id="transcription-extra-params"
+          :label="t('transcription-extra-params-label', 'Extra Parameters (JSON)')"
+          :hint="t('transcription-extra-params-hint', 'Optional Whisper API payload overrides')"
+          :error="extraParamsError"
+        >
+          <UiTextarea v-model="extraParamsText" :rows="4" />
+        </UiField>
+        <UiField id="transcription-ytdlp" :label="t('transcription-ytdlp-label', 'yt-dlp Audio Args')" :hint="t('transcription-ytdlp-hint', 'Command line options for downloading audio. Leave empty to use defaults.')">
+          <UiInput v-model="ytDlpArgs" placeholder="--extract-audio --audio-format wav --cookies-from-browser firefox ..." />
+        </UiField>
       </div>
     </div>
-  </section>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -134,10 +106,15 @@ import FasterWhisperModelsCard from "./transcription/FasterWhisperModelsCard.vue
 import FasterWhisperRuntimeCard from "./transcription/FasterWhisperRuntimeCard.vue";
 import { useTranscriptionConfig } from "./transcription/composables/useTranscriptionConfig";
 import { useFasterWhisper } from "./transcription/composables/useFasterWhisper";
+import { UiField, UiInput, UiSection, UiSelect, UiTextarea } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
+const providerOptions = computed(() => [
+  { value: "whisper-api", label: t("transcription-provider-whisper", "Whisper API (OpenAI-compatible)") },
+  { value: "faster-whisper", label: t("transcription-provider-faster", "Faster-Whisper (local CLI)") }
+]);
 
 const {
   transcriptionConfigs,
@@ -190,4 +167,10 @@ const {
   fasterWhisperModel,
   fasterWhisperModelDir
 });
+
+function handleProviderInput(value: string) {
+  if (value === "whisper-api" || value === "faster-whisper") {
+    provider.value = value;
+  }
+}
 </script>

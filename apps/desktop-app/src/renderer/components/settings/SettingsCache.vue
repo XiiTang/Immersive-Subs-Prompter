@@ -1,82 +1,50 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro settings-section__intro--with-toggle">
-      <div>
-        <h3 class="settings-section__title">{{ t("section-cache", "Subtitle Cache") }}</h3>
-      </div>
-      <label class="toggle toggle--sm settings-section__toggle">
-        <input type="checkbox" v-model="cacheEnabled" />
-        <span class="toggle__text">{{ cacheEnabled ? t("toggle-on", "On") : t("toggle-off", "Off") }}</span>
-      </label>
-    </header>
-    
-    <div v-if="cacheEnabled" class="settings-surface settings-panel" data-testid="cache-settings-surface">
-      <div class="settings-group settings-group--plain">
-        <div class="cache-field-row">
-          <div class="settings-field cache-field--grow">
-            <div class="settings-field-header">
-              <span class="settings-field__label">{{ t("cache-path-label", "Cache Path") }}</span>
-              <button
-                type="button"
-                class="icon-button"
-                @click="openCacheFolder"
-                :title="t('button-open-cache', 'Open Cache Folder')"
-                :aria-label="t('button-open-cache', 'Open Cache Folder')"
-              >
-                <IconFolder size="md" />
-              </button>
-            </div>
-            <input
-              type="text"
-              v-model="cachePath"
-              class="settings-input"
-            />
+  <UiSection :title="t('section-cache', 'Subtitle Cache')">
+    <template #actions>
+      <UiSwitch v-model="cacheEnabled" :label="cacheEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+    </template>
+
+    <div v-if="cacheEnabled" class="settings-panel" data-testid="cache-settings-surface">
+      <div class="cache-field-row">
+        <UiField id="cache-path" class="cache-field--grow" :label="t('cache-path-label', 'Cache Path')">
+          <div class="ui-inline-control">
+            <UiInput v-model="cachePath" />
+            <UiIconButton :label="t('button-open-cache', 'Open Cache Folder')" @click="openCacheFolder">
+              <IconFolder size="md" />
+            </UiIconButton>
           </div>
-          <div class="settings-field cache-field--fixed">
-            <span class="settings-field__label">{{ t("cache-retention-label", "Retention (days)") }}</span>
-            <input
-              type="number"
-              min="1"
-              max="9999"
-              step="1"
-              v-model.number="cacheRetentionDays"
-              class="settings-input cache-field--narrow"
-            />
-          </div>
-        </div>
+        </UiField>
+
+        <UiField id="cache-retention" class="cache-field--fixed" :label="t('cache-retention-label', 'Retention (days)')">
+          <UiInput v-model="cacheRetentionDays" type="number" min="1" max="9999" step="1" />
+        </UiField>
       </div>
 
-      <div class="settings-group settings-group--plain">
-        <div class="cache-status-row">
-          <div class="cache-status-item">
-            <span class="settings-field__label">{{ statLabel("cache-stats-entries", "Total entries") }}</span>
-            <span class="settings-badge">{{ cacheStatsDisplay.entries }}</span>
-          </div>
-          <div class="cache-status-item">
-            <span class="settings-field__label">{{ statLabel("cache-stats-size", "Total size") }}</span>
-            <span class="settings-badge">{{ cacheStatsDisplay.size }}</span>
-          </div>
-          <div class="cache-status-item">
-            <div class="cache-inline-row">
-              <span class="settings-field__label">{{ statLabel("cache-stats-oldest", "Oldest entry") }}</span>
-              <button
-                type="button"
-                class="icon-button icon-button--compact"
-                data-testid="cache-stats-refresh"
-                :disabled="cacheBusy"
-                @click="refreshCacheStats"
-                :title="t('button-refresh-stats', 'Refresh Stats')"
-                :aria-label="t('button-refresh-stats', 'Refresh Stats')"
-              >
-                <IconRefresh size="sm" :class="{ 'icon--spinning': cacheBusy }" />
-              </button>
-            </div>
-            <span class="settings-badge">{{ cacheStatsDisplay.oldest }}</span>
-          </div>
+      <div class="ui-stat-grid">
+        <div class="ui-stat">
+          <span class="ui-stat__label">{{ statLabel("cache-stats-entries", "Total entries") }}</span>
+          <UiBadge>{{ cacheStatsDisplay.entries }}</UiBadge>
+        </div>
+        <div class="ui-stat">
+          <span class="ui-stat__label">{{ statLabel("cache-stats-size", "Total size") }}</span>
+          <UiBadge>{{ cacheStatsDisplay.size }}</UiBadge>
+        </div>
+        <div class="ui-stat">
+          <span class="ui-stat__label">{{ statLabel("cache-stats-oldest", "Oldest entry") }}</span>
+          <UiBadge>{{ cacheStatsDisplay.oldest }}</UiBadge>
+          <UiIconButton
+            data-testid="cache-stats-refresh"
+            size="sm"
+            :disabled="cacheBusy"
+            :label="t('button-refresh-stats', 'Refresh Stats')"
+            @click="refreshCacheStats"
+          >
+            <IconRefresh size="sm" :class="{ 'icon--spinning': cacheBusy }" />
+          </UiIconButton>
         </div>
       </div>
     </div>
-  </section>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -84,6 +52,7 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconFolder, IconRefresh } from "../icons";
+import { UiBadge, UiField, UiIconButton, UiInput, UiSection, UiSwitch } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

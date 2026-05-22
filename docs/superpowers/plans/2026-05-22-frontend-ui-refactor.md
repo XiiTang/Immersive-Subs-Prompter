@@ -8,6 +8,20 @@
 
 **Tech Stack:** Electron, Vue 3, Pinia, TypeScript, Vite, Vitest, jsdom, browser-mode Vitest, Chrome extension APIs, CSS custom properties.
 
+## Implementation Result
+
+Executed in the current branch as requested: no subagents, no worktree, and no intermediate commits.
+
+Final shape:
+
+- Desktop has a persisted `global.appearance.theme` setting with `system`, `light`, and `dark`.
+- Renderer roots apply `data-theme` and react to system color-scheme changes.
+- Settings use a left nav with one active section and a first-class Appearance page.
+- Desktop settings, official plugin settings, and subtitle controls now use shared Vue UI primitives and semantic CSS tokens.
+- The subtitle transcript body components were not modified.
+- Extension popup has independent appearance storage and matching light/dark/system theme semantics.
+- Legacy one-off button/status classes were removed from active plugin and popup UI.
+
 ---
 
 ## Scope Check

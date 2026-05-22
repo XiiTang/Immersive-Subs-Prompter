@@ -9,60 +9,48 @@
         <div class="fw-status-row">
           <div class="fw-status-item">
             <span class="label">{{ t("transcription-faster-cpu-support", "CPU") }}</span>
-            <span class="fw-badge" :class="binaryStatus.cpu ? 'fw-badge--success' : 'fw-badge--error'">
+            <UiBadge :tone="binaryStatus.cpu ? 'success' : 'danger'">
               {{
                 binaryStatus.cpu
                   ? t("transcription-faster-binary-present", "Ready")
                   : t("transcription-faster-binary-missing", "Missing")
               }}
-            </span>
+            </UiBadge>
           </div>
-          <button
-            type="button"
-            class="btn-secondary"
-            @click="$emit('download-binary', 'cpu')"
-            :disabled="isBusy"
-          >
+          <UiButton variant="secondary" :disabled="isBusy" @click="$emit('download-binary', 'cpu')">
             {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
-          </button>
+          </UiButton>
         </div>
 
         <div class="fw-status-row">
           <div class="fw-status-item">
             <span class="label">{{ t("transcription-faster-gpu-cuda", "GPU") }}</span>
-            <span class="fw-badge" :class="binaryStatus.gpu ? 'fw-badge--success' : 'fw-badge--error'">
+            <UiBadge :tone="binaryStatus.gpu ? 'success' : 'danger'">
               {{
                 binaryStatus.gpu
                   ? t("transcription-faster-binary-present", "Ready")
                   : t("transcription-faster-binary-missing", "Missing")
               }}
-            </span>
+            </UiBadge>
           </div>
-          <button
-            type="button"
-            class="btn-secondary"
-            @click="$emit('download-binary', 'gpu')"
-            :disabled="isBusy"
-          >
+          <UiButton variant="secondary" :disabled="isBusy" @click="$emit('download-binary', 'gpu')">
             {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
-          </button>
+          </UiButton>
         </div>
       </div>
 
       <div class="fw-folder-input">
         <div class="fw-field-header">
           <span class="label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
-          <button
-            type="button"
-            class="icon-button icon-button--compact"
+          <UiIconButton
+            size="sm"
             @click="$emit('open-path', binaryDir)"
-            :title="t('transcription-faster-open-bin', 'Open folder')"
-            :aria-label="t('transcription-faster-open-bin', 'Open folder')"
+            :label="t('transcription-faster-open-bin', 'Open folder')"
           >
             <IconFolder size="sm" />
-          </button>
+          </UiIconButton>
         </div>
-        <input type="text" v-model="fasterWhisperBinary" placeholder="faster-whisper" class="fw-input-sm" />
+        <UiInput v-model="fasterWhisperBinary" placeholder="faster-whisper" />
       </div>
     </div>
   </div>
@@ -70,6 +58,7 @@
 
 <script setup lang="ts">
 import { IconFolder } from "../../icons";
+import { UiBadge, UiButton, UiIconButton, UiInput } from "../../ui";
 
 defineProps<{
   t: (key: string, fallback: string) => string;

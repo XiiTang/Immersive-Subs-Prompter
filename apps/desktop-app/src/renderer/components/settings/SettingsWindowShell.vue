@@ -1,38 +1,28 @@
 <template>
-  <section class="settings-window-shell settings-window-shell--document" data-testid="settings-shell">
+  <section class="settings-window-shell" data-testid="settings-shell">
     <header class="settings-window-shell__header">{{ settingsTitle }}</header>
     <div class="settings-window-shell__body">
       <SettingsNav
         :sections="allSections"
         :current-section="currentSection"
         :nav-aria-label="settingsNavAriaLabel"
-        @select="scrollToSection"
+        @select="selectSection"
       />
       <main
-        ref="contentRef"
         class="settings-window-shell__content"
         data-testid="settings-content"
-        data-scroll-mode="document"
+        data-scroll-mode="section"
       >
-        <div class="settings-document">
-          <section
-            v-for="section in allSections"
-            :id="section.anchorId"
-            :key="section.id"
-            :data-testid="section.anchorId"
-            class="settings-document__section"
-          >
-            <component :is="resolveComponent(section.id)" />
-          </section>
-        </div>
+        <component :is="activeComponent" :key="currentSection" />
       </main>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import SettingsGlobal from "./SettingsGlobal.vue";
+import SettingsAppearance from "./SettingsAppearance.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import SettingsCache from "./SettingsCache.vue";
 import SettingsPlugins from "./SettingsPlugins.vue";
@@ -65,11 +55,10 @@ const pluginSections = computed(() => {
 const allSections = computed(() => [...hostSections.value, ...pluginSections.value]);
 
 const currentSection = ref<SettingsSectionId>("general");
-const contentRef = ref<HTMLElement | null>(null);
-let sectionObserver: IntersectionObserver | null = null;
 
 const hostComponentMap: Record<string, unknown> = {
   general: SettingsGlobal,
+  appearance: SettingsAppearance,
   profiles: SettingsProfiles,
   cache: SettingsCache,
   plugins: SettingsPlugins
@@ -79,64 +68,19 @@ function resolveComponent(sectionId: string): unknown {
   return hostComponentMap[sectionId] ?? resolvePluginSettingsComponent(sectionId);
 }
 
-function sectionIdFromAnchor(anchorId: string): SettingsSectionId {
-  const pluginSection = store.pluginCatalog
-    .find((plugin) => plugin.enabled && plugin.settings?.some((section) => section.anchorId === anchorId))
-    ?.settings?.find((section) => section.anchorId === anchorId);
-  return (pluginSection?.id ?? anchorId.replace("settings-section-", "")) as SettingsSectionId;
-}
+const activeComponent = computed(() => resolveComponent(currentSection.value));
 
-function scrollToSection(id: SettingsSectionId) {
-  const section = allSections.value.find((s) => s.id === id);
-  if (!section) return;
-  const target = document.getElementById(section.anchorId);
-  if (!target) return;
-
+function selectSection(id: SettingsSectionId) {
   currentSection.value = id;
-  target.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-onMounted(() => {
-  if (typeof IntersectionObserver === "undefined" || !contentRef.value) {
-    return;
-  }
-
-  sectionObserver = new IntersectionObserver(
-    (entries) => {
-      const visibleEntry = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
-
-      if (!visibleEntry?.target.id) {
-        return;
-      }
-
-      currentSection.value = sectionIdFromAnchor(visibleEntry.target.id);
-    },
-    {
-      root: contentRef.value,
-      threshold: [0.2, 0.35, 0.5, 0.7]
+watch(
+  () => allSections.value.map((section) => section.id),
+  (ids) => {
+    if (!ids.includes(currentSection.value)) {
+      currentSection.value = (ids[0] ?? "general") as SettingsSectionId;
     }
-  );
-
-  watch(
-    () => allSections.value.map((section) => section.anchorId),
-    async () => {
-      if (!sectionObserver) return;
-      sectionObserver.disconnect();
-      await nextTick();
-      for (const section of allSections.value) {
-        const element = document.getElementById(section.anchorId);
-        if (element) {
-          sectionObserver.observe(element);
-        }
-      }
-    },
-    { immediate: true, flush: "post" }
-  );
-});
-
-onBeforeUnmount(() => {
-  sectionObserver?.disconnect();
-});
+  },
+  { immediate: true }
+);
 </script>

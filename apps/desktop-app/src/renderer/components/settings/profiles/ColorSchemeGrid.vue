@@ -1,6 +1,8 @@
 <template>
-  <div class="settings-group">
-    <div class="settings-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</div>
+  <section class="ui-group">
+    <header class="ui-group__header">
+      <h3 class="ui-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</h3>
+    </header>
     <div class="settings-color-grid">
       <div v-for="swatch in swatches" :key="swatch.settingKey" class="color-swatch-item">
         <label class="color-swatch-preview">
@@ -24,7 +26,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">

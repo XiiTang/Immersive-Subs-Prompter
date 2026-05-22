@@ -1,9 +1,13 @@
-import { CloseBehavior, GlobalSettings } from "../../types.js";
+import { AppearanceTheme, CloseBehavior, GlobalSettings } from "../../types.js";
 import { DEFAULT_GLOBAL_SETTINGS, SUPPORTED_LANGUAGES } from "../constants.js";
 import { sanitizeProcessList } from "../utils.js";
 
 function isCloseBehavior(value: unknown): value is CloseBehavior {
   return value === "quit" || value === "tray";
+}
+
+function isAppearanceTheme(value: unknown): value is AppearanceTheme {
+  return value === "system" || value === "light" || value === "dark";
 }
 
 export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | undefined): GlobalSettings {
@@ -33,6 +37,15 @@ export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | u
     languageCandidate && SUPPORTED_LANGUAGES.includes(languageCandidate)
       ? languageCandidate
       : DEFAULT_GLOBAL_SETTINGS.language;
+  const appearanceSource =
+    source.appearance && typeof source.appearance === "object"
+      ? source.appearance
+      : {};
+  const appearance = {
+    theme: isAppearanceTheme((appearanceSource as { theme?: unknown }).theme)
+      ? (appearanceSource as { theme: AppearanceTheme }).theme
+      : DEFAULT_GLOBAL_SETTINGS.appearance.theme
+  };
   return {
     closeBehavior,
     autoLaunch,
@@ -41,6 +54,7 @@ export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | u
     autoHidePanels,
     alwaysOnTop,
     panelOpacity,
-    language
+    language,
+    appearance
   };
 }

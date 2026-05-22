@@ -3,6 +3,11 @@
   "settings-title": "设置",
   "settings-nav-aria-label": "设置分区导航",
   "section-global-settings": "全局设置",
+  "section-appearance": "外观",
+  "appearance-theme-label": "主题",
+  "appearance-theme-system": "跟随系统",
+  "appearance-theme-light": "浅色",
+  "appearance-theme-dark": "深色",
   "global-general": "常规",
   "auto-start-label": "开机启动",
   "global-autohide": "自动隐藏行为",
@@ -219,5 +224,7 @@
   "plugin-section-title": "插件管理",
   "plugin-empty": "暂无可用插件",
   "active-badge": "已应用",
-  "transcription-config-select": "语音转录配置"
+  "transcription-config-select": "语音转录配置",
+  "primary-track-label": "主字幕",
+  "secondary-track-label": "副字幕"
 }

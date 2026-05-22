@@ -1,36 +1,21 @@
 <template>
   <div class="subtitle-style-fields">
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("subtitle-font-label", "Subtitle Font") }}</span>
-      <select v-model="subtitleFontFamily" data-testid="subtitle-font-select">
-        <option v-for="fontOption in subtitleFontOptions" :key="fontOption.value" :value="fontOption.value">
-          {{ fontOption.label }}
-        </option>
-      </select>
-    </label>
-    <label class="settings-field">
-      <span class="settings-field__label">{{ t("subtitle-font-size-label", "Subtitle Font Size") }}</span>
-      <input type="number" min="10" max="48" step="1" v-model.number="subtitleFontSize" />
-    </label>
-    <div class="settings-field settings-field--inline">
-      <span class="settings-field__label">
-        {{ t("subtitle-meta-auto-hide-label", "Auto-hide Timestamps & Actions") }}
-      </span>
-      <label class="toggle">
-        <input
-          type="checkbox"
-          v-model="subtitleAutoHideMetaRow"
-          data-testid="subtitle-meta-auto-hide-toggle"
-        />
-        <span class="toggle__text">{{ t("toggle-enable", "Enable") }}</span>
-      </label>
-    </div>
-    <label class="settings-field">
-      <span class="settings-field__label">
-        {{ t("subtitle-autoscroll-label", "Auto-scroll Restore Time (seconds)") }}
-      </span>
-      <input type="number" min="1" max="60" step="1" v-model.number="subtitleAutoScrollTimeout" />
-    </label>
+    <UiField id="subtitle-font" :label="t('subtitle-font-label', 'Subtitle Font')">
+      <UiSelect v-model="subtitleFontFamily" data-testid="subtitle-font-select" :options="subtitleFontOptions" />
+    </UiField>
+    <UiField id="subtitle-font-size" :label="t('subtitle-font-size-label', 'Subtitle Font Size')">
+      <UiInput v-model="subtitleFontSize" type="number" min="10" max="48" step="1" />
+    </UiField>
+    <UiField id="subtitle-meta-auto-hide" :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Actions')" inline>
+      <UiSwitch
+        v-model="subtitleAutoHideMetaRow"
+        input-test-id="subtitle-meta-auto-hide-toggle"
+        :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+      />
+    </UiField>
+    <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
+      <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
+    </UiField>
     <label class="settings-field">
       <div class="settings-field__label-row">
         <span class="settings-field__label">
@@ -89,6 +74,7 @@ import { computed } from "vue";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
+import { UiField, UiInput, UiSelect, UiSwitch } from "../../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

@@ -43,7 +43,10 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
       autoHidePanels,
       alwaysOnTop: "off",
       panelOpacity: 100,
-      language: "en"
+      language: "en",
+      appearance: {
+        theme: "system"
+      }
     },
     network: {
       host: "127.0.0.1",

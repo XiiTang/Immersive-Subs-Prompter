@@ -1,52 +1,31 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro">
-      <div>
-        <h3 class="settings-section__title">{{ t("plugin-section-title", "Plugin Management") }}</h3>
-      </div>
-    </header>
-    <div class="plugin-list settings-surface" v-if="catalog.length">
-      <div v-for="plugin in catalog" :key="plugin.id" class="plugin-card">
-        <div class="plugin-card__info">
-          <div class="plugin-card__header">
-            <span class="plugin-card__name">{{ plugin.displayName }}</span>
-            <span class="plugin-card__version">v{{ plugin.version }}</span>
-            <span
-              class="plugin-card__badge"
-              :class="{
-                'plugin-card__badge--enabled': plugin.status === 'enabled',
-                'plugin-card__badge--disabled': plugin.status === 'disabled',
-                'plugin-card__badge--error': plugin.status === 'broken'
-              }"
-            >
-              {{ statusLabel(plugin.status) }}
-            </span>
+  <UiSection :title="t('plugin-section-title', 'Plugin Management')">
+    <div v-if="catalog.length" class="ui-list plugin-list">
+      <UiListItem v-for="plugin in catalog" :key="plugin.id" as="article" class="plugin-card">
+        <div class="ui-list-item__main">
+          <div class="ui-list-item__title-row">
+            <span class="ui-list-item__title">{{ plugin.displayName }}</span>
+            <span class="ui-list-item__meta">v{{ plugin.version }}</span>
+            <UiBadge :tone="statusTone(plugin.status)">{{ statusLabel(plugin.status) }}</UiBadge>
           </div>
-          <p class="plugin-card__description">{{ plugin.description }}</p>
-          <p v-if="plugin.error" class="plugin-card__error">{{ plugin.error }}</p>
+          <p class="ui-list-item__description">{{ plugin.description }}</p>
+          <p v-if="plugin.error" class="ui-field__error">{{ plugin.error }}</p>
         </div>
-        <div class="plugin-card__actions">
-          <template v-if="plugin.enabled">
-            <button type="button" class="btn-secondary" @click="store.disablePlugin(plugin.id)">
-              {{ t("plugin-disable", "Disable") }}
-            </button>
-          </template>
-          <template v-else>
-            <button type="button" class="btn-primary" @click="store.enablePlugin(plugin.id)">
-              {{ t("plugin-enable", "Enable") }}
-            </button>
-          </template>
-        </div>
-      </div>
+
+        <UiButton :variant="plugin.enabled ? 'secondary' : 'primary'" @click="plugin.enabled ? store.disablePlugin(plugin.id) : store.enablePlugin(plugin.id)">
+          {{ plugin.enabled ? t("plugin-disable", "Disable") : t("plugin-enable", "Enable") }}
+        </UiButton>
+      </UiListItem>
     </div>
-    <p v-else class="plugin-empty">{{ t("plugin-empty", "No plugins available.") }}</p>
-  </section>
+    <UiEmptyState v-else :message="t('plugin-empty', 'No plugins available.')" />
+  </UiSection>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
+import { UiBadge, UiButton, UiEmptyState, UiListItem, UiSection } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -65,5 +44,11 @@ function statusLabel(status: string): string {
     default:
       return status;
   }
+}
+
+function statusTone(status: string): "success" | "neutral" | "danger" {
+  if (status === "enabled") return "success";
+  if (status === "broken") return "danger";
+  return "neutral";
 }
 </script>

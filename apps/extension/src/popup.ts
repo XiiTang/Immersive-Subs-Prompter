@@ -1,4 +1,11 @@
 import { DASHBOARD_PORT, BLACKLIST_STORAGE_KEY } from "./shared/constants";
+import {
+  APPEARANCE_STORAGE_KEY,
+  getStoredAppearanceTheme,
+  normalizeAppearanceTheme,
+  resolveAppearanceTheme,
+  type AppearanceTheme
+} from "./shared/appearance";
 import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils";
 import { normalizeBlacklistRules, areBlacklistRulesEqual } from "./shared/blacklist-utils";
 import { createAddIcon, createDeleteIcon } from "./shared/icons";
@@ -10,6 +17,10 @@ const serverRoot = document.getElementById("server-root");
 const connectionsPanel = document.getElementById("connections-panel");
 const connectionsButton = document.getElementById("connections-btn");
 const connectionsBackButton = document.getElementById("connections-back");
+const appearancePanel = document.getElementById("appearance-panel");
+const appearanceButton = document.getElementById("appearance-btn");
+const appearanceBackButton = document.getElementById("appearance-back");
+const appearanceOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-theme-option]"));
 const template = document.getElementById("media-card-template") as HTMLTemplateElement | null;
 const blacklistPanel = document.getElementById("blacklist-panel");
 const blacklistButton = document.getElementById("blacklist-btn");
@@ -26,12 +37,39 @@ type PopupConnection = Pick<DesktopConnectionSnapshot, "endpoint" | "state" | "l
 let connectionStatuses: PopupConnection[] = [];
 let serverError = "";
 let serverInputEl: HTMLInputElement | null = null;
-let activePanel: "blacklist" | "connections" | null = null;
+let activePanel: "blacklist" | "connections" | "appearance" | null = null;
+let appearanceTheme: AppearanceTheme = "system";
 
 function setStatus(text: string) {
   if (statusEl) {
     statusEl.textContent = text;
   }
+}
+
+export function appearanceLabel(theme: AppearanceTheme): string {
+  if (theme === "light") return "Light";
+  if (theme === "dark") return "Dark";
+  return "System";
+}
+
+function systemPrefersDark() {
+  return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyAppearance(theme: AppearanceTheme) {
+  appearanceTheme = theme;
+  document.documentElement.dataset.themeMode = theme;
+  document.documentElement.dataset.theme = resolveAppearanceTheme(theme, systemPrefersDark());
+  for (const button of appearanceOptionButtons) {
+    const selected = button.dataset.themeOption === theme;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", String(selected));
+  }
+}
+
+function saveAppearance(theme: AppearanceTheme) {
+  applyAppearance(theme);
+  chrome.storage.local.set({ [APPEARANCE_STORAGE_KEY]: theme });
 }
 
 function normalizeConnections(input: unknown): PopupConnection[] {
@@ -405,13 +443,14 @@ function addBlacklistRule() {
   saveBlacklistRules(nextRules);
 }
 
-function setActivePanel(nextPanel: "blacklist" | "connections" | null) {
+function setActivePanel(nextPanel: "blacklist" | "connections" | "appearance" | null) {
   const prevPanel = activePanel;
   activePanel = nextPanel;
   const isDrawerOpen = Boolean(nextPanel);
   document.body.classList.toggle("drawer-open", isDrawerOpen);
   document.body.classList.toggle("blacklist-open", nextPanel === "blacklist");
   document.body.classList.toggle("connections-open", nextPanel === "connections");
+  document.body.classList.toggle("appearance-open", nextPanel === "appearance");
 
   if (blacklistPanel) {
     blacklistPanel.setAttribute("aria-hidden", String(nextPanel !== "blacklist"));
@@ -419,12 +458,17 @@ function setActivePanel(nextPanel: "blacklist" | "connections" | null) {
   if (connectionsPanel) {
     connectionsPanel.setAttribute("aria-hidden", String(nextPanel !== "connections"));
   }
+  if (appearancePanel) {
+    appearancePanel.setAttribute("aria-hidden", String(nextPanel !== "appearance"));
+  }
 
   if (!nextPanel) {
     if (prevPanel === "blacklist") {
       blacklistButton?.focus();
     } else if (prevPanel === "connections") {
       connectionsButton?.focus();
+    } else if (prevPanel === "appearance") {
+      appearanceButton?.focus();
     }
     return;
   }
@@ -433,6 +477,8 @@ function setActivePanel(nextPanel: "blacklist" | "connections" | null) {
     (addBlacklistRuleButton || blacklistPanel)?.focus();
   } else if (nextPanel === "connections") {
     (serverInputEl || connectionsPanel)?.focus();
+  } else if (nextPanel === "appearance") {
+    (appearanceOptionButtons.find((button) => button.dataset.themeOption === appearanceTheme) || appearancePanel)?.focus();
   }
 }
 
@@ -544,6 +590,10 @@ function handleMessage(message: DashboardResponseMessage) {
 
 renderServers();
 
+chrome.storage.local.get([APPEARANCE_STORAGE_KEY], (result) => {
+  applyAppearance(getStoredAppearanceTheme(result ?? {}));
+});
+
 try {
   port = chrome.runtime.connect({ name: DASHBOARD_PORT });
   setStatus("Connecting…");
@@ -565,7 +615,18 @@ blacklistButton?.addEventListener("click", () => setActivePanel("blacklist"));
 blacklistBackButton?.addEventListener("click", () => setActivePanel(null));
 connectionsButton?.addEventListener("click", () => setActivePanel("connections"));
 connectionsBackButton?.addEventListener("click", () => setActivePanel(null));
+appearanceButton?.addEventListener("click", () => setActivePanel("appearance"));
+appearanceBackButton?.addEventListener("click", () => setActivePanel(null));
 addBlacklistRuleButton?.addEventListener("click", () => addBlacklistRule());
+for (const button of appearanceOptionButtons) {
+  button.addEventListener("click", () => saveAppearance(normalizeAppearanceTheme(button.dataset.themeOption)));
+}
+
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (appearanceTheme === "system") {
+    applyAppearance("system");
+  }
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && document.body.classList.contains("drawer-open")) {
@@ -583,18 +644,20 @@ if (chrome?.storage?.onChanged) {
     if (areaName !== "local") {
       return;
     }
-    if (!Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
-      return;
+    if (Object.prototype.hasOwnProperty.call(changes, APPEARANCE_STORAGE_KEY)) {
+      applyAppearance(normalizeAppearanceTheme(changes[APPEARANCE_STORAGE_KEY]?.newValue));
     }
-    const storageChange = changes[BLACKLIST_STORAGE_KEY];
-    if (!storageChange) {
-      return;
+    if (Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
+      const storageChange = changes[BLACKLIST_STORAGE_KEY];
+      if (!storageChange) {
+        return;
+      }
+      const normalized = normalizeBlacklistRules(storageChange.newValue ?? []);
+      if (areBlacklistRulesEqual(normalized, blacklistRules)) {
+        return;
+      }
+      blacklistRules = normalized;
+      renderBlacklistRules();
     }
-    const normalized = normalizeBlacklistRules(storageChange.newValue ?? []);
-    if (areBlacklistRulesEqual(normalized, blacklistRules)) {
-      return;
-    }
-    blacklistRules = normalized;
-    renderBlacklistRules();
   });
 }

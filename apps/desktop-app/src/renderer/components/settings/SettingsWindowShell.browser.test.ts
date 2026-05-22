@@ -30,7 +30,8 @@ describe("SettingsWindowShell browser layout", () => {
         autoHidePanels: false,
         alwaysOnTop: "off",
         panelOpacity: 100,
-        language: "en"
+        language: "en",
+        appearance: { theme: "system" }
       },
       network: { host: "127.0.0.1", port: 4312 },
       profiles: [],
@@ -41,7 +42,7 @@ describe("SettingsWindowShell browser layout", () => {
     } as never;
   });
 
-  it("keeps a fixed nav and a padded document column with visible scrollbar gutter", async () => {
+  it("keeps a fixed nav and one active section column", async () => {
     const wrapper = shallowMount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
@@ -49,6 +50,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
@@ -58,11 +60,11 @@ describe("SettingsWindowShell browser layout", () => {
 
     const shell = wrapper.get('[data-testid="settings-shell"]');
     const content = wrapper.get('[data-testid="settings-content"]');
-    const sections = wrapper.findAll(".settings-document__section");
 
-    expect(shell.classes()).toContain("settings-window-shell--document");
-    expect(content.attributes("data-scroll-mode")).toBe("document");
-    expect(sections).toHaveLength(4);
+    expect(shell.classes()).toContain("settings-window-shell");
+    expect(content.attributes("data-scroll-mode")).toBe("section");
+    expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
   });
 
   it("constrains the scrollable document to the visible body row", async () => {
@@ -70,7 +72,7 @@ describe("SettingsWindowShell browser layout", () => {
       defineComponent({
         name: `TallSectionStub${testId}`,
         render() {
-          return h("section", { "data-testid": testId, style: "height: 520px;" });
+          return h("section", { "data-testid": testId, style: "height: 1200px;" });
         }
       });
 
@@ -81,6 +83,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: tallSectionStub("settings-section-general-content"),
+          SettingsAppearance: tallSectionStub("settings-section-appearance-content"),
           SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
           SettingsCache: tallSectionStub("settings-section-cache-content"),
           SettingsPlugins: tallSectionStub("settings-section-plugins-content")

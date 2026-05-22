@@ -1,11 +1,6 @@
 <template>
-  <section class="settings-section">
-    <header class="settings-section__intro">
-      <div>
-        <h3 class="settings-section__title">{{ t("section-profiles", "Profiles") }}</h3>
-      </div>
-    </header>
-    <div class="settings-split settings-surface settings-surface--split">
+  <UiSection :title="t('section-profiles', 'Profiles')">
+    <div class="settings-split">
       <ProfileList
         :profiles="profiles"
         :rules="rules"
@@ -22,10 +17,9 @@
         @set-default="setDefaultProfile"
       />
       <div class="settings-split__editor" v-if="editingProfile">
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("profile-name-label", "Profile Name") }}</span>
-          <input type="text" v-model="profileName" autocomplete="off" />
-        </label>
+        <UiField id="profile-name" :label="t('profile-name-label', 'Profile Name')">
+          <UiInput v-model="profileName" autocomplete="off" />
+        </UiField>
         <SubtitleStyleFields />
         <ColorSchemeGrid />
         <ProfileUrlRules
@@ -91,16 +85,12 @@
           @remove="(value) => removePriority('secondary', value)"
         />
 
-        <label class="settings-field">
-          <span class="settings-field__label">{{ t("yt-dlp-args-label", "yt-dlp Arguments") }}</span>
-          <textarea rows="3" spellcheck="false" v-model="ytDlpArgs"></textarea>
-          <small class="settings-field__hint">
-            {{ t("yt-dlp-args-hint", "Leave blank to use default arguments") }}
-          </small>
-        </label>
+        <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label', 'yt-dlp Arguments')" :hint="t('yt-dlp-args-hint', 'Leave blank to use default arguments')">
+          <UiTextarea v-model="ytDlpArgs" :rows="3" />
+        </UiField>
       </div>
     </div>
-  </section>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -113,6 +103,7 @@ import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import ColorSchemeGrid from "./profiles/ColorSchemeGrid.vue";
 import PriorityEditor from "./profiles/PriorityEditor.vue";
 import ProfileUrlRules from "./profiles/ProfileUrlRules.vue";
+import { UiField, UiInput, UiSection, UiTextarea } from "../ui";
 import {
   usePriorityDragDrop,
   type PriorityRole

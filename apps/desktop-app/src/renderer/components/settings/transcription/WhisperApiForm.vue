@@ -1,31 +1,26 @@
 <template>
-  <label class="settings-field">
-    <span class="settings-field__label">{{ t("transcription-base-url-label", "API Base URL") }}</span>
-    <input type="text" v-model="baseUrl" placeholder="https://api.openai.com/v1" />
-  </label>
-  <label class="settings-field">
-    <span class="settings-field__label">{{ t("transcription-api-key-label", "API Key") }}</span>
-    <input type="text" v-model="apiKey" placeholder="sk-..." />
-  </label>
-  <div class="settings-field settings-field--inline">
-    <div class="settings-field__inline">
-      <span class="settings-field__label">{{ t("transcription-model-label", "Model") }}</span>
-      <input type="text" v-model="model" placeholder="whisper-1" />
-    </div>
+  <UiField id="transcription-base-url" :label="t('transcription-base-url-label', 'API Base URL')">
+    <UiInput v-model="baseUrl" placeholder="https://api.openai.com/v1" />
+  </UiField>
+  <UiField id="transcription-api-key" :label="t('transcription-api-key-label', 'API Key')">
+    <UiInput v-model="apiKey" placeholder="sk-..." />
+  </UiField>
+  <div class="settings-fields-grid settings-fields-grid--two-col">
+    <UiField id="transcription-model" :label="t('transcription-model-label', 'Model')">
+      <UiInput v-model="model" placeholder="whisper-1" />
+    </UiField>
+    <UiField id="transcription-language" :label="t('transcription-language-label', 'Language')">
+      <UiInput v-model="languageField" placeholder="auto" />
+    </UiField>
   </div>
-  <div class="settings-field settings-field--inline">
-    <div class="settings-field__inline">
-      <span class="settings-field__label">{{ t("transcription-language-label", "Language") }}</span>
-      <input type="text" v-model="languageField" placeholder="auto" />
-    </div>
-  </div>
-  <label class="settings-field">
-    <span class="settings-field__label">{{ t("transcription-prompt-label", "Prompt") }}</span>
-    <input type="text" v-model="prompt" />
-  </label>
+  <UiField id="transcription-prompt" :label="t('transcription-prompt-label', 'Prompt')">
+    <UiInput v-model="prompt" />
+  </UiField>
 </template>
 
 <script setup lang="ts">
+import { UiField, UiInput } from "../../ui";
+
 defineProps<{
   t: (key: string, fallback: string) => string;
 }>();

@@ -1,14 +1,14 @@
 <template>
   <div class="playback-row">
-    <button
-      type="button"
+    <UiIconButton
       class="playback-toggle-btn"
+      variant="secondary"
       :disabled="!hasActiveVideo"
-      :aria-label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
+      :label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
       @click="$emit('toggle-playback')"
     >
       {{ isPlaying ? "⏸" : "▶" }}
-    </button>
+    </UiIconButton>
     <div class="playback-progress">
       <span class="playback-progress__time">{{ formatTime(displayedPlaybackTime) }}</span>
       <input
@@ -27,20 +27,21 @@
       />
       <span class="playback-progress__time">{{ formatTime(playbackDuration || 0) }}</span>
     </div>
-    <button
-      type="button"
+    <UiIconButton
       class="auto-hide-toggle"
-      :aria-pressed="autoHideEnabled"
-      aria-label="Toggle auto hide panels"
+      :pressed="autoHideEnabled"
+      :active="autoHideEnabled"
+      label="Toggle auto hide panels"
       @click="$emit('toggle-auto-hide')"
     >
       {{ autoHideEnabled ? "▲" : "▼" }}
-    </button>
+    </UiIconButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { formatTime } from "../../utils/formatters";
+import { UiIconButton } from "../ui";
 
 const {
   isPlaying,

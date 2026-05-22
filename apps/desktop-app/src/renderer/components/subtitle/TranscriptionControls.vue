@@ -1,21 +1,17 @@
 <template>
   <div class="transcription-controls">
     <label class="track-picker transcription-picker">
-      <select
-        :value="activeId"
-        :title="t('transcription-config-select', 'Transcription Config')"
-        @change="handleConfigChange"
-      >
-        <option v-for="config in configs" :key="config.id" :value="config.id">
-          {{ config.name || config.id }}
-        </option>
-      </select>
+      <UiSelect
+        :model-value="activeId"
+        :options="configOptions"
+        :aria-label="t('transcription-config-select', 'Transcription Config')"
+        @update:model-value="$emit('update:activeId', $event)"
+      />
     </label>
-    <button
-      class="icon-button transcription-btn"
-      type="button"
+    <UiIconButton
+      class="transcription-btn"
       :disabled="!canTranscribe || isTranscribing"
-      :title="
+      :label="
         isTranscribing
           ? t('transcription-button-running', 'Transcribing...')
           : t('transcription-button-start', 'Start Transcription')
@@ -23,11 +19,14 @@
       @click="$emit('start')"
     >
       <span aria-hidden="true">{{ isTranscribing ? "⏳" : "▶" }}</span>
-    </button>
+    </UiIconButton>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+import { UiIconButton, UiSelect } from "../ui";
+
 const {
   configs,
   activeId,
@@ -42,13 +41,10 @@ const {
   t: (key: string, fallback?: string, params?: Record<string, any>) => string;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: "update:activeId", value: string): void;
   (e: "start"): void;
 }>();
 
-function handleConfigChange(event: Event) {
-  const target = event.target as HTMLSelectElement | null;
-  emit("update:activeId", target?.value ?? "");
-}
+const configOptions = computed(() => configs.map((config) => ({ value: config.id, label: config.name || config.id })));
 </script>

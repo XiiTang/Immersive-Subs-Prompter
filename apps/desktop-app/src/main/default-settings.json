@@ -9,7 +9,10 @@
     "autoHidePanels": true,
     "alwaysOnTop": "screen-saver",
     "panelOpacity": 0,
-    "language": "zh"
+    "language": "zh",
+    "appearance": {
+      "theme": "system"
+    }
   },
   "network": {
     "host": "127.0.0.1",

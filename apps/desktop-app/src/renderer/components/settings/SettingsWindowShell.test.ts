@@ -29,7 +29,10 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
       autoHidePanels: false,
       alwaysOnTop: "off",
       panelOpacity: 100,
-      language
+      language,
+      appearance: {
+        theme: "system"
+      }
     },
     network: {
       host: "127.0.0.1",
@@ -82,12 +85,13 @@ describe("SettingsWindowShell", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders every top-level section in one scrollable document", () => {
+  it("renders only the active top-level section", async () => {
     const wrapper = mount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
           SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
@@ -95,38 +99,15 @@ describe("SettingsWindowShell", () => {
       }
     });
 
-    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBe("document");
+    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBe("section");
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-rules"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="settings-section-cache"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-plugins"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-media-server"]').exists()).toBe(false);
-  });
+    expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
 
-  it("scrolls to a section instead of swapping the rendered page", async () => {
-    const scrollIntoView = vi.fn();
-    vi.stubGlobal("scrollIntoView", scrollIntoView);
-    Element.prototype.scrollIntoView = scrollIntoView;
+    await wrapper.get('[data-testid="settings-nav-item-appearance"]').trigger("click");
 
-    const wrapper = mount(SettingsWindowShell, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
-        }
-      }
-    });
-
-    await wrapper.get('[data-testid="settings-nav-item-profiles"]').trigger("click");
-
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
-    expect(wrapper.get('[data-testid="settings-section-general"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-section-profiles"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-section-appearance-content"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-general-content"]').exists()).toBe(false);
   });
 
   it("shows top-level settings chrome in Chinese only when language is zh", async () => {
@@ -141,8 +122,7 @@ describe("SettingsWindowShell", () => {
 
     expect(text).toContain("设置");
     expect(text).toContain("全局设置");
-    expect(text).toContain("配置文件");
-    expect(text).toContain("字幕缓存");
+    expect(text).toContain("外观");
     expect(text).toContain("插件");
     expect(text).not.toContain("Preferences");
     expect(text).not.toContain("Settings");
@@ -192,7 +172,7 @@ describe("SettingsWindowShell", () => {
       }
     });
 
-    expect(wrapper.find('[data-testid="settings-section-plugin-official-transcription"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-official.transcription.settings"]').exists()).toBe(false);
 
     store.pluginCatalog = [
       {
@@ -204,7 +184,12 @@ describe("SettingsWindowShell", () => {
 
     await nextTick();
 
-    expect(wrapper.get('[data-testid="settings-section-plugin-official-transcription"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-plugin-official-transcription-content"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').trigger("click");
+
+    expect(wrapper.get('[data-testid="settings-section-plugin-official-transcription-content"]').exists()).toBe(true);
   });
 
   it("shows Jellyfin / Emby settings only when the plugin is enabled", async () => {
@@ -243,7 +228,7 @@ describe("SettingsWindowShell", () => {
       }
     });
 
-    expect(wrapper.find('[data-testid="settings-section-plugin-official-jellyfinemby"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').exists()).toBe(false);
 
     store.pluginCatalog = [
       {
@@ -255,7 +240,12 @@ describe("SettingsWindowShell", () => {
 
     await nextTick();
 
-    expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').trigger("click");
+
+    expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(true);
   });
 
   it("keeps settings controls outside Electron drag regions", () => {

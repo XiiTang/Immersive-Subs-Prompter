@@ -36,7 +36,10 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoHidePanels: false,
   alwaysOnTop: "off",
   panelOpacity: 100,
-  language: DEFAULT_LANGUAGE
+  language: DEFAULT_LANGUAGE,
+  appearance: {
+    theme: "system"
+  }
 };
 
 export const DEFAULT_WS_HOST = (process.env.USP_WS_HOST ?? "127.0.0.1").trim() || "127.0.0.1";

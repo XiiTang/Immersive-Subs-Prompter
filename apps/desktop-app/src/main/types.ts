@@ -73,6 +73,12 @@ export type UrlMatchType = "contains" | "exact" | "regex";
 
 export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
 
+export type AppearanceTheme = "system" | "light" | "dark";
+
+export interface AppearanceSettings {
+  theme: AppearanceTheme;
+}
+
 export type TranscriptionProvider = "whisper-api" | "faster-whisper";
 export type FasterWhisperDevice = "cpu" | "cuda";
 
@@ -85,6 +91,7 @@ export interface GlobalSettings {
   alwaysOnTop: AlwaysOnTopLevel;
   panelOpacity: number;
   language: string;
+  appearance: AppearanceSettings;
 }
 
 export type MediaServerType = "jellyfinemby";

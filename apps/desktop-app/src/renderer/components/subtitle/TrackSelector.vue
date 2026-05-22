@@ -1,16 +1,13 @@
 <template>
   <label class="track-picker" :class="{ 'track-picker--grow': grow }">
-    <select :value="modelValue" :aria-label="ariaLabel" @change="handleChange">
-      <option v-if="placeholder" disabled value="">{{ placeholder }}</option>
-      <option v-if="noneLabel" value="">{{ noneLabel }}</option>
-      <option v-for="track in tracks" :key="track.id" :value="track.id">
-        {{ formatSourceFile(track.sourceFile) }}
-      </option>
-    </select>
+    <UiSelect :model-value="modelValue" :options="options" :aria-label="ariaLabel" @update:model-value="$emit('update:modelValue', $event)" />
   </label>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+import { UiSelect } from "../ui";
+
 interface SubtitleTrackOption {
   id: string;
   sourceFile: string;
@@ -19,7 +16,7 @@ interface SubtitleTrackOption {
 const {
   modelValue,
   tracks,
-  placeholder,
+  leadLabel,
   noneLabel,
   ariaLabel,
   grow,
@@ -27,19 +24,20 @@ const {
 } = defineProps<{
   modelValue: string;
   tracks: SubtitleTrackOption[];
-  placeholder?: string;
+  leadLabel?: string;
   noneLabel?: string;
   ariaLabel?: string;
   grow?: boolean;
   formatSourceFile: (sourceFile: string) => string;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: "update:modelValue", value: string): void;
 }>();
 
-function handleChange(event: Event) {
-  const target = event.target as HTMLSelectElement | null;
-  emit("update:modelValue", target?.value ?? "");
-}
+const options = computed(() => [
+  ...(leadLabel ? [{ value: "", label: leadLabel, disabled: true }] : []),
+  ...(noneLabel ? [{ value: "", label: noneLabel }] : []),
+  ...tracks.map((track) => ({ value: track.id, label: formatSourceFile(track.sourceFile) }))
+]);
 </script>
