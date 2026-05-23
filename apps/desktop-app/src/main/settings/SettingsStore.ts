@@ -4,6 +4,7 @@ import path from "path";
 import { reportError } from "../errors.js";
 import { AppSettings } from "../types.js";
 import { DEFAULT_SETTINGS_FACTORY, mergeSettings, sanitizeSettings } from "./appSettingsSanitizer.js";
+import { validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
 
 export class SettingsStore {
   private readonly filePath: string;
@@ -54,6 +55,9 @@ export class SettingsStore {
 
   update(partial: Partial<AppSettings>): AppSettings {
     const merged = mergeSettings(this.data, partial);
+    if (partial.network) {
+      merged.network = validateNetworkSettingsForUpdate(merged.network);
+    }
     this.data = sanitizeSettings(merged);
     this.save();
     return this.data;

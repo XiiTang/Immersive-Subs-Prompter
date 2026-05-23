@@ -1,10 +1,10 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
-import { IconAdd, IconDelete, IconPlay, IconSettings } from "./index";
+import { IconAdd, IconClose, IconDelete, IconPlay, IconSettings } from "./index";
 
 describe("lucide-backed local icons", () => {
   it("keeps the local icon API while rendering lucide svg output", () => {
-    for (const Icon of [IconAdd, IconDelete, IconPlay, IconSettings]) {
+    for (const Icon of [IconAdd, IconClose, IconDelete, IconPlay, IconSettings]) {
       const wrapper = mount(Icon, { props: { size: "md" } });
       const svg = wrapper.get("svg");
 

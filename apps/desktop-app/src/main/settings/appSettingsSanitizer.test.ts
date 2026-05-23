@@ -165,6 +165,15 @@ describe("appSettingsSanitizer", () => {
       expect(Object.prototype.hasOwnProperty.call(result, "mediaServer")).toBe(false);
     });
 
+    it("uses endpoint-list network settings", () => {
+      const result = sanitizeSettings({});
+      expect(result.network.endpoints).toEqual([
+        { id: "default", host: "127.0.0.1", port: 44501 }
+      ]);
+      expect(Object.prototype.hasOwnProperty.call(result.network, "host")).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(result.network, "port")).toBe(false);
+    });
+
     it("keeps supported appearance themes", () => {
       expect(sanitizeSettings({ global: { appearance: { theme: "light" } } } as never).global.appearance.theme).toBe("light");
       expect(sanitizeSettings({ global: { appearance: { theme: "dark" } } } as never).global.appearance.theme).toBe("dark");

@@ -11,19 +11,16 @@
         </UiField>
       </div>
 
-      <div class="settings-fields-grid settings-fields-grid--two-col">
-        <UiField id="network-host" :label="t('network-host-label', 'Bind Address')" :hint="t('network-host-hint', 'Use 0.0.0.0 only when another extension client must connect over your LAN.')">
-          <UiInput v-model="serverHost" placeholder="127.0.0.1" />
-        </UiField>
-
-        <UiField id="network-port" :label="t('network-port-label', 'Port')" :hint="t('network-port-hint', 'Changing host/port restarts the desktop WebSocket server.')">
-          <UiInput v-model="serverPort" type="number" min="1" max="65535" />
-        </UiField>
-
-        <UiField id="network-endpoint" class="settings-field--wide" :label="t('network-endpoint-label', 'Extension Endpoint')" :hint="t('network-endpoint-hint', 'Use this full URL when the bind address is reachable from another device.')">
-          <UiInput :model-value="extensionEndpoint" readonly />
-        </UiField>
-      </div>
+      <NetworkEndpointEditor
+        :endpoints="networkEndpoints"
+        :auth-token="networkAuthToken"
+        :listener-statuses="networkListenerStatuses"
+        :label="t('network-endpoints-label', 'Listening Endpoints')"
+        :hint="t('network-endpoints-hint', 'Add explicit addresses such as 127.0.0.1:44501 or 192.168.1.2:44501.')"
+        :placeholder="t('network-endpoints-placeholder', '127.0.0.1:44501')"
+        :remove-label="t('network-endpoint-remove', 'Remove endpoint')"
+        @update:endpoints="updateNetworkEndpoints"
+      />
 
       <UiField id="toggle-shortcut" :label="t('toggle-shortcut-label', 'Toggle Window Shortcut')" :hint="t('toggle-shortcut-hint', 'Use modifiers with keys.')">
         <UiInput v-model="toggleShortcut" placeholder="CommandOrControl+Shift+S" />
@@ -65,12 +62,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import type { NetworkEndpoint } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
 import { UiEmptyState, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
 import SettingsAppearance from "./SettingsAppearance.vue";
 import SettingsCache from "./SettingsCache.vue";
+import NetworkEndpointEditor from "./NetworkEndpointEditor.vue";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -91,37 +90,12 @@ const toggleShortcut = computed({
   set: (value: string) => store.updateGlobalSetting("toggleWindowShortcut", value)
 });
 
+const networkEndpoints = computed(() => store.settings?.network.endpoints ?? []);
+const networkAuthToken = computed(() => store.settings?.network.authToken ?? "");
+const networkListenerStatuses = computed(() => store.desktopState?.networkListeners ?? []);
 
-const serverHost = computed({
-  get: () => store.settings?.network.host ?? "127.0.0.1",
-  set: (value: string) => store.updateNetworkSetting("host", value)
-});
-
-const serverPort = computed({
-  get: () => store.settings?.network.port ?? 44501,
-  set: (value: number) => store.updateNetworkSetting("port", value)
-});
-
-const extensionEndpoint = computed(() => {
-  const host = serverHost.value || "127.0.0.1";
-  const formattedHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
-  try {
-    const url = new URL(`ws://${formattedHost}:${serverPort.value}/`);
-    if (!isLoopbackHost(host)) {
-      const token = store.settings?.network.authToken ?? "";
-      if (token) {
-        url.searchParams.set("token", token);
-      }
-    }
-    return url.toString();
-  } catch (error) {
-    void error;
-    return "";
-  }
-});
-
-function isLoopbackHost(host: string): boolean {
-  return ["127.0.0.1", "localhost", "::1", "[::1]"].includes(host.trim().toLowerCase());
+function updateNetworkEndpoints(endpoints: NetworkEndpoint[]) {
+  store.updateNetworkSetting("endpoints", endpoints);
 }
 
 const languageSetting = computed({

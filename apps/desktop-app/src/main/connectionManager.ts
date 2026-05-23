@@ -5,6 +5,7 @@ import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
 import { isAuthorizedDesktopClient } from "./connectionAuth.js";
+import { networkEndpointKey } from "../common/networkEndpoints.js";
 import type {
   ControlLoopCommandMessage,
   ControlSeekCommandMessage,
@@ -13,6 +14,8 @@ import type {
 } from "@immersive-subs/contracts";
 import {
   AppSettings,
+  NetworkEndpoint,
+  NetworkListenerStatus,
   NetworkSettings,
   SubtitleTrack,
   VideoControlCommand
@@ -26,6 +29,19 @@ type ConnectionManagerOptions = {
   subtitleService: SubtitleService;
   stateManager: StateManager;
   bus: AppEventBus;
+  createWebSocketServer?: WebSocketServerFactory;
+};
+
+type WebSocketServerOptions = NonNullable<ConstructorParameters<typeof WebSocketServer>[0]>;
+type WebSocketServerFactory = (options: WebSocketServerOptions) => WebSocketServer;
+
+type ListenerRecord = {
+  endpoint: NetworkEndpoint;
+  server: WebSocketServer | null;
+  connectedClients: Set<WebSocket>;
+  heartbeatInterval: NodeJS.Timeout | null;
+  status: "listening" | "error";
+  error: string | null;
 };
 
 type TrackSelectionPayload = {
@@ -35,13 +51,17 @@ type TrackSelectionPayload = {
 
 export class ConnectionManager {
   private readonly log = createLogger("connection");
+  private readonly createWebSocketServer: WebSocketServerFactory;
   private readonly tabSockets = new Map<number, WebSocket>();
   private readonly socketTabs = new Map<WebSocket, Set<number>>();
   private subtitleRequestToken = 0;
-  private server: WebSocketServer | null = null;
+  private readonly listeners = new Map<string, ListenerRecord>();
   private currentNetwork: NetworkSettings | null = null;
 
-  constructor(private readonly options: ConnectionManagerOptions) { }
+  constructor(private readonly options: ConnectionManagerOptions) {
+    this.createWebSocketServer =
+      options.createWebSocketServer ?? ((serverOptions) => new WebSocketServer(serverOptions));
+  }
 
   start() {
     this.applyNetworkSettings(true);
@@ -53,11 +73,37 @@ export class ConnectionManager {
 
   applyNetworkSettings(forceRestart = false) {
     const target = this.options.getNetworkSettings();
-    if (!forceRestart && this.server && this.currentNetwork && this.isSameNetwork(target, this.currentNetwork)) {
+    if (!forceRestart && this.currentNetwork && this.isSameNetwork(target, this.currentNetwork)) {
       return;
     }
+
     this.log.info("Applying network settings", this.networkLogFields(target));
-    this.restartServer(target);
+    const targetIds = new Set(target.endpoints.map((endpoint) => endpoint.id));
+    for (const endpointId of Array.from(this.listeners.keys())) {
+      if (forceRestart || !targetIds.has(endpointId)) {
+        this.shutdownListener(endpointId);
+      }
+    }
+
+    for (const endpoint of target.endpoints) {
+      const current = this.listeners.get(endpoint.id);
+      const shouldRestart =
+        forceRestart ||
+        !current ||
+        networkEndpointKey(current.endpoint) !== networkEndpointKey(endpoint) ||
+        this.currentNetwork?.authToken !== target.authToken;
+
+      if (shouldRestart) {
+        this.shutdownListener(endpoint.id);
+        this.startListener(endpoint, target.authToken);
+      }
+    }
+
+    this.currentNetwork = {
+      endpoints: target.endpoints.map((endpoint) => ({ ...endpoint })),
+      authToken: target.authToken
+    };
+    this.publishListenerStatuses();
   }
 
   sendControlCommand(command: VideoControlCommand): boolean {
@@ -118,50 +164,90 @@ export class ConnectionManager {
     return true;
   }
 
-  private restartServer(target: NetworkSettings) {
-    this.shutdownServer();
+  private startListener(endpoint: NetworkEndpoint, authToken: string) {
+    const record: ListenerRecord = {
+      endpoint: { ...endpoint },
+      server: null,
+      connectedClients: new Set(),
+      heartbeatInterval: null,
+      status: "listening",
+      error: null
+    };
+    this.listeners.set(endpoint.id, record);
+
     try {
-      this.server = this.bootstrapWebSocketServer(target);
-      this.currentNetwork = { ...target };
+      record.server = this.bootstrapWebSocketServer(endpoint, authToken, record);
     } catch (error) {
-      this.log.error("Failed to start WebSocket server with new settings", {
-        target: this.networkLogFields(target),
+      record.status = "error";
+      record.error = error instanceof Error ? error.message : String(error);
+      this.log.error("Failed to start WebSocket listener", {
+        endpoint: this.endpointLogFields(endpoint),
         error
       });
-      this.currentNetwork = null;
     }
+  }
+
+  private shutdownListener(endpointId: string) {
+    const record = this.listeners.get(endpointId);
+    if (!record) {
+      return;
+    }
+    if (record.heartbeatInterval) {
+      clearInterval(record.heartbeatInterval);
+    }
+    for (const client of record.connectedClients) {
+      try {
+        client.close();
+      } catch (error) {
+        this.log.warn("Failed to close WebSocket client during listener shutdown", error);
+      }
+    }
+    record.server?.close();
+    this.listeners.delete(endpointId);
   }
 
   private shutdownServer() {
-    if (!this.server) {
-      return;
+    for (const endpointId of Array.from(this.listeners.keys())) {
+      this.shutdownListener(endpointId);
     }
-    try {
-      for (const client of this.server.clients) {
-        try {
-          client.close();
-        } catch (error) {
-          this.log.warn("Failed to close WebSocket client during shutdown", error);
-        }
-      }
-    } catch (error) {
-      this.log.warn("Failed to iterate WebSocket clients during shutdown", error);
-    }
-    this.server.close();
-    this.server = null;
     this.currentNetwork = null;
+    this.publishListenerStatuses();
   }
 
   private isSameNetwork(a: NetworkSettings, b: NetworkSettings): boolean {
-    return a.host === b.host && a.port === b.port && a.authToken === b.authToken;
+    if (a.authToken !== b.authToken || a.endpoints.length !== b.endpoints.length) {
+      return false;
+    }
+    return a.endpoints.every((endpoint, index) => {
+      const other = b.endpoints[index];
+      return !!other && endpoint.id === other.id && networkEndpointKey(endpoint) === networkEndpointKey(other);
+    });
   }
 
   private networkLogFields(network: NetworkSettings) {
     return {
-      host: network.host,
-      port: network.port,
+      endpoints: network.endpoints.map((endpoint) => this.endpointLogFields(endpoint)),
       authRequired: true
     };
+  }
+
+  private endpointLogFields(endpoint: NetworkEndpoint) {
+    return {
+      id: endpoint.id,
+      host: endpoint.host,
+      port: endpoint.port
+    };
+  }
+
+  private publishListenerStatuses() {
+    const statuses: NetworkListenerStatus[] = Array.from(this.listeners.values()).map((record) => ({
+      endpointId: record.endpoint.id,
+      host: record.endpoint.host,
+      port: record.endpoint.port,
+      status: record.status,
+      error: record.error
+    }));
+    this.options.stateManager.setNetworkListenerStatuses(statuses);
   }
 
   private normalizeDuration(value: unknown): number | null {
@@ -171,28 +257,26 @@ export class ConnectionManager {
     return Math.max(0, value);
   }
 
-  private bootstrapWebSocketServer(network: NetworkSettings) {
-    const wss = new WebSocketServer({
-      port: network.port,
-      host: network.host,
+  private bootstrapWebSocketServer(endpoint: NetworkEndpoint, authToken: string, record: ListenerRecord) {
+    const wss = this.createWebSocketServer({
+      port: endpoint.port,
+      host: endpoint.host,
       verifyClient: ({ req }, done) => {
-        const authorized = this.isAuthorizedRequest(req, network);
+        const authorized = this.isAuthorizedRequest(req, endpoint, authToken);
         if (!authorized) {
           this.log.warn("Rejected unauthorized WebSocket client", {
-            host: network.host,
-            port: network.port,
+            host: endpoint.host,
+            port: endpoint.port,
             origin: req.headers.origin ?? null
           });
         }
         done(authorized, authorized ? undefined : 401, authorized ? undefined : "Unauthorized");
       }
     });
-    this.log.info(`WebSocket server listening on ws://${network.host}:${network.port}`);
+    this.log.info(`WebSocket server listening on ws://${endpoint.host}:${endpoint.port}`);
 
-    const connectedClients = new Set<WebSocket>();
-
-    const heartbeatInterval = setInterval(() => {
-      connectedClients.forEach((socket) => {
+    record.heartbeatInterval = setInterval(() => {
+      record.connectedClients.forEach((socket) => {
         if (socket.readyState === WebSocket.OPEN) {
           const heartbeat: ToExtensionMessage = { source: "usp-desktop", type: "heartbeat" };
           socket.send(JSON.stringify(heartbeat));
@@ -203,7 +287,7 @@ export class ConnectionManager {
     wss.on("connection", (socket: WebSocket) => {
       this.log.info("Extension connected");
       this.options.stateManager.changeConnectionCount(+1);
-      connectedClients.add(socket);
+      record.connectedClients.add(socket);
       this.options.bus.emit("connection:client-connected", { socket });
 
       socket.on("message", (raw: Buffer) => {
@@ -214,7 +298,7 @@ export class ConnectionManager {
 
       socket.on("close", () => {
         this.log.info("Extension disconnected");
-        connectedClients.delete(socket);
+        record.connectedClients.delete(socket);
         this.forgetSocket(socket);
         this.options.stateManager.changeConnectionCount(-1);
         this.options.bus.emit("connection:client-disconnected", { socket });
@@ -227,24 +311,30 @@ export class ConnectionManager {
     });
 
     wss.on("error", (error: Error) => {
+      record.status = "error";
+      record.error = error.message;
       this.log.error("WebSocket server error", error);
+      this.publishListenerStatuses();
     });
 
     wss.on("close", () => {
-      clearInterval(heartbeatInterval);
-      connectedClients.clear();
+      if (record.heartbeatInterval) {
+        clearInterval(record.heartbeatInterval);
+        record.heartbeatInterval = null;
+      }
+      record.connectedClients.clear();
     });
 
     return wss;
   }
 
-  private isAuthorizedRequest(req: IncomingMessage, network: NetworkSettings): boolean {
+  private isAuthorizedRequest(req: IncomingMessage, endpoint: NetworkEndpoint, authToken: string): boolean {
     return isAuthorizedDesktopClient(
       {
         origin: req.headers.origin,
         requestUrl: req.url
       },
-      network
+      { endpoint, authToken }
     );
   }
 

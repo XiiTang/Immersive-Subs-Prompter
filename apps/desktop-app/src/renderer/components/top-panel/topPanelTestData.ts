@@ -49,8 +49,7 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
       }
     },
     network: {
-      host: "127.0.0.1",
-      port: 4312,
+      endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
       authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createTopPanelProfile()],
@@ -77,6 +76,7 @@ export function createTopPanelDesktopState(): DesktopState {
 
   return {
     connectionCount: 1,
+    networkListeners: [],
     activeTabId: 1,
     pageUrl: "https://example.com/watch",
     videoUrl: "https://example.com/watch",

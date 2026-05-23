@@ -106,13 +106,11 @@ The Network section uses the same pill-list interaction pattern as subtitle prio
 Final shape:
 
 - A field labeled for listening endpoints.
-- Existing endpoints render as compact pills.
+- Existing endpoints render as compact, read-only pills that display the generated extension URL.
 - The draft pill at the end accepts new endpoint text.
 - Pressing Enter or blurring the draft input parses and adds the endpoint.
-- Focusing an existing endpoint exposes an editable `host:port` value.
-- Blurring an existing endpoint parses and saves the endpoint.
-- Non-editing pills display the generated extension URL.
-- Each persisted pill can be removed.
+- Existing endpoint pills are not editable in place.
+- Each persisted pill can be removed through a small hover/focus `x` control.
 - The last remaining endpoint cannot be removed.
 
 Examples of non-editing pill display:
@@ -186,7 +184,7 @@ Error handling rules:
 - Failed endpoints do not roll back automatically.
 - Other endpoints keep running.
 - The failed endpoint pill shows an error state.
-- Editing the failed endpoint retries that endpoint.
+- Adding a replacement endpoint starts its listener.
 - Removing the failed endpoint clears its listener error state.
 
 ## Tests
@@ -210,9 +208,10 @@ Renderer tests should cover:
 
 - Endpoint pills render generated URLs.
 - Draft input accepts `host:port` and `ws://host:port/?token=...`.
+- Blurring the draft input adds the endpoint and displays the generated extension URL.
 - Invalid input shows an error and does not update settings.
 - Duplicate input shows an error and does not update settings.
-- Existing pills can be edited and removed.
+- Existing pills are read-only and can be removed.
 - The final endpoint cannot be removed.
 
 Documentation should describe:

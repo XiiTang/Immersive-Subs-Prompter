@@ -5,6 +5,7 @@ import { MediaServerController } from "./mediaServerController.js";
 function createStateManager() {
   const state = {
     connectionCount: 0,
+    networkListeners: [],
     activeTabId: null,
     pageUrl: null,
     videoUrl: "http://server.local:8096/Items/1",

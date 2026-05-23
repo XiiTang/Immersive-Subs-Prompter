@@ -28,6 +28,7 @@ import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/reg
 import { JELLYFINEMBY_MANIFEST } from "../plugins/official/jellyfinemby/manifest.js";
 import { registerJellyfinembyPluginMain } from "../plugins/official/jellyfinemby/registerMain.js";
 import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
+import { networkEndpointKey } from "../../common/networkEndpoints.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -41,6 +42,16 @@ type WindowControllerOptions = {
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
 };
+
+function areNetworkSettingsEqual(a: AppSettings["network"], b: AppSettings["network"]): boolean {
+  if (a.authToken !== b.authToken || a.endpoints.length !== b.endpoints.length) {
+    return false;
+  }
+  return a.endpoints.every((endpoint, index) => {
+    const other = b.endpoints[index];
+    return !!other && endpoint.id === other.id && networkEndpointKey(endpoint) === networkEndpointKey(other);
+  });
+}
 
 export class WindowController {
   private isQuitting = false;
@@ -277,10 +288,7 @@ export class WindowController {
       this.trayManager.updateLanguage();
     }
 
-    if (
-      previousNetwork.host !== appSettings.network.host ||
-      previousNetwork.port !== appSettings.network.port
-    ) {
+    if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
       this.options.connectionManager.applyNetworkSettings();
     }
 

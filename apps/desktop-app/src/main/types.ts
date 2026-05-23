@@ -29,6 +29,7 @@ export interface PlaybackState {
 
 export interface DesktopState {
   connectionCount: number;
+  networkListeners: NetworkListenerStatus[];
   activeTabId: number | null;
   pageUrl: string | null;
   videoUrl: string | null;
@@ -152,9 +153,22 @@ export interface SubtitleCacheSettings {
 }
 
 export interface NetworkSettings {
+  endpoints: NetworkEndpoint[];
+  authToken: string;
+}
+
+export interface NetworkEndpoint {
+  id: string;
   host: string;
   port: number;
-  authToken: string;
+}
+
+export interface NetworkListenerStatus {
+  endpointId: string;
+  host: string;
+  port: number;
+  status: "listening" | "error";
+  error: string | null;
 }
 
 export interface ProfileSettings {

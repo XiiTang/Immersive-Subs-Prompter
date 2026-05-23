@@ -1436,6 +1436,90 @@ body.main-window-body,
   color: var(--ui-text-muted);
 }
 
+.network-endpoint-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.network-endpoint-editor__list {
+  align-items: center;
+}
+
+.network-endpoint-editor__item {
+  position: relative;
+  max-width: 100%;
+  cursor: default;
+}
+
+.network-endpoint-editor__item--removable {
+  padding-right: 20px;
+}
+
+.network-endpoint-editor__item--error {
+  border-color: var(--ui-danger);
+}
+
+.network-endpoint-editor__draft {
+  flex: 0 0 110px;
+  width: 110px;
+  min-width: 110px;
+}
+
+.network-endpoint-editor__display {
+  min-width: 0;
+  max-width: min(100%, 520px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: text;
+  user-select: text;
+}
+
+.network-endpoint-editor__remove.ui-icon-button {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  color: var(--ui-text-muted);
+  background: var(--ui-surface);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.network-endpoint-editor__remove .icon {
+  width: 9px;
+  height: 9px;
+}
+
+.network-endpoint-editor__item:hover .network-endpoint-editor__remove,
+.network-endpoint-editor__item:focus-within .network-endpoint-editor__remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.network-endpoint-editor__input {
+  min-width: 0;
+}
+
+.network-endpoint-editor__input.ui-input {
+  min-height: 26px;
+  border: 0;
+  outline: 0;
+}
+
+.network-endpoint-editor__input.ui-input:focus-visible {
+  outline: 0;
+}
+
 .profile-url-rule__fields {
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);

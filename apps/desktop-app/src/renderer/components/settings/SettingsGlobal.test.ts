@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it } from "vitest";
+import { nextTick } from "vue";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import { useDesktopStore } from "../../stores/desktop";
@@ -19,9 +20,11 @@ function createSettings(): AppSettings {
       appearance: { theme: "system" }
     },
     network: {
-      host: "127.0.0.1",
-      port: 44501,
-      authToken: "token"
+      endpoints: [
+        { id: "default", host: "127.0.0.1", port: 44501 },
+        { id: "lan", host: "192.168.1.2", port: 44502 }
+      ],
+      authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [],
     defaultProfileId: "",
@@ -38,6 +41,7 @@ function createSettings(): AppSettings {
 describe("SettingsGlobal", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    document.body.innerHTML = "";
   });
 
   it("includes appearance and subtitle cache controls in the global settings page", () => {
@@ -51,5 +55,121 @@ describe("SettingsGlobal", () => {
     expect(wrapper.text()).toContain("Subtitle Cache");
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);
     expect(wrapper.find("#cache-path-label").exists()).toBe(true);
+  });
+
+  it("renders endpoint pills as extension URLs", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+
+    const wrapper = mount(SettingsGlobal);
+
+    expect(wrapper.text()).toContain("ws://127.0.0.1:44501/");
+    expect(wrapper.text()).toContain("ws://192.168.1.2:44502/?token=0123456789abcdef0123456789abcdef");
+    expect(wrapper.find("#network-host").exists()).toBe(false);
+    expect(wrapper.find("#network-port").exists()).toBe(false);
+  });
+
+  it("adds a draft endpoint from host:port input", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSpy = vi.spyOn(store, "updateNetworkSetting").mockImplementation((key, value) => {
+      if (store.settings && key === "endpoints") {
+        store.settings.network.endpoints = value as never;
+      }
+    });
+
+    const wrapper = mount(SettingsGlobal);
+    const input = wrapper.get<HTMLInputElement>('[data-testid="network-endpoint-draft-input"]');
+    await input.setValue("192.168.1.3:44503");
+    await input.trigger("keyup.enter");
+
+    expect(updateSpy).toHaveBeenCalledWith("endpoints", [
+      { id: "default", host: "127.0.0.1", port: 44501 },
+      { id: "lan", host: "192.168.1.2", port: 44502 },
+      expect.objectContaining({ host: "192.168.1.3", port: 44503 })
+    ]);
+  });
+
+  it("rejects duplicate endpoint input", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSpy = vi.spyOn(store, "updateNetworkSetting").mockImplementation(() => undefined);
+
+    const wrapper = mount(SettingsGlobal);
+    const input = wrapper.get<HTMLInputElement>('[data-testid="network-endpoint-draft-input"]');
+    await input.setValue("127.0.0.1:44501");
+    await input.trigger("keyup.enter");
+
+    expect(wrapper.text()).toContain("Endpoint already exists");
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not remove the final endpoint", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      network: {
+        endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      }
+    };
+    const updateSpy = vi.spyOn(store, "updateNetworkSetting").mockImplementation(() => undefined);
+
+    const wrapper = mount(SettingsGlobal);
+    expect(wrapper.find('[data-testid="network-endpoint-remove-default"]').exists()).toBe(false);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows listener errors from desktop state", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = {
+      networkListeners: [
+        {
+          endpointId: "lan",
+          host: "192.168.1.2",
+          port: 44502,
+          status: "error",
+          error: "listen EADDRNOTAVAIL"
+        }
+      ]
+    } as never;
+
+    const wrapper = mount(SettingsGlobal);
+
+    expect(wrapper.text()).toContain("192.168.1.2:44502 - listen EADDRNOTAVAIL");
+  });
+
+  it("keeps saved endpoint pills read-only", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSpy = vi.spyOn(store, "updateNetworkSetting").mockImplementation(() => undefined);
+
+    const wrapper = mount(SettingsGlobal);
+    await wrapper.get('[data-testid="network-endpoint-display-default"]').trigger("click");
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="network-endpoint-edit-default"]').exists()).toBe(false);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("adds a draft endpoint on blur and displays its extension URL", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    vi.spyOn(store, "updateNetworkSetting").mockImplementation((key, value) => {
+      if (store.settings && key === "endpoints") {
+        store.settings.network.endpoints = value as never;
+      }
+    });
+
+    const wrapper = mount(SettingsGlobal);
+    const input = wrapper.get<HTMLInputElement>('[data-testid="network-endpoint-draft-input"]');
+    await input.setValue("192.168.1.3:44503");
+    await input.trigger("blur");
+
+    await nextTick();
+
+    expect(input.element.value).toBe("");
+    expect(wrapper.text()).toContain("ws://192.168.1.3:44503/?token=0123456789abcdef0123456789abcdef");
   });
 });

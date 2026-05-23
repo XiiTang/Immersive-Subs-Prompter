@@ -2,6 +2,7 @@ export { default as IconAdd } from "./IconAdd.vue";
 export { default as IconChevronDown } from "./IconChevronDown.vue";
 export { default as IconChevronUp } from "./IconChevronUp.vue";
 export { default as IconCheck } from "./IconCheck.vue";
+export { default as IconClose } from "./IconClose.vue";
 export { default as IconDelete } from "./IconDelete.vue";
 export { default as IconFolder } from "./IconFolder.vue";
 export { default as IconFullscreen } from "./IconFullscreen.vue";

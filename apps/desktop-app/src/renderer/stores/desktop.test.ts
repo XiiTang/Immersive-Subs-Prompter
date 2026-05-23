@@ -30,8 +30,8 @@ function createSettings(): AppSettings {
       }
     },
     network: {
-      host: "127.0.0.1",
-      port: 4312
+      endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
+      authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [
       {
@@ -111,6 +111,7 @@ function createDesktopState(): DesktopState {
 
   return {
     connectionCount: 1,
+    networkListeners: [],
     activeTabId: 1,
     pageUrl: "https://www.bilibili.com/video/BV1xx411c7mD",
     videoUrl: "https://www.bilibili.com/video/BV1xx411c7mD",
@@ -266,6 +267,28 @@ describe("desktop store profile selection", () => {
 
     expect(store.pluginCatalog).toHaveLength(1);
     expect(store.pluginCatalog[0]?.enabled).toBe(true);
+  });
+
+  it("rolls back optimistic settings when updateSettings rejects", async () => {
+    const store = useDesktopStore();
+    const original = createSettings();
+    store.settings = original;
+    vi.stubGlobal("window", {
+      usp: {
+        updateSettings: vi.fn(async () => {
+          throw new Error("At least one network endpoint is required");
+        })
+      }
+    });
+
+    await store.updateSettings({
+      network: {
+        ...original.network,
+        endpoints: []
+      }
+    });
+
+    expect(store.settings).toEqual(original);
   });
 
   it("includes media server counts in the connection label only when Jellyfin / Emby is enabled", () => {

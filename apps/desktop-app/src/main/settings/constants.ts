@@ -45,10 +45,16 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
 
 export const DEFAULT_WS_HOST = (process.env.USP_WS_HOST ?? "127.0.0.1").trim() || "127.0.0.1";
 export const DEFAULT_WS_PORT = clampPort(Number(process.env.USP_WS_PORT ?? 44501));
+export const DEFAULT_WS_ENDPOINT_ID = "default";
 
 export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
-  host: DEFAULT_WS_HOST,
-  port: DEFAULT_WS_PORT,
+  endpoints: [
+    {
+      id: DEFAULT_WS_ENDPOINT_ID,
+      host: DEFAULT_WS_HOST,
+      port: DEFAULT_WS_PORT
+    }
+  ],
   authToken: createConnectionAuthToken()
 };
 

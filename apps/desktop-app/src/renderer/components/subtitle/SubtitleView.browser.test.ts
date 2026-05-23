@@ -87,8 +87,8 @@ function createSettings(): AppSettings {
       language: "en"
     },
     network: {
-      host: "127.0.0.1",
-      port: 4312
+      endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
+      authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createProfile()],
     defaultProfileId: "profile-1",
@@ -123,6 +123,7 @@ function createDesktopState(options: { withSecondary?: boolean } = {}): DesktopS
 
   return {
     connectionCount: 1,
+    networkListeners: [],
     activeTabId: 1,
     pageUrl: "https://example.com/watch",
     videoUrl: "https://example.com/watch",

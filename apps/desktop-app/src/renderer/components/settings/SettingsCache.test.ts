@@ -19,7 +19,10 @@ describe("SettingsCache", () => {
         panelOpacity: 100,
         language: "zh"
       },
-      network: { host: "127.0.0.1", port: 4312 },
+      network: {
+        endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      },
       profiles: [],
       defaultProfileId: "",
       rules: [],

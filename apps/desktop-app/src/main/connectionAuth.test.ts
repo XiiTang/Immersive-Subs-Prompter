@@ -4,13 +4,15 @@ import {
   createConnectionAuthToken,
   isAuthorizedDesktopClient
 } from "./connectionAuth.js";
-import type { NetworkSettings } from "./types.js";
+import type { NetworkEndpoint } from "./types.js";
 
-function makeNetwork(overrides: Partial<NetworkSettings> = {}): NetworkSettings {
+const authToken = "0123456789abcdef0123456789abcdef";
+
+function makeEndpoint(overrides: Partial<NetworkEndpoint> = {}): NetworkEndpoint {
   return {
+    id: "default",
     host: "127.0.0.1",
     port: 44501,
-    authToken: "0123456789abcdef0123456789abcdef",
     ...overrides
   };
 }
@@ -20,13 +22,13 @@ describe("connectionAuth", () => {
     expect(
       isAuthorizedDesktopClient(
         { origin: "chrome-extension://abcdefghijklmnop", requestUrl: "/" },
-        makeNetwork()
+        { endpoint: makeEndpoint(), authToken }
       )
     ).toBe(true);
     expect(
       isAuthorizedDesktopClient(
         { origin: "moz-extension://2f1c8041-a3fb-44a5-aabf-0be7742fdc1d", requestUrl: "/" },
-        makeNetwork({ host: "localhost" })
+        { endpoint: makeEndpoint({ host: "localhost" }), authToken }
       )
     ).toBe(true);
   });
@@ -35,23 +37,23 @@ describe("connectionAuth", () => {
     expect(
       isAuthorizedDesktopClient(
         { origin: "https://attacker.example", requestUrl: "/" },
-        makeNetwork()
+        { endpoint: makeEndpoint(), authToken }
       )
     ).toBe(false);
   });
 
   it("requires the shared token when the desktop listener is reachable beyond loopback", () => {
-    const network = makeNetwork({ host: "0.0.0.0" });
+    const context = { endpoint: makeEndpoint({ host: "192.168.1.2" }), authToken };
     expect(
       isAuthorizedDesktopClient(
         { origin: "chrome-extension://abcdefghijklmnop", requestUrl: "/" },
-        network
+        context
       )
     ).toBe(false);
     expect(
       isAuthorizedDesktopClient(
         { origin: "chrome-extension://abcdefghijklmnop", requestUrl: "/?token=wrong" },
-        network
+        context
       )
     ).toBe(false);
     expect(
@@ -60,15 +62,15 @@ describe("connectionAuth", () => {
           origin: "chrome-extension://abcdefghijklmnop",
           requestUrl: "/?token=0123456789abcdef0123456789abcdef"
         },
-        network
+        context
       )
     ).toBe(true);
   });
 
   it("creates strong URL-safe tokens and endpoint URLs", () => {
     expect(createConnectionAuthToken()).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(buildAuthenticatedEndpoint(makeNetwork({ host: "0.0.0.0" }))).toBe(
-      "ws://0.0.0.0:44501/?token=0123456789abcdef0123456789abcdef"
+    expect(buildAuthenticatedEndpoint(makeEndpoint({ host: "192.168.1.2" }), authToken)).toBe(
+      "ws://192.168.1.2:44501/?token=0123456789abcdef0123456789abcdef"
     );
   });
 });

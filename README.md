@@ -80,7 +80,7 @@ The desktop app now targets Electron 41 / Chromium 146.
 - Windows Quick Show preserves snapped layouts instead of forcing the panel into a conflicting top-most state.
 - Desktop release packaging now runs through Electron Forge with ASAR integrity validation enabled.
 
-By default the app listens on `ws://127.0.0.1:44501`. Adjust the bind address and port under **Settings → Network** only when another extension client must connect over your LAN; non-loopback endpoints must use the full tokenized URL shown in the desktop settings.
+By default the app listens on `ws://127.0.0.1:44501/`. Under **Settings → Network**, add explicit listening endpoints such as `127.0.0.1:44501` and `192.168.1.2:44501` when another extension client must connect over your LAN. Non-loopback endpoints are displayed as tokenized URLs such as `ws://192.168.1.2:44501/?token=...`; enter one reachable URL per desktop app instance in the extension popup.
 
 ### Test Stack
 

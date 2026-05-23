@@ -14,12 +14,14 @@ export async function updateSettings(this: DesktopStoreThis, partial: Partial<Ap
   if (!this.settings) {
     return;
   }
+  const previous = toPlain(this.settings);
   const payload = toPlain(partial);
   this.applySettingsPatch(payload);
   try {
     const next = await window.usp.updateSettings(payload);
     this.settings = next;
   } catch (error) {
+    this.settings = previous;
     reportError(error, "settings.update");
   }
 }

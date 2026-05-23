@@ -36,8 +36,8 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
       }
     },
     network: {
-      host: "127.0.0.1",
-      port: 44501
+      endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }],
+      authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [
       {

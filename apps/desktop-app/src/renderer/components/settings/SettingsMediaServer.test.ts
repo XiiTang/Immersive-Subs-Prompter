@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsMediaServer from "./SettingsMediaServer.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
@@ -19,7 +19,10 @@ describe("SettingsMediaServer", () => {
         panelOpacity: 100,
         language: "en"
       },
-      network: { host: "127.0.0.1", port: 4312 },
+      network: {
+        endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      },
       profiles: [],
       defaultProfileId: "",
       rules: [],
@@ -41,6 +44,12 @@ describe("SettingsMediaServer", () => {
       },
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings)
+      }
+    });
   });
 
   it("edits plugin-owned servers without a global media-server toggle", () => {

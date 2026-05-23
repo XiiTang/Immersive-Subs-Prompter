@@ -22,7 +22,10 @@ describe("SettingsPlugins", () => {
         panelOpacity: 100,
         language: "en"
       },
-      network: { host: "127.0.0.1", port: 44501 },
+      network: {
+        endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      },
       profiles: [],
       defaultProfileId: "",
       rules: [],

@@ -67,4 +67,43 @@ describe("StateManager profile URL matching", () => {
     expect(selection.profile.id).toBe("profile-default");
     expect(selection.rule).toBeNull();
   });
+
+  it("tracks network listener statuses", () => {
+    const settings = makeSettings();
+    const manager = new StateManager(new AppEventBus(), () => settings);
+
+    manager.setNetworkListenerStatuses([
+      {
+        endpointId: "default",
+        host: "127.0.0.1",
+        port: 44501,
+        status: "listening",
+        error: null
+      },
+      {
+        endpointId: "lan",
+        host: "192.168.1.2",
+        port: 44501,
+        status: "error",
+        error: "listen EADDRNOTAVAIL"
+      }
+    ]);
+
+    expect(manager.getState().networkListeners).toEqual([
+      {
+        endpointId: "default",
+        host: "127.0.0.1",
+        port: 44501,
+        status: "listening",
+        error: null
+      },
+      {
+        endpointId: "lan",
+        host: "192.168.1.2",
+        port: 44501,
+        status: "error",
+        error: "listen EADDRNOTAVAIL"
+      }
+    ]);
+  });
 });

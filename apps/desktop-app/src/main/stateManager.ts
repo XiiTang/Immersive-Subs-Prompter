@@ -46,6 +46,7 @@ function createInitialState(settings: AppSettings): {
     activeProfileId: profileId,
     state: {
       connectionCount: 0,
+      networkListeners: [],
       activeTabId: null,
       pageUrl: null,
       videoUrl: null,
@@ -182,6 +183,12 @@ export class StateManager {
       } else if (draft.connectionCount > 0 && draft.status === "idle" && draft.activeSource !== "mediaserver") {
         draft.status = "awaiting-video";
       }
+    });
+  }
+
+  setNetworkListenerStatuses(statuses: DesktopState["networkListeners"]) {
+    return this.updateState((draft) => {
+      draft.networkListeners = statuses.map((status) => ({ ...status }));
     });
   }
 

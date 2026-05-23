@@ -45,8 +45,26 @@ describe("SettingsStore", () => {
     const settings = store.get();
     expect(settings.profiles.length).toBeGreaterThan(0);
     expect(settings.defaultProfileId).toBe(settings.profiles.at(-1)?.id);
-    expect(settings.network.host).toBe("127.0.0.1");
+    expect(settings.network.endpoints).toEqual([
+      { id: "default", host: "127.0.0.1", port: 44501 }
+    ]);
     expect(settings.network.authToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+
+  it("preserves current network settings when an update contains invalid endpoints", async () => {
+    const store = await loadStore();
+    const currentNetwork = store.get().network;
+
+    expect(() =>
+      store.update({
+        network: {
+          ...currentNetwork,
+          endpoints: []
+        }
+      })
+    ).toThrow("At least one network endpoint is required");
+
+    expect(store.get().network).toEqual(currentNetwork);
   });
 
   it("persists updates to disk and survives a reload", async () => {
