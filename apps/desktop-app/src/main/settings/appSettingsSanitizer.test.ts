@@ -121,27 +121,30 @@ describe("appSettingsSanitizer", () => {
             id: "rule-youtube",
             name: "YouTube",
             pattern: "youtube.com",
-            profileId: "profile-youtube",
-            isEnabled: true
+            profileId: "profile-youtube"
           },
           {
             id: "rule-default",
             name: "Default",
             pattern: "example.com",
-            profileId: "profile-default",
-            isEnabled: true
+            profileId: "profile-default"
           },
           {
             id: "rule-missing",
             name: "Missing",
             pattern: "missing.example",
-            profileId: "profile-missing",
-            isEnabled: true
+            profileId: "profile-missing"
           }
         ]
       });
 
       expect(result.rules.map((rule) => rule.id)).toEqual(["rule-youtube"]);
+      expect(result.rules[0]).toEqual({
+        id: "rule-youtube",
+        name: "YouTube",
+        pattern: "youtube.com",
+        profileId: "profile-youtube"
+      });
     });
 
     it("initializes Jellyfin / Emby plugin config when missing", () => {

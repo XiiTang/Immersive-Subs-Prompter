@@ -26,13 +26,11 @@ export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallb
       continue;
     }
     const name = typeof source.name === "string" && source.name.trim().length ? source.name.trim() : pattern;
-    const isEnabled = typeof source.isEnabled === "boolean" ? source.isEnabled : true;
     rules.push({
       id,
       name,
       pattern,
-      profileId,
-      isEnabled
+      profileId
     });
   }
 

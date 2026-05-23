@@ -200,7 +200,6 @@ export interface ProfileRule {
   name: string;
   pattern: string;
   profileId: string;
-  isEnabled: boolean;
 }
 
 export interface PluginSettingsRecord {

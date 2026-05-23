@@ -85,8 +85,7 @@ function createSettings(): AppSettings {
         id: "rule-bilibili",
         name: "Bilibili",
         pattern: "bilibili",
-        profileId: "profile-bilibili",
-        isEnabled: true
+        profileId: "profile-bilibili"
       }
     ],
     plugins: {
@@ -408,22 +407,19 @@ describe("desktop store profile selection", () => {
           id: "rule-other",
           name: "Other",
           pattern: "example.com",
-          profileId: "profile-default",
-          isEnabled: true
+          profileId: "profile-default"
         },
         {
           id: "rule-first",
           name: "First",
           pattern: "bilibili.com",
-          profileId: "profile-bilibili",
-          isEnabled: true
+          profileId: "profile-bilibili"
         },
         {
           id: "rule-second",
           name: "Second",
           pattern: "b23.tv",
-          profileId: "profile-bilibili",
-          isEnabled: true
+          profileId: "profile-bilibili"
         }
       ]
     };

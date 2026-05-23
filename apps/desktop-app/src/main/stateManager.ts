@@ -88,9 +88,6 @@ function createInitialState(settings: AppSettings): {
 }
 
 function matchesRule(url: string, rule: ProfileRule): boolean {
-  if (!rule.isEnabled) {
-    return false;
-  }
   return matchesUrlRule(url ?? "", rule.pattern);
 }
 
@@ -303,9 +300,6 @@ export class StateManager {
           continue;
         }
         for (const rule of rulesByProfile.get(profile.id) ?? []) {
-          if (!rule.isEnabled) {
-            continue;
-          }
           if (matchesRule(url, rule)) {
             return { profile, rule };
           }

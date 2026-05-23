@@ -149,22 +149,19 @@
       "id": "rule-a9016eb2-7e5a-45fe-8c54-22239aaa3083",
       "name": "Bilibili",
       "pattern": "bilibili.com",
-      "profileId": "profile-fe180e4d-e963-4d76-83d0-ec7311cbb608",
-      "isEnabled": true
+      "profileId": "profile-fe180e4d-e963-4d76-83d0-ec7311cbb608"
     },
     {
       "id": "rule-ee98d6e3-c48d-40e3-a5d0-0b940fe0e33c",
       "name": "Youtube",
       "pattern": "youtube.com",
-      "profileId": "profile-40b9e894-0251-41d6-9e8c-a246f29d3d7b",
-      "isEnabled": true
+      "profileId": "profile-40b9e894-0251-41d6-9e8c-a246f29d3d7b"
     },
     {
       "id": "rule-ff318a0a-e234-4138-bc39-b85d62bec586",
       "name": "tiktok",
       "pattern": "tiktok.com",
-      "profileId": "profile-d6054c18-c9c1-4ee5-8263-a63b1b1e36bc",
-      "isEnabled": true
+      "profileId": "profile-d6054c18-c9c1-4ee5-8263-a63b1b1e36bc"
     }
   ],
   "plugins": {

@@ -63,6 +63,14 @@ describe("PillListEditor browser layout", () => {
     expect(Math.abs(distanceToCornerCenter - pillRadius)).toBeLessThanOrEqual(1.5);
   });
 
+  it("keeps removable saved pill padding balanced while the close button floats", () => {
+    const wrapper = mountEditor();
+    const savedPill = wrapper.get('[data-testid="pill-display-one"]').element.closest(".pill-list-editor__item") as HTMLElement;
+    const savedPillStyle = getComputedStyle(savedPill);
+
+    expect(savedPillStyle.paddingLeft).toBe(savedPillStyle.paddingRight);
+  });
+
   it("sizes the trailing draft pill from its placeholder text", () => {
     const shortWrapper = mountEditor("x");
     const shortDraft = shortWrapper.get(".pill-list-editor__draft").element as HTMLElement;

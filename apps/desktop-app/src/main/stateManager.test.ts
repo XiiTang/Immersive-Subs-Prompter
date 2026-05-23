@@ -31,15 +31,13 @@ function makeSettings(): AppSettings {
         id: "rule-youtube",
         name: "YouTube",
         pattern: "youtube.com",
-        profileId: broadProfile.id,
-        isEnabled: true
+        profileId: broadProfile.id
       },
       {
         id: "rule-music-youtube",
         name: "Music YouTube",
         pattern: "music.youtube.com",
-        profileId: specificProfile.id,
-        isEnabled: true
+        profileId: specificProfile.id
       }
     ]
   };
@@ -87,8 +85,7 @@ describe("StateManager profile URL matching", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: youtubeProfile.id,
-          isEnabled: true
+          profileId: youtubeProfile.id
         }
       ]
     } as AppSettings;
@@ -139,29 +136,25 @@ describe("StateManager profile URL matching", () => {
           id: "rule-exact",
           name: "Exact",
           pattern: "=https://example.com/watch?v=1",
-          profileId: exactProfile.id,
-          isEnabled: true
+          profileId: exactProfile.id
         },
         {
           id: "rule-regex",
           name: "Regex",
           pattern: "re:^https://video\\.example/(watch|shorts)/\\d+$",
-          profileId: regexProfile.id,
-          isEnabled: true
+          profileId: regexProfile.id
         },
         {
           id: "rule-contains",
           name: "Contains",
           pattern: "contains:player_state=active",
-          profileId: containsProfile.id,
-          isEnabled: true
+          profileId: containsProfile.id
         },
         {
           id: "rule-glob",
           name: "Glob",
           pattern: "*.bilibili.com/video/*",
-          profileId: globProfile.id,
-          isEnabled: true
+          profileId: globProfile.id
         }
       ]
     } as AppSettings;

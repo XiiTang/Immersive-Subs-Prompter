@@ -204,11 +204,13 @@ describe("SettingsProfiles", () => {
     const profileItemHeightBeforeEdit = wrapper
       .findAll<HTMLElement>(".profile-list__item")[1]!
       .element.getBoundingClientRect().height;
+    const nameActionRectBeforeEdit = nameActions[1]!.element.getBoundingClientRect();
 
     await nameActions[1]!.trigger("click");
 
     const nameInput = wrapper.get<HTMLInputElement>('[data-testid="profile-list-name-input"]');
     const nameInputStyle = getComputedStyle(nameInput.element);
+    const nameInputRect = nameInput.element.getBoundingClientRect();
     expect(Number.parseFloat(nameInputStyle.height)).toBeLessThanOrEqual(24);
     expect(nameInputStyle.borderTopWidth).toBe("1px");
     expect(nameInputStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
@@ -221,6 +223,8 @@ describe("SettingsProfiles", () => {
     expect(wrapper.findAll<HTMLElement>(".profile-list__item")[1]!.element.getBoundingClientRect().height).toBe(
       profileItemHeightBeforeEdit
     );
+    expect(Math.round(nameInputRect.width)).toBe(Math.round(nameActionRectBeforeEdit.width));
+    expect(Math.round(nameInputRect.height)).toBe(Math.round(nameActionRectBeforeEdit.height));
 
     await nameInput.setValue("Streaming");
     await nameInput.trigger("blur");
@@ -318,15 +322,13 @@ describe("SettingsProfiles", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         },
         {
           id: "rule-youtu-be",
           name: "youtu.be",
           pattern: "youtu.be",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         }
       ]
     };
@@ -377,7 +379,7 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).not.toContain("Set as Default");
   });
 
-  it("uses drag ordering controls and a textless leading enable checkbox for profile URL rules", () => {
+  it("renders URL rules as sortable pill chips without enable switches or row actions", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -388,15 +390,13 @@ describe("SettingsProfiles", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         },
         {
           id: "rule-youtu-be",
           name: "youtu.be",
           pattern: "youtu.be",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         }
       ]
     };
@@ -412,16 +412,16 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const firstRule = wrapper.get(".profile-url-rule");
+    const firstRule = wrapper.get('[data-testid="profile-url-rule-display-rule-youtube"]');
 
     expect(firstRule.attributes("draggable")).toBe("true");
-    expect(firstRule.text()).not.toContain("Move up");
-    expect(firstRule.text()).not.toContain("Move down");
-    expect(firstRule.find(".toggle__text").exists()).toBe(false);
-    expect(firstRule.element.firstElementChild?.classList.contains("profile-url-rule__toggle")).toBe(true);
+    expect(wrapper.find(".profile-url-rule").exists()).toBe(false);
+    expect(wrapper.find(".profile-url-rule__toggle").exists()).toBe(false);
+    expect(wrapper.find(".profile-url-rule__actions").exists()).toBe(false);
+    expect(wrapper.find('[data-testid="profile-url-rule-type"]').exists()).toBe(false);
   });
 
-  it("edits URL rules directly in each rule row instead of a separate edit form", () => {
+  it("uses a blank draft pill for new URL rules", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -432,8 +432,7 @@ describe("SettingsProfiles", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         }
       ]
     };
@@ -449,18 +448,16 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const firstRule = wrapper.get(".profile-url-rule");
-    const patternInput = firstRule.get<HTMLInputElement>('[data-testid="profile-url-rule-pattern"]');
-    const ruleTypeBadge = firstRule.get('[data-testid="profile-url-rule-type"]');
+    const firstRule = wrapper.get('[data-testid="profile-url-rule-display-rule-youtube"]');
+    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="profile-url-rule-draft"]');
 
     expect(wrapper.find(".profile-url-rule-form").exists()).toBe(false);
-    expect(firstRule.text()).not.toContain("Edit");
-    expect(patternInput.element.value).toBe("youtube.com");
-    expect(ruleTypeBadge.attributes("role")).not.toBe("combobox");
-    expect(ruleTypeBadge.text()).toContain("Domain");
+    expect(firstRule.text()).toBe("youtube.com");
+    expect(draftInput.attributes("placeholder")).toBe("youtube.com, *.site.com/path/*, =full URL, re:pattern");
+    expect(draftInput.element.value).toBe("");
   });
 
-  it("uses compact unlabeled URL rule fields with the pattern label as placeholder", () => {
+  it("keeps URL rule pills compact and unlabeled", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -471,8 +468,7 @@ describe("SettingsProfiles", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         }
       ]
     };
@@ -488,18 +484,15 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const firstRule = wrapper.get(".profile-url-rule");
-    const ruleTypeBadge = firstRule.get('[data-testid="profile-url-rule-type"]');
-    const newRulePattern = wrapper.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
+    const firstRule = wrapper.get('[data-testid="profile-url-rule-display-rule-youtube"]');
+    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="profile-url-rule-draft"]');
 
     expect(firstRule.text()).not.toContain("Match Type");
     expect(firstRule.text()).not.toContain("Pattern");
-    expect(ruleTypeBadge.classes()).toContain("profile-url-rule__match-badge");
-    expect(newRulePattern.attributes("placeholder")).toBe("youtube.com, *.site.com/path/*, =full URL, re:pattern");
-    expect(newRulePattern.element.value).toBe("");
+    expect(draftInput.element.closest(".priority-editor__draft")).not.toBeNull();
   });
 
-  it("adds a URL rule from the inline new-rule input on blur without an add button", async () => {
+  it("adds a URL rule from the draft pill on blur without an add button or enabled flag", async () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -525,22 +518,28 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const newRulePattern = wrapper.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
-    await newRulePattern.setValue("music.youtube.com");
-    await newRulePattern.trigger("blur");
+    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="profile-url-rule-draft"]');
+    await draftInput.setValue("music.youtube.com");
+    await draftInput.trigger("blur");
 
     expect(wrapper.text()).not.toContain("Add URL Rule");
+    expect(wrapper.find('[aria-label="Confirm URL Rule"]').exists()).toBe(false);
     expect(store.settings.rules).toEqual([
       expect.objectContaining({
         pattern: "music.youtube.com",
-        profileId: "profile-youtube",
-        isEnabled: true
+        profileId: "profile-youtube"
       })
     ]);
-    expect((newRulePattern.element as HTMLInputElement).value).toBe("");
+    expect(store.settings.rules[0]).toEqual({
+      id: expect.any(String),
+      name: "music.youtube.com",
+      pattern: "music.youtube.com",
+      profileId: "profile-youtube"
+    });
+    expect(draftInput.element.value).toBe("");
   });
 
-  it("shows a confirm icon in the unsaved URL rule action slot", async () => {
+  it("removes URL rules through the pill close button", async () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -551,8 +550,7 @@ describe("SettingsProfiles", () => {
           id: "rule-youtube",
           name: "YouTube",
           pattern: "youtube.com",
-          profileId: "profile-youtube",
-          isEnabled: true
+          profileId: "profile-youtube"
         }
       ]
     };
@@ -575,18 +573,10 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const savedRule = wrapper.get(".profile-url-rule:not(.profile-url-rule--new)");
-    const newRule = wrapper.get(".profile-url-rule--new");
-    const newRulePattern = newRule.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
+    expect(wrapper.find(".profile-url-rule__actions").exists()).toBe(false);
+    await wrapper.get('[data-testid="profile-url-rule-remove-rule-youtube"]').trigger("click");
 
-    expect(savedRule.get('[aria-label="Delete"]').exists()).toBe(true);
-    expect(newRule.find('[aria-label="Delete"]').exists()).toBe(false);
-    expect(newRule.get('[aria-label="Confirm URL Rule"]').exists()).toBe(true);
-
-    await newRulePattern.setValue("youtu.be");
-    await newRule.get('[aria-label="Confirm URL Rule"]').trigger("click");
-
-    expect(store.settings.rules.map((rule) => rule.pattern)).toEqual(["youtube.com", "youtu.be"]);
+    expect(store.settings.rules).toEqual([]);
   });
 
   it("renders subtitle priorities as wrapping pill chips with close buttons", () => {
