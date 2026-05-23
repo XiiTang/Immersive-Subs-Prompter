@@ -70,7 +70,7 @@ describe("desktop UI library boundary", () => {
   it("keeps settings feature components on local primitives instead of raw controls", () => {
     const offenders = walkFiles(join(rendererRoot, "components/settings"))
       .filter((path) => !isTestFile(path))
-      .filter((path) => /<(button|select|textarea)\b|<input\b(?![^>]*type="color")/.test(readFileSync(path, "utf8")))
+      .filter((path) => /<(button|select|textarea)\b|<input\b/.test(readFileSync(path, "utf8")))
       .map(normalize);
 
     expect(offenders).toEqual([]);

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   UiBadge,
   UiButton,
+  UiColorInput,
   UiEmptyState,
   UiField,
   UiIconButton,
@@ -142,6 +143,68 @@ describe("UI primitives", () => {
     expect(toggle.get('[role="switch"]').attributes("aria-checked")).toBe("false");
     await toggle.get('[role="switch"]').trigger("click");
     expect(toggle.emitted("update:modelValue")?.[0]).toEqual([true]);
+  });
+
+  it("renders color input through the shared color primitive", async () => {
+    const colorInput = mount(UiColorInput, {
+      props: {
+        modelValue: "#112233",
+        label: "Primary Text"
+      },
+      attachTo: document.body
+    });
+
+    expect(colorInput.classes()).toContain("ui-color-input");
+    expect(colorInput.find('[aria-roledescription="color swatch"]').exists()).toBe(false);
+    expect(colorInput.find('[data-testid^="color-preset-"]').exists()).toBe(false);
+    expect(colorInput.find('input[type="color"]').exists()).toBe(false);
+    expect(colorInput.find(".ui-color-input__field").exists()).toBe(false);
+    expect(document.body.querySelector('[data-testid="color-palette"]')).toBeNull();
+
+    const trigger = colorInput.get('[data-testid="color-label-trigger"]');
+    expect(trigger.text()).toBe("Primary Text");
+    expect(trigger.attributes("style")).toContain("color:");
+
+    await trigger.trigger("click");
+    await nextTick();
+
+    const palette = document.body.querySelector('[data-testid="color-palette"]');
+    expect(palette).toBeInstanceOf(HTMLElement);
+    expect(palette?.querySelector('[data-testid="color-area"]')).toBeInstanceOf(HTMLElement);
+    expect(palette?.querySelector('[data-testid="color-hue-slider"]')).toBeInstanceOf(HTMLElement);
+    expect(palette?.querySelector('[data-testid="color-channel-red"]')).toBeInstanceOf(HTMLInputElement);
+    expect(palette?.querySelector('[data-testid="color-channel-green"]')).toBeInstanceOf(HTMLInputElement);
+    expect(palette?.querySelector('[data-testid="color-channel-blue"]')).toBeInstanceOf(HTMLInputElement);
+
+    const paletteField = palette?.querySelector(".ui-color-input__field");
+    expect(paletteField).toBeInstanceOf(HTMLInputElement);
+    expect((paletteField as HTMLInputElement).classList.contains("ui-input")).toBe(true);
+
+    const colorAreaRoot = colorInput.findComponent({ name: "ColorAreaRoot" });
+    expect(colorAreaRoot.exists()).toBe(true);
+    colorAreaRoot.vm.$emit("update:modelValue", "#ffffff");
+    await nextTick();
+    expect(colorInput.emitted("update:modelValue")).toBeUndefined();
+    colorAreaRoot.vm.$emit("changeEnd", "#ffffff");
+    await nextTick();
+    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#ffffff"]);
+
+    const redField = palette?.querySelector('[data-testid="color-channel-red"]');
+    (redField as HTMLInputElement).value = "68";
+    redField?.dispatchEvent(new Event("input", { bubbles: true }));
+    redField?.dispatchEvent(new Event("blur", { bubbles: true }));
+    await nextTick();
+
+    expect(colorInput.emitted("update:modelValue")?.[1]).toEqual(["#44ffff"]);
+
+    (paletteField as HTMLInputElement).value = "#445566";
+    paletteField?.dispatchEvent(new Event("input", { bubbles: true }));
+    paletteField?.dispatchEvent(new Event("blur", { bubbles: true }));
+    await nextTick();
+
+    expect(colorInput.emitted("update:modelValue")?.[2]).toEqual(["#445566"]);
+
+    colorInput.unmount();
   });
 
   it("renders slider with native event passthrough for playback scrubbing", async () => {

@@ -79,6 +79,14 @@ describe("desktop CSS convergence", () => {
     expect(css).toMatch(/\.ui-select__icon\s*{[\s\S]*flex: 0 0 auto;/);
   });
 
+  it("keeps profile color controls as four equal columns", () => {
+    expect(css).toMatch(/\.settings-color-grid\s*{[\s\S]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+  });
+
+  it("centers profile color labels within each color column", () => {
+    expect(css).toMatch(/\.ui-color-input__trigger\s*{[^}]*width: 100%;[^}]*text-align: center;[^}]*}/);
+  });
+
   it("keeps Tailwind utility classes out of app styles", () => {
     expect(activeCss).not.toMatch(/\.(?:items-center|justify-center|rounded-md|text-sm|bg-primary|text-muted-foreground|border-input)\b/);
   });

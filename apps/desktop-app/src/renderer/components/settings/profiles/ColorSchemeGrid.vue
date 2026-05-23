@@ -5,23 +5,12 @@
     </header>
     <div class="settings-color-grid">
       <div v-for="swatch in swatches" :key="swatch.settingKey" class="color-swatch-item">
-        <label class="color-swatch-preview">
-          <input
-            type="color"
-            :value="swatch.value"
-            class="sr-only-input"
-            @input="onColorInput(swatch.settingKey, $event)"
-          />
-          <div class="color-swatch-preview__fill" :style="{ backgroundColor: swatch.value }"></div>
-        </label>
         <div class="color-swatch-info">
-          <span class="color-swatch-label">{{ swatch.label }}</span>
-          <UiInput
-            type="text"
+          <UiColorInput
             :model-value="swatch.value"
             class="color-swatch-input"
-            spellcheck="false"
-            @input="onColorInput(swatch.settingKey, $event)"
+            :label="swatch.label"
+            @update:model-value="onColorInput(swatch.settingKey, $event)"
           />
         </div>
       </div>
@@ -33,7 +22,7 @@
 import { computed } from "vue";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
-import { UiInput } from "../../ui";
+import { UiColorInput } from "../../ui";
 
 type ColorSettingKey =
   | "subtitlePrimaryColor"
@@ -68,8 +57,7 @@ const swatches = computed(() => [
   }
 ]);
 
-function onColorInput(key: ColorSettingKey, event: Event) {
-  const target = event.target as HTMLInputElement;
-  store.updateProfileSetting(key, target.value);
+function onColorInput(key: ColorSettingKey, value: string) {
+  store.updateProfileSetting(key, value);
 }
 </script>

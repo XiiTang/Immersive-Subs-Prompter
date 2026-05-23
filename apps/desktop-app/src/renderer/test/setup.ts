@@ -41,3 +41,16 @@ if (!("releasePointerCapture" in HTMLElement.prototype)) {
     value() {}
   });
 }
+
+if (!("ResizeObserver" in globalThis)) {
+  class ResizeObserverMock implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    configurable: true,
+    value: ResizeObserverMock
+  });
+}

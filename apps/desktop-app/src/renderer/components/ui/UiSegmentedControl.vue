@@ -1,31 +1,42 @@
 <template>
-  <div class="ui-segmented" data-slot="segmented-control" role="radiogroup" :aria-label="label">
-    <button
+  <RadioGroupRoot
+    class="ui-segmented"
+    data-slot="segmented-control"
+    :model-value="modelValue"
+    :aria-label="label"
+    orientation="horizontal"
+    @update:model-value="emitValue"
+  >
+    <RadioGroupItem
       v-for="option in options"
       :key="option.value"
-      type="button"
       class="ui-segmented__item"
       data-slot="segmented-control-item"
-      :data-state="modelValue === option.value ? 'checked' : 'unchecked'"
       :class="{ 'is-selected': modelValue === option.value }"
-      role="radio"
-      :aria-checked="modelValue === option.value"
+      :value="option.value"
       :disabled="option.disabled"
-      @click="$emit('update:modelValue', option.value)"
     >
       {{ option.label }}
-    </button>
-  </div>
+    </RadioGroupItem>
+  </RadioGroupRoot>
 </template>
 
 <script setup lang="ts">
+import { RadioGroupItem, RadioGroupRoot } from "reka-ui";
+
 defineProps<{
   modelValue: string;
   label: string;
   options: Array<{ value: string; label: string; disabled?: boolean }>;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (event: "update:modelValue", value: string): void;
 }>();
+
+function emitValue(value: unknown) {
+  if (typeof value === "string") {
+    emit("update:modelValue", value);
+  }
+}
 </script>

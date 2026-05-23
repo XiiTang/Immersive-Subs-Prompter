@@ -6,9 +6,9 @@
         <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
           <IconAdd size="md" />
         </UiIconButton>
-        <UiButton variant="ghost" @click="$emit('duplicate')">
-          {{ t("button-duplicate", "Duplicate") }}
-        </UiButton>
+        <UiIconButton :label="t('button-duplicate', 'Duplicate')" @click="$emit('duplicate')">
+          <IconCopy size="md" />
+        </UiIconButton>
         <UiIconButton
           :disabled="!canDelete"
           variant="danger"
@@ -82,7 +82,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
-import { IconAdd, IconDelete } from "../../icons";
+import { IconAdd, IconCopy, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";

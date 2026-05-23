@@ -1,5 +1,6 @@
 export { default as UiBadge } from "./UiBadge.vue";
 export { default as UiButton } from "./UiButton.vue";
+export { default as UiColorInput } from "./UiColorInput.vue";
 export { default as UiEmptyState } from "./UiEmptyState.vue";
 export { default as UiField } from "./UiField.vue";
 export { default as UiIconButton } from "./UiIconButton.vue";
