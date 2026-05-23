@@ -6,8 +6,7 @@ import {
   ProfileSettings,
   SubtitleCacheSettings,
   TranscriptionConfig,
-  TranscriptionPluginConfig,
-  UrlMatchType
+  TranscriptionPluginConfig
 } from "../types.js";
 
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
@@ -25,7 +24,6 @@ export const DEFAULT_SUBTITLE_SECONDARY_COLOR = "#c7d2fe";
 export const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR = "#fff8dc";
 export const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR = "#fff9c4";
 
-export const MATCH_TYPES: UrlMatchType[] = ["contains", "exact", "regex"];
 export const SUPPORTED_LANGUAGES = ["en", "zh"];
 export const DEFAULT_LANGUAGE = "en";
 

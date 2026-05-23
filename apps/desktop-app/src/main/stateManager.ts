@@ -14,6 +14,7 @@ import {
   TranscriptionStatus
 } from "./types.js";
 import { normalizeRegexPattern } from "../common/regex.js";
+import { getUrlRuleMatchType, matchesUrlRule } from "../common/urlRuleMatcher.js";
 
 const clone = <T>(value: T): T => {
   if (typeof (globalThis as any).structuredClone === "function") {
@@ -90,21 +91,7 @@ function matchesRule(url: string, rule: ProfileRule): boolean {
   if (!rule.isEnabled) {
     return false;
   }
-  const source = url ?? "";
-  switch (rule.matchType) {
-    case "exact":
-      return source.toLowerCase() === rule.pattern.toLowerCase();
-    case "regex":
-      try {
-        const regex = new RegExp(rule.pattern);
-        return regex.test(source);
-      } catch {
-        return false;
-      }
-    case "contains":
-    default:
-      return source.toLowerCase().includes(rule.pattern.toLowerCase());
-  }
+  return matchesUrlRule(url ?? "", rule.pattern);
 }
 
 function createDefaultTranscriptionState(): TranscriptionState {
@@ -467,7 +454,7 @@ export class StateManager {
     const ruleId = rule?.id ?? null;
     const ruleName = rule?.name ?? null;
     const rulePattern = rule?.pattern ?? null;
-    const ruleType = rule?.matchType ?? null;
+    const ruleType = rule ? getUrlRuleMatchType(rule.pattern) : null;
     const changed =
       draft.appliedProfileId !== profile.id ||
       draft.appliedProfileName !== profile.name ||

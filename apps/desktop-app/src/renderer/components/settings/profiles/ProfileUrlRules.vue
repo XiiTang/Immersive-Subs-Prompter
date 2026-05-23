@@ -42,23 +42,12 @@
             @update:model-value="toggleRule(rule.id, $event)"
           />
           <div class="profile-url-rule__fields">
-            <div class="profile-url-rule__field">
-              <UiSelect
-                class="profile-url-rule__match-select"
-                data-testid="profile-url-rule-match-type"
-                :model-value="rule.matchType"
-                :options="matchTypeOptions"
-                :aria-label="t('rule-match-label', 'Match Type')"
-                @update:model-value="updateRuleMatchType(rule.id, $event)"
-                @mousedown.stop
-              />
-            </div>
             <div class="profile-url-rule__field profile-url-rule__field--pattern">
               <UiInput
                 data-testid="profile-url-rule-pattern"
                 type="text"
                 :model-value="rule.pattern"
-                :placeholder="t('rule-pattern-label', 'Pattern')"
+                :placeholder="rulePatternPlaceholder"
                 :aria-label="t('rule-pattern-label', 'Pattern')"
                 autocomplete="off"
                 @change="commitRulePattern(rule, ($event.target as HTMLInputElement).value)"
@@ -66,6 +55,13 @@
                 @mousedown.stop
               />
             </div>
+            <UiBadge
+              class="profile-url-rule__match-badge"
+              data-testid="profile-url-rule-type"
+              :aria-label="t('rule-match-label', 'Rule Type')"
+            >
+              {{ ruleTypeLabel(rule.pattern) }}
+            </UiBadge>
           </div>
           <div class="profile-url-rule__actions">
             <UiIconButton variant="danger" :label="t('rule-action-delete', 'Delete')" @click="deleteRule(rule.id)">
@@ -83,27 +79,21 @@
             :label="newRule.isEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
           />
           <div class="profile-url-rule__fields">
-            <div class="profile-url-rule__field">
-              <UiSelect
-                class="profile-url-rule__match-select"
-                v-model="newRule.matchType"
-                :options="matchTypeOptions"
-                :aria-label="t('rule-match-label', 'Match Type')"
-                @mousedown.stop
-              />
-            </div>
             <div class="profile-url-rule__field profile-url-rule__field--pattern">
               <UiInput
                 data-testid="profile-url-new-rule-pattern"
                 type="text"
                 v-model="newRule.pattern"
-                :placeholder="t('rule-pattern-label', 'Pattern')"
+                :placeholder="rulePatternPlaceholder"
                 :aria-label="t('rule-pattern-label', 'Pattern')"
                 autocomplete="off"
                 @blur="saveNewRule"
                 @keydown.enter.prevent="saveNewRule"
               />
             </div>
+            <UiBadge class="profile-url-rule__match-badge" :aria-label="t('rule-match-label', 'Rule Type')">
+              {{ ruleTypeLabel(newRule.pattern) }}
+            </UiBadge>
           </div>
           <div class="profile-url-rule__actions">
             <UiIconButton
@@ -116,7 +106,7 @@
             </UiIconButton>
           </div>
         </UiListItem>
-        <div v-if="newRuleRegexError" class="settings-field__error">{{ newRuleRegexError }}</div>
+        <div v-if="newRulePatternError" class="settings-field__error">{{ newRulePatternError }}</div>
       </div>
     </template>
   </section>
@@ -124,12 +114,13 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { isValidRegex } from "../../../../common/regex.js";
-import type { ProfileRule, UrlMatchType } from "../../../../main/types.js";
+import { parseUrlRulePattern } from "../../../../common/urlRuleMatcher.js";
+import type { UrlRuleMatchType } from "../../../../common/urlRuleMatcher.js";
+import type { ProfileRule } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
 import { IconCheck, IconDelete } from "../../icons";
-import { UiBadge, UiEmptyState, UiIconButton, UiInput, UiListItem, UiSelect, UiSwitch } from "../../ui";
+import { UiBadge, UiEmptyState, UiIconButton, UiInput, UiListItem, UiSwitch } from "../../ui";
 
 const props = defineProps<{
   profileId: string;
@@ -144,38 +135,31 @@ const dragIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
 
 const newRule = reactive<{
-  matchType: UrlMatchType;
   pattern: string;
   isEnabled: boolean;
 }>({
-  matchType: "contains",
   pattern: "",
   isEnabled: true
 });
 
-const newRuleRegexError = computed(() => {
-  if (newRule.matchType !== "regex" || !newRule.pattern.trim()) {
-    return null;
-  }
-  return isValidRegex(newRule.pattern) ? null : t("rule-regex-invalid", "Invalid regular expression");
-});
+const rulePatternPlaceholder = computed(() =>
+  t("rule-pattern-smart-placeholder", "youtube.com, *.site.com/path/*, =full URL, re:pattern")
+);
+const ruleTypeLabels = computed<Record<UrlRuleMatchType, string>>(() => ({
+  domain: t("rule-match-domain", "Domain"),
+  glob: t("rule-match-glob", "Glob"),
+  exact: t("rule-match-exact", "Exact"),
+  regex: t("rule-match-regex", "Regex"),
+  contains: t("rule-match-contains", "Contains")
+}));
+const newRulePatternError = computed(() => patternErrorMessage(newRule.pattern));
 
-const matchTypeOptions = computed(() => [
-  { value: "contains", label: t("rule-match-contains", "Contains") },
-  { value: "exact", label: t("rule-match-exact", "Exact Match") },
-  { value: "regex", label: t("rule-match-regex", "Regex") }
-]);
-
-const canAddRule = computed(() => Boolean(newRule.pattern.trim()) && !newRuleRegexError.value);
+const canAddRule = computed(() => Boolean(newRule.pattern.trim()) && !newRulePatternError.value);
 
 watch(
   () => props.profileId,
   () => resetNewRule()
 );
-
-function isMatchType(value: string): value is UrlMatchType {
-  return value === "contains" || value === "exact" || value === "regex";
-}
 
 function saveNewRule() {
   if (!canAddRule.value) {
@@ -184,7 +168,6 @@ function saveNewRule() {
   const pattern = newRule.pattern.trim();
   store.addRule({
     name: pattern,
-    matchType: newRule.matchType,
     pattern,
     profileId: props.profileId,
     isEnabled: newRule.isEnabled
@@ -192,15 +175,9 @@ function saveNewRule() {
   resetNewRule();
 }
 
-function updateRuleMatchType(ruleId: string, value: string) {
-  if (isMatchType(value)) {
-    store.updateRule(ruleId, { matchType: value });
-  }
-}
-
 function commitRulePattern(rule: ProfileRule, value: string) {
   const pattern = value.trim();
-  if (!pattern || pattern === rule.pattern) {
+  if (!pattern || pattern === rule.pattern || patternErrorMessage(pattern)) {
     return;
   }
   store.updateRule(rule.id, { name: pattern, pattern });
@@ -238,8 +215,20 @@ function deleteRule(ruleId: string) {
 }
 
 function resetNewRule() {
-  newRule.matchType = "contains";
   newRule.pattern = "";
   newRule.isEnabled = true;
+}
+
+function ruleTypeLabel(pattern: string) {
+  const { type } = parseUrlRulePattern(pattern);
+  return ruleTypeLabels.value[type];
+}
+
+function patternErrorMessage(pattern: string) {
+  const parsed = parseUrlRulePattern(pattern);
+  if (parsed.error === "invalid-regex") {
+    return t("rule-regex-invalid", "Invalid regular expression");
+  }
+  return null;
 }
 </script>

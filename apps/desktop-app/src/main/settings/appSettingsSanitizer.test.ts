@@ -121,7 +121,6 @@ describe("appSettingsSanitizer", () => {
             id: "rule-youtube",
             name: "YouTube",
             pattern: "youtube.com",
-            matchType: "contains",
             profileId: "profile-youtube",
             isEnabled: true
           },
@@ -129,7 +128,6 @@ describe("appSettingsSanitizer", () => {
             id: "rule-default",
             name: "Default",
             pattern: "example.com",
-            matchType: "contains",
             profileId: "profile-default",
             isEnabled: true
           },
@@ -137,7 +135,6 @@ describe("appSettingsSanitizer", () => {
             id: "rule-missing",
             name: "Missing",
             pattern: "missing.example",
-            matchType: "contains",
             profileId: "profile-missing",
             isEnabled: true
           }

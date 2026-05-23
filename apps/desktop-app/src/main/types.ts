@@ -2,6 +2,7 @@ import type {
   LoopCommandPayload,
   LoopSnapshot
 } from "@immersive-subs/contracts";
+import type { UrlRuleMatchType } from "../common/urlRuleMatcher.js";
 
 export interface SubtitleCue {
   start: number; // milliseconds
@@ -49,7 +50,7 @@ export interface DesktopState {
   appliedRuleId: string | null;
   appliedRuleName: string | null;
   appliedRulePattern: string | null;
-  appliedRuleMatchType: UrlMatchType | null;
+  appliedRuleMatchType: UrlRuleMatchType | null;
   pendingMediaServerItemId: string | null; // Used to prevent race conditions when switching between MediaServer and extension
   mediaServer: MediaServerPanelState;
   isFullscreen: boolean;
@@ -69,8 +70,6 @@ export type VideoControlCommand =
   | { type: "stopLoop" };
 
 export type CloseBehavior = "quit" | "tray";
-
-export type UrlMatchType = "contains" | "exact" | "regex";
 
 export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
 
@@ -200,7 +199,6 @@ export interface ProfileRule {
   id: string;
   name: string;
   pattern: string;
-  matchType: UrlMatchType;
   profileId: string;
   isEnabled: boolean;
 }

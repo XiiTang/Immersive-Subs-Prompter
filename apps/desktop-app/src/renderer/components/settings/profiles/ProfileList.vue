@@ -65,14 +65,6 @@
             </UiButton>
             <span class="profile-list__meta">{{ profileRuleSummary(profile.id) }}</span>
           </span>
-          <span class="profile-list__badges">
-            <UiBadge v-if="profile.id === activeProfileId" tone="info">
-              {{ t("active-badge", "Applied") }}
-            </UiBadge>
-            <UiBadge v-else-if="profile.id === defaultProfileId">
-              {{ t("profile-url-default-summary", "Fallback") }}
-            </UiBadge>
-          </span>
         </UiListItem>
       </template>
       <UiEmptyState v-else :message="t('profile-empty', 'No profiles')" />
@@ -86,13 +78,12 @@ import { IconAdd, IconCopy, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";
-import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem } from "../../ui";
+import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem } from "../../ui";
 
 interface Props {
   profiles: readonly ProfileDefinition[];
   rules: readonly ProfileRule[];
   editingProfileId: string | null;
-  activeProfileId: string | null;
   defaultProfileId: string | null;
   canDelete: boolean;
 }

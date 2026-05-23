@@ -162,31 +162,6 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).not.toContain("字幕行间距");
   });
 
-  it("marks the currently applied profile in the profile list", () => {
-    const store = useDesktopStore();
-    store.settings = {
-      ...createSettings(),
-      profiles: [createProfile("profile-1", "Default"), createProfile("profile-2", "Bilibili")]
-    };
-    store.desktopState = createDesktopState("profile-2", "Bilibili");
-    store.editingProfileId = "profile-2";
-
-    const wrapper = mount(SettingsProfiles, {
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const profileItems = wrapper.findAll(".profile-list__item");
-
-    expect(profileItems).toHaveLength(2);
-    expect(profileItems[0]?.text()).not.toContain("Applied");
-    expect(profileItems[1]?.text()).toContain("Applied");
-  });
-
   it("edits profile names inline in the profile list instead of a separate editor field", async () => {
     const store = useDesktopStore();
     store.settings = {
@@ -330,7 +305,6 @@ describe("SettingsProfiles", () => {
         .findAll<HTMLButtonElement>('[data-testid="profile-list-name-action"]')
         .some((button) => button.text() === "Bilibili")
     ).toBe(true);
-    expect(wrapper.text()).toContain("Applied");
   });
 
   it("shows URL rules inside the selected profile and summarizes them in the profile list", () => {
@@ -343,7 +317,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtube",
           name: "YouTube",
-          matchType: "contains",
           pattern: "youtube.com",
           profileId: "profile-youtube",
           isEnabled: true
@@ -351,7 +324,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtu-be",
           name: "youtu.be",
-          matchType: "contains",
           pattern: "youtu.be",
           profileId: "profile-youtube",
           isEnabled: true
@@ -415,7 +387,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtube",
           name: "YouTube",
-          matchType: "contains",
           pattern: "youtube.com",
           profileId: "profile-youtube",
           isEnabled: true
@@ -423,7 +394,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtu-be",
           name: "youtu.be",
-          matchType: "contains",
           pattern: "youtu.be",
           profileId: "profile-youtube",
           isEnabled: true
@@ -461,7 +431,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtube",
           name: "YouTube",
-          matchType: "contains",
           pattern: "youtube.com",
           profileId: "profile-youtube",
           isEnabled: true
@@ -482,13 +451,13 @@ describe("SettingsProfiles", () => {
 
     const firstRule = wrapper.get(".profile-url-rule");
     const patternInput = firstRule.get<HTMLInputElement>('[data-testid="profile-url-rule-pattern"]');
-    const matchTypeSelect = firstRule.get('[data-testid="profile-url-rule-match-type"]');
+    const ruleTypeBadge = firstRule.get('[data-testid="profile-url-rule-type"]');
 
     expect(wrapper.find(".profile-url-rule-form").exists()).toBe(false);
     expect(firstRule.text()).not.toContain("Edit");
     expect(patternInput.element.value).toBe("youtube.com");
-    expect(matchTypeSelect.attributes("role")).toBe("combobox");
-    expect(matchTypeSelect.text()).toContain("Contains");
+    expect(ruleTypeBadge.attributes("role")).not.toBe("combobox");
+    expect(ruleTypeBadge.text()).toContain("Domain");
   });
 
   it("uses compact unlabeled URL rule fields with the pattern label as placeholder", () => {
@@ -501,7 +470,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtube",
           name: "YouTube",
-          matchType: "contains",
           pattern: "youtube.com",
           profileId: "profile-youtube",
           isEnabled: true
@@ -521,13 +489,13 @@ describe("SettingsProfiles", () => {
     });
 
     const firstRule = wrapper.get(".profile-url-rule");
-    const select = firstRule.get('[data-testid="profile-url-rule-match-type"]');
+    const ruleTypeBadge = firstRule.get('[data-testid="profile-url-rule-type"]');
     const newRulePattern = wrapper.get<HTMLInputElement>('[data-testid="profile-url-new-rule-pattern"]');
 
     expect(firstRule.text()).not.toContain("Match Type");
     expect(firstRule.text()).not.toContain("Pattern");
-    expect(select.classes()).toContain("profile-url-rule__match-select");
-    expect(newRulePattern.attributes("placeholder")).toBe("Pattern");
+    expect(ruleTypeBadge.classes()).toContain("profile-url-rule__match-badge");
+    expect(newRulePattern.attributes("placeholder")).toBe("youtube.com, *.site.com/path/*, =full URL, re:pattern");
     expect(newRulePattern.element.value).toBe("");
   });
 
@@ -564,7 +532,6 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).not.toContain("Add URL Rule");
     expect(store.settings.rules).toEqual([
       expect.objectContaining({
-        matchType: "contains",
         pattern: "music.youtube.com",
         profileId: "profile-youtube",
         isEnabled: true
@@ -583,7 +550,6 @@ describe("SettingsProfiles", () => {
         {
           id: "rule-youtube",
           name: "YouTube",
-          matchType: "contains",
           pattern: "youtube.com",
           profileId: "profile-youtube",
           isEnabled: true

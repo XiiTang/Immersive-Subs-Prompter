@@ -1,10 +1,5 @@
-import { ProfileDefinition, ProfileRule, UrlMatchType } from "../../types.js";
-import { MATCH_TYPES } from "../constants.js";
+import { ProfileDefinition, ProfileRule } from "../../types.js";
 import { ensureUniqueId } from "../utils.js";
-
-function isMatchType(value: unknown): value is UrlMatchType {
-  return typeof value === "string" && MATCH_TYPES.includes(value as UrlMatchType);
-}
 
 export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallbackProfileId: string): ProfileRule[] {
   if (!Array.isArray(raw) || !profiles.length) {
@@ -26,7 +21,6 @@ export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallb
       continue;
     }
     const id = ensureUniqueId(source.id, used, "rule");
-    const matchType = isMatchType(source.matchType) ? source.matchType : "contains";
     const profileId = typeof source.profileId === "string" ? source.profileId : "";
     if (!profileIds.has(profileId)) {
       continue;
@@ -37,7 +31,6 @@ export function sanitizeRules(raw: unknown, profiles: ProfileDefinition[], fallb
       id,
       name,
       pattern,
-      matchType,
       profileId,
       isEnabled
     });

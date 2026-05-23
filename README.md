@@ -34,7 +34,7 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
 
 - **Highly customizable ⚙️:**
   - **Profiles:** Configure fonts, sizes, scroll positions, and even `yt-dlp` download options for different sites or learning scenarios.
-  - **URL rules:** Automatically activate specific profiles based on the current URL.
+  - **URL rules:** Automatically activate specific profiles based on the current URL using domain, glob, exact, contains, or `re:` regex patterns. See [URL rule examples](docs/url-rule-patterns.md).
 
 ## How it works ⚙️
 

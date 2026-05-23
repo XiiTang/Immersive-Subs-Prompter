@@ -5,7 +5,6 @@
         :profiles="profiles"
         :rules="rules"
         :editing-profile-id="editingProfileId"
-        :active-profile-id="activeProfileId"
         :default-profile-id="defaultProfileId"
         :can-delete="canDeleteProfile"
         @add="store.addProfile()"
@@ -95,7 +94,6 @@ const profiles = computed(() => store.settings?.profiles ?? []);
 const rules = computed(() => store.settings?.rules ?? []);
 const editingProfile = computed(() => store.editingProfile);
 const editingProfileId = computed(() => store.editingProfile?.id ?? null);
-const activeProfileId = computed(() => store.activeProfileId);
 const defaultProfileId = computed(() => store.settings?.defaultProfileId ?? null);
 const editingProfileRules = computed(() =>
   editingProfile.value ? rules.value.filter((rule) => rule.profileId === editingProfile.value?.id) : []

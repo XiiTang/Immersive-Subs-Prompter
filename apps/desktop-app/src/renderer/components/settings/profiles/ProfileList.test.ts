@@ -61,7 +61,6 @@ describe("ProfileList", () => {
         profiles: [profile],
         rules: [],
         editingProfileId: profile.id,
-        activeProfileId: null,
         defaultProfileId: profile.id,
         canDelete: false
       }

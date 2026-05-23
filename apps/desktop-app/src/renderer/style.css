@@ -1445,10 +1445,6 @@ body.main-window-body,
   white-space: nowrap;
 }
 
-.profile-list__badges {
-  flex: 0 0 auto;
-}
-
 .profile-url-rules,
 .priority-editor,
 .subtitle-style-fields {
@@ -1668,8 +1664,9 @@ body.main-window-body,
 
 .profile-url-rule__fields {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  align-items: center;
 }
 
 .profile-url-rule__field,
@@ -1683,6 +1680,11 @@ body.main-window-body,
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.profile-url-rule__match-badge {
+  justify-self: end;
+  white-space: nowrap;
 }
 
 .settings-color-grid {

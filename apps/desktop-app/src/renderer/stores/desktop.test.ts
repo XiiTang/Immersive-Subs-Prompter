@@ -85,7 +85,6 @@ function createSettings(): AppSettings {
         id: "rule-bilibili",
         name: "Bilibili",
         pattern: "bilibili",
-        matchType: "contains",
         profileId: "profile-bilibili",
         isEnabled: true
       }
@@ -409,7 +408,6 @@ describe("desktop store profile selection", () => {
           id: "rule-other",
           name: "Other",
           pattern: "example.com",
-          matchType: "contains",
           profileId: "profile-default",
           isEnabled: true
         },
@@ -417,7 +415,6 @@ describe("desktop store profile selection", () => {
           id: "rule-first",
           name: "First",
           pattern: "bilibili.com",
-          matchType: "contains",
           profileId: "profile-bilibili",
           isEnabled: true
         },
@@ -425,7 +422,6 @@ describe("desktop store profile selection", () => {
           id: "rule-second",
           name: "Second",
           pattern: "b23.tv",
-          matchType: "contains",
           profileId: "profile-bilibili",
           isEnabled: true
         }
