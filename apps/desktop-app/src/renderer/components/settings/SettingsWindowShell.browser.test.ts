@@ -62,12 +62,12 @@ describe("SettingsWindowShell browser layout", () => {
     const content = wrapper.get('[data-testid="settings-content"]');
 
     expect(shell.classes()).toContain("settings-window-shell");
-    expect(content.attributes("data-scroll-mode")).toBe("section");
+    expect(content.attributes("data-scroll-mode")).toBeUndefined();
     expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
   });
 
-  it("constrains the scrollable document to the visible body row", async () => {
+  it("constrains the active settings content to the visible body row", async () => {
     const tallSectionStub = (testId: string) =>
       defineComponent({
         name: `TallSectionStub${testId}`,

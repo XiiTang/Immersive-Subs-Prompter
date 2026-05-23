@@ -1,7 +1,6 @@
 export interface PluginSettingsContribution {
   id: string;
   title: string;
-  anchorId: string;
 }
 
 export interface PluginManifest {

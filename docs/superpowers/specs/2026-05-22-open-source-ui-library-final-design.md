@@ -36,7 +36,7 @@ The local primitive layer is the permanent design-system boundary:
 - `components/ui` owns reusable component markup, behavior wrapping, accessibility defaults, sizing, variants, and class contracts.
 - `style.css` owns semantic tokens, primitive styling, focus states, surface rules, and cross-surface visual consistency.
 - Feature components own layout and product wiring only: settings pages, top panel, plugin settings, subtitle controls, and word lookup chrome pass values/events through existing store/action/IPC flows.
-- Complex behavior primitives may wrap Reka UI internally, but the exported project API remains `UiSelect`, `UiSwitch`, `UiTooltip`, `UiPopover`, `UiDialog`, `UiDropdown`, `UiSlider`, and related local components.
+- Complex behavior primitives may wrap Reka UI internally, but only primitives used by current product surfaces are exported. The current project API remains `UiSelect`, `UiSwitch`, `UiTooltip`, `UiSlider`, and related local components.
 
 Third-party UI details must be contained:
 
@@ -94,13 +94,13 @@ The final desktop UI exposes one primitive family:
 - `UiField`: label, value, hint, error, and control slot structure.
 - `UiInput`, `UiTextarea`, `UiSelect`, `UiSwitch`, `UiSlider`.
 - `UiSegmentedControl`: short mutually exclusive choices such as appearance mode.
-- `UiTooltip`, `UiPopover`, `UiDialog`, `UiDropdown`: overlay primitives with managed focus and keyboard behavior.
+- `UiTooltip`: overlay help for icon-only or compact controls.
 - `UiListItem`: repeated rows for profiles, plugins, servers, transcription configs, cache entries, and similar records.
 - `UiBadge`: compact metadata or status tags.
 - `UiStatus`: dot or icon plus text for live state.
 - `UiProgress`: determinate and indeterminate progress display.
 - `UiEmptyState`: short empty-list message.
-- `UiSeparator`: one-pixel section separation where needed.
+- Additional primitives such as popovers, dialogs, dropdowns, and separators are added only when a product surface actually needs them.
 
 Rules:
 

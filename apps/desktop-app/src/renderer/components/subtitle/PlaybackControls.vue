@@ -30,12 +30,13 @@
       />
       <span class="playback-progress__time">{{ formatTime(playbackDuration || 0) }}</span>
     </div>
-    <UiTooltip text="Toggle auto hide panels">
+    <UiTooltip :text="autoHideLabel">
       <UiIconButton
         class="auto-hide-toggle"
+        variant="secondary"
         :pressed="autoHideEnabled"
         :active="autoHideEnabled"
-        label="Toggle auto hide panels"
+        :label="autoHideLabel"
         @click="$emit('toggle-auto-hide')"
       >
         <IconChevronUp v-if="autoHideEnabled" size="md" />
@@ -46,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { formatTime } from "../../utils/formatters";
 import { IconChevronDown, IconChevronUp, IconPause, IconPlay } from "../icons";
 import { UiIconButton, UiSlider, UiTooltip } from "../ui";
@@ -84,4 +86,10 @@ defineEmits<{
   (e: "scrub-cancel"): void;
   (e: "toggle-auto-hide"): void;
 }>();
+
+const autoHideLabel = computed(() =>
+  autoHideEnabled
+    ? t("auto-hide-toggle-on", "Auto-hide on")
+    : t("auto-hide-toggle-off", "Auto-hide off")
+);
 </script>

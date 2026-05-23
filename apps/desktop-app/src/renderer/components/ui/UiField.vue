@@ -1,13 +1,15 @@
 <template>
   <div class="ui-field" :class="{ 'ui-field--inline': inline }">
     <span class="ui-field__label-row">
-      <span :id="labelId" class="ui-field__label">{{ label }}</span>
+      <span class="ui-field__label-meta">
+        <span :id="labelId" class="ui-field__label">{{ label }}</span>
+        <span v-if="hint" :id="`${id}-hint`" class="ui-field__hint">{{ hint }}</span>
+      </span>
       <span v-if="value" class="ui-field__value">{{ value }}</span>
     </span>
     <div class="ui-field__control" :aria-describedby="describedBy || undefined">
       <slot />
     </div>
-    <span v-if="hint" :id="`${id}-hint`" class="ui-field__hint">{{ hint }}</span>
     <span v-if="error" :id="`${id}-error`" class="ui-field__error">{{ error }}</span>
   </div>
 </template>

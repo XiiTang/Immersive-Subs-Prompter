@@ -8,8 +8,7 @@ export const WORD_LOOKUP_MANIFEST: PluginManifest = {
   settings: [
     {
       id: "official.word-lookup.settings",
-      title: "Word Lookup",
-      anchorId: "settings-section-plugin-official-word-lookup"
+      title: "Word Lookup"
     }
   ]
 };

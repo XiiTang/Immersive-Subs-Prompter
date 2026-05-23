@@ -33,6 +33,8 @@
   "auto-hide-label": "Auto-hide Trigger Zone Height",
   "auto-hide-hint": "Distance from the top; mouse entering this area expands the panel.",
   "auto-hide-panels-label": "Auto-hide Panels",
+  "auto-hide-toggle-on": "Auto-hide on",
+  "auto-hide-toggle-off": "Auto-hide off",
   "language-label": "Language",
   "language-option-en": "English",
   "language-option-zh": "中文",

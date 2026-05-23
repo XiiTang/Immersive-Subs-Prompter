@@ -2047,6 +2047,11 @@ Final state:
 - `reka-ui` usage is contained in `components/ui`.
 - Lucide icons are exposed through local `components/icons` wrappers.
 - Desktop settings, official plugin settings, top controls, subtitle-panel controls, and word lookup chrome use shared primitives or primitive-compatible chrome.
+- The current primitive export set intentionally omits unused popover, dialog, dropdown, and separator wrappers until a product surface needs them.
+- Top-panel opacity, pin, fullscreen, and settings controls use fixed non-overlapping header slots.
+- Subtitle-panel select controls keep realistic long labels to a stable single-line height with ellipsis.
+- The subtitle-panel auto-hide action uses a localized secondary state toggle.
+- Post-review cleanup removed an unused `settings-split__sidebar-actions` style and top-panel optional `window.usp` no-op fallbacks.
 - Transcript body components were not modified.
 
 Verification passed:

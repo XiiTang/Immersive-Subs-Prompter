@@ -357,4 +357,9 @@ describe("TopControlPanel", () => {
     expect(wrapper.classes()).toContain("top-control-panel--force-expanded");
     expect(wrapper.classes()).toContain("top-control-panel--draggable");
   });
+
+  it("keeps opacity and icon controls in fixed non-overlapping header slots", () => {
+    expect(rendererStylesheet).toMatch(/\.header-slider\s*{[\s\S]*width: 64px;[\s\S]*min-width: 64px;[\s\S]*max-width: 64px;[\s\S]*flex: 0 0 64px;/);
+    expect(rendererStylesheet).toMatch(/\.top-control-panel__actions \.ui-icon-button\s*{[\s\S]*flex: 0 0 auto;/);
+  });
 });

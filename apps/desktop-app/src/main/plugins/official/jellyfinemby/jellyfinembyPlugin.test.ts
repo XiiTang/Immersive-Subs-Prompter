@@ -12,8 +12,7 @@ describe("official Jellyfin / Emby plugin", () => {
       settings: [
         {
           id: "official.jellyfinemby.settings",
-          title: "Jellyfin / Emby",
-          anchorId: "settings-section-plugin-official-jellyfinemby"
+          title: "Jellyfin / Emby"
         }
       ]
     });

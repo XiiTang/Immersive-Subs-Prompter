@@ -5,28 +5,24 @@ const SETTINGS_SECTION_DEFS = [
   {
     id: "general",
     labelKey: "section-global-settings",
-    fallback: "Global Settings",
-    anchorId: "settings-section-general"
+    fallback: "Global Settings"
   },
   {
     id: "profiles",
     labelKey: "section-profiles",
-    fallback: "Profiles",
-    anchorId: "settings-section-profiles"
+    fallback: "Profiles"
   },
   {
     id: "plugins",
     labelKey: "section-plugins",
-    fallback: "Plugins",
-    anchorId: "settings-section-plugins"
+    fallback: "Plugins"
   }
 ] as const;
 
 export function buildSettingsSections(language: SupportedLanguage) {
   return SETTINGS_SECTION_DEFS.map((section) => ({
     id: section.id,
-    label: translate(section.labelKey, section.fallback, language),
-    anchorId: section.anchorId
+    label: translate(section.labelKey, section.fallback, language)
   }));
 }
 

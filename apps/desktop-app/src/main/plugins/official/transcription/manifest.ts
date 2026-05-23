@@ -8,8 +8,7 @@ export const TRANSCRIPTION_MANIFEST: PluginManifest = {
   settings: [
     {
       id: "official.transcription.settings",
-      title: "Speech Transcription",
-      anchorId: "settings-section-plugin-official-transcription"
+      title: "Speech Transcription"
     }
   ]
 };

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
+import { buildSettingsSections } from "./settingsSections";
 import { useDesktopStore } from "../../stores/desktop";
 import { loadLocale } from "../../i18n";
 import type { AppSettings } from "../../../main/types";
@@ -99,7 +100,7 @@ describe("SettingsWindowShell", () => {
       }
     });
 
-    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBe("section");
+    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBeUndefined();
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-nav-item-appearance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="settings-nav-item-cache"]').exists()).toBe(false);
@@ -134,8 +135,6 @@ describe("SettingsWindowShell", () => {
     expect(text).not.toContain("Media Server");
     expect(text).not.toContain("Cache");
     expect(shellHeaderText).toBe("设置");
-    expect(wrapper.find(".settings-nav__meta").exists()).toBe(false);
-    expect(wrapper.find(".settings-document__intro").exists()).toBe(false);
   });
 
   it("only mounts transcription settings when the transcription plugin is enabled", async () => {
@@ -154,8 +153,7 @@ describe("SettingsWindowShell", () => {
         settings: [
           {
             id: "official.transcription.settings",
-            title: "Speech Transcription",
-            anchorId: "settings-section-plugin-official-transcription"
+            title: "Speech Transcription"
           }
         ]
       }
@@ -210,8 +208,7 @@ describe("SettingsWindowShell", () => {
         settings: [
           {
             id: "official.jellyfinemby.settings",
-            title: "Jellyfin / Emby",
-            anchorId: "settings-section-plugin-official-jellyfinemby"
+            title: "Jellyfin / Emby"
           }
         ]
       }
@@ -259,5 +256,40 @@ describe("SettingsWindowShell", () => {
     expect(rendererStylesheet).toContain("-webkit-app-region: no-drag;");
     expect(rendererStylesheet).toContain(".settings-window-shell__header {\n");
     expect(rendererStylesheet).toContain("-webkit-app-region: drag;");
+  });
+
+  it("does not keep narrow-width responsive overrides for the fixed settings window", () => {
+    expect(rendererStylesheet).not.toMatch(
+      /@media\s*\(max-width:\s*1080px\)\s*\{[\s\S]*(settings-window-shell|settings-fields-grid|settings-grid--two|settings-row--two|settings-row--three|settings-split|profile-url-rule|cache-field)/
+    );
+  });
+
+  it("does not keep legacy scroll-anchor metadata for section navigation", () => {
+    expect(buildSettingsSections("en")).toEqual([
+      { id: "general", label: "Global Settings" },
+      { id: "profiles", label: "Profiles" },
+      { id: "plugins", label: "Plugins" }
+    ]);
+  });
+
+  it("does not expose legacy document scroll mode markers on the fixed settings content", () => {
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
+        }
+      }
+    });
+
+    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBeUndefined();
+  });
+
+  it("uses fixed settings content tracks instead of variable-width clamps", () => {
+    expect(rendererStylesheet).not.toContain("width: min(100%, 920px);");
+    expect(rendererStylesheet).not.toContain("grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);");
+    expect(rendererStylesheet).toContain("grid-template-columns: 280px minmax(0, 1fr);");
   });
 });

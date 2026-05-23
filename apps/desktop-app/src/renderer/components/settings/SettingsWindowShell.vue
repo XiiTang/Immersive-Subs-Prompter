@@ -11,7 +11,6 @@
       <main
         class="settings-window-shell__content"
         data-testid="settings-content"
-        data-scroll-mode="section"
       >
         <component :is="activeComponent" :key="currentSection" />
       </main>
@@ -44,8 +43,7 @@ const pluginSections = computed(() => {
     .flatMap((plugin) =>
       (plugin.settings ?? []).map((section) => ({
         id: section.id,
-        label: section.title,
-        anchorId: section.anchorId
+        label: section.title
       }))
     );
 });

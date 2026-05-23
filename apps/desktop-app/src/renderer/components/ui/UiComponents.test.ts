@@ -67,6 +67,7 @@ describe("UI primitives", () => {
     expect(wrapper.text()).toContain("API Key");
     expect(wrapper.text()).toContain("Used by the provider");
     expect(wrapper.text()).toContain("Required");
+    expect(wrapper.get(".ui-field__label-row .ui-field__hint").text()).toBe("Used by the provider");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-hint");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-error");
   });

@@ -348,12 +348,6 @@ async function syncPointerState() {
   if (!autoHideEnabled || pointerStateSyncInFlight) {
     return;
   }
-  if (typeof window === "undefined") {
-    return;
-  }
-  if (!window.usp?.getWindowPointerState) {
-    return;
-  }
 
   pointerStateSyncInFlight = true;
   const syncVersion = panelStateVersion;
@@ -400,7 +394,7 @@ function stopPointerStatePolling() {
 
 function startPointerStatePolling() {
   stopPointerStatePolling();
-  if (!autoHideEnabled || typeof window === "undefined") {
+  if (!autoHideEnabled) {
     return;
   }
   pointerStatePollTimerId = window.setInterval(() => {
@@ -410,7 +404,7 @@ function startPointerStatePolling() {
 }
 
 async function openSettingsWindow() {
-  await window.usp?.openSettingsWindow?.();
+  await window.usp.openSettingsWindow();
 }
 
 function cyclePin() {
@@ -441,9 +435,6 @@ onMounted(() => {
   window.addEventListener("resize", syncPanelGeometry);
   nextTick(() => {
     syncPanelGeometry();
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
     resizeObserver = new ResizeObserver(() => syncPanelGeometry());
     if (headerRef.value) {
       resizeObserver.observe(headerRef.value);

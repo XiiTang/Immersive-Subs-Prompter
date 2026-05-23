@@ -258,7 +258,6 @@ describe("desktop store profile selection", () => {
           {
             id: "official.transcription.settings",
             title: "Speech Transcription",
-            anchorId: "settings-section-plugin-official-transcription",
             componentId: "official.transcription.settings"
           }
         ]

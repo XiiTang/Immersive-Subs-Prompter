@@ -199,10 +199,20 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   cursor: pointer;
 }
 
+.ui-select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ui-select__icon {
+  flex: 0 0 auto;
   color: var(--ui-text-muted);
 }
 
@@ -297,7 +307,24 @@ textarea {
   justify-content: space-between;
 }
 
-.ui-field__label-row,
+.ui-field__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ui-field__label-meta,
+.profile-url-rules__label-row {
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
 .ui-field__control {
   display: flex;
   align-items: center;
@@ -308,6 +335,7 @@ textarea {
 
 .ui-field__label,
 .settings-field__label {
+  flex: 0 0 auto;
   color: var(--ui-text);
   font-size: var(--ui-font-sm);
   font-weight: 650;
@@ -315,8 +343,21 @@ textarea {
 
 .ui-field__value,
 .ui-field__hint {
+  min-width: 0;
   color: var(--ui-text-muted);
   font-size: var(--ui-font-sm);
+}
+
+.ui-field__hint,
+.profile-url-rules__hint,
+.priority-editor__hint {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ui-field__value {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .ui-field__error,
@@ -818,14 +859,24 @@ body.main-window-body,
   margin-left: 8px;
 }
 
+.top-control-panel__actions .ui-icon-button {
+  flex: 0 0 auto;
+}
+
 .transparency-inline {
   display: flex;
   align-items: center;
   width: 64px;
+  flex: 0 0 64px;
+  min-width: 64px;
+  max-width: 64px;
 }
 
 .header-slider {
   width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  flex: 0 0 64px;
 }
 
 .top-control-panel__body {
@@ -862,6 +913,7 @@ body.main-window-body,
 .control-panel {
   display: flex;
   align-items: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 16px;
 }
@@ -870,26 +922,26 @@ body.main-window-body,
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
-  min-width: 96px;
+  flex: 1 1 140px;
+  min-width: 0;
 }
 
 .track-picker--grow {
-  flex: 2;
+  flex: 2 1 180px;
 }
 
 .transcription-controls {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  flex: 1;
-  min-width: 160px;
-  max-width: 260px;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: none;
 }
 
 .transcription-picker {
   flex: 1;
-  min-width: 100px;
+  min-width: 0;
 }
 
 .transcription-btn {
@@ -994,12 +1046,6 @@ body.main-window-body,
   padding: 30px 36px 64px;
   scrollbar-gutter: stable both-edges;
   user-select: text;
-}
-
-.settings-window-shell__content > .ui-section,
-.settings-window-shell__content > .settings-section {
-  width: min(100%, 920px);
-  margin: 0 auto;
 }
 
 .settings-window button,
@@ -1143,7 +1189,7 @@ body.main-window-body,
 
 .settings-split {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
   min-height: 0;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius);
@@ -1163,8 +1209,7 @@ body.main-window-body,
 }
 
 .settings-split__sidebar-header,
-.settings-split__sidebar-buttons,
-.settings-split__sidebar-actions {
+.settings-split__sidebar-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1177,10 +1222,6 @@ body.main-window-body,
 .settings-split__sidebar-buttons {
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.settings-split__sidebar-actions {
-  margin-top: auto;
 }
 
 .settings-split__editor {
@@ -2034,40 +2075,4 @@ body.main-window-body,
   color: var(--ui-text);
   font-size: 12px;
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 1080px) {
-  .settings-window-shell__body {
-    grid-template-columns: 196px minmax(0, 1fr);
-  }
-
-  .settings-window-shell__content {
-    padding: 28px 24px 56px;
-  }
-
-  .settings-fields-grid--two-col,
-  .settings-grid--two,
-  .settings-row--two,
-  .settings-row--three,
-  .settings-split,
-  .profile-url-rule__fields {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-split__sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--ui-border);
-  }
-
-  .cache-field-row {
-    flex-direction: column;
-  }
-
-  .cache-field--fixed {
-    width: 100%;
-  }
-
-  .profile-url-rule {
-    grid-template-columns: 1fr;
-  }
 }

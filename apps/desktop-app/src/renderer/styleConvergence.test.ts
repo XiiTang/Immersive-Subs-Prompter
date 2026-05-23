@@ -73,6 +73,12 @@ describe("desktop CSS convergence", () => {
     }
   });
 
+  it("keeps compact select values single-line and truncatable", () => {
+    expect(css).toMatch(/\.ui-select\s*{[\s\S]*min-width: 0;[\s\S]*overflow: hidden;/);
+    expect(css).toMatch(/\.ui-select__value\s*{[\s\S]*min-width: 0;[\s\S]*overflow: hidden;[\s\S]*text-overflow: ellipsis;[\s\S]*white-space: nowrap;/);
+    expect(css).toMatch(/\.ui-select__icon\s*{[\s\S]*flex: 0 0 auto;/);
+  });
+
   it("keeps Tailwind utility classes out of app styles", () => {
     expect(activeCss).not.toMatch(/\.(?:items-center|justify-center|rounded-md|text-sm|bg-primary|text-muted-foreground|border-input)\b/);
   });

@@ -1,9 +1,9 @@
 <template>
   <section class="profile-url-rules" data-testid="profile-url-rules">
     <header class="profile-url-rules__header">
-      <div>
+      <div class="profile-url-rules__label-row">
         <span class="settings-field__label">{{ t("profile-url-rules-label", "Applies to these URLs") }}</span>
-        <p class="profile-url-rules__hint">
+        <span class="profile-url-rules__hint">
           {{
             isDefaultProfile
               ? t("profile-url-default-hint", "This profile is used when no URL rule matches.")
@@ -12,7 +12,7 @@
                 "Rules match in listed order. Profile order controls cross-profile priority."
               )
           }}
-        </p>
+        </span>
       </div>
     </header>
 

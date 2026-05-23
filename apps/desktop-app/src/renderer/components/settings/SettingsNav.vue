@@ -24,7 +24,6 @@ defineProps<{
   sections: ReadonlyArray<{
     id: SettingsSectionId;
     label: string;
-    anchorId: string;
   }>;
   currentSection: SettingsSectionId;
   navAriaLabel: string;

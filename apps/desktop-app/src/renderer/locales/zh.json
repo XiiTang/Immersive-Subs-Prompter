@@ -33,6 +33,8 @@
   "auto-hide-label": "自动隐藏触发区高度",
   "auto-hide-hint": "距离顶部的距离，鼠标进入该区域将展开面板",
   "auto-hide-panels-label": "自动隐藏面板",
+  "auto-hide-toggle-on": "自动隐藏已开启",
+  "auto-hide-toggle-off": "自动隐藏已关闭",
   "language-label": "语言",
   "language-option-en": "English",
   "language-option-zh": "中文",
