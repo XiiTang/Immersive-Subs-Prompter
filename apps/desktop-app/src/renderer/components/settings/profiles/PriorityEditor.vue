@@ -1,60 +1,40 @@
 <template>
-  <div class="priority-editor">
-    <div class="priority-editor__header">
-      <div class="priority-editor__label-row">
-        <span class="settings-field__label">{{ label }}</span>
-      </div>
-      <span class="priority-editor__hint">
-        <template v-if="hintLinkParts">
-          {{ hintLinkParts.before }}<a
-            class="priority-editor__hint-link"
-            :href="docUrl ?? undefined"
-            @click.prevent="onDocLinkClick"
-          >{{ hintLinkParts.linked }}</a>{{ hintLinkParts.after }}
-        </template>
-        <template v-else>{{ hint }}</template>
-      </span>
-    </div>
-    <div
-      class="priority-editor__list"
-      @dragover.prevent
-      @drop.prevent="onListDrop(role)"
-    >
-      <span
-        v-for="(item, index) in items"
-        :key="item"
-        class="ui-chip priority-editor__item"
-        :class="{ 'priority-editor__item--dragover': isDragOver(role, index) }"
-        draggable="true"
-        @dragstart="onDragStart(role, index, $event)"
-        @dragenter.prevent="onDragEnter(role, index)"
-        @dragover.prevent
-        @drop.prevent.stop="onDrop(role, index)"
-        @dragleave="onDragLeave(role, index)"
-        @dragend="onDragEnd"
-      >
-        <span>{{ item }}</span>
-      </span>
-      <span class="priority-editor__item priority-editor__draft">
-        <UiInput
-          class="priority-editor__draft-input"
-          data-testid="priority-draft-input"
-          :model-value="modelValue"
-          :placeholder="placeholder"
-          @update:model-value="onInputValue"
-          @blur="$emit('add')"
-          @keyup.enter="$emit('add')"
-        />
-      </span>
-    </div>
-    <div v-if="error" class="settings-field__error">{{ error }}</div>
-  </div>
+  <PillListEditor
+    class="priority-editor"
+    :label="label"
+    :items="pillItems"
+    :draft-value="modelValue"
+    :placeholder="placeholder"
+    :remove-label="removeLabel"
+    :error="error"
+    :sortable="true"
+    draft-test-id="priority-draft-input"
+    :display-test-id-prefix="`priority-${role}-display`"
+    :remove-test-id-prefix="`priority-${role}-remove`"
+    @update:draft-value="onInputValue"
+    @add-draft="$emit('add')"
+    @remove="onRemove"
+    @reorder="(fromIndex, toIndex) => $emit('reorder', fromIndex, toIndex)"
+  >
+    <template #hint>
+      <template v-if="hintLinkParts">
+        {{ hintLinkParts.before }}<a
+          class="priority-editor__hint-link"
+          :href="docUrl ?? undefined"
+          @click.prevent="onDocLinkClick"
+        >{{ hintLinkParts.linked }}</a>{{ hintLinkParts.after }}
+      </template>
+      <template v-else>{{ hint }}</template>
+    </template>
+  </PillListEditor>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { PriorityRole } from "./composables/usePriorityDragDrop";
-import { UiInput } from "../../ui";
+import PillListEditor from "../PillListEditor.vue";
+import type { PillListEditorItem } from "../pillListEditorTypes";
+
+type PriorityRole = "primary" | "secondary";
 
 interface Props {
   role: PriorityRole;
@@ -65,13 +45,7 @@ interface Props {
   placeholder: string;
   error: string | null;
   docUrl?: string | null;
-  isDragOver: (role: PriorityRole, index: number) => boolean;
-  onDragStart: (role: PriorityRole, index: number, event: DragEvent) => void;
-  onDragEnter: (role: PriorityRole, index: number) => void;
-  onDragLeave: (role: PriorityRole, index: number) => void;
-  onDrop: (role: PriorityRole, index: number) => void;
-  onDragEnd: () => void;
-  onListDrop: (role: PriorityRole) => void;
+  removeLabel: string;
 }
 
 const props = defineProps<Props>();
@@ -79,8 +53,18 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
   (e: "add"): void;
+  (e: "remove", value: string): void;
+  (e: "reorder", fromIndex: number, toIndex: number): void;
   (e: "doc-link-click"): void;
 }>();
+
+const pillItems = computed<PillListEditorItem[]>(() =>
+  props.items.map((item) => ({
+    id: item,
+    label: item,
+    title: item
+  }))
+);
 
 const hintLinkParts = computed(() => {
   if (!props.docUrl) {
@@ -102,6 +86,10 @@ const hintLinkParts = computed(() => {
 
 function onInputValue(value: string | number) {
   emit("update:modelValue", String(value));
+}
+
+function onRemove(value: string) {
+  emit("remove", value);
 }
 
 function onDocLinkClick() {

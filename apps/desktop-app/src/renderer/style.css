@@ -615,12 +615,6 @@ button.ui-list-item {
   justify-content: flex-end;
 }
 
-.ui-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .ui-chip {
   display: inline-flex;
   align-items: center;
@@ -631,14 +625,6 @@ button.ui-list-item {
   background: var(--ui-surface-muted);
   color: var(--ui-text);
   font-size: var(--ui-font-sm);
-}
-
-.ui-chip__remove {
-  border: 0;
-  padding: 0;
-  color: var(--ui-text-muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 .ui-stat-grid {
@@ -1436,37 +1422,31 @@ body.main-window-body,
   color: var(--ui-text-muted);
 }
 
-.network-endpoint-editor {
+.pill-list-editor {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.network-endpoint-editor__list {
+.pill-list-editor__list {
   align-items: center;
 }
 
-.network-endpoint-editor__item {
+.pill-list-editor__item {
   position: relative;
   max-width: 100%;
   cursor: default;
 }
 
-.network-endpoint-editor__item--removable {
+.pill-list-editor__item--removable {
   padding-right: 20px;
 }
 
-.network-endpoint-editor__item--error {
+.pill-list-editor__item--error {
   border-color: var(--ui-danger);
 }
 
-.network-endpoint-editor__draft {
-  flex: 0 0 110px;
-  width: 110px;
-  min-width: 110px;
-}
-
-.network-endpoint-editor__display {
+.pill-list-editor__display {
   min-width: 0;
   max-width: min(100%, 520px);
   overflow: hidden;
@@ -1481,7 +1461,15 @@ body.main-window-body,
   user-select: text;
 }
 
-.network-endpoint-editor__remove.ui-icon-button {
+.pill-list-editor__display[draggable="true"] {
+  cursor: grab;
+}
+
+.pill-list-editor__display[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.pill-list-editor__remove.ui-icon-button {
   position: absolute;
   top: -2px;
   right: -2px;
@@ -1495,28 +1483,52 @@ body.main-window-body,
   pointer-events: none;
 }
 
-.network-endpoint-editor__remove .icon {
+.pill-list-editor__remove .icon {
   width: 9px;
   height: 9px;
 }
 
-.network-endpoint-editor__item:hover .network-endpoint-editor__remove,
-.network-endpoint-editor__item:focus-within .network-endpoint-editor__remove {
+.pill-list-editor__item:hover .pill-list-editor__remove,
+.pill-list-editor__item:focus-within .pill-list-editor__remove {
   opacity: 1;
   pointer-events: auto;
 }
 
-.network-endpoint-editor__input {
+.pill-list-editor__draft {
+  position: relative;
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: calc(3ch + 24px);
+  max-width: min(100%, 520px);
+}
+
+.pill-list-editor__input {
   min-width: 0;
 }
 
-.network-endpoint-editor__input.ui-input {
+.pill-list-editor__draft-sizer {
+  visibility: hidden;
+  overflow: hidden;
+  white-space: pre;
+  font: inherit;
+  min-width: 3ch;
+}
+
+.pill-list-editor__input {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+}
+
+.pill-list-editor__input.ui-input {
+  width: auto;
   min-height: 26px;
   border: 0;
   outline: 0;
 }
 
-.network-endpoint-editor__input.ui-input:focus-visible {
+.pill-list-editor__input.ui-input:focus-visible {
   outline: 0;
 }
 

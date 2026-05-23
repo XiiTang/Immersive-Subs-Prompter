@@ -172,4 +172,34 @@ describe("SettingsGlobal", () => {
     expect(input.element.value).toBe("");
     expect(wrapper.text()).toContain("ws://192.168.1.3:44503/?token=0123456789abcdef0123456789abcdef");
   });
+
+  it("edits the process blacklist as read-only pills with a trailing draft", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      global: {
+        ...createSettings().global,
+        gameProcessBlacklist: ["r5apex_dx12.exe"]
+      }
+    };
+    const addSpy = vi.spyOn(store, "addGameProcess");
+    const removeSpy = vi.spyOn(store, "removeGameProcess");
+
+    const wrapper = mount(SettingsGlobal);
+
+    expect(wrapper.text()).toContain("r5apex_dx12.exe");
+    expect(wrapper.find('[data-testid="process-blacklist-draft-input"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Add"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("No processes yet.");
+
+    const input = wrapper.get<HTMLInputElement>('[data-testid="process-blacklist-draft-input"]');
+    await input.setValue("vlc.exe");
+    await input.trigger("blur");
+
+    expect(addSpy).toHaveBeenCalledWith("vlc.exe");
+
+    await wrapper.get('[data-testid="process-blacklist-remove-r5apex_dx12.exe"]').trigger("click");
+
+    expect(removeSpy).toHaveBeenCalledWith("r5apex_dx12.exe");
+  });
 });

@@ -38,14 +38,10 @@
           :placeholder="t('primary-priority-placeholder', 'e.g.: en or zh-Hans')"
           :error="primaryPriorityError"
           :doc-url="regexDocUrl"
-          :is-drag-over="isPriorityDragOver"
-          :on-drag-start="onPriorityDragStart"
-          :on-drag-enter="onPriorityDragEnter"
-          :on-drag-leave="onPriorityDragLeave"
-          :on-drop="onPriorityDrop"
-          :on-drag-end="onPriorityDragEnd"
-          :on-list-drop="onPriorityListDrop"
+          :remove-label="t('priority-remove', 'Remove priority')"
           @add="addPriority('primary')"
+          @remove="(value) => store.removePriority('primary', value)"
+          @reorder="(fromIndex, toIndex) => store.reorderPriority('primary', fromIndex, toIndex)"
           @doc-link-click="openRegexDoc"
         />
 
@@ -62,14 +58,10 @@
           "
           :placeholder="t('secondary-priority-placeholder', 'e.g.: en or zh-Hans')"
           :error="secondaryPriorityError"
-          :is-drag-over="isPriorityDragOver"
-          :on-drag-start="onPriorityDragStart"
-          :on-drag-enter="onPriorityDragEnter"
-          :on-drag-leave="onPriorityDragLeave"
-          :on-drop="onPriorityDrop"
-          :on-drag-end="onPriorityDragEnd"
-          :on-list-drop="onPriorityListDrop"
+          :remove-label="t('priority-remove', 'Remove priority')"
           @add="addPriority('secondary')"
+          @remove="(value) => store.removePriority('secondary', value)"
+          @reorder="(fromIndex, toIndex) => store.reorderPriority('secondary', fromIndex, toIndex)"
         />
 
         <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label', 'yt-dlp Arguments')">
@@ -92,10 +84,8 @@ import ColorSchemeGrid from "./profiles/ColorSchemeGrid.vue";
 import PriorityEditor from "./profiles/PriorityEditor.vue";
 import ProfileUrlRules from "./profiles/ProfileUrlRules.vue";
 import { UiField, UiSection, UiTextarea } from "../ui";
-import {
-  usePriorityDragDrop,
-  type PriorityRole
-} from "./profiles/composables/usePriorityDragDrop";
+
+type PriorityRole = "primary" | "secondary";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -132,21 +122,6 @@ const secondaryPriorityError = computed(() => getPriorityRegexError(secondaryPri
 const regexDocUrl =
   "https://github.com/XiiTang/Immersive-Subs-Prompter/blob/main/docs/subtitle-priority-regex.md";
 
-const {
-  onPriorityDragStart,
-  onPriorityDragEnter,
-  onPriorityDragLeave,
-  onPriorityDrop,
-  onPriorityListDrop,
-  onPriorityDragEnd,
-  isPriorityDragOver
-} = usePriorityDragDrop({
-  reorderPriority: (role, fromIndex, toIndex) => store.reorderPriority(role, fromIndex, toIndex),
-  removePriority: (role, index) => removePriorityAtIndex(role, index),
-  getListLength: (role: PriorityRole) =>
-    role === "primary" ? primaryPriority.value.length : secondaryPriority.value.length
-});
-
 function deleteEditingProfile() {
   if (editingProfileId.value) {
     store.deleteProfile(editingProfileId.value);
@@ -169,16 +144,11 @@ function updateProfileName(profileId: string, name: string) {
 
 function addPriority(role: PriorityRole) {
   const input = role === "primary" ? primaryPriorityInput : secondaryPriorityInput;
+  if (getPriorityRegexError(input.value)) {
+    return;
+  }
   store.addPriority(role, input.value);
   input.value = "";
-}
-
-function removePriorityAtIndex(role: PriorityRole, index: number) {
-  const list = role === "primary" ? primaryPriority.value : secondaryPriority.value;
-  const value = list[index];
-  if (value) {
-    store.removePriority(role, value);
-  }
 }
 
 async function openRegexDoc() {

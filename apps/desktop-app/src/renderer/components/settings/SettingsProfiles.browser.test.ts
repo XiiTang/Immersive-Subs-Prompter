@@ -623,7 +623,7 @@ describe("SettingsProfiles", () => {
     expect(store.settings.rules.map((rule) => rule.pattern)).toEqual(["youtube.com", "youtu.be"]);
   });
 
-  it("renders subtitle priorities as wrapping pill chips without per-item delete buttons", () => {
+  it("renders subtitle priorities as wrapping pill chips with close buttons", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -660,7 +660,95 @@ describe("SettingsProfiles", () => {
     expect(listStyle.flexWrap).toBe("wrap");
     expect(chipStyle.borderRadius).toBe("999px");
     expect(firstChip.attributes("draggable")).toBe("true");
-    expect(wrapper.find(".priority-editor__item [aria-label='Remove priority']").exists()).toBe(false);
+    expect(wrapper.find(".priority-editor__item [aria-label='Remove priority']").exists()).toBe(true);
+  });
+
+  it("removes subtitle priorities only through the pill close button", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: ["en", "ja"],
+            secondarySubtitlePriority: []
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+    const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+
+    await wrapper.get('[data-testid="priority-primary-remove-en"]').trigger("click");
+
+    expect(removeSpy).toHaveBeenCalledWith("primary", "en");
+  });
+
+  it("reorders subtitle priorities within the same list and does not delete on drag end", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: ["en", "ja", "zh"],
+            secondarySubtitlePriority: ["fr"]
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+    const reorderSpy = vi.spyOn(store, "reorderPriority").mockImplementation(() => undefined);
+    const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
+    const dataTransfer = new DataTransfer();
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+
+    await wrapper.get('[data-testid="priority-primary-display-en"]').trigger("dragstart", { dataTransfer });
+    await wrapper.get('[data-testid="priority-primary-display-zh"]').trigger("dragenter");
+    await wrapper.get('[data-testid="priority-primary-display-zh"]').trigger("drop");
+    await wrapper.get('[data-testid="priority-primary-display-en"]').trigger("dragend");
+
+    expect(reorderSpy).toHaveBeenCalledWith("primary", 0, 2);
+    expect(removeSpy).not.toHaveBeenCalled();
+  });
+
+  it("ignores subtitle priority drops outside the source list", async () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [
+        {
+          ...createProfile("profile-default", "Default"),
+          settings: {
+            ...createProfile("profile-default", "Default").settings,
+            primarySubtitlePriority: ["en", "ja"],
+            secondarySubtitlePriority: ["fr"]
+          }
+        }
+      ],
+      defaultProfileId: "profile-default"
+    };
+    store.editingProfileId = "profile-default";
+    const reorderSpy = vi.spyOn(store, "reorderPriority").mockImplementation(() => undefined);
+    const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
+    const dataTransfer = new DataTransfer();
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+
+    await wrapper.get('[data-testid="priority-primary-display-en"]').trigger("dragstart", { dataTransfer });
+    await wrapper.get('[data-testid="priority-primary-display-en"]').trigger("dragend");
+
+    expect(reorderSpy).not.toHaveBeenCalled();
+    expect(removeSpy).not.toHaveBeenCalled();
   });
 
   it("adds subtitle priorities from the trailing blank pill on blur", async () => {
@@ -701,7 +789,7 @@ describe("SettingsProfiles", () => {
     const draftPill = primaryEditor.get(".priority-editor__draft");
     const draftInput = draftPill.get<HTMLInputElement>('[data-testid="priority-draft-input"]');
 
-    expect(wrapper.find(".priority-editor__controls").exists()).toBe(false);
+    expect(primaryEditor.find('[aria-label="Add priority"]').exists()).toBe(false);
     expect(draftPill.attributes("draggable")).toBeUndefined();
 
     await draftInput.setValue("ai-en");

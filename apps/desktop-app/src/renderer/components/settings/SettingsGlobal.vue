@@ -26,34 +26,20 @@
         <UiInput v-model="toggleShortcut" placeholder="CommandOrControl+Shift+S" />
       </UiField>
 
-      <UiField id="process-blacklist" :label="t('process-blacklist-label', 'Process Blacklist')" :hint="t('process-blacklist-hint', 'Disable shortcuts when these processes are foregrounded.')">
-        <div class="ui-inline-control">
-          <UiInput
-            v-model="gameProcessInput"
-            :placeholder="t('process-blacklist-placeholder', 'e.g.: r5apex_dx12.exe, csgo.exe, vlc.exe')"
-            @keyup.enter="addGameProcess"
-          />
-          <UiIconButton :label="t('button-add', 'Add')" @click="addGameProcess">
-            <IconAdd size="md" />
-          </UiIconButton>
-        </div>
-      </UiField>
-
-      <div v-if="gameProcesses.length" class="ui-chip-list">
-        <span v-for="process in gameProcesses" :key="process" class="ui-chip">
-          {{ process }}
-          <UiIconButton
-            class="ui-chip__remove"
-            size="sm"
-            variant="ghost"
-            :label="t('game-blacklist-remove', 'Remove')"
-            @click="removeGameProcess(process)"
-          >
-            <IconDelete size="sm" />
-          </UiIconButton>
-        </span>
-      </div>
-      <UiEmptyState v-else :message="t('game-blacklist-none', 'No processes yet.')" />
+      <PillListEditor
+        :label="t('process-blacklist-label', 'Process Blacklist')"
+        :hint="t('process-blacklist-hint', 'Disable shortcuts when these processes are foregrounded.')"
+        :items="gameProcessItems"
+        :draft-value="gameProcessInput"
+        :placeholder="t('process-blacklist-placeholder', 'e.g.: r5apex_dx12.exe')"
+        :remove-label="t('game-blacklist-remove', 'Remove')"
+        draft-test-id="process-blacklist-draft-input"
+        display-test-id-prefix="process-blacklist-display"
+        remove-test-id-prefix="process-blacklist-remove"
+        @update:draft-value="gameProcessInput = $event"
+        @add-draft="addGameProcess"
+        @remove="removeGameProcess"
+      />
     </div>
   </UiSection>
   <SettingsAppearance />
@@ -65,11 +51,12 @@ import { computed, ref } from "vue";
 import type { NetworkEndpoint } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
-import { IconAdd, IconDelete } from "../icons";
-import { UiEmptyState, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
+import { UiField, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
 import SettingsAppearance from "./SettingsAppearance.vue";
 import SettingsCache from "./SettingsCache.vue";
 import NetworkEndpointEditor from "./NetworkEndpointEditor.vue";
+import PillListEditor from "./PillListEditor.vue";
+import type { PillListEditorItem } from "./pillListEditorTypes";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -105,6 +92,13 @@ const languageSetting = computed({
 
 const gameProcessInput = ref("");
 const gameProcesses = computed(() => store.settings?.global.gameProcessBlacklist ?? []);
+const gameProcessItems = computed<PillListEditorItem[]>(() =>
+  gameProcesses.value.map((process) => ({
+    id: process,
+    label: process,
+    title: process
+  }))
+);
 
 function addGameProcess() {
   store.addGameProcess(gameProcessInput.value);

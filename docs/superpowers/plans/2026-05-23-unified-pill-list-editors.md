@@ -33,6 +33,7 @@
 Shared pill UI:
 
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.vue`
+- Create: `apps/desktop-app/src/renderer/components/settings/pillListEditorTypes.ts`
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.test.ts`
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.browser.test.ts`
 - Modify: `apps/desktop-app/src/renderer/style.css`
@@ -66,6 +67,7 @@ Verification and docs:
 
 **Files:**
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.vue`
+- Create: `apps/desktop-app/src/renderer/components/settings/pillListEditorTypes.ts`
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.test.ts`
 - Create: `apps/desktop-app/src/renderer/components/settings/PillListEditor.browser.test.ts`
 - Modify: `apps/desktop-app/src/renderer/style.css`
@@ -269,7 +271,19 @@ pnpm --filter @immersive-subs/desktop-app test:renderer -- src/renderer/componen
 
 Expected: FAIL because `PillListEditor.vue` does not exist.
 
-- [ ] **Step 4: Implement `PillListEditor.vue`**
+- [ ] **Step 4: Implement `PillListEditor` types and component**
+
+Create `apps/desktop-app/src/renderer/components/settings/pillListEditorTypes.ts`:
+
+```ts
+export interface PillListEditorItem {
+  id: string;
+  label: string;
+  title?: string;
+  removable?: boolean;
+  error?: boolean;
+}
+```
 
 Create `apps/desktop-app/src/renderer/components/settings/PillListEditor.vue`:
 
@@ -346,14 +360,7 @@ Create `apps/desktop-app/src/renderer/components/settings/PillListEditor.vue`:
 import { ref } from "vue";
 import { IconClose } from "../icons";
 import { UiIconButton, UiInput } from "../ui";
-
-export interface PillListEditorItem {
-  id: string;
-  label: string;
-  title?: string;
-  removable?: boolean;
-  error?: boolean;
-}
+import type { PillListEditorItem } from "./pillListEditorTypes";
 
 const props = withDefaults(
   defineProps<{
@@ -609,7 +616,8 @@ import {
   networkEndpointKey,
   parseNetworkEndpointInput
 } from "../../../common/networkEndpoints.js";
-import PillListEditor, { type PillListEditorItem } from "./PillListEditor.vue";
+import PillListEditor from "./PillListEditor.vue";
+import type { PillListEditorItem } from "./pillListEditorTypes";
 ```
 
 Add:
@@ -667,22 +675,22 @@ it("marks listener error endpoints on the shared pill item", () => {
 
 - [ ] **Step 3: Remove duplicate network-only shell styles**
 
-In `style.css`, remove network-specific styles that duplicate shared shell behavior:
+In `style.css`, delete the complete selector blocks named:
 
-```css
-.network-endpoint-editor__list { ... }
-.network-endpoint-editor__item { ... }
-.network-endpoint-editor__item--removable { ... }
-.network-endpoint-editor__item--error { ... }
-.network-endpoint-editor__display { ... }
-.network-endpoint-editor__remove.ui-icon-button { ... }
-.network-endpoint-editor__remove .icon { ... }
-.network-endpoint-editor__item:hover .network-endpoint-editor__remove,
-.network-endpoint-editor__item:focus-within .network-endpoint-editor__remove { ... }
-.network-endpoint-editor__draft { ... }
-.network-endpoint-editor__input { ... }
-.network-endpoint-editor__input.ui-input { ... }
-.network-endpoint-editor__input.ui-input:focus-visible { ... }
+```text
+.network-endpoint-editor__list
+.network-endpoint-editor__item
+.network-endpoint-editor__item--removable
+.network-endpoint-editor__item--error
+.network-endpoint-editor__display
+.network-endpoint-editor__remove.ui-icon-button
+.network-endpoint-editor__remove .icon
+.network-endpoint-editor__item:hover .network-endpoint-editor__remove
+.network-endpoint-editor__item:focus-within .network-endpoint-editor__remove
+.network-endpoint-editor__draft
+.network-endpoint-editor__input
+.network-endpoint-editor__input.ui-input
+.network-endpoint-editor__input.ui-input:focus-visible
 ```
 
 Keep only `.network-endpoint-editor` if a network-specific hook remains necessary. If no network-specific styles remain, remove it too.
@@ -776,7 +784,8 @@ Update imports:
 
 ```ts
 import { UiField, UiInput, UiSection, UiSelect, UiSwitch } from "../ui";
-import PillListEditor, { type PillListEditorItem } from "./PillListEditor.vue";
+import PillListEditor from "./PillListEditor.vue";
+import type { PillListEditorItem } from "./pillListEditorTypes";
 ```
 
 Remove unused imports:
@@ -978,7 +987,8 @@ Replace the script with:
 ```ts
 <script setup lang="ts">
 import { computed } from "vue";
-import PillListEditor, { type PillListEditorItem } from "../PillListEditor.vue";
+import PillListEditor from "../PillListEditor.vue";
+import type { PillListEditorItem } from "../pillListEditorTypes";
 
 type PriorityRole = "primary" | "secondary";
 
@@ -1098,7 +1108,13 @@ type PriorityRole = "primary" | "secondary";
 Delete:
 
 ```ts
-function removePriorityAtIndex(role: PriorityRole, index: number) { ... }
+function removePriorityAtIndex(role: PriorityRole, index: number) {
+  const list = role === "primary" ? primaryPriority.value : secondaryPriority.value;
+  const value = list[index];
+  if (value) {
+    store.removePriority(role, value);
+  }
+}
 ```
 
 - [ ] **Step 5: Delete old drag-delete composable**
@@ -1221,6 +1237,6 @@ Placeholder scan:
 
 Type consistency:
 
-- Shared item type is `PillListEditorItem`.
+- Shared item type is `PillListEditorItem` from `pillListEditorTypes.ts`.
 - Shared component events are `update:draftValue`, `add-draft`, `remove`, and `reorder`.
 - Parent usages map those events to existing store actions.

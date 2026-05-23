@@ -1,65 +1,30 @@
 <template>
-  <div class="network-endpoint-editor">
-    <div class="priority-editor__header">
-      <div class="priority-editor__label-row">
-        <span class="settings-field__label">{{ label }}</span>
-      </div>
-      <span class="priority-editor__hint">{{ hint }}</span>
-    </div>
-
-    <div class="priority-editor__list network-endpoint-editor__list">
-      <span
-        v-for="endpoint in endpoints"
-        :key="endpoint.id"
-        class="ui-chip priority-editor__item network-endpoint-editor__item"
-        :class="{
-          'network-endpoint-editor__item--error': statusById.get(endpoint.id)?.status === 'error',
-          'network-endpoint-editor__item--removable': endpoints.length > 1
-        }"
+  <PillListEditor
+    class="network-endpoint-editor"
+    :label="label"
+    :hint="hint"
+    :items="endpointItems"
+    :draft-value="draftValue"
+    :placeholder="placeholder"
+    :remove-label="removeLabel"
+    :error="error"
+    draft-test-id="network-endpoint-draft-input"
+    display-test-id-prefix="network-endpoint-display"
+    remove-test-id-prefix="network-endpoint-remove"
+    @update:draft-value="draftValue = $event"
+    @add-draft="commitDraft"
+    @remove="removeEndpoint"
+  >
+    <template #after-errors>
+      <div
+        v-for="status in errorStatuses"
+        :key="status.endpointId"
+        class="settings-field__error"
       >
-        <span
-          class="network-endpoint-editor__display"
-          :data-testid="`network-endpoint-display-${endpoint.id}`"
-          :title="endpointUrl(endpoint)"
-        >
-          {{ endpointUrl(endpoint) }}
-        </span>
-
-        <UiIconButton
-          v-if="endpoints.length > 1"
-          class="network-endpoint-editor__remove"
-          size="sm"
-          variant="ghost"
-          :label="removeLabel"
-          :data-testid="`network-endpoint-remove-${endpoint.id}`"
-          @click.stop="removeEndpoint(endpoint.id)"
-        >
-          <IconClose size="sm" />
-        </UiIconButton>
-      </span>
-
-      <span class="priority-editor__item priority-editor__draft network-endpoint-editor__draft">
-        <UiInput
-          class="priority-editor__draft-input network-endpoint-editor__input"
-          data-testid="network-endpoint-draft-input"
-          :model-value="draftValue"
-          :placeholder="placeholder"
-          @update:model-value="draftValue = String($event)"
-          @blur="commitDraft"
-          @keyup.enter="commitDraft"
-        />
-      </span>
-    </div>
-
-    <div v-if="error" class="settings-field__error">{{ error }}</div>
-    <div
-      v-for="status in errorStatuses"
-      :key="status.endpointId"
-      class="settings-field__error"
-    >
-      {{ status.host }}:{{ status.port }} - {{ status.error }}
-    </div>
-  </div>
+        {{ status.host }}:{{ status.port }} - {{ status.error }}
+      </div>
+    </template>
+  </PillListEditor>
 </template>
 
 <script setup lang="ts">
@@ -70,8 +35,8 @@ import {
   networkEndpointKey,
   parseNetworkEndpointInput
 } from "../../../common/networkEndpoints.js";
-import { IconClose } from "../icons";
-import { UiIconButton, UiInput } from "../ui";
+import PillListEditor from "./PillListEditor.vue";
+import type { PillListEditorItem } from "./pillListEditorTypes";
 
 const props = defineProps<{
   endpoints: NetworkEndpoint[];
@@ -92,6 +57,15 @@ const error = ref<string | null>(null);
 
 const statusById = computed(() => new Map(props.listenerStatuses.map((status) => [status.endpointId, status])));
 const errorStatuses = computed(() => props.listenerStatuses.filter((status) => status.status === "error"));
+const endpointItems = computed<PillListEditorItem[]>(() =>
+  props.endpoints.map((endpoint) => ({
+    id: endpoint.id,
+    label: endpointUrl(endpoint),
+    title: endpointUrl(endpoint),
+    removable: props.endpoints.length > 1,
+    error: statusById.value.get(endpoint.id)?.status === "error"
+  }))
+);
 
 function endpointUrl(endpoint: NetworkEndpoint): string {
   return buildNetworkEndpointUrl(endpoint, props.authToken);
