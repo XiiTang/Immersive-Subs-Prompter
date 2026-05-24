@@ -1,4 +1,5 @@
 export { default as IconAdd } from "./IconAdd.vue";
+export { default as IconBookOpen } from "./IconBookOpen.vue";
 export { default as IconChevronDown } from "./IconChevronDown.vue";
 export { default as IconChevronUp } from "./IconChevronUp.vue";
 export { default as IconCheck } from "./IconCheck.vue";
@@ -8,8 +9,12 @@ export { default as IconDelete } from "./IconDelete.vue";
 export { default as IconFolder } from "./IconFolder.vue";
 export { default as IconFullscreen } from "./IconFullscreen.vue";
 export { default as IconLock } from "./IconLock.vue";
+export { default as IconMic } from "./IconMic.vue";
 export { default as IconPause } from "./IconPause.vue";
 export { default as IconPin } from "./IconPin.vue";
 export { default as IconPlay } from "./IconPlay.vue";
+export { default as IconPlug } from "./IconPlug.vue";
 export { default as IconRefresh } from "./IconRefresh.vue";
+export { default as IconServer } from "./IconServer.vue";
 export { default as IconSettings } from "./IconSettings.vue";
+export { default as IconUser } from "./IconUser.vue";

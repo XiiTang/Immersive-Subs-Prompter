@@ -1196,6 +1196,8 @@ body.main-window-body,
   min-height: 34px;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-sm);
+  justify-content: flex-start;
+  gap: 8px;
   padding: 0 10px;
   background: transparent;
   color: var(--ui-text-muted);
@@ -1214,8 +1216,17 @@ body.main-window-body,
   color: var(--ui-text);
 }
 
+.settings-nav__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
 .settings-nav__item-label {
   display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1234,6 +1245,97 @@ body.main-window-body,
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.global-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.global-settings__group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.global-settings__group-title {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.global-settings__row {
+  display: grid;
+  grid-template-columns: minmax(176px, 260px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  min-width: 0;
+}
+
+.global-settings__row--editor,
+.global-settings__row--stats {
+  align-items: start;
+}
+
+.global-settings__row--ui-field {
+  display: block;
+}
+
+.global-settings__field.ui-field--inline {
+  display: grid;
+  grid-template-columns: minmax(176px, 260px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+.global-settings__field.ui-field--inline .ui-field__control {
+  justify-self: end;
+  width: min(100%, 360px);
+}
+
+.global-settings__row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.global-settings__control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  width: 100%;
+}
+
+.global-settings__control--compact {
+  justify-self: end;
+  width: min(100%, 180px);
+}
+
+.global-settings__control--field {
+  justify-self: end;
+  width: min(100%, 360px);
+}
+
+.global-settings__control--wide,
+.global-settings__control--editor,
+.global-settings__control--stats {
+  justify-self: stretch;
+}
+
+.global-settings__control--wide > *,
+.global-settings__control--editor > *,
+.global-settings__control--stats > * {
+  width: 100%;
+}
+
+.global-settings__control--stats .ui-stat-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .settings-row,

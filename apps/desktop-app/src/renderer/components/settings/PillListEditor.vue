@@ -1,6 +1,6 @@
 <template>
   <div class="pill-list-editor">
-    <div class="priority-editor__header">
+    <div v-if="!hideHeader" class="priority-editor__header">
       <div class="priority-editor__label-row">
         <span class="settings-field__label">{{ label }}</span>
       </div>
@@ -90,6 +90,7 @@ const props = withDefaults(
     removeLabel: string;
     error?: string | null;
     sortable?: boolean;
+    hideHeader?: boolean;
     draftTestId: string;
     displayTestIdPrefix: string;
     removeTestIdPrefix: string;
@@ -97,7 +98,8 @@ const props = withDefaults(
   {
     hint: "",
     error: null,
-    sortable: false
+    sortable: false,
+    hideHeader: false
   }
 );
 

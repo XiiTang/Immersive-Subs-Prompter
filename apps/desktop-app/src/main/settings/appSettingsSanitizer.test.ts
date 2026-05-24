@@ -180,6 +180,11 @@ describe("appSettingsSanitizer", () => {
       expect(sanitizeSettings({ global: { appearance: { theme: "system" } } } as never).global.appearance.theme).toBe("system");
     });
 
+    it("preserves an empty global shortcut as disabled", () => {
+      expect(sanitizeSettings({ global: { toggleWindowShortcut: "" } } as never).global.toggleWindowShortcut).toBe("");
+      expect(sanitizeSettings({ global: { toggleWindowShortcut: "   " } } as never).global.toggleWindowShortcut).toBe("");
+    });
+
     it("falls back to system appearance for unsupported themes", () => {
       const result = sanitizeSettings({
         global: { appearance: { theme: "blue" } }

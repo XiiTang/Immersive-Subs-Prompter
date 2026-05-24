@@ -15,7 +15,7 @@ export function sanitizeGlobalSettings(input: Partial<GlobalSettings> | null | u
   const closeBehavior = isCloseBehavior(source.closeBehavior) ? source.closeBehavior : DEFAULT_GLOBAL_SETTINGS.closeBehavior;
   const autoLaunch = typeof source.autoLaunch === "boolean" ? source.autoLaunch : DEFAULT_GLOBAL_SETTINGS.autoLaunch;
   const toggleWindowShortcut =
-    typeof source.toggleWindowShortcut === "string" && source.toggleWindowShortcut.trim().length
+    typeof source.toggleWindowShortcut === "string"
       ? source.toggleWindowShortcut.trim()
       : DEFAULT_GLOBAL_SETTINGS.toggleWindowShortcut;
   const gameProcessBlacklist = sanitizeProcessList(source.gameProcessBlacklist);

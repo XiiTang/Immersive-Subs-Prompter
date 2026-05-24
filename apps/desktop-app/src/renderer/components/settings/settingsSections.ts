@@ -5,25 +5,36 @@ const SETTINGS_SECTION_DEFS = [
   {
     id: "general",
     labelKey: "section-global-settings",
-    fallback: "Global Settings"
+    fallback: "Global Settings",
+    icon: "settings"
   },
   {
     id: "profiles",
     labelKey: "section-profiles",
-    fallback: "Profiles"
+    fallback: "Profiles",
+    icon: "profiles"
   },
   {
     id: "plugins",
     labelKey: "section-plugins",
-    fallback: "Plugins"
+    fallback: "Plugins",
+    icon: "plugins"
   }
 ] as const;
 
 export function buildSettingsSections(language: SupportedLanguage) {
   return SETTINGS_SECTION_DEFS.map((section) => ({
     id: section.id,
-    label: translate(section.labelKey, section.fallback, language)
+    label: translate(section.labelKey, section.fallback, language),
+    icon: section.icon
   }));
 }
 
 export type SettingsSectionId = string;
+export type SettingsNavIconKey =
+  | "settings"
+  | "profiles"
+  | "plugins"
+  | "transcription"
+  | "wordLookup"
+  | "mediaServer";

@@ -24,7 +24,7 @@ import SettingsGlobal from "./SettingsGlobal.vue";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import SettingsPlugins from "./SettingsPlugins.vue";
 import SettingsNav from "./SettingsNav.vue";
-import { buildSettingsSections, type SettingsSectionId } from "./settingsSections";
+import { buildSettingsSections, type SettingsNavIconKey, type SettingsSectionId } from "./settingsSections";
 import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
 import { resolvePluginSettingsComponent } from "../../plugins/pluginSettingsRegistry";
@@ -43,7 +43,8 @@ const pluginSections = computed(() => {
     .flatMap((plugin) =>
       (plugin.settings ?? []).map((section) => ({
         id: section.id,
-        label: section.title
+        label: section.title,
+        icon: pluginSettingsIcon(section.id)
       }))
     );
 });
@@ -66,6 +67,19 @@ const activeComponent = computed(() => resolveComponent(currentSection.value));
 
 function selectSection(id: SettingsSectionId) {
   currentSection.value = id;
+}
+
+function pluginSettingsIcon(sectionId: string): SettingsNavIconKey | undefined {
+  switch (sectionId) {
+    case "official.transcription.settings":
+      return "transcription";
+    case "official.word-lookup.settings":
+      return "wordLookup";
+    case "official.jellyfinemby.settings":
+      return "mediaServer";
+    default:
+      return undefined;
+  }
 }
 
 watch(

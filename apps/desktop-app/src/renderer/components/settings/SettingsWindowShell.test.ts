@@ -247,6 +247,62 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(true);
   });
 
+  it("shows icons for built-in and known official plugin navigation items", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings("en");
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.transcription",
+        version: "1.0.0",
+        displayName: "Speech Transcription",
+        description: "Transcribe video audio.",
+        status: "enabled",
+        enabled: true,
+        error: null,
+        settings: [
+          {
+            id: "official.transcription.settings",
+            title: "Speech Transcription"
+          }
+        ]
+      },
+      {
+        id: "custom.unknown",
+        version: "1.0.0",
+        displayName: "Custom Unknown",
+        description: "Unknown third-party plugin.",
+        status: "enabled",
+        enabled: true,
+        error: null,
+        settings: [
+          {
+            id: "custom.unknown.settings",
+            title: "Custom Unknown"
+          }
+        ]
+      }
+    ];
+
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content"),
+          SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
+        }
+      }
+    });
+
+    expect(wrapper.get('[data-testid="settings-nav-item-general"] .settings-nav__icon').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-nav-item-profiles"] .settings-nav__icon').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-nav-item-plugins"] .settings-nav__icon').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"] .settings-nav__icon').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-nav-item-custom.unknown.settings"] .settings-nav__icon').exists()).toBe(false);
+  });
+
   it("keeps settings controls outside Electron drag regions", () => {
     expect(rendererStylesheet).toContain(".settings-window button,");
     expect(rendererStylesheet).toContain(".settings-window input,");
@@ -266,9 +322,9 @@ describe("SettingsWindowShell", () => {
 
   it("does not keep legacy scroll-anchor metadata for section navigation", () => {
     expect(buildSettingsSections("en")).toEqual([
-      { id: "general", label: "Global Settings" },
-      { id: "profiles", label: "Profiles" },
-      { id: "plugins", label: "Plugins" }
+      { id: "general", label: "Global Settings", icon: "settings" },
+      { id: "profiles", label: "Profiles", icon: "profiles" },
+      { id: "plugins", label: "Plugins", icon: "plugins" }
     ]);
   });
 

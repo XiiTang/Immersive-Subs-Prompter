@@ -8,6 +8,7 @@
     :placeholder="placeholder"
     :remove-label="removeLabel"
     :error="error"
+    :hide-header="hideHeader"
     draft-test-id="network-endpoint-draft-input"
     display-test-id-prefix="network-endpoint-display"
     remove-test-id-prefix="network-endpoint-remove"
@@ -46,6 +47,7 @@ const props = defineProps<{
   hint: string;
   placeholder: string;
   removeLabel: string;
+  hideHeader?: boolean;
 }>();
 
 const emit = defineEmits<{

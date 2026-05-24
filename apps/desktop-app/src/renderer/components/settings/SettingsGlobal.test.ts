@@ -44,15 +44,28 @@ describe("SettingsGlobal", () => {
     document.body.innerHTML = "";
   });
 
-  it("includes appearance and subtitle cache controls in the global settings page", () => {
+  it("organizes global settings into compact setting groups", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
 
     const wrapper = mount(SettingsGlobal);
+    const groups = wrapper.findAll(".global-settings__group");
 
     expect(wrapper.text()).toContain("Global Settings");
+    expect(groups.map((group) => group.get(".global-settings__group-title").text())).toEqual([
+      "General",
+      "Connectivity",
+      "Shortcuts",
+      "Appearance",
+      "Cache"
+    ]);
+    const shortcutsGroup = groups.find((group) => group.get(".global-settings__group-title").text() === "Shortcuts");
+    expect(shortcutsGroup?.text()).toContain("Toggle Window Shortcut");
+    expect(shortcutsGroup?.text()).toContain("Process Blacklist");
+    expect(wrapper.findAll(".global-settings__row").length).toBeGreaterThanOrEqual(6);
     expect(wrapper.text()).toContain("Appearance");
-    expect(wrapper.text()).toContain("Subtitle Cache");
+    expect(wrapper.get("#language-label").element.closest(".ui-field")).not.toBeNull();
+    expect(wrapper.get("#language-label").element.closest(".ui-field")?.querySelector(".ui-select")).not.toBeNull();
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);
     expect(wrapper.find("#cache-path-label").exists()).toBe(true);
   });
@@ -201,5 +214,34 @@ describe("SettingsGlobal", () => {
     await wrapper.get('[data-testid="process-blacklist-remove-r5apex_dx12.exe"]').trigger("click");
 
     expect(removeSpy).toHaveBeenCalledWith("r5apex_dx12.exe");
+  });
+
+  it("captures the toggle shortcut from key presses and clears it with Backspace", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSpy = vi.spyOn(store, "updateGlobalSetting").mockImplementation((key, value) => {
+      if (store.settings && key === "toggleWindowShortcut") {
+        store.settings.global.toggleWindowShortcut = value as string;
+      }
+    });
+
+    const wrapper = mount(SettingsGlobal);
+    const input = wrapper.get<HTMLInputElement>('[data-testid="toggle-shortcut-input"]');
+
+    await input.trigger("keydown", {
+      code: "KeyP",
+      key: "p",
+      ctrlKey: true,
+      altKey: true
+    });
+
+    expect(updateSpy).toHaveBeenCalledWith("toggleWindowShortcut", "CommandOrControl+Alt+P");
+
+    await input.trigger("keydown", {
+      code: "Backspace",
+      key: "Backspace"
+    });
+
+    expect(updateSpy).toHaveBeenCalledWith("toggleWindowShortcut", "");
   });
 });
