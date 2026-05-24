@@ -114,7 +114,7 @@ describe("SettingsProfiles", () => {
     document.body.style.margin = "0";
     document.body.style.padding = "24px";
     document.body.style.background = "#101418";
-    document.body.style.width = "1120px";
+    document.body.style.width = "1000px";
   });
 
   it("renders subtitle font as a curated select instead of free-form input", () => {

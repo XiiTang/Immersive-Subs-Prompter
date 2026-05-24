@@ -124,7 +124,7 @@ describe("SettingsWindowShell browser layout", () => {
     const bodyGrid = wrapper.get(".settings-window-shell__body").element;
     const navColumnWidth = Number.parseFloat(getComputedStyle(bodyGrid).gridTemplateColumns.split(" ")[0] ?? "0");
 
-    expect(navColumnWidth).toBeLessThanOrEqual(216);
+    expect(navColumnWidth).toBeLessThanOrEqual(192);
   });
 
   it("allows selecting text inside settings content while keeping the title bar non-selectable", () => {

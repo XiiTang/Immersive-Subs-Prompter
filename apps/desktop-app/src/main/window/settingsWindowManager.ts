@@ -8,6 +8,9 @@ type SettingsWindowManagerOptions = {
   onClosed?: () => void;
 };
 
+const SETTINGS_WINDOW_WIDTH = 1000;
+const SETTINGS_WINDOW_HEIGHT = 760;
+
 export class SettingsWindowManager {
   private settingsWindow: BrowserWindow | null = null;
   private readonly __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,12 +32,12 @@ export class SettingsWindowManager {
     }
 
     this.settingsWindow = new BrowserWindow({
-      width: 1120,
-      height: 760,
-      minWidth: 1120,
-      minHeight: 760,
-      maxWidth: 1120,
-      maxHeight: 760,
+      width: SETTINGS_WINDOW_WIDTH,
+      height: SETTINGS_WINDOW_HEIGHT,
+      minWidth: SETTINGS_WINDOW_WIDTH,
+      minHeight: SETTINGS_WINDOW_HEIGHT,
+      maxWidth: SETTINGS_WINDOW_WIDTH,
+      maxHeight: SETTINGS_WINDOW_HEIGHT,
       resizable: false,
       fullscreenable: false,
       titleBarStyle: "hidden",
