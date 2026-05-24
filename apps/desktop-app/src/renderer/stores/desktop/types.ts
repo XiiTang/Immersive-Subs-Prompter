@@ -19,6 +19,7 @@ import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { CacheStats, DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG } from "./defaults";
 import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
+import type { UpdateSettingsOptions } from "./actions/settingsActions";
 
 export interface DesktopStoreState {
   desktopState: DesktopState | null;
@@ -50,13 +51,18 @@ export interface DesktopStoreActions {
 
   // settings
   applySettingsPatch(partial: Partial<AppSettings>): void;
-  updateSettings(partial: Partial<AppSettings>): Promise<void>;
+  flushDeferredSettingsPersistence(): Promise<void>;
+  updateSettings(partial: Partial<AppSettings>, options?: UpdateSettingsOptions): Promise<void>;
   updateGlobalSetting<Key extends keyof GlobalSettings>(key: Key, value: GlobalSettings[Key]): void;
   updateNetworkSetting<Key extends keyof NetworkSettings>(key: Key, value: NetworkSettings[Key]): void;
 
   // profile
   setEditingProfile(profileId: string): void;
-  updateProfileSetting<Key extends keyof ProfileSettings>(key: Key, value: ProfileSettings[Key]): void;
+  updateProfileSetting<Key extends keyof ProfileSettings>(
+    key: Key,
+    value: ProfileSettings[Key],
+    options?: UpdateSettingsOptions
+  ): void;
   updateProfileMeta(partial: Partial<ProfileDefinition>): void;
   addProfile(): void;
   duplicateProfile(): void;

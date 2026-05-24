@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, RendererApi } from "../preload.cts";
 import { useDesktopStore } from "./desktop";
 
@@ -201,6 +201,10 @@ describe("desktop store profile selection", () => {
     vi.restoreAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("initializes the settings editor to the currently applied profile", async () => {
     installRendererApi(createDesktopState(), createSettings());
 
@@ -291,6 +295,63 @@ describe("desktop store profile selection", () => {
     });
 
     expect(store.settings).toEqual(original);
+  });
+
+  it("defers high-frequency profile setting persistence while keeping local settings immediate", async () => {
+    vi.useFakeTimers();
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-default";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    vi.stubGlobal("window", {
+      usp: {
+        updateSettings
+      }
+    });
+
+    store.updateProfileSetting("subtitleScrollPosition", 40, { persist: "deferred" });
+    store.updateProfileSetting("subtitleScrollPosition", 75, { persist: "deferred" });
+
+    expect(store.editingProfileSettings.subtitleScrollPosition).toBe(75);
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(149);
+
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleScrollPosition).toBe(75);
+  });
+
+  it("flushes deferred profile setting persistence without waiting for the debounce", async () => {
+    vi.useFakeTimers();
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-default";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    vi.stubGlobal("window", {
+      usp: {
+        updateSettings
+      }
+    });
+
+    store.updateProfileSetting("subtitleBlockGap", 24, { persist: "deferred" });
+    await store.flushDeferredSettingsPersistence();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleBlockGap).toBe(24);
+
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
   });
 
   it("includes media server counts in the connection label only when Jellyfin / Emby is enabled", () => {

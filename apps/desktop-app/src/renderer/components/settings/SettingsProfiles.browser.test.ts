@@ -364,6 +364,165 @@ describe("SettingsProfiles", () => {
     expect(toggle.attributes("aria-checked")).toBe("true");
   });
 
+  it("renders a fixed subtitle preview after subtitle style and color controls", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const editorChildren = Array.from(wrapper.get(".settings-split__editor").element.children);
+    const styleFields = wrapper.get(".subtitle-style-fields").element;
+    const colorScheme = wrapper.get(".settings-color-grid").element.closest(".ui-group")!;
+    const preview = wrapper.get('[data-testid="subtitle-style-preview"]').element;
+    const urlRules = wrapper.get('[data-testid="profile-url-rules"]').element;
+    const previewCanvas = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-canvas"]');
+    const previewStyle = getComputedStyle(previewCanvas.element);
+    const previewBlocks = wrapper.findAll('[data-testid="subtitle-preview-block"]');
+    const activeMeta = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-meta"]');
+    const activeActions = activeMeta.get<HTMLElement>('[data-testid="transcript-cue-actions"]');
+
+    expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(colorScheme));
+    expect(editorChildren.indexOf(colorScheme)).toBeLessThan(editorChildren.indexOf(preview));
+    expect(editorChildren.indexOf(preview)).toBeLessThan(editorChildren.indexOf(urlRules));
+    expect(previewStyle.width).toBe("390px");
+    expect(previewStyle.height).toBe("630px");
+    expect(previewBlocks.length).toBeGreaterThanOrEqual(16);
+    expect(previewCanvas.text().length).toBeGreaterThan(1600);
+    expect(wrapper.get('[data-testid="subtitle-preview-normal-primary"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="subtitle-preview-active-primary"]').text()).toContain(
+      "Till this moment I never knew myself."
+    );
+    expect(activeMeta.classes()).toContain("transcript-block__meta-row");
+    expect(getComputedStyle(activeMeta.element).position).toBe("absolute");
+    expect(activeActions.classes()).toContain("transcript-block__cue-actions");
+  });
+
+  it("keeps subtitle style slider input local until the slider commits", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const slider = wrapper.get<HTMLInputElement>('input[aria-labelledby="subtitle-scroll-position-label"]');
+
+    slider.element.value = "76";
+    await slider.trigger("input");
+
+    expect(store.editingProfileSettings.subtitleScrollPosition).toBe(76);
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await slider.trigger("change");
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleScrollPosition).toBe(76);
+  });
+
+  it("updates subtitle preview styles from the edited profile settings", async () => {
+    const store = useDesktopStore();
+    const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;
+    const timesFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Times New Roman")!.value;
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    store.settings = {
+      ...store.settings,
+      profiles: [
+        {
+          ...store.settings.profiles[0]!,
+          settings: {
+            ...store.settings.profiles[0]!.settings,
+            primarySubtitleFontFamily: timesFont,
+            primarySubtitleFontSize: 22,
+            secondarySubtitleFontFamily: arialFont,
+            secondarySubtitleFontSize: 18,
+            subtitlePrimaryColor: "#112233",
+            subtitleSecondaryColor: "#445566",
+            subtitleActivePrimaryColor: "#aa5500",
+            subtitleActiveSecondaryColor: "#227744",
+            subtitleLineHeight: 1.8,
+            subtitlePrimarySecondaryGap: 11,
+            subtitleBlockGap: 24,
+            subtitleScrollPosition: 80,
+            subtitleAutoHideMetaRow: false
+          }
+        }
+      ]
+    };
+    await nextTick();
+
+    const normalPrimary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-primary"]').element;
+    const normalSecondary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-secondary"]').element;
+    const activePrimary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-primary"]').element;
+    const activeSecondary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-secondary"]').element;
+    const blockList = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-block-list"]').element;
+    const afterStack = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-after-stack"]').element;
+    const activeBlock = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-block"]').element;
+    const normalMeta = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-meta"]').element;
+
+    expect(activePrimary.getAttribute("style") ?? "").toBe("");
+    expect(activeSecondary.getAttribute("style") ?? "").toBe("");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-font-family")).toContain("Times New Roman");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-font-size")).toBe("22px");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-secondary-font-family")).toContain("Arial");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-secondary-font-size")).toBe("18px");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-line-height")).toBe("1.8");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-secondary-gap")).toBe("11px");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-block-gap")).toBe("24px");
+    expect(getComputedStyle(normalPrimary).color).toBe("rgb(17, 34, 51)");
+    expect(getComputedStyle(normalSecondary).color).toBe("rgb(68, 85, 102)");
+    expect(getComputedStyle(activePrimary).color).toBe("rgb(170, 85, 0)");
+    expect(getComputedStyle(activeSecondary).color).toBe("rgb(34, 119, 68)");
+    expect(getComputedStyle(afterStack).gap).toBe("24px");
+    expect(blockList.style.getPropertyValue("--subtitle-preview-active-y")).toBe("80%");
+    expect(getComputedStyle(activeBlock).top).not.toBe("0px");
+    expect(normalMeta.dataset.autoHideQuiet).toBe("false");
+
+    store.settings = {
+      ...store.settings,
+      profiles: [
+        {
+          ...store.settings.profiles[0]!,
+          settings: {
+            ...store.settings.profiles[0]!.settings,
+            subtitleAutoHideMetaRow: true
+          }
+        }
+      ]
+    };
+    await nextTick();
+
+    expect(normalMeta.dataset.autoHideQuiet).toBe("true");
+  });
+
   it("renders compact paired subtitle fields and uses default yt-dlp args as the empty placeholder", () => {
     const store = useDesktopStore();
     store.settings = createSettings();

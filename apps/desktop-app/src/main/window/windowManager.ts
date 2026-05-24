@@ -2,6 +2,7 @@ import { BrowserWindow } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { AppSettings } from "../types.js";
+import { MAIN_WINDOW_DEFAULT_HEIGHT, MAIN_WINDOW_DEFAULT_WIDTH } from "../../common/windowDimensions.js";
 
 type WindowManagerOptions = {
   getSettings: () => AppSettings;
@@ -30,8 +31,8 @@ export class WindowManager {
     const settings = this.options.getSettings();
 
     this.mainWindow = new BrowserWindow({
-      width: 460,
-      height: 640,
+      width: MAIN_WINDOW_DEFAULT_WIDTH,
+      height: MAIN_WINDOW_DEFAULT_HEIGHT,
       frame: false,
       hasShadow: false,
       transparent: true,

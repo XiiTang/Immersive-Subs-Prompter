@@ -17,6 +17,7 @@
       <div class="settings-split__editor" v-if="editingProfile">
         <SubtitleStyleFields />
         <ColorSchemeGrid />
+        <SubtitleStylePreview />
         <ProfileUrlRules
           :profile-id="editingProfile.id"
           :is-default-profile="editingProfile.id === defaultProfileId"
@@ -80,6 +81,7 @@ import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import ProfileList from "./profiles/ProfileList.vue";
 import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import ColorSchemeGrid from "./profiles/ColorSchemeGrid.vue";
+import SubtitleStylePreview from "./profiles/SubtitleStylePreview.vue";
 import PriorityEditor from "./profiles/PriorityEditor.vue";
 import ProfileUrlRules from "./profiles/ProfileUrlRules.vue";
 import { UiField, UiSection, UiTextarea } from "../ui";

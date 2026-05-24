@@ -34,10 +34,6 @@ export class SettingsWindowManager {
     this.settingsWindow = new BrowserWindow({
       width: SETTINGS_WINDOW_WIDTH,
       height: SETTINGS_WINDOW_HEIGHT,
-      minWidth: SETTINGS_WINDOW_WIDTH,
-      minHeight: SETTINGS_WINDOW_HEIGHT,
-      maxWidth: SETTINGS_WINDOW_WIDTH,
-      maxHeight: SETTINGS_WINDOW_HEIGHT,
       resizable: false,
       fullscreenable: false,
       titleBarStyle: "hidden",

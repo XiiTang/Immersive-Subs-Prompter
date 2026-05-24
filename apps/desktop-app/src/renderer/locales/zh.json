@@ -83,6 +83,7 @@
   "subtitle-active-primary-color-hint": "调整高亮时主字幕的文字颜色",
   "subtitle-active-secondary-color-label": "高亮副字幕颜色",
   "subtitle-active-secondary-color-hint": "调整高亮时副字幕的文字颜色",
+  "subtitle-preview-title": "字幕预览",
   "primary-priority-label": "主字幕优先级",
   "primary-priority-hint": "使用正则表达式匹配字幕文件名，可拖拽调整顺序",
   "primary-priority-placeholder": "例如：en 或 zh-Hans",

@@ -41,11 +41,11 @@ The preview uses fixed sample subtitle text from Jane Austen's public-domain nov
 
 The sample data lives in one small preview-only constant so the text can be replaced later without touching rendering logic.
 
-The preview renders three subtitle blocks:
+The preview renders a long sequence of subtitle blocks so the fixed canvas remains visually filled even when the user chooses small font sizes:
 
-- A normal block before the highlighted sentence.
+- Several normal blocks before the highlighted sentence.
 - A highlighted active block using the famous line: "Till this moment I never knew myself."
-- A normal block after the highlighted sentence.
+- Several normal blocks after the highlighted sentence.
 
 Each block includes primary and secondary subtitle lines. The secondary line is a preview translation string owned by the app, not a runtime translation feature.
 
@@ -66,11 +66,14 @@ The panel reflects every profile setting that affects subtitle panel appearance:
 - Shared line height.
 - Primary-to-secondary subtitle gap.
 - Subtitle block gap.
+- Subtitle scroll position.
 - Auto-hide timestamps and action bar.
 
 Normal preview blocks use default primary and secondary colors. The highlighted preview block uses active primary and secondary colors.
 
-When auto-hide timestamps and action bar is enabled, normal block metadata is visually quiet and the highlighted block metadata remains visible. When it is disabled, all preview block metadata remains visible. This mirrors the user-facing effect of the setting without importing real playback interactions.
+The highlighted preview block is positioned vertically according to the subtitle scroll position setting. A low value places the active subtitle near the top of the preview canvas, a middle value places it near the middle, and a high value places it near the bottom. Normal blocks extend above and below it to show how the active cue sits within a fuller transcript.
+
+The preview uses the same metadata/action-row structure as the real transcript block: timestamps and play, loop, and A-B controls sit in an absolute metadata row at the top of each block. When auto-hide timestamps and action bar is enabled, normal block metadata uses the same quiet hidden behavior as the real transcript block while the highlighted block metadata remains visible. When it is disabled, normal block metadata remains visible. This mirrors the user-facing effect of the setting without importing real playback interactions.
 
 ## Component Boundaries
 
@@ -86,6 +89,10 @@ It does not depend on `TranscriptSurface`, playback state, cue projection, virtu
 `SettingsProfiles.vue` owns placement only. It renders `SubtitleStylePreview` after `SubtitleStyleFields` and `ColorSchemeGrid`.
 
 Styling lives in the existing renderer stylesheet and uses the current settings UI tokens. The preview canvas itself should read visually like the real dark subtitle panel, not like a form card.
+
+To keep slider and numeric-input interaction responsive, typography, color, spacing, and active-position changes are applied through CSS variables on the preview container. Repeated subtitle block DOM does not receive per-line dynamic inline style updates. Static preview text and action-row subtrees are memoized so high-frequency style changes update the preview surface without diffing every sample subtitle block.
+
+Subtitle style sliders update the local profile state immediately so the preview changes in real time. Their settings persistence is debounced and coalesced instead of sending an IPC settings write for every `input` event. When the slider commits through `change`, the pending settings payload is flushed immediately so the final value is saved without waiting for the debounce timer.
 
 ## Validation And Error Handling
 
@@ -111,17 +118,22 @@ Renderer tests cover:
 - The Profiles editor renders the preview after subtitle style and color controls.
 - The preview canvas has fixed `390px x 630px` dimensions.
 - The preview contains normal and highlighted subtitle blocks.
+- The preview contains enough sample subtitle text to fill the fixed canvas at small font sizes.
 - Primary typography changes update primary preview line styles.
 - Secondary typography changes update secondary preview line styles.
 - Default and active color changes update the matching normal or highlighted preview lines.
 - Line height, primary-to-secondary gap, and block gap changes update preview layout styles.
+- Subtitle scroll position changes move the highlighted preview block within the canvas.
+- Metadata/action rows use the real transcript block action-row classes and positioning.
 - The auto-hide metadata toggle changes metadata visibility state in the preview.
+- Subtitle style slider `input` updates local profile settings without immediately calling the main-process settings writer.
+- The pending slider settings payload is saved once after the debounce or immediately when the slider commits.
 
 Verification commands:
 
 ```bash
 pnpm --filter @immersive-subs/desktop-app exec vitest run --project main src/main/window/windowManager.test.ts src/main/window/settingsWindowManager.test.ts
-pnpm --filter @immersive-subs/desktop-app test:renderer -- SettingsProfiles SubtitleStylePreview
+pnpm --filter @immersive-subs/desktop-app test:renderer -- SettingsProfiles desktop.test.ts
 pnpm --filter @immersive-subs/desktop-app typecheck
 ```
 

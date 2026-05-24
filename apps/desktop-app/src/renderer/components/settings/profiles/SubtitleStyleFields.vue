@@ -52,6 +52,7 @@
         :max="100"
         :step="1"
         :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
+        @change="flushDeferredProfileSettings"
       />
     </UiField>
     <UiField
@@ -65,6 +66,7 @@
         :max="60"
         :step="1"
         :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
+        @change="flushDeferredProfileSettings"
       />
     </UiField>
     <UiField
@@ -78,6 +80,7 @@
         :max="3"
         :step="0.05"
         :label="t('subtitle-line-height-label', 'Line Height')"
+        @change="flushDeferredProfileSettings"
       />
     </UiField>
     <UiField
@@ -92,6 +95,7 @@
         :max="60"
         :step="1"
         :label="t('subtitle-block-gap-label', 'Block Gap')"
+        @change="flushDeferredProfileSettings"
       />
     </UiField>
   </div>
@@ -99,6 +103,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { ProfileSettings } from "../../../../main/types";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
@@ -109,6 +114,17 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 
 const subtitleFontOptions = SUBTITLE_FONT_OPTIONS;
+
+function updateDeferredProfileSetting<Key extends keyof ProfileSettings>(
+  key: Key,
+  value: ProfileSettings[Key]
+) {
+  store.updateProfileSetting(key, value, { persist: "deferred" });
+}
+
+function flushDeferredProfileSettings() {
+  void store.flushDeferredSettingsPersistence();
+}
 
 const primarySubtitleFontFamily = computed({
   get: () => store.editingProfileSettings.primarySubtitleFontFamily,
@@ -142,21 +158,21 @@ const subtitleAutoScrollTimeout = computed({
 
 const subtitleScrollPosition = computed({
   get: () => store.editingProfileSettings.subtitleScrollPosition,
-  set: (value: number) => store.updateProfileSetting("subtitleScrollPosition", value)
+  set: (value: number) => updateDeferredProfileSetting("subtitleScrollPosition", value)
 });
 
 const subtitlePrimarySecondaryGap = computed({
   get: () => store.editingProfileSettings.subtitlePrimarySecondaryGap,
-  set: (value: number) => store.updateProfileSetting("subtitlePrimarySecondaryGap", value)
+  set: (value: number) => updateDeferredProfileSetting("subtitlePrimarySecondaryGap", value)
 });
 
 const subtitleLineHeight = computed({
   get: () => store.editingProfileSettings.subtitleLineHeight,
-  set: (value: number) => store.updateProfileSetting("subtitleLineHeight", value)
+  set: (value: number) => updateDeferredProfileSetting("subtitleLineHeight", value)
 });
 
 const subtitleBlockGap = computed({
   get: () => store.editingProfileSettings.subtitleBlockGap,
-  set: (value: number) => store.updateProfileSetting("subtitleBlockGap", value)
+  set: (value: number) => updateDeferredProfileSetting("subtitleBlockGap", value)
 });
 </script>

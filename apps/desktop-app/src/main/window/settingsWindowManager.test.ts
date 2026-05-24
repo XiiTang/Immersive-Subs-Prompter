@@ -6,7 +6,7 @@ describe("SettingsWindowManager", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens the fixed settings window at a compact width", async () => {
+  it("opens the fixed settings window without redundant min/max size constraints", async () => {
     const createdOptions: Array<Record<string, unknown>> = [];
 
     class BrowserWindowMock {
@@ -47,12 +47,12 @@ describe("SettingsWindowManager", () => {
     expect(createdOptions).toHaveLength(1);
     expect(createdOptions[0]).toMatchObject({
       width: 1000,
-      minWidth: 1000,
-      maxWidth: 1000,
       height: 760,
-      minHeight: 760,
-      maxHeight: 760,
       resizable: false
     });
+    expect(createdOptions[0]).not.toHaveProperty("minWidth");
+    expect(createdOptions[0]).not.toHaveProperty("minHeight");
+    expect(createdOptions[0]).not.toHaveProperty("maxWidth");
+    expect(createdOptions[0]).not.toHaveProperty("maxHeight");
   });
 });

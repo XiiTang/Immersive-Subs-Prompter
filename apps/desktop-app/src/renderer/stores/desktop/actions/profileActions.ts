@@ -2,6 +2,7 @@ import type { ProfileDefinition, ProfileSettings } from "../../../../main/types"
 import { createId, mergePartial } from "../helpers";
 import { DEFAULT_PROFILE_TEMPLATE } from "../defaults";
 import type { DesktopStoreThis } from "../types";
+import type { UpdateSettingsOptions } from "./settingsActions";
 
 function keepFallbackLast(profiles: ProfileDefinition[], fallbackProfileId: string): ProfileDefinition[] {
   const fallbackProfile = profiles.find((profile) => profile.id === fallbackProfileId);
@@ -29,7 +30,8 @@ export function setEditingProfile(this: DesktopStoreThis, profileId: string) {
 export function updateProfileSetting<Key extends keyof ProfileSettings>(
   this: DesktopStoreThis,
   key: Key,
-  value: ProfileSettings[Key]
+  value: ProfileSettings[Key],
+  options: UpdateSettingsOptions = {}
 ) {
   if (!this.settings || !this.editingProfileId) {
     return;
@@ -45,7 +47,7 @@ export function updateProfileSetting<Key extends keyof ProfileSettings>(
       }
       : profile
   );
-  this.updateSettings({ profiles: nextProfiles });
+  this.updateSettings({ profiles: nextProfiles }, options);
 }
 
 export function updateProfileMeta(this: DesktopStoreThis, partial: Partial<ProfileDefinition>) {

@@ -83,6 +83,7 @@
   "subtitle-active-primary-color-hint": "Text color for the currently-active primary subtitle.",
   "subtitle-active-secondary-color-label": "Active Secondary",
   "subtitle-active-secondary-color-hint": "Text color for the currently-active secondary subtitle.",
+  "subtitle-preview-title": "Subtitle Preview",
   "primary-priority-label": "Primary Subtitle Priority",
   "primary-priority-hint": "Use regular expressions to match subtitle filenames; drag to reorder.",
   "primary-priority-placeholder": "e.g.: en or zh-Hans",
