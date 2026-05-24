@@ -57,8 +57,10 @@ export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
-  subtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
-  subtitleFontSize: 14,
+  primarySubtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
+  primarySubtitleFontSize: 14,
+  secondarySubtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
+  secondarySubtitleFontSize: 13,
   subtitleAutoHideMetaRow: true,
   subtitlePrimarySecondaryGap: 3,
   subtitleLineHeight: 1.45,

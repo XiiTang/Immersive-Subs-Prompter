@@ -171,8 +171,10 @@ export interface NetworkListenerStatus {
 }
 
 export interface ProfileSettings {
-  subtitleFontFamily: string;
-  subtitleFontSize: number;
+  primarySubtitleFontFamily: string;
+  primarySubtitleFontSize: number;
+  secondarySubtitleFontFamily: string;
+  secondarySubtitleFontSize: number;
   subtitleAutoHideMetaRow: boolean;
   subtitlePrimarySecondaryGap: number;
   subtitleLineHeight: number;

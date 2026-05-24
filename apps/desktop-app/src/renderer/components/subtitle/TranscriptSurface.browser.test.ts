@@ -50,8 +50,10 @@ function defaultProps(overrides: Record<string, unknown> = {}) {
     playbackLoop: null,
     abLoopSelectionState: createAbLoopSelectionState(),
     subtitlePanelStyle: {},
-    fontFamily: "Arial",
-    fontSize: 16,
+    primaryFontFamily: "Arial",
+    primaryFontSize: 16,
+    secondaryFontFamily: "Georgia",
+    secondaryFontSize: 15,
     lineHeight: 1.5,
     primarySecondaryGap: 6,
     blockGap: 12,
@@ -804,15 +806,17 @@ describe("TranscriptSurface", () => {
     wrapper.unmount();
   });
 
-  it("renders transcript typography and colors from surface props", async () => {
+  it("renders primary and secondary typography and colors from surface props", async () => {
     restoreSize = mockViewportSize(220, 220);
 
     const wrapper = mount(TranscriptSurface, {
       attachTo: document.body,
       props: defaultProps({
         blocks: [blocks[0]!],
-        fontFamily: "Georgia, serif",
-        fontSize: 20,
+        primaryFontFamily: "Arial, sans-serif",
+        primaryFontSize: 20,
+        secondaryFontFamily: "Georgia, serif",
+        secondaryFontSize: 14,
         lineHeight: 1.6,
         primarySecondaryGap: 4,
         activePrimaryColor: "#778899",
@@ -827,16 +831,20 @@ describe("TranscriptSurface", () => {
     const primaryLine = lines[0]!.element as HTMLElement;
     const secondaryLine = lines[1]!.element as HTMLElement;
     const initialSecondaryTop = Number.parseFloat(secondaryLine.style.top);
-    const initialPrimaryLineHeight = primaryLine.style.lineHeight;
+    const initialSecondaryLineHeight = secondaryLine.style.lineHeight;
 
-    expect(primaryLine.style.fontFamily).toContain("Georgia");
+    expect(primaryLine.style.fontFamily).toContain("Arial");
     expect(primaryLine.style.fontSize).toBe("20px");
     expect(primaryLine.style.color).toBe("rgb(119, 136, 153)");
+    expect(secondaryLine.style.fontFamily).toContain("Georgia");
+    expect(secondaryLine.style.fontSize).toBe("14px");
     expect(secondaryLine.style.color).toBe("rgb(170, 187, 204)");
 
     await wrapper.setProps({
-      fontFamily: '"Courier New", monospace',
-      fontSize: 24,
+      primaryFontFamily: '"Courier New", monospace',
+      primaryFontSize: 24,
+      secondaryFontFamily: '"Times New Roman", serif',
+      secondaryFontSize: 18,
       lineHeight: 2,
       primarySecondaryGap: 18,
       activePrimaryColor: "#ff0000",
@@ -851,8 +859,10 @@ describe("TranscriptSurface", () => {
 
     expect(updatedPrimaryLine.style.fontFamily).toContain("Courier New");
     expect(updatedPrimaryLine.style.fontSize).toBe("24px");
-    expect(updatedPrimaryLine.style.lineHeight).not.toBe(initialPrimaryLineHeight);
     expect(updatedPrimaryLine.style.color).toBe("rgb(255, 0, 0)");
+    expect(updatedSecondaryLine.style.fontFamily).toContain("Times New Roman");
+    expect(updatedSecondaryLine.style.fontSize).toBe("18px");
+    expect(updatedSecondaryLine.style.lineHeight).not.toBe(initialSecondaryLineHeight);
     expect(updatedSecondaryLine.style.color).toBe("rgb(0, 255, 0)");
     expect(Number.parseFloat(updatedSecondaryLine.style.top)).toBeGreaterThan(initialSecondaryTop);
 

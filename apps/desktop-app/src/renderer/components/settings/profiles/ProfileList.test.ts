@@ -9,8 +9,10 @@ const profile: ProfileDefinition = {
   id: "profile-default",
   name: "Default",
   settings: {
-    subtitleFontFamily: "Inter",
-    subtitleFontSize: 18,
+    primarySubtitleFontFamily: "Inter",
+    primarySubtitleFontSize: 18,
+    secondarySubtitleFontFamily: "Inter",
+    secondarySubtitleFontSize: 17,
     subtitlePrimaryColor: "#ffffff",
     subtitleSecondaryColor: "#b8c0cc",
     subtitleActivePrimaryColor: "#ffffff",

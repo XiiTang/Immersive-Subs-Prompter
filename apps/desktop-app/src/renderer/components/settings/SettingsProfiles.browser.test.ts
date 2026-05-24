@@ -13,8 +13,10 @@ function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
     name,
     description: null,
     settings: {
-      subtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-      subtitleFontSize: 14,
+      primarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      primarySubtitleFontSize: 14,
+      secondarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
+      secondarySubtitleFontSize: 13,
       subtitleAutoHideMetaRow: true,
       subtitlePrimarySecondaryGap: 3,
       subtitleLineHeight: 1.45,
@@ -42,7 +44,10 @@ function createSettings(): AppSettings {
       autoHidePanels: false,
       alwaysOnTop: "off",
       panelOpacity: 100,
-      language: "en"
+      language: "en",
+      appearance: {
+        theme: "system"
+      }
     },
     network: {
       endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
@@ -117,7 +122,7 @@ describe("SettingsProfiles", () => {
     document.body.style.width = "1000px";
   });
 
-  it("renders subtitle font as a curated select instead of free-form input", () => {
+  it("renders independent curated font selects for primary and secondary subtitles", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -131,17 +136,80 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const fontSelect = wrapper.find('[data-testid="subtitle-font-select"]');
+    const primaryFontSelect = wrapper.find('[data-testid="primary-subtitle-font-select"]');
+    const secondaryFontSelect = wrapper.find('[data-testid="secondary-subtitle-font-select"]');
 
-    expect(fontSelect.exists()).toBe(true);
-    expect(fontSelect.element.tagName).toBe("BUTTON");
-    expect(fontSelect.attributes("role")).toBe("combobox");
-    expect(fontSelect.text()).toContain("Helvetica Neue");
-    expect(
-      wrapper
-        .findAll('input[type="text"]')
-        .some((input) => (input.attributes("placeholder") ?? "").includes("LXGW WenKai"))
-    ).toBe(false);
+    expect(primaryFontSelect.exists()).toBe(true);
+    expect(primaryFontSelect.element.tagName).toBe("BUTTON");
+    expect(primaryFontSelect.attributes("role")).toBe("combobox");
+    expect(primaryFontSelect.text()).toContain("Helvetica Neue");
+    expect(secondaryFontSelect.exists()).toBe(true);
+    expect(secondaryFontSelect.element.tagName).toBe("BUTTON");
+    expect(secondaryFontSelect.attributes("role")).toBe("combobox");
+    expect(secondaryFontSelect.text()).toContain("Georgia");
+    expect(wrapper.find('[data-testid="subtitle-font-select"]').exists()).toBe(false);
+  });
+
+  it("renders primary and secondary subtitle size inputs with 3 to 96 bounds", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const primarySizeInput = wrapper.get<HTMLInputElement>(
+      'input[aria-labelledby="primary-subtitle-font-size-label"]'
+    );
+    const secondarySizeInput = wrapper.get<HTMLInputElement>(
+      'input[aria-labelledby="secondary-subtitle-font-size-label"]'
+    );
+
+    expect(primarySizeInput.attributes("min")).toBe("3");
+    expect(primarySizeInput.attributes("max")).toBe("96");
+    expect(primarySizeInput.attributes("step")).toBe("1");
+    expect(primarySizeInput.element.value).toBe("14");
+    expect(secondarySizeInput.attributes("min")).toBe("3");
+    expect(secondarySizeInput.attributes("max")).toBe("96");
+    expect(secondarySizeInput.attributes("step")).toBe("1");
+    expect(secondarySizeInput.element.value).toBe("13");
+  });
+
+  it("updates independent typography settings from the profile editor", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings!)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, {
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    await wrapper
+      .get<HTMLInputElement>('input[aria-labelledby="primary-subtitle-font-size-label"]')
+      .setValue("22");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-labelledby="secondary-subtitle-font-size-label"]')
+      .setValue("18");
+
+    expect(store.editingProfileSettings.primarySubtitleFontSize).toBe(22);
+    expect(store.editingProfileSettings.secondarySubtitleFontSize).toBe(18);
   });
 
   it("does not render a separate subtitle line spacing control", () => {
@@ -270,13 +338,16 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const fontField = wrapper.get("#subtitle-font-label").element.closest(".ui-field") as HTMLElement;
-    const fontSizeField = wrapper.get("#subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
+    const primaryFontField = wrapper.get("#primary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
+    const primaryFontSizeField = wrapper.get("#primary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
+    const secondaryFontField = wrapper.get("#secondary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
+    const secondaryFontSizeField = wrapper.get("#secondary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
     const metaAutoHideField = wrapper.get("#subtitle-meta-auto-hide-label").element.closest(".ui-field") as HTMLElement;
     const autoScrollField = wrapper.get("#subtitle-autoscroll-label").element.closest(".ui-field") as HTMLElement;
     const ytDlpTextarea = wrapper.get<HTMLTextAreaElement>('textarea[aria-labelledby="yt-dlp-args-label"]');
 
-    expect(fontField.getBoundingClientRect().top).toBe(fontSizeField.getBoundingClientRect().top);
+    expect(primaryFontField.getBoundingClientRect().top).toBe(primaryFontSizeField.getBoundingClientRect().top);
+    expect(secondaryFontField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
     expect(metaAutoHideField.getBoundingClientRect().top).toBe(autoScrollField.getBoundingClientRect().top);
     expect(wrapper.text()).not.toContain("Leave blank to use default arguments.");
     expect(ytDlpTextarea.attributes("placeholder")).toBe(DEFAULT_YTDLP_ARGS);
@@ -303,7 +374,7 @@ describe("SettingsProfiles", () => {
     });
 
     expect(wrapper.findAll(".profile-list__item")).toHaveLength(2);
-    expect(wrapper.find('[data-testid="subtitle-font-select"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="primary-subtitle-font-select"]').exists()).toBe(true);
     expect(
       wrapper
         .findAll<HTMLButtonElement>('[data-testid="profile-list-name-action"]')

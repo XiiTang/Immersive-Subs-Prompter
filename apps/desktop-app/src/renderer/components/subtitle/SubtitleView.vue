@@ -40,8 +40,10 @@
       :playback-loop="playbackLoop"
       :ab-loop-selection-state="abLoopSelectionState"
       :subtitle-panel-style="subtitlePanelStyle"
-      :font-family="transcriptFontFamily"
-      :font-size="transcriptFontSize"
+      :primary-font-family="transcriptPrimaryFontFamily"
+      :primary-font-size="transcriptPrimaryFontSize"
+      :secondary-font-family="transcriptSecondaryFontFamily"
+      :secondary-font-size="transcriptSecondaryFontSize"
       :auto-hide-meta-row="subtitleAutoHideMetaRow"
       :line-height="transcriptLineHeight"
       :primary-secondary-gap="transcriptPrimarySecondaryGap"
@@ -113,8 +115,35 @@ const subtitlePanelStyle = computed(() => ({
 const playbackProfileSettings = computed(
   () => store.activeProfile?.settings ?? DEFAULT_PROFILE_TEMPLATE
 );
-const transcriptFontFamily = computed(() => normalizeSubtitleFontFamily(playbackProfileSettings.value.subtitleFontFamily));
-const transcriptFontSize = computed(() => Math.max(playbackProfileSettings.value.subtitleFontSize, 12));
+const MIN_SUBTITLE_FONT_SIZE = 3;
+const MAX_SUBTITLE_FONT_SIZE = 96;
+
+function normalizeSubtitleFontSize(value: number | null | undefined, fallback: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(numeric)));
+}
+
+const transcriptPrimaryFontFamily = computed(() =>
+  normalizeSubtitleFontFamily(playbackProfileSettings.value.primarySubtitleFontFamily)
+);
+const transcriptPrimaryFontSize = computed(() =>
+  normalizeSubtitleFontSize(
+    playbackProfileSettings.value.primarySubtitleFontSize,
+    DEFAULT_PROFILE_TEMPLATE.primarySubtitleFontSize
+  )
+);
+const transcriptSecondaryFontFamily = computed(() =>
+  normalizeSubtitleFontFamily(playbackProfileSettings.value.secondarySubtitleFontFamily)
+);
+const transcriptSecondaryFontSize = computed(() =>
+  normalizeSubtitleFontSize(
+    playbackProfileSettings.value.secondarySubtitleFontSize,
+    DEFAULT_PROFILE_TEMPLATE.secondarySubtitleFontSize
+  )
+);
 const subtitleAutoHideMetaRow = computed(() => playbackProfileSettings.value.subtitleAutoHideMetaRow);
 const transcriptLineHeight = computed(() => Math.max(playbackProfileSettings.value.subtitleLineHeight, 1));
 const transcriptPrimarySecondaryGap = computed(() =>

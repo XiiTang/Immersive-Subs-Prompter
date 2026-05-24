@@ -3,15 +3,29 @@ import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
 import { DEFAULT_PROFILE_ID, DEFAULT_PROFILE_NAME, DEFAULT_PROFILE_SETTINGS } from "../constants.js";
 import { ensureUniqueId, normalizeColor, sanitizePriorityList } from "../utils.js";
 
+const MIN_SUBTITLE_FONT_SIZE = 3;
+const MAX_SUBTITLE_FONT_SIZE = 96;
+
+function sanitizeSubtitleFontSize(value: unknown, fallback: number): number {
+  let fontSize = Number(value);
+  if (!Number.isFinite(fontSize)) {
+    fontSize = fallback;
+  }
+  return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(fontSize)));
+}
+
 export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefined): ProfileSettings {
   const source = input ?? {};
-  const subtitleFontFamily = normalizeSubtitleFontFamily(source.subtitleFontFamily);
-
-  let subtitleFontSize = Number(source.subtitleFontSize);
-  if (!Number.isFinite(subtitleFontSize)) {
-    subtitleFontSize = DEFAULT_PROFILE_SETTINGS.subtitleFontSize;
-  }
-  subtitleFontSize = Math.min(48, Math.max(10, Math.round(subtitleFontSize)));
+  const primarySubtitleFontFamily = normalizeSubtitleFontFamily(source.primarySubtitleFontFamily);
+  const secondarySubtitleFontFamily = normalizeSubtitleFontFamily(source.secondarySubtitleFontFamily);
+  const primarySubtitleFontSize = sanitizeSubtitleFontSize(
+    source.primarySubtitleFontSize,
+    DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize
+  );
+  const secondarySubtitleFontSize = sanitizeSubtitleFontSize(
+    source.secondarySubtitleFontSize,
+    DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize
+  );
 
   const subtitleAutoHideMetaRow =
     typeof source.subtitleAutoHideMetaRow === "boolean"
@@ -71,8 +85,10 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
   const secondarySubtitlePriority = sanitizePriorityList(source.secondarySubtitlePriority);
 
   return {
-    subtitleFontFamily,
-    subtitleFontSize,
+    primarySubtitleFontFamily,
+    primarySubtitleFontSize,
+    secondarySubtitleFontFamily,
+    secondarySubtitleFontSize,
     subtitleAutoHideMetaRow,
     subtitlePrimarySecondaryGap,
     subtitleLineHeight,

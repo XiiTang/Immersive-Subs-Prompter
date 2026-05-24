@@ -55,8 +55,10 @@ function createProfile(): ProfileDefinition {
     name: "Default",
     description: null,
     settings: {
-      subtitleFontFamily: 'Georgia, "Times New Roman", serif',
-      subtitleFontSize: 20,
+      primarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
+      primarySubtitleFontSize: 20,
+      secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      secondarySubtitleFontSize: 18,
       subtitleAutoHideMetaRow: true,
       subtitlePrimarySecondaryGap: 4,
       subtitleLineHeight: 1.6,
@@ -84,7 +86,10 @@ function createSettings(): AppSettings {
       autoHidePanels: false,
       alwaysOnTop: "off",
       panelOpacity: 100,
-      language: "en"
+      language: "en",
+      appearance: {
+        theme: "system"
+      }
     },
     network: {
       endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
@@ -304,8 +309,14 @@ describe("SubtitleView", () => {
     const initialSecondaryTop = Number.parseFloat(initialSecondaryLine.style.top);
     const initialPrimaryLineHeight = initialPrimaryLine.style.lineHeight;
 
+    expect(wrapper.getComponent(TranscriptSurface).props("primaryFontFamily")).toContain("Georgia");
+    expect(wrapper.getComponent(TranscriptSurface).props("primaryFontSize")).toBe(20);
+    expect(wrapper.getComponent(TranscriptSurface).props("secondaryFontFamily")).toContain("Helvetica Neue");
+    expect(wrapper.getComponent(TranscriptSurface).props("secondaryFontSize")).toBe(18);
     expect(initialPrimaryLine.style.fontFamily).toContain("Georgia");
     expect(initialPrimaryLine.style.fontSize).toBe("20px");
+    expect(initialSecondaryLine.style.fontFamily).toContain("Helvetica Neue");
+    expect(initialSecondaryLine.style.fontSize).toBe("18px");
     expect(initialPrimaryLine.style.color).toBe("rgb(119, 136, 153)");
     expect(initialSecondaryLine.style.color).toBe("rgb(170, 187, 204)");
 
@@ -313,8 +324,10 @@ describe("SubtitleView", () => {
       ...store.settings!.profiles[0]!,
       settings: {
         ...store.settings!.profiles[0]!.settings,
-        subtitleFontFamily: '"Times New Roman", Times, serif',
-        subtitleFontSize: 24,
+        primarySubtitleFontFamily: '"Times New Roman", Times, serif',
+        primarySubtitleFontSize: 24,
+        secondarySubtitleFontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+        secondarySubtitleFontSize: 17,
         subtitlePrimarySecondaryGap: 18,
         subtitleLineHeight: 2,
         subtitleActivePrimaryColor: "#ff0000",
@@ -332,10 +345,16 @@ describe("SubtitleView", () => {
       ".transcript-block--active .transcript-block__line--secondary"
     ).element as HTMLElement;
 
+    expect(wrapper.getComponent(TranscriptSurface).props("primaryFontFamily")).toContain("Times New Roman");
+    expect(wrapper.getComponent(TranscriptSurface).props("primaryFontSize")).toBe(24);
+    expect(wrapper.getComponent(TranscriptSurface).props("secondaryFontFamily")).toContain("Arial");
+    expect(wrapper.getComponent(TranscriptSurface).props("secondaryFontSize")).toBe(17);
     expect(updatedPrimaryLine.style.fontFamily).toContain("Times New Roman");
     expect(updatedPrimaryLine.style.fontSize).toBe("24px");
     expect(updatedPrimaryLine.style.lineHeight).not.toBe(initialPrimaryLineHeight);
     expect(updatedPrimaryLine.style.color).toBe("rgb(255, 0, 0)");
+    expect(updatedSecondaryLine.style.fontFamily).toContain("Arial");
+    expect(updatedSecondaryLine.style.fontSize).toBe("17px");
     expect(updatedSecondaryLine.style.color).toBe("rgb(0, 255, 0)");
     expect(Number.parseFloat(updatedSecondaryLine.style.top)).toBeGreaterThan(initialSecondaryTop);
 

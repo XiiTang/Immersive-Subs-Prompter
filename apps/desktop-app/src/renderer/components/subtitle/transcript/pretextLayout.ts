@@ -17,9 +17,11 @@ import type {
 type LayoutTranscriptBlocksInput = {
   blocks: TranscriptBlock[];
   width: number;
-  fontSize: number;
+  primaryFontSize: number;
+  secondaryFontSize: number;
   lineHeight: number;
-  fontFamily: string;
+  primaryFontFamily: string;
+  secondaryFontFamily: string;
   primarySecondaryGap: number;
   blockGap: number;
   metaRowHeight: number;
@@ -32,7 +34,6 @@ type MaterializeTranscriptBlockLinesInput = {
   preparedTextCache: TranscriptPreparedTextCache;
 };
 
-const SECONDARY_FONT_SIZE_OFFSET = 1;
 const SECONDARY_LINE_HEIGHT_RATIO = 0.98;
 const PRIMARY_FONT_WEIGHT = 560;
 const SECONDARY_FONT_WEIGHT = 400;
@@ -81,12 +82,23 @@ function getPreparedText(
   return { key, prepared };
 }
 
-function computeFontParams(fontSize: number, lineHeight: number, fontFamily: string) {
-  const primaryLinePixelHeight = fontSize * lineHeight;
-  const secondaryFontSize = Math.max(fontSize - SECONDARY_FONT_SIZE_OFFSET, 1);
+function computeFontParams({
+  primaryFontSize,
+  secondaryFontSize,
+  lineHeight,
+  primaryFontFamily,
+  secondaryFontFamily
+}: {
+  primaryFontSize: number;
+  secondaryFontSize: number;
+  lineHeight: number;
+  primaryFontFamily: string;
+  secondaryFontFamily: string;
+}) {
+  const primaryLinePixelHeight = primaryFontSize * lineHeight;
   const secondaryLinePixelHeight = secondaryFontSize * lineHeight * SECONDARY_LINE_HEIGHT_RATIO;
-  const primaryFont = createFont(fontSize, fontFamily, PRIMARY_FONT_WEIGHT);
-  const secondaryFont = createFont(secondaryFontSize, fontFamily, SECONDARY_FONT_WEIGHT);
+  const primaryFont = createFont(primaryFontSize, primaryFontFamily, PRIMARY_FONT_WEIGHT);
+  const secondaryFont = createFont(secondaryFontSize, secondaryFontFamily, SECONDARY_FONT_WEIGHT);
   return { primaryLinePixelHeight, secondaryLinePixelHeight, primaryFont, secondaryFont };
 }
 
@@ -136,9 +148,11 @@ function materializePreparedLines(
 export function measureTranscriptLayout({
   blocks,
   width,
-  fontSize,
+  primaryFontSize,
+  secondaryFontSize,
   lineHeight,
-  fontFamily,
+  primaryFontFamily,
+  secondaryFontFamily,
   primarySecondaryGap,
   blockGap,
   metaRowHeight,
@@ -147,7 +161,13 @@ export function measureTranscriptLayout({
   const scopedPreparedTextCache = preparedTextCache ?? createTranscriptPreparedTextCache();
   const safeWidth = Math.max(width, 1);
   const { primaryLinePixelHeight, secondaryLinePixelHeight, primaryFont, secondaryFont } =
-    computeFontParams(fontSize, lineHeight, fontFamily);
+    computeFontParams({
+      primaryFontSize,
+      secondaryFontSize,
+      lineHeight,
+      primaryFontFamily,
+      secondaryFontFamily
+    });
   const safeBlockGap = Math.max(blockGap, 0);
   const secondaryGap = Math.max(primarySecondaryGap, 0);
   const safeMetaRowHeight = Math.max(metaRowHeight, 0);

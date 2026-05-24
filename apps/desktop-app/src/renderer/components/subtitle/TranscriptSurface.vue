@@ -66,8 +66,10 @@ const {
   playbackLoop,
   abLoopSelectionState,
   subtitlePanelStyle,
-  fontFamily,
-  fontSize,
+  primaryFontFamily,
+  primaryFontSize,
+  secondaryFontFamily,
+  secondaryFontSize,
   autoHideMetaRow = false,
   lineHeight,
   primarySecondaryGap,
@@ -85,8 +87,10 @@ const {
   playbackLoop: LoopSnapshot | null;
   abLoopSelectionState: AbLoopSelectionState;
   subtitlePanelStyle: Record<string, string>;
-  fontFamily: string;
-  fontSize: number;
+  primaryFontFamily: string;
+  primaryFontSize: number;
+  secondaryFontFamily: string;
+  secondaryFontSize: number;
   autoHideMetaRow?: boolean;
   lineHeight: number;
   primarySecondaryGap: number;
@@ -128,9 +132,11 @@ const layout = computed(() =>
   measureTranscriptLayout({
     blocks,
     width: surfaceWidth.value,
-    fontSize,
+    primaryFontSize,
+    secondaryFontSize,
     lineHeight,
-    fontFamily,
+    primaryFontFamily,
+    secondaryFontFamily,
     primarySecondaryGap,
     blockGap,
     metaRowHeight: META_ROW_HEIGHT_PX,
@@ -177,7 +183,7 @@ const loopWrapFollowAnchor = computed<TranscriptViewportAnchor | null>(() => {
 const followAnchor = computed(() => loopWrapFollowAnchor.value ?? playbackFollowAnchor.value);
 
 watch(
-  () => [blocks, fontFamily, fontSize],
+  () => [blocks, primaryFontFamily, primaryFontSize, secondaryFontFamily, secondaryFontSize],
   () => {
     preparedTextCache.clear();
   }
@@ -210,8 +216,6 @@ const windowProjection = computed(() =>
   })
 );
 
-const secondaryFontSize = computed(() => Math.max(fontSize - 1, 1));
-
 const renderedBlocks = computed(() => {
   const activeBlockId = projection.value.activeBlockId;
   const layoutResult = layout.value;
@@ -233,8 +237,8 @@ const renderedBlocks = computed(() => {
             top: `${line.relativeTop}px`,
             height: `${line.height}px`,
             lineHeight: `${line.height}px`,
-            fontFamily,
-            fontSize: `${line.kind === "primary" ? fontSize : secondaryFontSize.value}px`,
+            fontFamily: line.kind === "primary" ? primaryFontFamily : secondaryFontFamily,
+            fontSize: `${line.kind === "primary" ? primaryFontSize : secondaryFontSize}px`,
             color: line.kind === "primary"
               ? (isActive ? activePrimaryColor : primaryColor)
               : (isActive ? activeSecondaryColor : secondaryColor)

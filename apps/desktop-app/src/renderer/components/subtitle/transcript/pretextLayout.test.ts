@@ -51,9 +51,11 @@ describe("transcript pretext layout", () => {
   const baseInput = {
     blocks,
     width: 180,
-    fontSize: 16,
+    primaryFontSize: 16,
+    secondaryFontSize: 12,
     lineHeight: 1.5,
-    fontFamily: "Arial",
+    primaryFontFamily: "Arial",
+    secondaryFontFamily: "Georgia",
     primarySecondaryGap: 6,
     blockGap: 12,
     metaRowHeight: 18
@@ -148,6 +150,49 @@ describe("transcript pretext layout", () => {
       expect.any(String),
       { whiteSpace: "pre-wrap", wordBreak: "keep-all" }
     );
+  });
+
+  it("prepares primary and secondary text with role-specific font strings", () => {
+    measureTranscriptLayout(baseInput);
+
+    expect(pretextMocks.prepareWithSegments).toHaveBeenCalledWith(
+      "hello world",
+      "560 16px Arial",
+      { whiteSpace: "pre-wrap", wordBreak: "keep-all" }
+    );
+    expect(pretextMocks.prepareWithSegments).toHaveBeenCalledWith(
+      "你好世界",
+      "400 12px Georgia",
+      { whiteSpace: "pre-wrap", wordBreak: "keep-all" }
+    );
+  });
+
+  it("measures primary and secondary line heights from role-specific sizes", () => {
+    const preparedTextCache = createTranscriptPreparedTextCache();
+    const layout = measureTranscriptLayout({
+      ...baseInput,
+      preparedTextCache
+    });
+
+    expect(layout.blocks[0]!.primaryLineHeight).toBe(24);
+    expect(layout.blocks[0]!.secondaryLineHeight).toBe(17.64);
+
+    const lines = materializeTranscriptBlockLines({
+      block: layout.blocks[0]!,
+      width: baseInput.width,
+      preparedTextCache
+    });
+
+    expect(lines[0]).toMatchObject({
+      kind: "primary",
+      height: 24,
+      relativeTop: 18
+    });
+    expect(lines[1]).toMatchObject({
+      kind: "secondary",
+      height: 17.64,
+      relativeTop: 48
+    });
   });
 
   it("reuses caller-scoped prepared text across width-only relayouts", () => {

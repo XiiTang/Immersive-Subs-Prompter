@@ -14,8 +14,10 @@ export function createTopPanelProfile(): ProfileDefinition {
     name: "Default",
     description: null,
     settings: {
-      subtitleFontFamily: 'Georgia, "Times New Roman", serif',
-      subtitleFontSize: 20,
+      primarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
+      primarySubtitleFontSize: 20,
+      secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      secondarySubtitleFontSize: 18,
       subtitleAutoHideMetaRow: true,
       subtitlePrimarySecondaryGap: 4,
       subtitleLineHeight: 1.6,

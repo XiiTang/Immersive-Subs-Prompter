@@ -1,11 +1,27 @@
 <template>
   <div class="subtitle-style-fields">
     <div class="subtitle-style-fields__row">
-      <UiField id="subtitle-font" :label="t('subtitle-font-label', 'Subtitle Font')">
-        <UiSelect v-model="subtitleFontFamily" data-testid="subtitle-font-select" :options="subtitleFontOptions" />
+      <UiField id="primary-subtitle-font" :label="t('primary-subtitle-font-label', 'Primary Subtitle Font')">
+        <UiSelect
+          v-model="primarySubtitleFontFamily"
+          data-testid="primary-subtitle-font-select"
+          :options="subtitleFontOptions"
+        />
       </UiField>
-      <UiField id="subtitle-font-size" :label="t('subtitle-font-size-label', 'Subtitle Font Size')">
-        <UiInput v-model="subtitleFontSize" type="number" min="10" max="48" step="1" />
+      <UiField id="primary-subtitle-font-size" :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')">
+        <UiInput v-model="primarySubtitleFontSize" type="number" min="3" max="96" step="1" />
+      </UiField>
+    </div>
+    <div class="subtitle-style-fields__row">
+      <UiField id="secondary-subtitle-font" :label="t('secondary-subtitle-font-label', 'Secondary Subtitle Font')">
+        <UiSelect
+          v-model="secondarySubtitleFontFamily"
+          data-testid="secondary-subtitle-font-select"
+          :options="subtitleFontOptions"
+        />
+      </UiField>
+      <UiField id="secondary-subtitle-font-size" :label="t('secondary-subtitle-font-size-label', 'Secondary Subtitle Font Size')">
+        <UiInput v-model="secondarySubtitleFontSize" type="number" min="3" max="96" step="1" />
       </UiField>
     </div>
     <div class="subtitle-style-fields__row">
@@ -94,14 +110,24 @@ const { t } = useI18n(language);
 
 const subtitleFontOptions = SUBTITLE_FONT_OPTIONS;
 
-const subtitleFontFamily = computed({
-  get: () => store.editingProfileSettings.subtitleFontFamily,
-  set: (value: string) => store.updateProfileSetting("subtitleFontFamily", value)
+const primarySubtitleFontFamily = computed({
+  get: () => store.editingProfileSettings.primarySubtitleFontFamily,
+  set: (value: string) => store.updateProfileSetting("primarySubtitleFontFamily", value)
 });
 
-const subtitleFontSize = computed({
-  get: () => store.editingProfileSettings.subtitleFontSize,
-  set: (value: number) => store.updateProfileSetting("subtitleFontSize", value)
+const primarySubtitleFontSize = computed({
+  get: () => store.editingProfileSettings.primarySubtitleFontSize,
+  set: (value: number) => store.updateProfileSetting("primarySubtitleFontSize", value)
+});
+
+const secondarySubtitleFontFamily = computed({
+  get: () => store.editingProfileSettings.secondarySubtitleFontFamily,
+  set: (value: string) => store.updateProfileSetting("secondarySubtitleFontFamily", value)
+});
+
+const secondarySubtitleFontSize = computed({
+  get: () => store.editingProfileSettings.secondarySubtitleFontSize,
+  set: (value: number) => store.updateProfileSetting("secondarySubtitleFontSize", value)
 });
 
 const subtitleAutoHideMetaRow = computed({

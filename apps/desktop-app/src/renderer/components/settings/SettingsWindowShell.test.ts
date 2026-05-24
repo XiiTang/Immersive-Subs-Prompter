@@ -45,8 +45,10 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
         name: "默认配置",
         description: null,
         settings: {
-          subtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-          subtitleFontSize: 14,
+          primarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+          primarySubtitleFontSize: 14,
+          secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+          secondarySubtitleFontSize: 13,
           subtitleAutoHideMetaRow: true,
           subtitlePrimarySecondaryGap: 3,
           subtitleLineHeight: 1.45,

@@ -5,7 +5,14 @@ import {
   mergeSettings,
   sanitizeSettings
 } from "./appSettingsSanitizer.js";
-import { DEFAULT_PROFILE_ID } from "./constants.js";
+import {
+  DEFAULT_SUBTITLE_FONT_FAMILY,
+  SUBTITLE_FONT_OPTIONS
+} from "../../common/subtitleFonts.js";
+import { DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
+
+const removedUnifiedFontFamilyKey = ["subtitle", "FontFamily"].join("");
+const removedUnifiedFontSizeKey = ["subtitle", "FontSize"].join("");
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
@@ -241,6 +248,52 @@ describe("appSettingsSanitizer", () => {
           }
         ]
       });
+    });
+
+    it("sanitizes independent primary and secondary subtitle typography", () => {
+      const georgiaFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Georgia")!.value;
+      const result = sanitizeSettings({
+        profiles: [
+          {
+            id: "profile-typography",
+            name: "Typography",
+            description: null,
+            settings: {
+              ...DEFAULT_SETTINGS.profiles[0]!.settings,
+              primarySubtitleFontFamily: "Papyrus",
+              primarySubtitleFontSize: 2.2,
+              secondarySubtitleFontFamily: georgiaFont,
+              secondarySubtitleFontSize: 111.7
+            }
+          }
+        ],
+        defaultProfileId: "profile-typography"
+      } as never);
+
+      const settings = result.profiles[0]!.settings;
+
+      expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(settings.primarySubtitleFontSize).toBe(3);
+      expect(settings.secondarySubtitleFontFamily).toBe(georgiaFont);
+      expect(settings.secondarySubtitleFontSize).toBe(96);
+      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontFamilyKey)).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontSizeKey)).toBe(false);
+    });
+
+    it("uses explicit default primary and secondary subtitle typography", () => {
+      const result = sanitizeSettings(null);
+      const settings = result.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!.settings;
+
+      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(14);
+      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(13);
+      expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(settings.primarySubtitleFontSize).toBe(26);
+      expect(settings.secondarySubtitleFontSize).toBe(25);
+      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontFamilyKey)).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontSizeKey)).toBe(false);
     });
 
     it("returns a fresh object on each factory invocation", () => {
