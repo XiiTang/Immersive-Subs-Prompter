@@ -15,10 +15,12 @@ The Profiles page keeps the existing split layout:
 
 Inside the right editor column, subtitle appearance controls are ordered as:
 
-1. Typography, spacing, scrolling, and metadata controls.
+1. Subtitle style controls grouped as Typography, Layout, and Behavior.
 2. Color scheme controls.
 3. Subtitle preview panel.
 4. URL rules, subtitle priority editors, and yt-dlp arguments.
+
+The subtitle style controls are compact because the preview panel shows the effect directly. The profile editor does not show explanatory helper text such as active-position percentages or block-gap descriptions for controls whose effect is visible in the preview.
 
 The preview panel is a fixed `390px x 630px` canvas. This matches the main subtitle window's default opening size. The settings editor already scrolls vertically, so the preview panel can keep the exact canvas size without changing the settings window dimensions.
 
@@ -90,9 +92,13 @@ It does not depend on `TranscriptSurface`, playback state, cue projection, virtu
 
 Styling lives in the existing renderer stylesheet and uses the current settings UI tokens. The preview canvas itself should read visually like the real dark subtitle panel, not like a form card.
 
-To keep slider and numeric-input interaction responsive, typography, color, spacing, and active-position changes are applied through CSS variables on the preview container. Repeated subtitle block DOM does not receive per-line dynamic inline style updates. Static preview text and action-row subtrees are memoized so high-frequency style changes update the preview surface without diffing every sample subtitle block.
+To keep slider interaction responsive, typography, color, spacing, and active-position changes are applied through CSS variables on the preview container. Repeated subtitle block DOM does not receive per-line dynamic inline style updates. Static preview text and action-row subtrees are memoized so high-frequency style changes update the preview surface without diffing every sample subtitle block.
+
+Font-size controls are sliders with the same `3-96px` bounds as the original numeric controls. They update the local profile state immediately so the preview changes while the user drags. Their settings persistence is debounced and coalesced, then flushed on slider commit.
 
 Subtitle style sliders update the local profile state immediately so the preview changes in real time. Their settings persistence is debounced and coalesced instead of sending an IPC settings write for every `input` event. When the slider commits through `change`, the pending settings payload is flushed immediately so the final value is saved without waiting for the debounce timer.
+
+The color palette follows the same interaction contract. Dragging the color area or hue slider emits live color updates to the profile editor, so the preview text color changes while the user is still dragging. Color persistence is debounced and coalesced during the drag, then flushed immediately on palette commit.
 
 ## Validation And Error Handling
 
@@ -119,6 +125,8 @@ Renderer tests cover:
 - The preview canvas has fixed `390px x 630px` dimensions.
 - The preview contains normal and highlighted subtitle blocks.
 - The preview contains enough sample subtitle text to fill the fixed canvas at small font sizes.
+- Subtitle style controls are grouped into Typography, Layout, and Behavior sections.
+- Preview-replaced subtitle helper text is not rendered under subtitle style controls.
 - Primary typography changes update primary preview line styles.
 - Secondary typography changes update secondary preview line styles.
 - Default and active color changes update the matching normal or highlighted preview lines.
@@ -126,8 +134,11 @@ Renderer tests cover:
 - Subtitle scroll position changes move the highlighted preview block within the canvas.
 - Metadata/action rows use the real transcript block action-row classes and positioning.
 - The auto-hide metadata toggle changes metadata visibility state in the preview.
+- Subtitle font-size sliders update local profile settings without immediately calling the main-process settings writer.
 - Subtitle style slider `input` updates local profile settings without immediately calling the main-process settings writer.
 - The pending slider settings payload is saved once after the debounce or immediately when the slider commits.
+- Color palette drag updates local profile color settings immediately without immediately calling the main-process settings writer.
+- The pending color settings payload is saved once after the debounce or immediately when the palette commits.
 
 Verification commands:
 

@@ -135,6 +135,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
+  change: [value: string];
 }>();
 
 const colorChannels: Array<{ channel: RgbChannel; label: string; testId: string }> = [
@@ -145,11 +146,15 @@ const colorChannels: Array<{ channel: RgbChannel; label: string; testId: string 
 
 const paletteOpen = ref(false);
 const draftValue = ref(normalizeHexColor(props.modelValue));
+const lastEmittedValue = ref<string | null>(null);
 const propValue = computed(() => normalizeHexColor(props.modelValue));
 const displayValue = computed(() => (paletteOpen.value ? draftValue.value : propValue.value));
 
 watch(propValue, (value) => {
   draftValue.value = value;
+  if (lastEmittedValue.value === value) {
+    lastEmittedValue.value = null;
+  }
 });
 
 function handlePaletteOpen(open: boolean) {
@@ -160,13 +165,21 @@ function handlePaletteOpen(open: boolean) {
 }
 
 function setDraftColor(value: string | Color) {
-  draftValue.value = normalizeHexColor(value);
+  const normalized = normalizeHexColor(value);
+  draftValue.value = normalized;
+  emitColorUpdate(normalized);
 }
 
 function commitColor(value: string | Color = draftValue.value) {
   const normalized = normalizeHexColor(value);
   draftValue.value = normalized;
-  if (normalized !== propValue.value) {
+  emitColorUpdate(normalized);
+  emit("change", normalized);
+}
+
+function emitColorUpdate(normalized: string) {
+  if (normalized !== propValue.value && normalized !== lastEmittedValue.value) {
+    lastEmittedValue.value = normalized;
     emit("update:modelValue", normalized);
   }
 }

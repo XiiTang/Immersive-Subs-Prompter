@@ -1,103 +1,136 @@
 <template>
   <div class="subtitle-style-fields">
-    <div class="subtitle-style-fields__row">
-      <UiField id="primary-subtitle-font" :label="t('primary-subtitle-font-label', 'Primary Subtitle Font')">
-        <UiSelect
-          v-model="primarySubtitleFontFamily"
-          data-testid="primary-subtitle-font-select"
-          :options="subtitleFontOptions"
-        />
-      </UiField>
-      <UiField id="primary-subtitle-font-size" :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')">
-        <UiInput v-model="primarySubtitleFontSize" type="number" min="3" max="96" step="1" />
-      </UiField>
-    </div>
-    <div class="subtitle-style-fields__row">
-      <UiField id="secondary-subtitle-font" :label="t('secondary-subtitle-font-label', 'Secondary Subtitle Font')">
-        <UiSelect
-          v-model="secondarySubtitleFontFamily"
-          data-testid="secondary-subtitle-font-select"
-          :options="subtitleFontOptions"
-        />
-      </UiField>
-      <UiField id="secondary-subtitle-font-size" :label="t('secondary-subtitle-font-size-label', 'Secondary Subtitle Font Size')">
-        <UiInput v-model="secondarySubtitleFontSize" type="number" min="3" max="96" step="1" />
-      </UiField>
-    </div>
-    <div class="subtitle-style-fields__row">
-      <UiField
-        id="subtitle-meta-auto-hide"
-        :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Action Bar')"
-        inline
-      >
-        <UiSwitch
-          v-model="subtitleAutoHideMetaRow"
-          input-test-id="subtitle-meta-auto-hide-toggle"
-          :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
-        />
-      </UiField>
-      <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
-        <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
-      </UiField>
-    </div>
-    <UiField
-      id="subtitle-scroll-position"
-      :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
-      :value="`${subtitleScrollPosition}%`"
-      :hint="t('subtitle-scroll-position-hint', 'Where active subtitles sit in the panel (0% top, 50% middle, 100% bottom)')"
-    >
-      <UiSlider
-        v-model="subtitleScrollPosition"
-        :min="0"
-        :max="100"
-        :step="1"
-        :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
-        @change="flushDeferredProfileSettings"
-      />
-    </UiField>
-    <UiField
-      id="subtitle-primary-secondary-gap"
-      :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
-      :value="`${subtitlePrimarySecondaryGap}px`"
-    >
-      <UiSlider
-        v-model="subtitlePrimarySecondaryGap"
-        :min="0"
-        :max="60"
-        :step="1"
-        :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
-        @change="flushDeferredProfileSettings"
-      />
-    </UiField>
-    <UiField
-      id="subtitle-line-height"
-      :label="t('subtitle-line-height-label', 'Line Height')"
-      :value="String(subtitleLineHeight)"
-    >
-      <UiSlider
-        v-model="subtitleLineHeight"
-        :min="1"
-        :max="3"
-        :step="0.05"
-        :label="t('subtitle-line-height-label', 'Line Height')"
-        @change="flushDeferredProfileSettings"
-      />
-    </UiField>
-    <UiField
-      id="subtitle-block-gap"
-      :label="t('subtitle-block-gap-label', 'Block Gap')"
-      :value="`${subtitleBlockGap}px`"
-      :hint="t('subtitle-block-gap-hint', 'Gap between subtitle text blocks')"
-    >
-      <UiSlider
-        v-model="subtitleBlockGap"
-        :min="0"
-        :max="60"
-        :step="1"
-        :label="t('subtitle-block-gap-label', 'Block Gap')"
-        @change="flushDeferredProfileSettings"
-      />
-    </UiField>
+    <section class="subtitle-style-fields__group" data-testid="subtitle-typography-controls">
+      <h4 class="subtitle-style-fields__group-title">{{ t("subtitle-typography-group", "Typography") }}</h4>
+      <div class="subtitle-style-fields__row">
+        <UiField id="primary-subtitle-font" :label="t('primary-subtitle-font-label', 'Primary Subtitle Font')">
+          <UiSelect
+            v-model="primarySubtitleFontFamily"
+            data-testid="primary-subtitle-font-select"
+            :options="subtitleFontOptions"
+          />
+        </UiField>
+        <UiField
+          id="primary-subtitle-font-size"
+          :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')"
+          :value="`${primarySubtitleFontSize}px`"
+        >
+          <UiSlider
+            v-model="primarySubtitleFontSize"
+            :min="3"
+            :max="96"
+            :step="1"
+            :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+      </div>
+      <div class="subtitle-style-fields__row">
+        <UiField id="secondary-subtitle-font" :label="t('secondary-subtitle-font-label', 'Secondary Subtitle Font')">
+          <UiSelect
+            v-model="secondarySubtitleFontFamily"
+            data-testid="secondary-subtitle-font-select"
+            :options="subtitleFontOptions"
+          />
+        </UiField>
+        <UiField
+          id="secondary-subtitle-font-size"
+          :label="t('secondary-subtitle-font-size-label', 'Secondary Subtitle Font Size')"
+          :value="`${secondarySubtitleFontSize}px`"
+        >
+          <UiSlider
+            v-model="secondarySubtitleFontSize"
+            :min="3"
+            :max="96"
+            :step="1"
+            :label="t('secondary-subtitle-font-size-label', 'Secondary Subtitle Font Size')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+      </div>
+    </section>
+
+    <section class="subtitle-style-fields__group" data-testid="subtitle-layout-controls">
+      <h4 class="subtitle-style-fields__group-title">{{ t("subtitle-layout-group", "Layout") }}</h4>
+      <div class="subtitle-style-fields__slider-grid">
+        <UiField
+          id="subtitle-scroll-position"
+          :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
+          :value="`${subtitleScrollPosition}%`"
+        >
+          <UiSlider
+            v-model="subtitleScrollPosition"
+            :min="0"
+            :max="100"
+            :step="1"
+            :label="t('subtitle-scroll-position-label', 'Subtitle Scroll Position')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+        <UiField
+          id="subtitle-primary-secondary-gap"
+          :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
+          :value="`${subtitlePrimarySecondaryGap}px`"
+        >
+          <UiSlider
+            v-model="subtitlePrimarySecondaryGap"
+            :min="0"
+            :max="60"
+            :step="1"
+            :label="t('subtitle-primary-secondary-gap-label', 'Primary to Secondary Subtitle Gap')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+        <UiField
+          id="subtitle-line-height"
+          :label="t('subtitle-line-height-label', 'Line Height')"
+          :value="String(subtitleLineHeight)"
+        >
+          <UiSlider
+            v-model="subtitleLineHeight"
+            :min="1"
+            :max="3"
+            :step="0.05"
+            :label="t('subtitle-line-height-label', 'Line Height')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+        <UiField
+          id="subtitle-block-gap"
+          :label="t('subtitle-block-gap-label', 'Block Gap')"
+          :value="`${subtitleBlockGap}px`"
+        >
+          <UiSlider
+            v-model="subtitleBlockGap"
+            :min="0"
+            :max="60"
+            :step="1"
+            :label="t('subtitle-block-gap-label', 'Block Gap')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+      </div>
+    </section>
+
+    <section class="subtitle-style-fields__group" data-testid="subtitle-behavior-controls">
+      <h4 class="subtitle-style-fields__group-title">{{ t("subtitle-behavior-group", "Behavior") }}</h4>
+      <div class="subtitle-style-fields__row">
+        <UiField
+          id="subtitle-meta-auto-hide"
+          :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Action Bar')"
+          inline
+        >
+          <UiSwitch
+            v-model="subtitleAutoHideMetaRow"
+            input-test-id="subtitle-meta-auto-hide-toggle"
+            :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+          />
+        </UiField>
+        <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
+          <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
+        </UiField>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -133,7 +166,7 @@ const primarySubtitleFontFamily = computed({
 
 const primarySubtitleFontSize = computed({
   get: () => store.editingProfileSettings.primarySubtitleFontSize,
-  set: (value: number) => store.updateProfileSetting("primarySubtitleFontSize", value)
+  set: (value: number) => updateDeferredProfileSetting("primarySubtitleFontSize", value)
 });
 
 const secondarySubtitleFontFamily = computed({
@@ -143,7 +176,7 @@ const secondarySubtitleFontFamily = computed({
 
 const secondarySubtitleFontSize = computed({
   get: () => store.editingProfileSettings.secondarySubtitleFontSize,
-  set: (value: number) => store.updateProfileSetting("secondarySubtitleFontSize", value)
+  set: (value: number) => updateDeferredProfileSetting("secondarySubtitleFontSize", value)
 });
 
 const subtitleAutoHideMetaRow = computed({

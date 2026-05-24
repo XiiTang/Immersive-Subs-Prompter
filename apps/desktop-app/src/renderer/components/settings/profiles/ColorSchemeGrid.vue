@@ -11,6 +11,7 @@
             class="color-swatch-input"
             :label="swatch.label"
             @update:model-value="onColorInput(swatch.settingKey, $event)"
+            @change="flushColorInput"
           />
         </div>
       </div>
@@ -58,6 +59,10 @@ const swatches = computed(() => [
 ]);
 
 function onColorInput(key: ColorSettingKey, value: string) {
-  store.updateProfileSetting(key, value);
+  store.updateProfileSetting(key, value, { persist: "deferred" });
+}
+
+function flushColorInput() {
+  void store.flushDeferredSettingsPersistence();
 }
 </script>

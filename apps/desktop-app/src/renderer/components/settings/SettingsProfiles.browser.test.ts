@@ -185,7 +185,7 @@ describe("SettingsProfiles", () => {
     expect(wrapper.find('[data-testid="subtitle-font-select"]').exists()).toBe(false);
   });
 
-  it("renders primary and secondary subtitle size inputs with 3 to 96 bounds", () => {
+  it("renders primary and secondary subtitle size sliders with 3 to 96 bounds", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -199,21 +199,21 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const primarySizeInput = wrapper.get<HTMLInputElement>(
-      'input[aria-labelledby="primary-subtitle-font-size-label"]'
+    const primarySizeSlider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]'
     );
-    const secondarySizeInput = wrapper.get<HTMLInputElement>(
-      'input[aria-labelledby="secondary-subtitle-font-size-label"]'
+    const secondarySizeSlider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]'
     );
 
-    expect(primarySizeInput.attributes("min")).toBe("3");
-    expect(primarySizeInput.attributes("max")).toBe("96");
-    expect(primarySizeInput.attributes("step")).toBe("1");
-    expect(primarySizeInput.element.value).toBe("14");
-    expect(secondarySizeInput.attributes("min")).toBe("3");
-    expect(secondarySizeInput.attributes("max")).toBe("96");
-    expect(secondarySizeInput.attributes("step")).toBe("1");
-    expect(secondarySizeInput.element.value).toBe("13");
+    expect(primarySizeSlider.attributes("min")).toBe("3");
+    expect(primarySizeSlider.attributes("max")).toBe("96");
+    expect(primarySizeSlider.attributes("step")).toBe("1");
+    expect(primarySizeSlider.element.value).toBe("14");
+    expect(secondarySizeSlider.attributes("min")).toBe("3");
+    expect(secondarySizeSlider.attributes("max")).toBe("96");
+    expect(secondarySizeSlider.attributes("step")).toBe("1");
+    expect(secondarySizeSlider.element.value).toBe("13");
   });
 
   it("updates independent typography settings from the profile editor", async () => {
@@ -241,10 +241,10 @@ describe("SettingsProfiles", () => {
     await selectOption(wrapper.get<HTMLElement>('[data-testid="primary-subtitle-font-select"]').element, timesFont);
     await selectOption(wrapper.get<HTMLElement>('[data-testid="secondary-subtitle-font-select"]').element, arialFont);
     await wrapper
-      .get<HTMLInputElement>('input[aria-labelledby="primary-subtitle-font-size-label"]')
+      .get<HTMLInputElement>('input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]')
       .setValue("22");
     await wrapper
-      .get<HTMLInputElement>('input[aria-labelledby="secondary-subtitle-font-size-label"]')
+      .get<HTMLInputElement>('input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]')
       .setValue("18");
 
     expect(store.editingProfileSettings.primarySubtitleFontFamily).toBe(timesFont);
@@ -364,6 +364,31 @@ describe("SettingsProfiles", () => {
     expect(toggle.attributes("aria-checked")).toBe("true");
   });
 
+  it("groups subtitle appearance controls compactly without preview-replaced helper text", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const fields = wrapper.get(".subtitle-style-fields");
+
+    expect(fields.find('[data-testid="subtitle-typography-controls"]').exists()).toBe(true);
+    expect(fields.find('[data-testid="subtitle-layout-controls"]').exists()).toBe(true);
+    expect(fields.find('[data-testid="subtitle-behavior-controls"]').exists()).toBe(true);
+    expect(fields.findAll(".ui-field__hint")).toHaveLength(0);
+    expect(fields.text()).not.toContain("0%=");
+    expect(fields.text()).not.toContain("Gap between subtitle text blocks");
+  });
+
   it("renders a fixed subtitle preview after subtitle style and color controls", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
@@ -434,6 +459,75 @@ describe("SettingsProfiles", () => {
 
     expect(updateSettings).toHaveBeenCalledTimes(1);
     expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleScrollPosition).toBe(76);
+  });
+
+  it("keeps subtitle font size slider local until the slider commits", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const slider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]'
+    );
+
+    slider.element.value = "28";
+    await slider.trigger("input");
+
+    expect(store.editingProfileSettings.primarySubtitleFontSize).toBe(28);
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await slider.trigger("change");
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.primarySubtitleFontSize).toBe(28);
+  });
+
+  it("keeps subtitle color palette drag live locally until the palette commits", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const primaryColorTrigger = wrapper.findAll('[data-testid="color-label-trigger"]')[0]!;
+
+    await primaryColorTrigger.trigger("click");
+    await nextTick();
+
+    const colorAreaRoot = wrapper.findComponent({ name: "ColorAreaRoot" });
+    expect(colorAreaRoot.exists()).toBe(true);
+
+    colorAreaRoot.vm.$emit("update:modelValue", "#112233");
+    await nextTick();
+
+    expect(store.editingProfileSettings.subtitlePrimaryColor).toBe("#112233");
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    colorAreaRoot.vm.$emit("changeEnd", "#112233");
+    await nextTick();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitlePrimaryColor).toBe("#112233");
   });
 
   it("updates subtitle preview styles from the edited profile settings", async () => {

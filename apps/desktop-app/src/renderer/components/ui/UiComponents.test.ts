@@ -184,10 +184,11 @@ describe("UI primitives", () => {
     expect(colorAreaRoot.exists()).toBe(true);
     colorAreaRoot.vm.$emit("update:modelValue", "#ffffff");
     await nextTick();
-    expect(colorInput.emitted("update:modelValue")).toBeUndefined();
+    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#ffffff"]);
     colorAreaRoot.vm.$emit("changeEnd", "#ffffff");
     await nextTick();
-    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#ffffff"]);
+    expect(colorInput.emitted("update:modelValue")).toHaveLength(1);
+    expect(colorInput.emitted("change")?.[0]).toEqual(["#ffffff"]);
 
     const redField = palette?.querySelector('[data-testid="color-channel-red"]');
     (redField as HTMLInputElement).value = "68";
@@ -196,6 +197,7 @@ describe("UI primitives", () => {
     await nextTick();
 
     expect(colorInput.emitted("update:modelValue")?.[1]).toEqual(["#44ffff"]);
+    expect(colorInput.emitted("change")?.[1]).toEqual(["#44ffff"]);
 
     (paletteField as HTMLInputElement).value = "#445566";
     paletteField?.dispatchEvent(new Event("input", { bubbles: true }));
@@ -203,6 +205,7 @@ describe("UI primitives", () => {
     await nextTick();
 
     expect(colorInput.emitted("update:modelValue")?.[2]).toEqual(["#445566"]);
+    expect(colorInput.emitted("change")?.[2]).toEqual(["#445566"]);
 
     colorInput.unmount();
   });
