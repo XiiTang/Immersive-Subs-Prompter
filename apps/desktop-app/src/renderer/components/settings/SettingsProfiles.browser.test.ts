@@ -1,11 +1,46 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
+import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
 import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import "../../style.css";
+
+function createPointerEvent(type: string, init: Partial<PointerEvent>) {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
+  for (const [key, value] of Object.entries(init)) {
+    Object.defineProperty(event, key, {
+      configurable: true,
+      value
+    });
+  }
+  return event;
+}
+
+async function selectOption(trigger: HTMLElement, value: string) {
+  trigger.dispatchEvent(
+    createPointerEvent("pointerdown", {
+      button: 0,
+      ctrlKey: false,
+      pageX: 0,
+      pageY: 0,
+      pointerId: 1,
+      pointerType: "mouse"
+    })
+  );
+  await nextTick();
+
+  const option = Array.from(document.body.querySelectorAll<HTMLElement>("[data-value]"))
+    .find((element) => element.dataset.value === value);
+  expect(option).toBeInstanceOf(HTMLElement);
+  option!.focus();
+  option!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  await nextTick();
+  await nextTick();
+}
 
 function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
   return {
@@ -183,6 +218,8 @@ describe("SettingsProfiles", () => {
 
   it("updates independent typography settings from the profile editor", async () => {
     const store = useDesktopStore();
+    const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;
+    const timesFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Times New Roman")!.value;
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
     Object.defineProperty(window, "usp", {
@@ -201,6 +238,8 @@ describe("SettingsProfiles", () => {
       }
     });
 
+    await selectOption(wrapper.get<HTMLElement>('[data-testid="primary-subtitle-font-select"]').element, timesFont);
+    await selectOption(wrapper.get<HTMLElement>('[data-testid="secondary-subtitle-font-select"]').element, arialFont);
     await wrapper
       .get<HTMLInputElement>('input[aria-labelledby="primary-subtitle-font-size-label"]')
       .setValue("22");
@@ -208,6 +247,8 @@ describe("SettingsProfiles", () => {
       .get<HTMLInputElement>('input[aria-labelledby="secondary-subtitle-font-size-label"]')
       .setValue("18");
 
+    expect(store.editingProfileSettings.primarySubtitleFontFamily).toBe(timesFont);
+    expect(store.editingProfileSettings.secondarySubtitleFontFamily).toBe(arialFont);
     expect(store.editingProfileSettings.primarySubtitleFontSize).toBe(22);
     expect(store.editingProfileSettings.secondarySubtitleFontSize).toBe(18);
   });

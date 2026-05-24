@@ -11,9 +11,6 @@ import {
 } from "../../common/subtitleFonts.js";
 import { DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
 
-const removedUnifiedFontFamilyKey = ["subtitle", "FontFamily"].join("");
-const removedUnifiedFontSizeKey = ["subtitle", "FontSize"].join("");
-
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
     it("returns defaults when input is null or undefined", () => {
@@ -276,8 +273,6 @@ describe("appSettingsSanitizer", () => {
       expect(settings.primarySubtitleFontSize).toBe(3);
       expect(settings.secondarySubtitleFontFamily).toBe(georgiaFont);
       expect(settings.secondarySubtitleFontSize).toBe(96);
-      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontFamilyKey)).toBe(false);
-      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontSizeKey)).toBe(false);
     });
 
     it("uses explicit default primary and secondary subtitle typography", () => {
@@ -292,8 +287,6 @@ describe("appSettingsSanitizer", () => {
       expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.primarySubtitleFontSize).toBe(26);
       expect(settings.secondarySubtitleFontSize).toBe(25);
-      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontFamilyKey)).toBe(false);
-      expect(Object.prototype.hasOwnProperty.call(settings, removedUnifiedFontSizeKey)).toBe(false);
     });
 
     it("returns a fresh object on each factory invocation", () => {

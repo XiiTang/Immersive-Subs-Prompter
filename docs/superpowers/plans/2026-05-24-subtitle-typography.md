@@ -1212,6 +1212,8 @@ If Step 2 found no remaining source changes, do not create an empty commit.
 - Implemented inline in the current branch per request, without subagents or a worktree.
 - Per-task commits from the original plan were not created.
 - Removed unified `subtitleFontFamily` and `subtitleFontSize` references from `apps/desktop-app/src`.
+- Post-review cleanup added browser coverage that changing both primary and secondary font selects writes the matching final profile fields.
+- Post-review cleanup removed redundant legacy-field assertion helpers from sanitizer tests.
 - Verified with:
   - `pnpm --filter @immersive-subs/desktop-app test:renderer -- TranscriptSurface SubtitleView SettingsProfiles pretextLayout appSettingsSanitizer`
   - `pnpm --filter @immersive-subs/desktop-app test:renderer`
