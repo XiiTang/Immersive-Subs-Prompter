@@ -1,22 +1,17 @@
 <template>
-  <section class="ui-group">
-    <header class="ui-group__header">
-      <h3 class="ui-group__title">{{ t("subtitle-colors-group", "Color Scheme") }}</h3>
-    </header>
-    <div class="settings-color-grid">
-      <div v-for="swatch in swatches" :key="swatch.settingKey" class="color-swatch-item">
-        <div class="color-swatch-info">
-          <UiColorInput
-            :model-value="swatch.value"
-            class="color-swatch-input"
-            :label="swatch.label"
-            @update:model-value="onColorInput(swatch.settingKey, $event)"
-            @change="flushColorInput"
-          />
-        </div>
+  <div class="settings-color-grid" data-testid="subtitle-color-grid">
+    <div v-for="swatch in swatches" :key="swatch.settingKey" class="color-swatch-item">
+      <div class="color-swatch-info">
+        <UiColorInput
+          :model-value="swatch.value"
+          class="color-swatch-input"
+          :label="swatch.label"
+          @update:model-value="onColorInput(swatch.settingKey, $event)"
+          @change="flushColorInput"
+        />
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup lang="ts">

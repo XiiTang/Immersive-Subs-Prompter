@@ -162,7 +162,7 @@ describe("SettingsProfiles", () => {
     document.body.style.margin = "0";
     document.body.style.padding = "24px";
     document.body.style.background = "#101418";
-    document.body.style.width = "1000px";
+    document.body.style.width = "880px";
   });
 
   it("renders independent curated font selects for primary and secondary subtitles", () => {
@@ -414,24 +414,37 @@ describe("SettingsProfiles", () => {
 
     const editorChildren = Array.from(wrapper.get(".settings-split__editor").element.children);
     const styleFields = wrapper.get(".subtitle-style-fields").element;
-    const colorScheme = wrapper.get(".settings-color-grid").element.closest(".ui-group")!;
+    const colorGrid = wrapper.get<HTMLElement>(".settings-color-grid").element;
     const preview = wrapper.get('[data-testid="subtitle-style-preview"]').element;
     const urlRules = wrapper.get('[data-testid="profile-url-rules"]').element;
+    const editor = wrapper.get<HTMLElement>(".settings-split__editor").element;
     const previewCanvas = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-canvas"]');
     const previewStyle = getComputedStyle(previewCanvas.element);
     await flushPreviewSurface();
     const previewSurface = wrapper.get('[data-testid="subtitle-preview-canvas"] [data-testid="transcript-surface"]');
+    const previewViewport = wrapper.get<HTMLElement>(
+      '[data-testid="subtitle-preview-canvas"] .transcript-surface__viewport'
+    );
+    const previewViewportStyle = getComputedStyle(previewViewport.element);
     const previewBlocks = previewSurface.findAll(".transcript-block");
     const activeBlock = previewSurface.get(".transcript-block--active");
     const activeMeta = activeBlock.get<HTMLElement>('[data-testid="transcript-meta-row"]');
     const activeActions = activeMeta.get<HTMLElement>('[data-testid="transcript-cue-actions"]');
     const content = previewSurface.get<HTMLElement>(".transcript-surface__content").element;
 
-    expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(colorScheme));
-    expect(editorChildren.indexOf(colorScheme)).toBeLessThan(editorChildren.indexOf(preview));
+    expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(preview));
     expect(editorChildren.indexOf(preview)).toBeLessThan(editorChildren.indexOf(urlRules));
+    expect(styleFields.contains(colorGrid)).toBe(true);
+    expect(editorChildren.includes(colorGrid)).toBe(false);
+    const editorRect = editor.getBoundingClientRect();
+    const previewCanvasRect = previewCanvas.element.getBoundingClientRect();
+    const previewLeftGap = previewCanvasRect.left - editorRect.left;
+    const previewRightGap = editorRect.right - previewCanvasRect.right;
+    expect(previewLeftGap).toBeCloseTo(previewRightGap, 0);
+    expect(wrapper.text()).not.toContain("390 x 630");
     expect(previewStyle.width).toBe("390px");
     expect(previewStyle.height).toBe("630px");
+    expect(previewViewportStyle.overflowY).toBe("hidden");
     expect(previewBlocks.length).toBeGreaterThanOrEqual(4);
     expect(Number.parseFloat(content.style.height)).toBeGreaterThan(630);
     expect(activeBlock.get(".transcript-block__line--primary").text()).toContain(
@@ -709,13 +722,62 @@ describe("SettingsProfiles", () => {
     const primaryFontSizeField = wrapper.get("#primary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
     const secondaryFontField = wrapper.get("#secondary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
     const secondaryFontSizeField = wrapper.get("#secondary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
+    const subtitleScrollPositionField = wrapper.get("#subtitle-scroll-position-label").element.closest(".ui-field") as HTMLElement;
     const metaAutoHideField = wrapper.get("#subtitle-meta-auto-hide-label").element.closest(".ui-field") as HTMLElement;
     const autoScrollField = wrapper.get("#subtitle-autoscroll-label").element.closest(".ui-field") as HTMLElement;
+    const metaAutoHideLabel = wrapper.get("#subtitle-meta-auto-hide-label").element as HTMLElement;
+    const autoScrollLabel = wrapper.get("#subtitle-autoscroll-label").element as HTMLElement;
+    const metaAutoHideControl = metaAutoHideField.querySelector(".ui-field__control") as HTMLElement;
+    const autoScrollInput = autoScrollField.querySelector<HTMLInputElement>(".ui-input")!;
+    const primaryFontSelect = wrapper.get<HTMLElement>('[data-testid="primary-subtitle-font-select"]').element;
+    const primaryFontSizeSlider = primaryFontSizeField.querySelector<HTMLInputElement>('input[type="range"]')!;
+    const subtitleScrollPositionSlider = subtitleScrollPositionField.querySelector<HTMLInputElement>('input[type="range"]')!;
+    const typographyControls = wrapper.get<HTMLElement>('[data-testid="subtitle-typography-controls"]').element;
+    const colorGrid = wrapper.get<HTMLElement>(".settings-color-grid").element;
+    const colorSwatches = wrapper.findAll(".color-swatch-item").map((item) => item.element as HTMLElement);
     const ytDlpTextarea = wrapper.get<HTMLTextAreaElement>('textarea[aria-labelledby="yt-dlp-args-label"]');
 
-    expect(primaryFontField.getBoundingClientRect().top).toBe(primaryFontSizeField.getBoundingClientRect().top);
-    expect(secondaryFontField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
+    expect(primaryFontField.getBoundingClientRect().top).toBe(secondaryFontField.getBoundingClientRect().top);
+    expect(primaryFontSizeField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
+    expect(primaryFontField.getBoundingClientRect().left).toBeLessThan(secondaryFontField.getBoundingClientRect().left);
+    expect(primaryFontSizeField.getBoundingClientRect().left).toBeLessThan(secondaryFontSizeField.getBoundingClientRect().left);
+    expect(secondaryFontField.getBoundingClientRect().top).toBeLessThan(primaryFontSizeField.getBoundingClientRect().top);
+    expect(primaryFontSelect.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeField.getBoundingClientRect().width, 0);
+    expect(primaryFontSizeSlider.getBoundingClientRect().width).toBeCloseTo(
+      subtitleScrollPositionSlider.getBoundingClientRect().width,
+      0
+    );
+    expect(typographyControls.contains(colorGrid)).toBe(true);
+    expect(wrapper.text()).not.toContain("Color Scheme");
+    expect(colorSwatches).toHaveLength(4);
+    const [primaryColorSwatch, secondaryColorSwatch, activePrimaryColorSwatch, activeSecondaryColorSwatch] = colorSwatches;
+    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(secondaryColorSwatch!.getBoundingClientRect().top);
+    expect(activePrimaryColorSwatch!.getBoundingClientRect().top).toBe(
+      activeSecondaryColorSwatch!.getBoundingClientRect().top
+    );
+    expect(primaryColorSwatch!.getBoundingClientRect().left).toBe(activePrimaryColorSwatch!.getBoundingClientRect().left);
+    expect(secondaryColorSwatch!.getBoundingClientRect().left).toBe(
+      activeSecondaryColorSwatch!.getBoundingClientRect().left
+    );
+    expect(primaryColorSwatch!.getBoundingClientRect().left).toBeLessThan(
+      secondaryColorSwatch!.getBoundingClientRect().left
+    );
+    expect(primaryColorSwatch!.getBoundingClientRect().top).toBeLessThan(
+      activePrimaryColorSwatch!.getBoundingClientRect().top
+    );
     expect(metaAutoHideField.getBoundingClientRect().top).toBe(autoScrollField.getBoundingClientRect().top);
+    expect(metaAutoHideField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    expect(autoScrollField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    const autoScrollLabelCenter =
+      (autoScrollLabel.getBoundingClientRect().top + autoScrollLabel.getBoundingClientRect().bottom) / 2;
+    const autoScrollInputCenter =
+      (autoScrollInput.getBoundingClientRect().top + autoScrollInput.getBoundingClientRect().bottom) / 2;
+    expect(Math.abs(autoScrollLabelCenter - autoScrollInputCenter)).toBeLessThanOrEqual(4);
+    expect(autoScrollLabel.getBoundingClientRect().right).toBeLessThanOrEqual(autoScrollInput.getBoundingClientRect().left);
+    expect(autoScrollInput.getBoundingClientRect().width).toBeLessThanOrEqual(64);
+    expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideField.getBoundingClientRect().right);
+    expect(autoScrollLabel.getBoundingClientRect().right).toBeLessThanOrEqual(autoScrollField.getBoundingClientRect().right);
+    expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideControl.getBoundingClientRect().left);
     expect(wrapper.text()).not.toContain("Leave blank to use default arguments.");
     expect(ytDlpTextarea.attributes("placeholder")).toBe(DEFAULT_YTDLP_ARGS);
     expect(ytDlpTextarea.element.value).toBe("");

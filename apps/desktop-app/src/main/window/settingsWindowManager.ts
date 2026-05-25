@@ -8,7 +8,7 @@ type SettingsWindowManagerOptions = {
   onClosed?: () => void;
 };
 
-const SETTINGS_WINDOW_WIDTH = 1000;
+const SETTINGS_WINDOW_WIDTH = 880;
 const SETTINGS_WINDOW_HEIGHT = 760;
 
 export class SettingsWindowManager {

@@ -46,7 +46,7 @@ describe("SettingsWindowManager", () => {
 
     expect(createdOptions).toHaveLength(1);
     expect(createdOptions[0]).toMatchObject({
-      width: 1000,
+      width: 880,
       height: 760,
       resizable: false
     });

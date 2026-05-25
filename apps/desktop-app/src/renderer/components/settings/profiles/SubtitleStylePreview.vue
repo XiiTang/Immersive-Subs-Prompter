@@ -2,7 +2,6 @@
   <section class="ui-group subtitle-style-preview" data-testid="subtitle-style-preview">
     <header class="ui-group__header">
       <h3 class="ui-group__title">{{ t("subtitle-preview-title", "Subtitle Preview") }}</h3>
-      <span class="subtitle-style-preview__size">{{ previewSizeLabel }}</span>
     </header>
     <div class="subtitle-style-preview__canvas" data-testid="subtitle-preview-canvas" :style="canvasStyle">
       <TranscriptSurface
@@ -329,7 +328,6 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const previewSizeLabel = `${MAIN_WINDOW_DEFAULT_WIDTH} x ${MAIN_WINDOW_DEFAULT_HEIGHT}`;
 const PREVIEW_TIME_SCALE = 1000;
 const activePreviewTime = ACTIVE_BLOCK.start * PREVIEW_TIME_SCALE + 500;
 const previewAbLoopSelectionState = createAbLoopSelectionState();

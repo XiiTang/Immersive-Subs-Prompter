@@ -1,7 +1,6 @@
 <template>
   <div class="settings-split__sidebar">
     <div class="settings-split__sidebar-header">
-      <span class="ui-field__label">{{ t("profile-list-label", "Profile List") }}</span>
       <div class="settings-split__sidebar-buttons">
         <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
           <IconAdd size="md" />

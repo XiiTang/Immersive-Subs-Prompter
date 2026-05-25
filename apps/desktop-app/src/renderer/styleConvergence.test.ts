@@ -79,8 +79,16 @@ describe("desktop CSS convergence", () => {
     expect(css).toMatch(/\.ui-select__icon\s*{[\s\S]*flex: 0 0 auto;/);
   });
 
-  it("keeps profile color controls as four equal columns", () => {
-    expect(css).toMatch(/\.settings-color-grid\s*{[\s\S]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+  it("styles select popovers and checked items without adding shadows", () => {
+    expect(css).toMatch(/\.ui-select\[data-state="open"\]\s*{[\s\S]*border-color: var\(--ui-accent\);/);
+    expect(css).toMatch(/\.ui-select-content\s*{[\s\S]*min-width: max\(180px, var\(--reka-select-trigger-width\)\);/);
+    expect(css).toMatch(/\.ui-select-item\[data-state="checked"\]\s*{[\s\S]*background: var\(--ui-surface-muted\);/);
+    expect(css).toContain(".ui-select-item__check");
+    expect(css).not.toMatch(/\.ui-select-content\s*{[^}]*box-shadow:/);
+  });
+
+  it("keeps profile color controls as two equal columns", () => {
+    expect(css).toMatch(/\.settings-color-grid\s*{[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   });
 
   it("centers profile color labels within each color column", () => {

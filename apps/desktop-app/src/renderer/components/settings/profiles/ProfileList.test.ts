@@ -77,4 +77,19 @@ describe("ProfileList", () => {
 
     expect(wrapper.emitted("duplicate")).toHaveLength(1);
   });
+
+  it("does not render a text heading above the profile actions", () => {
+    const wrapper = mount(ProfileList, {
+      props: {
+        profiles: [profile],
+        rules: [],
+        editingProfileId: profile.id,
+        defaultProfileId: profile.id,
+        canDelete: false
+      }
+    });
+
+    expect(wrapper.text()).not.toContain("Profile List");
+    expect(wrapper.find(".settings-split__sidebar-header .ui-field__label").exists()).toBe(false);
+  });
 });

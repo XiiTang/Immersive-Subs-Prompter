@@ -10,6 +10,15 @@
             :options="subtitleFontOptions"
           />
         </UiField>
+        <UiField id="secondary-subtitle-font" :label="t('secondary-subtitle-font-label', 'Secondary Subtitle Font')">
+          <UiSelect
+            v-model="secondarySubtitleFontFamily"
+            data-testid="secondary-subtitle-font-select"
+            :options="subtitleFontOptions"
+          />
+        </UiField>
+      </div>
+      <div class="subtitle-style-fields__row">
         <UiField
           id="primary-subtitle-font-size"
           :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')"
@@ -22,15 +31,6 @@
             :step="1"
             :label="t('primary-subtitle-font-size-label', 'Primary Subtitle Font Size')"
             @change="flushDeferredProfileSettings"
-          />
-        </UiField>
-      </div>
-      <div class="subtitle-style-fields__row">
-        <UiField id="secondary-subtitle-font" :label="t('secondary-subtitle-font-label', 'Secondary Subtitle Font')">
-          <UiSelect
-            v-model="secondarySubtitleFontFamily"
-            data-testid="secondary-subtitle-font-select"
-            :options="subtitleFontOptions"
           />
         </UiField>
         <UiField
@@ -48,6 +48,7 @@
           />
         </UiField>
       </div>
+      <ColorSchemeGrid />
     </section>
 
     <section class="subtitle-style-fields__group" data-testid="subtitle-layout-controls">
@@ -114,9 +115,10 @@
 
     <section class="subtitle-style-fields__group" data-testid="subtitle-behavior-controls">
       <h4 class="subtitle-style-fields__group-title">{{ t("subtitle-behavior-group", "Behavior") }}</h4>
-      <div class="subtitle-style-fields__row">
+      <div class="subtitle-style-fields__row subtitle-style-fields__behavior-row">
         <UiField
           id="subtitle-meta-auto-hide"
+          class="subtitle-style-fields__behavior-field"
           :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Timestamps & Action Bar')"
           inline
         >
@@ -124,10 +126,23 @@
             v-model="subtitleAutoHideMetaRow"
             input-test-id="subtitle-meta-auto-hide-toggle"
             :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+            :show-label="false"
           />
         </UiField>
-        <UiField id="subtitle-autoscroll" :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')">
-          <UiInput v-model="subtitleAutoScrollTimeout" type="number" min="1" max="60" step="1" />
+        <UiField
+          id="subtitle-autoscroll"
+          class="subtitle-style-fields__behavior-field"
+          :label="t('subtitle-autoscroll-label', 'Auto-scroll Restore Time (seconds)')"
+          inline
+        >
+          <UiInput
+            v-model="subtitleAutoScrollTimeout"
+            class="subtitle-style-fields__autoscroll-input"
+            type="number"
+            min="1"
+            max="60"
+            step="1"
+          />
         </UiField>
       </div>
     </section>
@@ -141,12 +156,16 @@ import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { UiField, UiInput, UiSelect, UiSlider, UiSwitch } from "../../ui";
+import ColorSchemeGrid from "./ColorSchemeGrid.vue";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const subtitleFontOptions = SUBTITLE_FONT_OPTIONS;
+const subtitleFontOptions = SUBTITLE_FONT_OPTIONS.map((option) => ({
+  ...option,
+  fontFamilyPreview: option.value
+}));
 
 function updateDeferredProfileSetting<Key extends keyof ProfileSettings>(
   key: Key,

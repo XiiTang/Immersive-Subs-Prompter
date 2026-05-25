@@ -12,8 +12,10 @@
       :aria-labelledby="fieldLabelledBy"
       :aria-describedby="fieldDescribedBy"
     >
-      <span class="ui-select__value">{{ selectedLabel }}</span>
-      <SelectIcon class="ui-select__icon" aria-hidden="true">⌄</SelectIcon>
+      <span class="ui-select__value" :style="selectedPreviewStyle">{{ selectedLabel }}</span>
+      <SelectIcon class="ui-select__icon" aria-hidden="true">
+        <IconChevronDown size="sm" />
+      </SelectIcon>
     </SelectTrigger>
     <SelectPortal>
       <SelectContent class="ui-select-content" data-slot="select-content" position="popper">
@@ -27,7 +29,12 @@
             :value="option.value"
             :disabled="option.disabled"
           >
-            <SelectItemText>{{ option.label }}</SelectItemText>
+            <SelectItemIndicator class="ui-select-item__indicator">
+              <IconCheck class="ui-select-item__check" size="sm" />
+            </SelectItemIndicator>
+            <SelectItemText>
+              <span class="ui-select-item__label" :style="optionPreviewStyle(option)">{{ option.label }}</span>
+            </SelectItemText>
           </SelectItem>
         </SelectViewport>
       </SelectContent>
@@ -36,27 +43,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useAttrs } from "vue";
+import { computed, useAttrs, type CSSProperties } from "vue";
 import {
   SelectContent,
   SelectIcon,
   SelectItem,
+  SelectItemIndicator,
   SelectItemText,
   SelectPortal,
   SelectRoot,
   SelectTrigger,
   SelectViewport
 } from "reka-ui";
+import { IconCheck, IconChevronDown } from "../icons";
 import { useUiFieldControl } from "./fieldContext";
 
 defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
 
+export type UiSelectOption = {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  fontFamilyPreview?: string;
+};
+
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    options: Array<{ value: string; label: string; disabled?: boolean }>;
+    options: UiSelectOption[];
     disabled?: boolean;
     ariaLabel?: string;
     placeholder?: string;
@@ -76,10 +92,15 @@ const { fieldLabelledBy, fieldDescribedBy } = useUiFieldControl({
 });
 const rekaModelValue = computed(() => props.modelValue);
 const triggerAriaLabel = computed(() => props.ariaLabel || String(attrs["aria-label"] ?? "") || undefined);
+const selectedOption = computed(() => props.options.find((option) => option.value === props.modelValue));
 const selectedLabel = computed(() => {
-  const selectedOption = props.options.find((option) => option.value === props.modelValue);
-  return selectedOption?.label ?? props.placeholder;
+  return selectedOption.value?.label ?? props.placeholder;
 });
+const selectedPreviewStyle = computed(() => optionPreviewStyle(selectedOption.value));
+
+function optionPreviewStyle(option: UiSelectOption | undefined): CSSProperties | undefined {
+  return option?.fontFamilyPreview ? { fontFamily: option.fontFamilyPreview } : undefined;
+}
 
 function emitValue(value: string | string[] | undefined) {
   if (typeof value === "string") {

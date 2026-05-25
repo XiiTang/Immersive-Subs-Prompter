@@ -348,6 +348,15 @@ describe("SettingsWindowShell", () => {
   it("uses fixed settings content tracks instead of variable-width clamps", () => {
     expect(rendererStylesheet).not.toContain("width: min(100%, 920px);");
     expect(rendererStylesheet).not.toContain("grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);");
-    expect(rendererStylesheet).toContain("grid-template-columns: 280px minmax(0, 1fr);");
+    expect(rendererStylesheet).toContain("grid-template-columns: 200px minmax(0, 1fr);");
+  });
+
+  it("auto-hides settings scrollbars until users interact with scroll regions", () => {
+    expect(rendererStylesheet).not.toContain("scrollbar-gutter: stable both-edges;");
+    expect(rendererStylesheet).toContain("--settings-scrollbar-thumb: transparent;");
+    expect(rendererStylesheet).toContain("scrollbar-color: var(--settings-scrollbar-thumb) transparent;");
+    expect(rendererStylesheet).toContain("--settings-scrollbar-thumb: var(--ui-border);");
+    expect(rendererStylesheet).toContain(".settings-window-shell__content::-webkit-scrollbar-thumb,");
+    expect(rendererStylesheet).toContain("background: var(--settings-scrollbar-thumb);");
   });
 });

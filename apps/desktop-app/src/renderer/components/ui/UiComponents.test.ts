@@ -145,6 +145,46 @@ describe("UI primitives", () => {
     expect(toggle.emitted("update:modelValue")?.[0]).toEqual([true]);
   });
 
+  it("renders select chrome with an icon, selected indicator, and optional font previews", async () => {
+    const select = mount(UiSelect, {
+      props: {
+        modelValue: "georgia",
+        ariaLabel: "Subtitle font",
+        options: [
+          { value: "inter", label: "Inter", fontFamilyPreview: "Inter, sans-serif" },
+          { value: "georgia", label: "Georgia", fontFamilyPreview: "Georgia, serif" }
+        ]
+      },
+      attachTo: document.body
+    });
+
+    const trigger = select.get('[role="combobox"]');
+    expect(trigger.text()).not.toContain("⌄");
+    expect(trigger.find(".ui-select__icon svg").exists()).toBe(true);
+    expect(trigger.get(".ui-select__value").attributes("style")).toContain("font-family: Georgia, serif");
+
+    trigger.element.dispatchEvent(
+      createPointerEvent("pointerdown", {
+        button: 0,
+        ctrlKey: false,
+        pageX: 0,
+        pageY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
+    await nextTick();
+
+    const selectedOption = document.body.querySelector<HTMLElement>('[data-value="georgia"]');
+    expect(selectedOption).toBeInstanceOf(HTMLElement);
+    expect(selectedOption?.querySelector(".ui-select-item__check")).toBeInstanceOf(SVGElement);
+    expect(selectedOption?.querySelector<HTMLElement>(".ui-select-item__label")?.getAttribute("style")).toContain(
+      "font-family: Georgia, serif"
+    );
+
+    select.unmount();
+  });
+
   it("renders color input through the shared color primitive", async () => {
     const colorInput = mount(UiColorInput, {
       props: {

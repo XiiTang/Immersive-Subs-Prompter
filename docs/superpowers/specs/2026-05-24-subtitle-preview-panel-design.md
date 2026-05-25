@@ -35,7 +35,7 @@ The renderer preview and the Electron main window use shared constants for this 
 
 The main window reads these constants when creating `BrowserWindow`. The preview panel reads the same constants for its fixed CSS dimensions. This keeps the default app window and the settings preview aligned.
 
-The settings window remains `1000 x 760` and non-resizable. Its `BrowserWindow` options keep `width`, `height`, and `resizable: false`. Redundant `minWidth`, `minHeight`, `maxWidth`, and `maxHeight` constraints are removed because they do not change the final non-resizable behavior.
+The settings window remains `880 x 760` and non-resizable. Its `BrowserWindow` options keep `width`, `height`, and `resizable: false`. Redundant `minWidth`, `minHeight`, `maxWidth`, and `maxHeight` constraints are removed because they do not change the final non-resizable behavior.
 
 ## Preview Content
 
@@ -116,7 +116,7 @@ Invalid color input handling stays inside the existing color input and settings 
 Main-process tests cover:
 
 - The main window is created at `390 x 630`.
-- The settings window remains `1000 x 760` and non-resizable.
+- The settings window remains `880 x 760` and non-resizable.
 - The settings window no longer passes redundant min/max size constraints.
 
 Renderer tests cover:

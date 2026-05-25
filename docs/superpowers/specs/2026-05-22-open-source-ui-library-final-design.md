@@ -108,6 +108,7 @@ Rules:
 - Same status meaning uses the same tone everywhere.
 - Text buttons are used only when the text label is the clearest command representation.
 - Icon-only buttons use existing local icon components or a consistent icon library, never emoji.
+- Select controls use `UiSelect` with Reka behavior, local icon components, visible open/checked/highlighted states, optional font-family previews for font choices, and no decorative shadow.
 - Controls must not resize or shift layout when hovered, focused, disabled, active, translated, or populated with realistic content.
 - English and Chinese labels must fit without viewport-based font scaling.
 
