@@ -49,10 +49,18 @@ export function findActiveBlockIndex(blocks: readonly TranscriptLayoutBlock[], c
 function findBlockIndexById(blocks: readonly TranscriptLayoutBlock[], blockId: string): number {
   // Block IDs are "block-{index}" — parse the index directly for O(1) lookup.
   const dashPos = blockId.indexOf("-");
-  if (dashPos === -1) return -1;
-  const parsed = Number(blockId.slice(dashPos + 1));
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed >= blocks.length) return -1;
-  return blocks[parsed]!.blockId === blockId ? parsed : -1;
+  if (dashPos !== -1) {
+    const parsed = Number(blockId.slice(dashPos + 1));
+    if (
+      Number.isInteger(parsed) &&
+      parsed >= 0 &&
+      parsed < blocks.length &&
+      blocks[parsed]!.blockId === blockId
+    ) {
+      return parsed;
+    }
+  }
+  return blocks.findIndex((block) => block.blockId === blockId);
 }
 
 export function resolveTranscriptViewportAnchor({

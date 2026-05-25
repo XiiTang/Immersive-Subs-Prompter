@@ -6,13 +6,15 @@ type UseTranscriptAutoFollowInput = {
   enabled: Ref<boolean>;
   targetScrollTop: Ref<number | null>;
   suppressScheduledScroll?: Ref<boolean>;
+  followScrollBehavior?: Ref<ScrollBehavior>;
 };
 
 export function useTranscriptAutoFollow({
   containerEl,
   enabled,
   targetScrollTop,
-  suppressScheduledScroll
+  suppressScheduledScroll,
+  followScrollBehavior
 }: UseTranscriptAutoFollowInput) {
   function scrollToProjectedPosition(behavior: ScrollBehavior = "smooth") {
     if (!enabled.value) {
@@ -38,7 +40,9 @@ export function useTranscriptAutoFollow({
         suppressScheduledScroll.value = false;
         return;
       }
-      scrollToProjectedPosition(previousTargetScrollTop === undefined ? "auto" : "smooth");
+      scrollToProjectedPosition(
+        previousTargetScrollTop === undefined ? "auto" : followScrollBehavior?.value ?? "smooth"
+      );
     });
   }, { immediate: true });
 

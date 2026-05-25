@@ -79,7 +79,8 @@ const {
   activePrimaryColor,
   activeSecondaryColor,
   autoScrollDelayMs,
-  scrollPositionRatio
+  scrollPositionRatio,
+  autoFollowScrollBehavior = "smooth"
 } = defineProps<{
   blocks: TranscriptBlockModel[];
   currentTime: number | null;
@@ -101,6 +102,7 @@ const {
   activeSecondaryColor: string;
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
+  autoFollowScrollBehavior?: ScrollBehavior;
 }>();
 
 const emit = defineEmits<{
@@ -186,7 +188,8 @@ watch(
   () => [blocks, primaryFontFamily, primaryFontSize, secondaryFontFamily, secondaryFontSize],
   () => {
     preparedTextCache.clear();
-  }
+  },
+  { flush: "sync" }
 );
 
 watch(
@@ -310,7 +313,8 @@ const { scrollToProjectedPosition } = useTranscriptAutoFollow({
   containerEl: viewportRef,
   enabled: autoFollowEnabled,
   targetScrollTop: computed(() => projection.value.targetScrollTop),
-  suppressScheduledScroll: suppressNextAutoFollowScroll
+  suppressScheduledScroll: suppressNextAutoFollowScroll,
+  followScrollBehavior: computed(() => autoFollowScrollBehavior)
 });
 
 watch(

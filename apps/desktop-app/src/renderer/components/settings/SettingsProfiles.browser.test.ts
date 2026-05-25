@@ -42,6 +42,14 @@ async function selectOption(trigger: HTMLElement, value: string) {
   await nextTick();
 }
 
+async function flushPreviewSurface() {
+  await nextTick();
+  await nextTick();
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
 function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
   return {
     id,
@@ -389,7 +397,7 @@ describe("SettingsProfiles", () => {
     expect(fields.text()).not.toContain("Gap between subtitle text blocks");
   });
 
-  it("renders a fixed subtitle preview after subtitle style and color controls", () => {
+  it("renders a fixed subtitle preview after subtitle style and color controls", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -411,24 +419,53 @@ describe("SettingsProfiles", () => {
     const urlRules = wrapper.get('[data-testid="profile-url-rules"]').element;
     const previewCanvas = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-canvas"]');
     const previewStyle = getComputedStyle(previewCanvas.element);
-    const previewBlocks = wrapper.findAll('[data-testid="subtitle-preview-block"]');
-    const activeMeta = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-meta"]');
+    await flushPreviewSurface();
+    const previewSurface = wrapper.get('[data-testid="subtitle-preview-canvas"] [data-testid="transcript-surface"]');
+    const previewBlocks = previewSurface.findAll(".transcript-block");
+    const activeBlock = previewSurface.get(".transcript-block--active");
+    const activeMeta = activeBlock.get<HTMLElement>('[data-testid="transcript-meta-row"]');
     const activeActions = activeMeta.get<HTMLElement>('[data-testid="transcript-cue-actions"]');
+    const content = previewSurface.get<HTMLElement>(".transcript-surface__content").element;
 
     expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(colorScheme));
     expect(editorChildren.indexOf(colorScheme)).toBeLessThan(editorChildren.indexOf(preview));
     expect(editorChildren.indexOf(preview)).toBeLessThan(editorChildren.indexOf(urlRules));
     expect(previewStyle.width).toBe("390px");
     expect(previewStyle.height).toBe("630px");
-    expect(previewBlocks.length).toBeGreaterThanOrEqual(16);
-    expect(previewCanvas.text().length).toBeGreaterThan(1600);
-    expect(wrapper.get('[data-testid="subtitle-preview-normal-primary"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="subtitle-preview-active-primary"]').text()).toContain(
+    expect(previewBlocks.length).toBeGreaterThanOrEqual(4);
+    expect(Number.parseFloat(content.style.height)).toBeGreaterThan(630);
+    expect(activeBlock.get(".transcript-block__line--primary").text()).toContain(
       "Till this moment I never knew myself."
     );
     expect(activeMeta.classes()).toContain("transcript-block__meta-row");
     expect(getComputedStyle(activeMeta.element).position).toBe("absolute");
     expect(activeActions.classes()).toContain("transcript-block__cue-actions");
+  });
+
+  it("renders the subtitle preview through the real transcript surface", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    await flushPreviewSurface();
+
+    const previewSurface = wrapper.get('[data-testid="subtitle-preview-canvas"] [data-testid="transcript-surface"]');
+    const activeBlock = previewSurface.get(".transcript-block--active");
+    const activePrimaryLine = activeBlock.get(".transcript-block__line--primary");
+
+    expect(activeBlock.attributes("data-transcript-block-id")).toBe("preview-active");
+    expect(activePrimaryLine.text()).toContain("Till this moment I never knew myself.");
+    expect(wrapper.find(".subtitle-style-preview__line").exists()).toBe(false);
   });
 
   it("keeps subtitle style slider input local until the slider commits", async () => {
@@ -459,6 +496,41 @@ describe("SettingsProfiles", () => {
 
     expect(updateSettings).toHaveBeenCalledTimes(1);
     expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleScrollPosition).toBe(76);
+  });
+
+  it("updates the subtitle preview scroll position without smooth-scroll lag while dragging", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => store.settings!)
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    await flushPreviewSurface();
+
+    const viewport = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-canvas"] .transcript-surface__viewport')
+      .element;
+    const scrollTo = vi.spyOn(viewport, "scrollTo").mockImplementation((options) => {
+      Object.defineProperty(viewport, "scrollTop", {
+        configurable: true,
+        value: typeof options === "object" ? options.top ?? 0 : 0,
+        writable: true
+      });
+    });
+    const slider = wrapper.get<HTMLInputElement>('input[aria-labelledby="subtitle-scroll-position-label"]');
+
+    slider.element.value = "76";
+    await slider.trigger("input");
+    await flushPreviewSurface();
+
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "auto" }));
+    expect(scrollTo).not.toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
+
+    scrollTo.mockRestore();
   });
 
   it("keeps subtitle font size slider local until the slider commits", async () => {
@@ -571,33 +643,34 @@ describe("SettingsProfiles", () => {
         }
       ]
     };
-    await nextTick();
+    await flushPreviewSurface();
 
-    const normalPrimary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-primary"]').element;
-    const normalSecondary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-secondary"]').element;
-    const activePrimary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-primary"]').element;
-    const activeSecondary = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-secondary"]').element;
-    const blockList = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-block-list"]').element;
-    const afterStack = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-after-stack"]').element;
-    const activeBlock = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-active-block"]').element;
-    const normalMeta = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-normal-meta"]').element;
+    const previewSurface = wrapper.get('[data-testid="subtitle-preview-canvas"] [data-testid="transcript-surface"]');
+    const viewport = previewSurface.get<HTMLElement>(".transcript-surface__viewport").element;
+    const activeBlock = previewSurface.get(".transcript-block--active");
+    const inactiveBlock = previewSurface
+      .findAll(".transcript-block")
+      .find((block) => !block.classes().includes("transcript-block--active"))!;
+    const normalPrimary = inactiveBlock.get<HTMLElement>(".transcript-block__line--primary").element;
+    const normalSecondary = inactiveBlock.get<HTMLElement>(".transcript-block__line--secondary").element;
+    const activePrimary = activeBlock.get<HTMLElement>(".transcript-block__line--primary").element;
+    const activeSecondary = activeBlock.get<HTMLElement>(".transcript-block__line--secondary").element;
+    const normalMeta = inactiveBlock.get<HTMLElement>('[data-testid="transcript-meta-row"]').element;
+    const primaryBottom =
+      Number.parseFloat(activePrimary.style.top) + Number.parseFloat(activePrimary.style.height);
+    const secondaryGap = Number.parseFloat(activeSecondary.style.top) - primaryBottom;
 
-    expect(activePrimary.getAttribute("style") ?? "").toBe("");
-    expect(activeSecondary.getAttribute("style") ?? "").toBe("");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-font-family")).toContain("Times New Roman");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-font-size")).toBe("22px");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-secondary-font-family")).toContain("Arial");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-secondary-font-size")).toBe("18px");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-line-height")).toBe("1.8");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-primary-secondary-gap")).toBe("11px");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-block-gap")).toBe("24px");
+    expect(activePrimary.style.fontFamily).toContain("Times New Roman");
+    expect(activePrimary.style.fontSize).toBe("22px");
+    expect(activeSecondary.style.fontFamily).toContain("Arial");
+    expect(activeSecondary.style.fontSize).toBe("18px");
+    expect(activePrimary.style.lineHeight).toBe("39.6px");
+    expect(secondaryGap).toBeCloseTo(11, 1);
     expect(getComputedStyle(normalPrimary).color).toBe("rgb(17, 34, 51)");
     expect(getComputedStyle(normalSecondary).color).toBe("rgb(68, 85, 102)");
     expect(getComputedStyle(activePrimary).color).toBe("rgb(170, 85, 0)");
     expect(getComputedStyle(activeSecondary).color).toBe("rgb(34, 119, 68)");
-    expect(getComputedStyle(afterStack).gap).toBe("24px");
-    expect(blockList.style.getPropertyValue("--subtitle-preview-active-y")).toBe("80%");
-    expect(getComputedStyle(activeBlock).top).not.toBe("0px");
+    expect(viewport.scrollTop).toBeGreaterThan(0);
     expect(normalMeta.dataset.autoHideQuiet).toBe("false");
 
     store.settings = {
@@ -612,7 +685,7 @@ describe("SettingsProfiles", () => {
         }
       ]
     };
-    await nextTick();
+    await flushPreviewSurface();
 
     expect(normalMeta.dataset.autoHideQuiet).toBe("true");
   });

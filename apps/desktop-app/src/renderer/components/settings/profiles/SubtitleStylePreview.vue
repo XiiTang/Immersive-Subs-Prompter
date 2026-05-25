@@ -5,126 +5,30 @@
       <span class="subtitle-style-preview__size">{{ previewSizeLabel }}</span>
     </header>
     <div class="subtitle-style-preview__canvas" data-testid="subtitle-preview-canvas" :style="canvasStyle">
-      <div
-        class="subtitle-style-preview__block-list"
-        data-testid="subtitle-preview-block-list"
-        :style="blockListStyle"
-      >
-        <div
-          v-memo="[settings.subtitleAutoHideMetaRow]"
-          class="subtitle-style-preview__stack subtitle-style-preview__stack--before"
-          data-testid="subtitle-preview-before-stack"
-        >
-          <article
-            v-for="block in beforeBlocks"
-            :key="block.id"
-            class="subtitle-style-preview__block"
-            data-testid="subtitle-preview-block"
-          >
-            <div
-              class="transcript-block__meta-row subtitle-style-preview__meta"
-              :data-auto-hide-quiet="settings.subtitleAutoHideMetaRow"
-              data-meta-state="quiet"
-              :data-testid="metaTestId(block.id)"
-            >
-              <CueAnchorRail
-                state="quiet"
-                :start="block.start"
-                :end="block.end"
-                ab-label="AB"
-                :is-looping="false"
-                :is-ab-pending-selection="false"
-              />
-            </div>
-            <div class="subtitle-style-preview__lines">
-              <p
-                class="subtitle-style-preview__line subtitle-style-preview__line--primary"
-                :data-testid="primaryTestId(block.id)"
-              >
-                {{ block.primary }}
-              </p>
-              <p
-                class="subtitle-style-preview__line subtitle-style-preview__line--secondary"
-                :data-testid="secondaryTestId(block.id)"
-              >
-                {{ block.secondary }}
-              </p>
-            </div>
-          </article>
-        </div>
-
-        <article
-          v-memo="[settings.subtitleAutoHideMetaRow]"
-          class="subtitle-style-preview__block subtitle-style-preview__block--active"
-          data-testid="subtitle-preview-active-block"
-        >
-          <div
-            class="transcript-block__meta-row subtitle-style-preview__meta"
-            :data-auto-hide-quiet="settings.subtitleAutoHideMetaRow"
-            data-meta-state="active"
-            data-testid="subtitle-preview-active-meta"
-          >
-            <CueAnchorRail
-              state="active"
-              :start="activeBlock.start"
-              :end="activeBlock.end"
-              ab-label="AB"
-              :is-looping="false"
-              :is-ab-pending-selection="false"
-            />
-          </div>
-          <div class="subtitle-style-preview__lines">
-            <p
-              class="subtitle-style-preview__line subtitle-style-preview__line--primary"
-              data-testid="subtitle-preview-active-primary"
-            >
-              {{ activeBlock.primary }}
-            </p>
-            <p
-              class="subtitle-style-preview__line subtitle-style-preview__line--secondary"
-              data-testid="subtitle-preview-active-secondary"
-            >
-              {{ activeBlock.secondary }}
-            </p>
-          </div>
-        </article>
-
-        <div
-          v-memo="[settings.subtitleAutoHideMetaRow]"
-          class="subtitle-style-preview__stack subtitle-style-preview__stack--after"
-          data-testid="subtitle-preview-after-stack"
-        >
-          <article
-            v-for="block in afterBlocks"
-            :key="block.id"
-            class="subtitle-style-preview__block"
-            data-testid="subtitle-preview-block"
-          >
-            <div
-              class="transcript-block__meta-row subtitle-style-preview__meta"
-              :data-auto-hide-quiet="settings.subtitleAutoHideMetaRow"
-              data-meta-state="quiet"
-            >
-              <CueAnchorRail
-                state="quiet"
-                :start="block.start"
-                :end="block.end"
-                ab-label="AB"
-                :is-looping="false"
-                :is-ab-pending-selection="false"
-              />
-            </div>
-            <div class="subtitle-style-preview__lines">
-              <p class="subtitle-style-preview__line subtitle-style-preview__line--primary">
-                {{ block.primary }}
-              </p>
-              <p class="subtitle-style-preview__line subtitle-style-preview__line--secondary">
-                {{ block.secondary }}
-              </p>
-            </div>
-          </article>
-        </div>
-      </div>
+      <TranscriptSurface
+        class="subtitle-style-preview__surface"
+        :blocks="previewBlocks"
+        :current-time="activePreviewTime"
+        :seek-request="null"
+        :playback-loop="null"
+        :ab-loop-selection-state="previewAbLoopSelectionState"
+        :subtitle-panel-style="subtitlePanelStyle"
+        :primary-font-family="primaryFontFamily"
+        :primary-font-size="primaryFontSize"
+        :secondary-font-family="secondaryFontFamily"
+        :secondary-font-size="secondaryFontSize"
+        :auto-hide-meta-row="settings.subtitleAutoHideMetaRow"
+        :line-height="lineHeight"
+        :primary-secondary-gap="primarySecondaryGap"
+        :block-gap="blockGap"
+        :primary-color="settings.subtitlePrimaryColor"
+        :secondary-color="settings.subtitleSecondaryColor"
+        :active-primary-color="settings.subtitleActivePrimaryColor"
+        :active-secondary-color="settings.subtitleActiveSecondaryColor"
+        :auto-scroll-delay-ms="0"
+        :scroll-position-ratio="scrollPositionRatio"
+        auto-follow-scroll-behavior="auto"
+      />
     </div>
   </section>
 </template>
@@ -137,8 +41,10 @@ import {
   MAIN_WINDOW_DEFAULT_WIDTH
 } from "../../../../common/windowDimensions.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
-import { useDesktopStore } from "../../../stores/desktop";
-import CueAnchorRail from "../../subtitle/CueAnchorRail.vue";
+import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
+import { createAbLoopSelectionState } from "../../subtitle/abLoopSelection";
+import TranscriptSurface from "../../subtitle/TranscriptSurface.vue";
+import type { TranscriptBlock } from "../../subtitle/transcript/types";
 
 type PreviewBlockId = `before-${number}` | "active" | `after-${number}`;
 
@@ -423,29 +329,41 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
-const beforeBlocks = BEFORE_BLOCKS;
-const activeBlock = ACTIVE_BLOCK;
-const afterBlocks = AFTER_BLOCKS;
 const previewSizeLabel = `${MAIN_WINDOW_DEFAULT_WIDTH} x ${MAIN_WINDOW_DEFAULT_HEIGHT}`;
+const PREVIEW_TIME_SCALE = 1000;
+const activePreviewTime = ACTIVE_BLOCK.start * PREVIEW_TIME_SCALE + 500;
+const previewAbLoopSelectionState = createAbLoopSelectionState();
+const subtitlePanelStyle = {
+  "--panel-opacity-factor": "1"
+};
+const previewBlocks = createPreviewTranscriptBlocks();
 
 const settings = computed(() => store.editingProfileSettings);
 const primaryFontFamily = computed(() => normalizeSubtitleFontFamily(settings.value.primarySubtitleFontFamily));
 const secondaryFontFamily = computed(() => normalizeSubtitleFontFamily(settings.value.secondarySubtitleFontFamily));
-const primaryFontSize = computed(() => normalizeFontSize(settings.value.primarySubtitleFontSize));
-const secondaryFontSize = computed(() => normalizeFontSize(settings.value.secondarySubtitleFontSize));
-const lineHeight = computed(() => Math.max(Number(settings.value.subtitleLineHeight) || 1, 1));
+const primaryFontSize = computed(() =>
+  normalizeSubtitleFontSize(
+    settings.value.primarySubtitleFontSize,
+    DEFAULT_PROFILE_TEMPLATE.primarySubtitleFontSize
+  )
+);
+const secondaryFontSize = computed(() =>
+  normalizeSubtitleFontSize(
+    settings.value.secondarySubtitleFontSize,
+    DEFAULT_PROFILE_TEMPLATE.secondarySubtitleFontSize
+  )
+);
+const lineHeight = computed(() =>
+  Math.max(Number(settings.value.subtitleLineHeight) || DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight, 1)
+);
 const primarySecondaryGap = computed(() => Math.max(Number(settings.value.subtitlePrimarySecondaryGap) || 0, 0));
 const blockGap = computed(() => Math.max(Number(settings.value.subtitleBlockGap) || 0, 0));
-const scrollPosition = computed(() => clamp(Number(settings.value.subtitleScrollPosition) || 0, 0, 100));
-const activeBlockClearance = computed(() =>
-  Math.round(
-    (
-      18 +
-      primaryFontSize.value * lineHeight.value +
-      primarySecondaryGap.value +
-      secondaryFontSize.value * lineHeight.value
-    ) / 2
-  ) + blockGap.value
+const scrollPositionRatio = computed(() =>
+  clamp(
+    Number(settings.value.subtitleScrollPosition ?? DEFAULT_PROFILE_TEMPLATE.subtitleScrollPosition),
+    0,
+    100
+  ) / 100
 );
 
 const canvasStyle = {
@@ -453,25 +371,25 @@ const canvasStyle = {
   height: `${MAIN_WINDOW_DEFAULT_HEIGHT}px`
 };
 
-const blockListStyle = computed(() => ({
-  "--subtitle-preview-active-y": `${scrollPosition.value}%`,
-  "--subtitle-preview-active-clearance": `${activeBlockClearance.value}px`,
-  "--subtitle-preview-primary-font-family": primaryFontFamily.value,
-  "--subtitle-preview-primary-font-size": `${primaryFontSize.value}px`,
-  "--subtitle-preview-secondary-font-family": secondaryFontFamily.value,
-  "--subtitle-preview-secondary-font-size": `${secondaryFontSize.value}px`,
-  "--subtitle-preview-line-height": String(lineHeight.value),
-  "--subtitle-preview-primary-secondary-gap": `${primarySecondaryGap.value}px`,
-  "--subtitle-preview-block-gap": `${blockGap.value}px`,
-  "--subtitle-preview-primary-color": settings.value.subtitlePrimaryColor,
-  "--subtitle-preview-secondary-color": settings.value.subtitleSecondaryColor,
-  "--subtitle-preview-active-primary-color": settings.value.subtitleActivePrimaryColor,
-  "--subtitle-preview-active-secondary-color": settings.value.subtitleActiveSecondaryColor
-}));
+function createPreviewTranscriptBlocks(): TranscriptBlock[] {
+  return [...BEFORE_BLOCKS, ACTIVE_BLOCK, ...AFTER_BLOCKS]
+    .sort((left, right) => left.start - right.start)
+    .map((block, index) => ({
+      id: block.id === "active" ? "preview-active" : `preview-${block.id}`,
+      start: block.start * PREVIEW_TIME_SCALE,
+      end: block.end * PREVIEW_TIME_SCALE,
+      primaryText: block.primary,
+      secondaryText: block.secondary,
+      sourceCueRefs: {
+        primaryCueIndex: index,
+        secondaryCueIndex: index
+      }
+    }));
+}
 
-function normalizeFontSize(value: unknown): number {
+function normalizeSubtitleFontSize(value: number | null | undefined, fallback: number): number {
   const size = Number(value);
-  const finiteSize = Number.isFinite(size) ? size : MIN_SUBTITLE_FONT_SIZE;
+  const finiteSize = Number.isFinite(size) ? size : fallback;
   return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(finiteSize)));
 }
 
@@ -480,17 +398,5 @@ function clamp(value: number, min: number, max: number): number {
     return min;
   }
   return Math.min(max, Math.max(min, value));
-}
-
-function primaryTestId(id: PreviewBlockId) {
-  return id === "before-1" ? "subtitle-preview-normal-primary" : undefined;
-}
-
-function secondaryTestId(id: PreviewBlockId) {
-  return id === "before-1" ? "subtitle-preview-normal-secondary" : undefined;
-}
-
-function metaTestId(id: PreviewBlockId) {
-  return id === "before-1" ? "subtitle-preview-normal-meta" : undefined;
 }
 </script>

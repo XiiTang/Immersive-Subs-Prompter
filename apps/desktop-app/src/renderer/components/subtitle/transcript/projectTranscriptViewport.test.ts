@@ -107,6 +107,31 @@ describe("projectTranscriptViewport", () => {
     expect(projection.targetScrollTop).toBe(56);
   });
 
+  it("supports arbitrary block IDs when the transcript surface is reused", () => {
+    const arbitraryLayout = {
+      ...layout,
+      blocks: layout.blocks.map((block, index) => ({
+        ...block,
+        blockId: index === 1 ? "preview-active" : `preview-${index}`
+      }))
+    };
+
+    const projection = projectTranscriptViewport({
+      layout: arbitraryLayout,
+      anchor: {
+        blockId: "preview-active",
+        reason: "playback-follow",
+        anchorBias: 0.5
+      },
+      viewportHeight: 160,
+      followRatio: 0.4
+    });
+
+    expect(projection.activeBlockId).toBe("preview-active");
+    expect(projection.activeBlockIndex).toBe(1);
+    expect(projection.targetScrollTop).toBe(56);
+  });
+
   it("returns no active block when the anchor is absent", () => {
     const projection = projectTranscriptViewport({
       layout,
