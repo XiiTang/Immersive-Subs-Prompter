@@ -155,6 +155,13 @@ function createDesktopState(appliedProfileId = "profile-1", appliedProfileName =
   };
 }
 
+function expectContainedBy(container: HTMLElement, element: HTMLElement) {
+  const containerRect = container.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  expect(elementRect.left).toBeGreaterThanOrEqual(containerRect.left - 1);
+  expect(elementRect.right).toBeLessThanOrEqual(containerRect.right + 1);
+}
+
 describe("SettingsProfiles", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -372,7 +379,7 @@ describe("SettingsProfiles", () => {
     expect(toggle.attributes("aria-checked")).toBe("true");
   });
 
-  it("groups subtitle appearance controls compactly without preview-replaced helper text", () => {
+  it("renders subtitle appearance controls as a compact property panel", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -387,11 +394,46 @@ describe("SettingsProfiles", () => {
       }
     });
 
-    const fields = wrapper.get(".subtitle-style-fields");
+    const fields = wrapper.get('[data-testid="subtitle-style-compact-panel"]');
+    const primaryTypographyRow = fields.get('[data-testid="primary-subtitle-typography-row"]');
+    const secondaryTypographyRow = fields.get('[data-testid="secondary-subtitle-typography-row"]');
+    const layoutGrid = fields.get('[data-testid="subtitle-style-layout-grid"]');
+    const behaviorRow = fields.get('[data-testid="subtitle-style-behavior-row"]');
 
-    expect(fields.find('[data-testid="subtitle-typography-controls"]').exists()).toBe(true);
-    expect(fields.find('[data-testid="subtitle-layout-controls"]').exists()).toBe(true);
-    expect(fields.find('[data-testid="subtitle-behavior-controls"]').exists()).toBe(true);
+    expect(fields.find('[data-testid="subtitle-typography-controls"]').exists()).toBe(false);
+    expect(fields.find('[data-testid="subtitle-layout-controls"]').exists()).toBe(false);
+    expect(fields.find('[data-testid="subtitle-behavior-controls"]').exists()).toBe(false);
+    expect(fields.findAll(".subtitle-style-fields__group")).toHaveLength(0);
+    expect(fields.text()).not.toContain("Typography");
+    expect(fields.text()).not.toContain("Layout");
+    expect(fields.text()).not.toContain("Behavior");
+    expect(fields.text()).toContain("Primary Font");
+    expect(fields.text()).toContain("Primary Size");
+    expect(fields.text()).toContain("Secondary Font");
+    expect(fields.text()).toContain("Secondary Size");
+    expect(fields.text()).toContain("Scroll Position");
+    expect(fields.text()).toContain("Subtitle Gap");
+    expect(fields.text()).toContain("Auto-hide Controls");
+    expect(fields.text()).toContain("Restore Delay (s)");
+    expect(fields.text()).not.toContain("Primary Subtitle Font");
+    expect(fields.text()).not.toContain("Secondary Subtitle Font");
+    expect(fields.text()).not.toContain("Primary to Secondary Subtitle Gap");
+    expect(fields.text()).not.toContain("Auto-hide Timestamps & Action Bar");
+    expect(fields.text()).not.toContain("Auto-scroll Restore Time (seconds)");
+    expect(primaryTypographyRow.find('[data-testid="primary-subtitle-font-select"]').exists()).toBe(true);
+    expect(primaryTypographyRow.find('input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]').exists()).toBe(
+      true
+    );
+    expect(secondaryTypographyRow.find('[data-testid="secondary-subtitle-font-select"]').exists()).toBe(true);
+    expect(
+      secondaryTypographyRow.find('input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]').exists()
+    ).toBe(true);
+    expect(layoutGrid.find('input[aria-labelledby="subtitle-scroll-position-label"]').exists()).toBe(true);
+    expect(layoutGrid.find('input[aria-labelledby="subtitle-primary-secondary-gap-label"]').exists()).toBe(true);
+    expect(layoutGrid.find('input[aria-labelledby="subtitle-line-height-label"]').exists()).toBe(true);
+    expect(layoutGrid.find('input[aria-labelledby="subtitle-block-gap-label"]').exists()).toBe(true);
+    expect(behaviorRow.find('[data-testid="subtitle-meta-auto-hide-toggle"]').exists()).toBe(true);
+    expect(behaviorRow.find('input[aria-labelledby="subtitle-autoscroll-label"]').exists()).toBe(true);
     expect(fields.findAll(".ui-field__hint")).toHaveLength(0);
     expect(fields.text()).not.toContain("0%=");
     expect(fields.text()).not.toContain("Gap between subtitle text blocks");
@@ -703,7 +745,7 @@ describe("SettingsProfiles", () => {
     expect(normalMeta.dataset.autoHideQuiet).toBe("true");
   });
 
-  it("renders compact paired subtitle fields and uses default yt-dlp args as the empty placeholder", () => {
+  it("keeps compact subtitle controls aligned and inside the editor column", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -718,11 +760,22 @@ describe("SettingsProfiles", () => {
       }
     });
 
+    const compactPanel = wrapper.get<HTMLElement>('[data-testid="subtitle-style-compact-panel"]').element;
+    const primaryTypographyRow = wrapper.get<HTMLElement>('[data-testid="primary-subtitle-typography-row"]').element;
+    const secondaryTypographyRow = wrapper.get<HTMLElement>('[data-testid="secondary-subtitle-typography-row"]').element;
+    const layoutGrid = wrapper.get<HTMLElement>('[data-testid="subtitle-style-layout-grid"]').element;
+    const behaviorRow = wrapper.get<HTMLElement>('[data-testid="subtitle-style-behavior-row"]').element;
     const primaryFontField = wrapper.get("#primary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
-    const primaryFontSizeField = wrapper.get("#primary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
+    const primaryFontSizeField = wrapper
+      .get("#primary-subtitle-font-size-label")
+      .element.closest(".ui-field") as HTMLElement;
     const secondaryFontField = wrapper.get("#secondary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
-    const secondaryFontSizeField = wrapper.get("#secondary-subtitle-font-size-label").element.closest(".ui-field") as HTMLElement;
-    const subtitleScrollPositionField = wrapper.get("#subtitle-scroll-position-label").element.closest(".ui-field") as HTMLElement;
+    const secondaryFontSizeField = wrapper
+      .get("#secondary-subtitle-font-size-label")
+      .element.closest(".ui-field") as HTMLElement;
+    const subtitleScrollPositionField = wrapper
+      .get("#subtitle-scroll-position-label")
+      .element.closest(".ui-field") as HTMLElement;
     const metaAutoHideField = wrapper.get("#subtitle-meta-auto-hide-label").element.closest(".ui-field") as HTMLElement;
     const autoScrollField = wrapper.get("#subtitle-autoscroll-label").element.closest(".ui-field") as HTMLElement;
     const metaAutoHideLabel = wrapper.get("#subtitle-meta-auto-hide-label").element as HTMLElement;
@@ -732,40 +785,51 @@ describe("SettingsProfiles", () => {
     const primaryFontSelect = wrapper.get<HTMLElement>('[data-testid="primary-subtitle-font-select"]').element;
     const primaryFontSizeSlider = primaryFontSizeField.querySelector<HTMLInputElement>('input[type="range"]')!;
     const subtitleScrollPositionSlider = subtitleScrollPositionField.querySelector<HTMLInputElement>('input[type="range"]')!;
-    const typographyControls = wrapper.get<HTMLElement>('[data-testid="subtitle-typography-controls"]').element;
     const colorGrid = wrapper.get<HTMLElement>(".settings-color-grid").element;
     const colorSwatches = wrapper.findAll(".color-swatch-item").map((item) => item.element as HTMLElement);
     const ytDlpTextarea = wrapper.get<HTMLTextAreaElement>('textarea[aria-labelledby="yt-dlp-args-label"]');
 
-    expect(primaryFontField.getBoundingClientRect().top).toBe(secondaryFontField.getBoundingClientRect().top);
-    expect(primaryFontSizeField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
-    expect(primaryFontField.getBoundingClientRect().left).toBeLessThan(secondaryFontField.getBoundingClientRect().left);
-    expect(primaryFontSizeField.getBoundingClientRect().left).toBeLessThan(secondaryFontSizeField.getBoundingClientRect().left);
-    expect(secondaryFontField.getBoundingClientRect().top).toBeLessThan(primaryFontSizeField.getBoundingClientRect().top);
-    expect(primaryFontSelect.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeField.getBoundingClientRect().width, 0);
-    expect(primaryFontSizeSlider.getBoundingClientRect().width).toBeCloseTo(
-      subtitleScrollPositionSlider.getBoundingClientRect().width,
-      0
+    expect(primaryTypographyRow.contains(primaryFontField)).toBe(true);
+    expect(primaryTypographyRow.contains(primaryFontSizeField)).toBe(true);
+    expect(secondaryTypographyRow.contains(secondaryFontField)).toBe(true);
+    expect(secondaryTypographyRow.contains(secondaryFontSizeField)).toBe(true);
+    expect(layoutGrid.contains(subtitleScrollPositionField)).toBe(true);
+    expect(behaviorRow.contains(metaAutoHideField)).toBe(true);
+    expect(behaviorRow.contains(autoScrollField)).toBe(true);
+    expect(primaryFontField.getBoundingClientRect().top).toBe(primaryFontSizeField.getBoundingClientRect().top);
+    expect(secondaryFontField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
+    expect(primaryFontField.getBoundingClientRect().left).toBeLessThan(primaryFontSizeField.getBoundingClientRect().left);
+    expect(secondaryFontField.getBoundingClientRect().left).toBeLessThan(secondaryFontSizeField.getBoundingClientRect().left);
+    expect(primaryTypographyRow.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      secondaryTypographyRow.getBoundingClientRect().top
     );
-    expect(typographyControls.contains(colorGrid)).toBe(true);
+    expect(primaryFontSelect.getBoundingClientRect().width).toBeGreaterThan(primaryFontSizeSlider.getBoundingClientRect().width);
+    expect(primaryFontSizeSlider.getBoundingClientRect().width).toBeGreaterThan(120);
+    expect(subtitleScrollPositionSlider.getBoundingClientRect().width).toBeGreaterThan(120);
+    expect(compactPanel.contains(colorGrid)).toBe(true);
     expect(wrapper.text()).not.toContain("Color Scheme");
     expect(colorSwatches).toHaveLength(4);
     const [primaryColorSwatch, secondaryColorSwatch, activePrimaryColorSwatch, activeSecondaryColorSwatch] = colorSwatches;
+    const primaryColorSwatchStyle = getComputedStyle(primaryColorSwatch!);
+    const primaryColorTrigger = primaryColorSwatch!.querySelector<HTMLElement>('[data-testid="color-label-trigger"]')!;
+    const primaryColorTriggerStyle = getComputedStyle(primaryColorTrigger);
+    expect(primaryColorSwatchStyle.borderTopWidth).toBe("0px");
+    expect(primaryColorSwatchStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(primaryColorSwatchStyle.paddingLeft).toBe("0px");
+    expect(primaryColorTriggerStyle.borderTopWidth).toBe("1px");
+    expect(primaryColorTriggerStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(secondaryColorSwatch!.getBoundingClientRect().top);
-    expect(activePrimaryColorSwatch!.getBoundingClientRect().top).toBe(
-      activeSecondaryColorSwatch!.getBoundingClientRect().top
-    );
-    expect(primaryColorSwatch!.getBoundingClientRect().left).toBe(activePrimaryColorSwatch!.getBoundingClientRect().left);
-    expect(secondaryColorSwatch!.getBoundingClientRect().left).toBe(
-      activeSecondaryColorSwatch!.getBoundingClientRect().left
-    );
+    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(activePrimaryColorSwatch!.getBoundingClientRect().top);
+    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(activeSecondaryColorSwatch!.getBoundingClientRect().top);
     expect(primaryColorSwatch!.getBoundingClientRect().left).toBeLessThan(
       secondaryColorSwatch!.getBoundingClientRect().left
     );
-    expect(primaryColorSwatch!.getBoundingClientRect().top).toBeLessThan(
-      activePrimaryColorSwatch!.getBoundingClientRect().top
+    expect(activePrimaryColorSwatch!.getBoundingClientRect().left).toBeLessThan(
+      activeSecondaryColorSwatch!.getBoundingClientRect().left
     );
-    expect(metaAutoHideField.getBoundingClientRect().top).toBe(autoScrollField.getBoundingClientRect().top);
+    expect(
+      Math.abs(metaAutoHideField.getBoundingClientRect().top - autoScrollField.getBoundingClientRect().top)
+    ).toBeLessThanOrEqual(1);
     expect(metaAutoHideField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
     expect(autoScrollField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
     const autoScrollLabelCenter =
@@ -778,6 +842,10 @@ describe("SettingsProfiles", () => {
     expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideField.getBoundingClientRect().right);
     expect(autoScrollLabel.getBoundingClientRect().right).toBeLessThanOrEqual(autoScrollField.getBoundingClientRect().right);
     expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideControl.getBoundingClientRect().left);
+    expect(compactPanel.getBoundingClientRect().height).toBeLessThanOrEqual(310);
+    [primaryTypographyRow, secondaryTypographyRow, layoutGrid, behaviorRow, colorGrid].forEach((element) =>
+      expectContainedBy(compactPanel, element)
+    );
     expect(wrapper.text()).not.toContain("Leave blank to use default arguments.");
     expect(ytDlpTextarea.attributes("placeholder")).toBe(DEFAULT_YTDLP_ARGS);
     expect(ytDlpTextarea.element.value).toBe("");

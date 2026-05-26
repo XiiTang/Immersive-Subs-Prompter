@@ -33,22 +33,22 @@ const { t } = useI18n(language);
 const swatches = computed(() => [
   {
     settingKey: "subtitlePrimaryColor" as const,
-    label: t("subtitle-primary-color-label", "Primary Text"),
+    label: t("subtitle-primary-color-label", "Primary"),
     value: store.editingProfileSettings.subtitlePrimaryColor
   },
   {
     settingKey: "subtitleSecondaryColor" as const,
-    label: t("subtitle-secondary-color-label", "Secondary Text"),
+    label: t("subtitle-secondary-color-label", "Secondary"),
     value: store.editingProfileSettings.subtitleSecondaryColor
   },
   {
     settingKey: "subtitleActivePrimaryColor" as const,
-    label: t("subtitle-active-primary-color-label", "Active Primary"),
+    label: t("subtitle-active-primary-color-label", "Active Pri."),
     value: store.editingProfileSettings.subtitleActivePrimaryColor
   },
   {
     settingKey: "subtitleActiveSecondaryColor" as const,
-    label: t("subtitle-active-secondary-color-label", "Active Secondary"),
+    label: t("subtitle-active-secondary-color-label", "Active Sec."),
     value: store.editingProfileSettings.subtitleActiveSecondaryColor
   }
 ]);
