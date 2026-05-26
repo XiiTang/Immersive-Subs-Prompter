@@ -27,11 +27,11 @@
           role="primary"
           :items="primaryPriority"
           v-model="primaryPriorityInput"
-          :label="t('primary-priority-label', 'Primary Subtitle Priority')"
+          :label="t('primary-priority-label', 'Primary Priority')"
           :hint="
             t(
               'primary-priority-hint',
-              'Use regular expressions to match subtitle filenames; drag to reprioritize'
+              'Use regular expressions; drag to reorder.'
             )
           "
           :placeholder="t('primary-priority-placeholder', 'e.g.: en or zh-Hans')"
@@ -48,11 +48,11 @@
           role="secondary"
           :items="secondaryPriority"
           v-model="secondaryPriorityInput"
-          :label="t('secondary-priority-label', 'Secondary Subtitle Priority')"
+          :label="t('secondary-priority-label', 'Secondary Priority')"
           :hint="
             t(
               'secondary-priority-hint',
-              'Use regular expressions to match subtitle filenames; drag to reprioritize'
+              'Match filenames; drag to reorder.'
             )
           "
           :placeholder="t('secondary-priority-placeholder', 'e.g.: en or zh-Hans')"

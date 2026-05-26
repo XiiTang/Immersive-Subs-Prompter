@@ -803,7 +803,9 @@ describe("SettingsProfiles", () => {
     expect(primaryTypographyRow.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       secondaryTypographyRow.getBoundingClientRect().top
     );
-    expect(primaryFontSelect.getBoundingClientRect().width).toBeGreaterThan(primaryFontSizeSlider.getBoundingClientRect().width);
+    expect(primaryFontField.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeField.getBoundingClientRect().width, 0);
+    expect(secondaryFontField.getBoundingClientRect().width).toBeCloseTo(secondaryFontSizeField.getBoundingClientRect().width, 0);
+    expect(primaryFontSelect.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeSlider.getBoundingClientRect().width, 0);
     expect(primaryFontSizeSlider.getBoundingClientRect().width).toBeGreaterThan(120);
     expect(subtitleScrollPositionSlider.getBoundingClientRect().width).toBeGreaterThan(120);
     expect(compactPanel.contains(colorGrid)).toBe(true);
@@ -913,7 +915,10 @@ describe("SettingsProfiles", () => {
     });
 
     expect(wrapper.get('[data-testid="profile-url-rules"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Applies to these URLs");
+    expect(wrapper.text()).toContain("URL Rules");
+    expect(wrapper.text()).toContain("Match top to bottom; profile order breaks ties.");
+    expect(wrapper.text()).not.toContain("Applies to these URLs");
+    expect(wrapper.text()).not.toContain("Rules match in listed order. Profile order controls cross-profile priority.");
     expect(wrapper.text()).toContain("youtube.com");
     expect(wrapper.text()).toContain("youtu.be");
   });
@@ -1353,10 +1358,19 @@ describe("SettingsProfiles", () => {
     });
 
     const primaryEditor = wrapper.findAll(".priority-editor")[0]!;
+    const secondaryEditor = wrapper.findAll(".priority-editor")[1]!;
     const hintLink = primaryEditor.get(".priority-editor__hint a");
 
     expect(wrapper.text()).not.toContain("No priorities yet");
     expect(wrapper.text()).not.toContain("View regex examples");
+    expect(primaryEditor.text()).toContain("Primary Priority");
+    expect(primaryEditor.text()).toContain("Use regular expressions; drag to reorder.");
+    expect(secondaryEditor.text()).toContain("Secondary Priority");
+    expect(secondaryEditor.text()).toContain("Match filenames; drag to reorder.");
+    expect(wrapper.text()).not.toContain("Primary Subtitle Priority");
+    expect(wrapper.text()).not.toContain("Secondary Subtitle Priority");
+    expect(wrapper.text()).not.toContain("Use regular expressions to match subtitle filenames; drag to reorder.");
+    expect(wrapper.text()).not.toContain("Match subtitle filenames; drag to reorder.");
     expect(wrapper.text().match(/regular expressions/g)).toHaveLength(1);
     expect(hintLink.text()).toBe("regular expressions");
     expect(hintLink.attributes("href")).toContain("subtitle-priority-regex.md");

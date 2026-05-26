@@ -2,9 +2,9 @@
   <section class="profile-url-rules" data-testid="profile-url-rules">
     <header v-if="isDefaultProfile" class="profile-url-rules__header">
       <div class="profile-url-rules__label-row">
-        <span class="settings-field__label">{{ t("profile-url-rules-label", "Applies to these URLs") }}</span>
+        <span class="settings-field__label">{{ t("profile-url-rules-label", "URL Rules") }}</span>
         <span class="profile-url-rules__hint">
-          {{ t("profile-url-default-hint", "This profile is used when no URL rule matches.") }}
+          {{ t("profile-url-default-hint", "Fallback when no URL rule matches.") }}
         </span>
       </div>
     </header>
@@ -14,7 +14,7 @@
     <PillListEditor
       v-else
       class="profile-url-rules__editor"
-      :label="t('profile-url-rules-label', 'Applies to these URLs')"
+      :label="t('profile-url-rules-label', 'URL Rules')"
       :hint="urlRulesHint"
       :items="pillItems"
       :draft-value="draftPattern"
@@ -59,7 +59,7 @@ const rulePatternPlaceholder = computed(() =>
   t("rule-pattern-smart-placeholder", "youtube.com, *.site.com/path/*, =full URL, re:pattern")
 );
 const urlRulesHint = computed(() =>
-  t("profile-url-rules-hint", "Rules match in listed order. Profile order controls cross-profile priority.")
+  t("profile-url-rules-hint", "Match top to bottom; profile order breaks ties.")
 );
 const ruleTypeLabels = computed<Record<UrlRuleMatchType, string>>(() => ({
   domain: t("rule-match-domain", "Domain"),

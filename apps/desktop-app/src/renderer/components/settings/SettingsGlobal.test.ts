@@ -51,23 +51,35 @@ describe("SettingsGlobal", () => {
     const wrapper = mount(SettingsGlobal);
     const groups = wrapper.findAll(".global-settings__group");
 
-    expect(wrapper.text()).toContain("Global Settings");
+    expect(wrapper.text()).toContain("Global");
     expect(groups.map((group) => group.get(".global-settings__group-title").text())).toEqual([
       "General",
-      "Connectivity",
+      "Network",
       "Shortcuts",
-      "Appearance",
       "Cache"
     ]);
     const shortcutsGroup = groups.find((group) => group.get(".global-settings__group-title").text() === "Shortcuts");
-    expect(shortcutsGroup?.text()).toContain("Toggle Window Shortcut");
-    expect(shortcutsGroup?.text()).toContain("Process Blacklist");
+    expect(shortcutsGroup?.text()).toContain("Toggle Shortcut");
+    expect(shortcutsGroup?.text()).toContain("Blocked Processes");
     expect(wrapper.findAll(".global-settings__row").length).toBeGreaterThanOrEqual(6);
-    expect(wrapper.text()).toContain("Appearance");
     expect(wrapper.get("#language-label").element.closest(".ui-field")).not.toBeNull();
     expect(wrapper.get("#language-label").element.closest(".ui-field")?.querySelector(".ui-select")).not.toBeNull();
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);
     expect(wrapper.find("#cache-path-label").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Endpoints");
+    expect(wrapper.text()).toContain("Path");
+    expect(wrapper.text()).toContain("Stats");
+    expect(wrapper.text()).not.toContain("Global Settings");
+    expect(wrapper.text()).not.toContain("Listening Endpoints");
+    expect(wrapper.text()).not.toContain("Toggle Window Shortcut");
+    expect(wrapper.text()).not.toContain("Process Blacklist");
+    expect(wrapper.text()).not.toContain("Enable Cache");
+    expect(wrapper.text()).not.toContain("Cache Path");
+    expect(wrapper.text()).not.toContain("Retention (days)");
+    expect(wrapper.text()).not.toContain("Cache Stats");
+    expect(wrapper.text()).not.toContain("Add explicit addresses");
+    expect(wrapper.text()).not.toContain("Use modifiers such as");
+    expect(wrapper.text()).not.toContain("Disable shortcuts when these processes");
   });
 
   it("renders endpoint pills as extension URLs", () => {

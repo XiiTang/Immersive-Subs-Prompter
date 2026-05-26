@@ -5,7 +5,7 @@ const SETTINGS_SECTION_DEFS = [
   {
     id: "general",
     labelKey: "section-global-settings",
-    fallback: "Global Settings",
+    fallback: "Global",
     icon: "settings"
   },
   {

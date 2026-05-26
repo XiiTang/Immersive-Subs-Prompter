@@ -151,7 +151,7 @@ Final shape:
 - Left nav: muted surface, one selected style, one hover style.
 - Content: one active section at a time.
 - Host and plugin settings appear in the same nav model.
-- Appearance is first-class.
+- Desktop theme is a compact General setting, not a standalone Appearance section.
 - General, Profiles, Cache, Plugins, Transcription, Word Lookup, and Jellyfin / Emby use the same field, row, badge, and button styles.
 
 No settings page may introduce:

@@ -26,8 +26,8 @@ describe("NetworkEndpointEditor browser layout", () => {
             error: "listen EADDRNOTAVAIL"
           }
         ],
-        label: "Listening Endpoints",
-        hint: "Add explicit addresses.",
+        label: "Endpoints",
+        hint: "Add host:port addresses.",
         placeholder: "127.0.0.1:44501",
         removeLabel: "Remove endpoint"
       }

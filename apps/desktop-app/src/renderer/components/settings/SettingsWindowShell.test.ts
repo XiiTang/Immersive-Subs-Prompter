@@ -126,8 +126,8 @@ describe("SettingsWindowShell", () => {
     const shellHeaderText = wrapper.get(".settings-window-shell__header").text();
 
     expect(text).toContain("设置");
-    expect(text).toContain("全局设置");
-    expect(text).toContain("外观");
+    expect(text).toContain("全局");
+    expect(text).toContain("主题");
     expect(text).toContain("插件");
     expect(text).not.toContain("Preferences");
     expect(text).not.toContain("Settings");
@@ -324,7 +324,7 @@ describe("SettingsWindowShell", () => {
 
   it("does not keep legacy scroll-anchor metadata for section navigation", () => {
     expect(buildSettingsSections("en")).toEqual([
-      { id: "general", label: "Global Settings", icon: "settings" },
+      { id: "general", label: "Global", icon: "settings" },
       { id: "profiles", label: "Profiles", icon: "profiles" },
       { id: "plugins", label: "Plugins", icon: "plugins" }
     ]);

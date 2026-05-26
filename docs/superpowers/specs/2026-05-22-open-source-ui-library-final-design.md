@@ -122,7 +122,7 @@ Final shape:
 - Navigation uses one selected state, one hover state, and one disabled state.
 - Each section renders through shared primitives.
 - Host settings and official plugin settings share the same navigation and content model.
-- Appearance remains a first-class section.
+- Desktop theme remains available as a compact General setting instead of a standalone Appearance section.
 - General, Profiles, Cache, Plugins, Transcription, Word Lookup, and Jellyfin / Emby use the same field, list, badge, button, switch, progress, and status semantics.
 
 Settings pages must not define their own button systems, card systems, badge systems, status palettes, field layouts, or local surface language.

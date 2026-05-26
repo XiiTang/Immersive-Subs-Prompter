@@ -1294,27 +1294,28 @@ body.main-window-body,
 .global-settings {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
 }
 
 .global-settings__group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .global-settings__group-title {
   margin: 0;
   color: var(--ui-text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 650;
+  line-height: 18px;
 }
 
 .global-settings__row {
   display: grid;
-  grid-template-columns: minmax(176px, 260px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(128px, 180px) minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
   min-width: 0;
 }
@@ -1330,21 +1331,21 @@ body.main-window-body,
 
 .global-settings__field.ui-field--inline {
   display: grid;
-  grid-template-columns: minmax(176px, 260px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(128px, 180px) minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
   width: 100%;
 }
 
 .global-settings__field.ui-field--inline .ui-field__control {
   justify-self: end;
-  width: min(100%, 360px);
+  width: min(100%, 320px);
 }
 
 .global-settings__row-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -1358,12 +1359,12 @@ body.main-window-body,
 
 .global-settings__control--compact {
   justify-self: end;
-  width: min(100%, 180px);
+  width: min(100%, 140px);
 }
 
 .global-settings__control--field {
   justify-self: end;
-  width: min(100%, 360px);
+  width: min(100%, 320px);
 }
 
 .global-settings__control--wide,
@@ -1685,7 +1686,7 @@ body.main-window-body,
 
 .subtitle-style-fields__typography-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(132px, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 12px;
   align-items: start;
   min-width: 0;
@@ -1770,6 +1771,10 @@ body.main-window-body,
 
 .subtitle-style-fields__field--slider .ui-field__control {
   min-height: 18px;
+}
+
+.subtitle-style-fields__field--slider .ui-slider {
+  margin: 0;
 }
 
 .subtitle-style-fields__field--behavior {

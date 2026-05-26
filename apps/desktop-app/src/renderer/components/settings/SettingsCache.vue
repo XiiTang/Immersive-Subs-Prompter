@@ -6,37 +6,37 @@
 
     <div v-if="cacheEnabled" class="settings-stack" data-testid="cache-settings-stack">
       <div class="cache-field-row">
-        <UiField id="cache-path" class="cache-field--grow" :label="t('cache-path-label', 'Cache Path')">
+        <UiField id="cache-path" class="cache-field--grow" :label="t('cache-path-label', 'Path')">
           <div class="ui-inline-control">
             <UiInput v-model="cachePath" />
-            <UiIconButton :label="t('button-open-cache', 'Open Cache Folder')" @click="openCacheFolder">
+            <UiIconButton :label="t('button-open-cache', 'Open Folder')" @click="openCacheFolder">
               <IconFolder size="md" />
             </UiIconButton>
           </div>
         </UiField>
 
-        <UiField id="cache-retention" class="cache-field--fixed" :label="t('cache-retention-label', 'Retention (days)')">
+        <UiField id="cache-retention" class="cache-field--fixed" :label="t('cache-retention-label', 'Days')">
           <UiInput v-model="cacheRetentionDays" type="number" min="1" max="9999" step="1" />
         </UiField>
       </div>
 
       <div class="ui-stat-grid">
         <div class="ui-stat">
-          <span class="ui-stat__label">{{ statLabel("cache-stats-entries", "Total entries") }}</span>
+          <span class="ui-stat__label">{{ statLabel("cache-stats-entries", "Entries") }}</span>
           <UiBadge>{{ cacheStatsDisplay.entries }}</UiBadge>
         </div>
         <div class="ui-stat">
-          <span class="ui-stat__label">{{ statLabel("cache-stats-size", "Total size") }}</span>
+          <span class="ui-stat__label">{{ statLabel("cache-stats-size", "Size") }}</span>
           <UiBadge>{{ cacheStatsDisplay.size }}</UiBadge>
         </div>
         <div class="ui-stat">
-          <span class="ui-stat__label">{{ statLabel("cache-stats-oldest", "Oldest entry") }}</span>
+          <span class="ui-stat__label">{{ statLabel("cache-stats-oldest", "Oldest") }}</span>
           <UiBadge>{{ cacheStatsDisplay.oldest }}</UiBadge>
           <UiIconButton
             data-testid="cache-stats-refresh"
             size="sm"
             :disabled="cacheBusy"
-            :label="t('button-refresh-stats', 'Refresh Stats')"
+            :label="t('button-refresh-stats', 'Refresh')"
             @click="refreshCacheStats"
           >
             <IconRefresh size="sm" :class="{ 'icon--spinning': cacheBusy }" />
