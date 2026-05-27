@@ -1,8 +1,5 @@
 <template>
   <section class="ui-group subtitle-style-preview" data-testid="subtitle-style-preview">
-    <header class="ui-group__header">
-      <h3 class="ui-group__title">{{ t("subtitle-preview-title", "Subtitle Preview") }}</h3>
-    </header>
     <div class="subtitle-style-preview__canvas" data-testid="subtitle-preview-canvas" :style="canvasStyle">
       <TranscriptSurface
         class="subtitle-style-preview__surface"
@@ -39,7 +36,6 @@ import {
   MAIN_WINDOW_DEFAULT_HEIGHT,
   MAIN_WINDOW_DEFAULT_WIDTH
 } from "../../../../common/windowDimensions.js";
-import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
 import { createAbLoopSelectionState } from "../../subtitle/abLoopSelection";
 import TranscriptSurface from "../../subtitle/TranscriptSurface.vue";
@@ -325,8 +321,6 @@ const MIN_SUBTITLE_FONT_SIZE = 3;
 const MAX_SUBTITLE_FONT_SIZE = 96;
 
 const store = useDesktopStore();
-const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
-const { t } = useI18n(language);
 
 const PREVIEW_TIME_SCALE = 1000;
 const activePreviewTime = ACTIVE_BLOCK.start * PREVIEW_TIME_SCALE + 500;

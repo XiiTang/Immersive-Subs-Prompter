@@ -15,13 +15,13 @@
         @rename="updateProfileName"
       />
       <div class="settings-split__editor" v-if="editingProfile">
-        <SubtitleStyleFields />
-        <SubtitleStylePreview />
         <ProfileUrlRules
           :profile-id="editingProfile.id"
           :is-default-profile="editingProfile.id === defaultProfileId"
           :rules="editingProfileRules"
         />
+        <SubtitleStyleFields />
+        <SubtitleStylePreview />
 
         <PriorityEditor
           role="primary"

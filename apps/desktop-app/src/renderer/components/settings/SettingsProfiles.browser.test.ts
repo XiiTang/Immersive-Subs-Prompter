@@ -439,7 +439,7 @@ describe("SettingsProfiles", () => {
     expect(fields.text()).not.toContain("Gap between subtitle text blocks");
   });
 
-  it("renders a fixed subtitle preview after subtitle style and color controls", async () => {
+  it("renders URL rules first and keeps the fixed subtitle preview after style controls", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.editingProfileId = "profile-1";
@@ -474,8 +474,9 @@ describe("SettingsProfiles", () => {
     const activeActions = activeMeta.get<HTMLElement>('[data-testid="transcript-cue-actions"]');
     const content = previewSurface.get<HTMLElement>(".transcript-surface__content").element;
 
+    expect(editorChildren[0]).toBe(urlRules);
+    expect(editorChildren.indexOf(urlRules)).toBeLessThan(editorChildren.indexOf(styleFields));
     expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(preview));
-    expect(editorChildren.indexOf(preview)).toBeLessThan(editorChildren.indexOf(urlRules));
     expect(styleFields.contains(colorGrid)).toBe(true);
     expect(editorChildren.includes(colorGrid)).toBe(false);
     const editorRect = editor.getBoundingClientRect();
@@ -484,6 +485,8 @@ describe("SettingsProfiles", () => {
     const previewRightGap = editorRect.right - previewCanvasRect.right;
     expect(previewLeftGap).toBeCloseTo(previewRightGap, 0);
     expect(wrapper.text()).not.toContain("390 x 630");
+    expect(wrapper.text()).not.toContain("Subtitle Preview");
+    expect(preview.querySelector(".ui-group__title")).toBeNull();
     expect(previewStyle.width).toBe("390px");
     expect(previewStyle.height).toBe("630px");
     expect(previewViewportStyle.overflowY).toBe("hidden");

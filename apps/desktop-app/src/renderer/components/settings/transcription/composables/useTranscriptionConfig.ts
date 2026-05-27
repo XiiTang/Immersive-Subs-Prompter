@@ -9,14 +9,16 @@ export interface UseTranscriptionConfigReturn {
   transcriptionPluginConfig: ComputedRef<TranscriptionPluginConfig>;
   activeConfigId: WritableComputedRef<string>;
   activeConfig: ComputedRef<TranscriptionConfig | null>;
+  selectedConfigId: Ref<string>;
+  selectedConfig: ComputedRef<TranscriptionConfig | null>;
   writePluginConfig: (config: TranscriptionPluginConfig) => void;
   updateConfig: (patch: Record<string, unknown>) => void;
+  updateConfigById: (configId: string, patch: Record<string, unknown>) => void;
   handleAddConfig: () => void;
   handleDeleteConfig: () => void;
   provider: WritableComputedRef<string>;
   isWhisperApi: ComputedRef<boolean>;
   isFasterWhisper: ComputedRef<boolean>;
-  configName: WritableComputedRef<string>;
   baseUrl: WritableComputedRef<string>;
   apiKey: WritableComputedRef<string>;
   model: WritableComputedRef<string>;
@@ -72,23 +74,36 @@ export function useTranscriptionConfig(
   const activeConfig = computed(
     () => transcriptionConfigs.value.find((config) => config.id === activeConfigId.value) ?? null
   );
+  const selectedConfigId = ref("");
+  const selectedConfig = computed(
+    () =>
+      transcriptionConfigs.value.find((config) => config.id === selectedConfigId.value) ??
+      activeConfig.value ??
+      transcriptionConfigs.value[0] ??
+      null
+  );
 
   function updateConfig(patch: Record<string, unknown>) {
-    if (!activeConfig.value) {
+    if (!selectedConfig.value) {
       return;
     }
+    updateConfigById(selectedConfig.value.id, patch);
+  }
+
+  function updateConfigById(configId: string, patch: Record<string, unknown>) {
     writePluginConfig({
       ...transcriptionPluginConfig.value,
       configs: transcriptionConfigs.value.map((config) =>
-        config.id === activeConfig.value?.id ? { ...config, ...patch } : config
+        config.id === configId ? { ...config, ...patch } : config
       )
     });
   }
 
   function handleAddConfig() {
     const id = createTranscriptionConfigId();
+    selectedConfigId.value = id;
     writePluginConfig({
-      activeConfigId: id,
+      activeConfigId: activeConfigId.value || id,
       configs: [
         ...transcriptionConfigs.value,
         {
@@ -100,10 +115,10 @@ export function useTranscriptionConfig(
   }
 
   function handleDeleteConfig() {
-    if (!activeConfig.value) {
+    if (!selectedConfig.value) {
       return;
     }
-    let configs = transcriptionConfigs.value.filter((config) => config.id !== activeConfig.value?.id);
+    let configs = transcriptionConfigs.value.filter((config) => config.id !== selectedConfig.value?.id);
     if (!configs.length) {
       configs = [
         {
@@ -112,61 +127,60 @@ export function useTranscriptionConfig(
         }
       ];
     }
+    selectedConfigId.value = configs[0]?.id ?? "";
+    const nextActiveConfigId = configs.some((config) => config.id === activeConfigId.value)
+      ? activeConfigId.value
+      : configs[0]?.id ?? null;
     writePluginConfig({
-      activeConfigId: configs[0]?.id ?? null,
+      activeConfigId: nextActiveConfigId,
       configs
     });
   }
 
   const provider = computed<string>({
-    get: () => activeConfig.value?.provider ?? "whisper-api",
+    get: () => selectedConfig.value?.provider ?? "whisper-api",
     set: (value: string) => updateConfig({ provider: value })
   });
 
   const isWhisperApi = computed(() => provider.value === "whisper-api");
   const isFasterWhisper = computed(() => provider.value === "faster-whisper");
 
-  const configName = computed<string>({
-    get: () => activeConfig.value?.name ?? "",
-    set: (value: string) => updateConfig({ name: value })
-  });
-
   const baseUrl = computed<string>({
-    get: () => activeConfig.value?.baseUrl ?? "",
+    get: () => selectedConfig.value?.baseUrl ?? "",
     set: (value: string) => updateConfig({ baseUrl: value })
   });
 
   const apiKey = computed<string>({
-    get: () => activeConfig.value?.apiKey ?? "",
+    get: () => selectedConfig.value?.apiKey ?? "",
     set: (value: string) => updateConfig({ apiKey: value })
   });
 
   const model = computed<string>({
-    get: () => activeConfig.value?.model ?? "",
+    get: () => selectedConfig.value?.model ?? "",
     set: (value: string) => updateConfig({ model: value })
   });
 
   const languageField = computed<string>({
-    get: () => activeConfig.value?.language ?? "",
+    get: () => selectedConfig.value?.language ?? "",
     set: (value: string) => updateConfig({ language: value })
   });
 
   const prompt = computed<string>({
-    get: () => activeConfig.value?.prompt ?? "",
+    get: () => selectedConfig.value?.prompt ?? "",
     set: (value: string) => updateConfig({ prompt: value })
   });
 
   const ytDlpArgs = computed<string>({
-    get: () => activeConfig.value?.ytDlpArgs ?? "",
+    get: () => selectedConfig.value?.ytDlpArgs ?? "",
     set: (value: string) => updateConfig({ ytDlpArgs: value })
   });
 
   const extraParamsError = ref<string | null>(null);
 
   const extraParamsText = computed<string>({
-    get: () => JSON.stringify(activeConfig.value?.extraParams ?? {}, null, 2),
+    get: () => JSON.stringify(selectedConfig.value?.extraParams ?? {}, null, 2),
     set: (value: string) => {
-      if (!activeConfig.value) {
+      if (!selectedConfig.value) {
         return;
       }
       const trimmed = value.trim();
@@ -193,66 +207,69 @@ export function useTranscriptionConfig(
   });
 
   const fasterWhisperBinary = computed<string>({
-    get: () => activeConfig.value?.fasterWhisperBinary ?? "",
+    get: () => selectedConfig.value?.fasterWhisperBinary ?? "",
     set: (value: string) => updateConfig({ fasterWhisperBinary: value })
   });
 
   const fasterWhisperModel = computed<string>({
-    get: () => activeConfig.value?.fasterWhisperModel ?? "",
+    get: () => selectedConfig.value?.fasterWhisperModel ?? "",
     set: (value: string) => updateConfig({ fasterWhisperModel: value })
   });
 
   const fasterWhisperModelDir = computed<string>({
-    get: () => activeConfig.value?.fasterWhisperModelDir ?? "",
+    get: () => selectedConfig.value?.fasterWhisperModelDir ?? "",
     set: (value: string) => updateConfig({ fasterWhisperModelDir: value })
   });
 
   const fasterWhisperDevice = computed<"cpu" | "cuda">({
-    get: () => activeConfig.value?.fasterWhisperDevice ?? "cpu",
+    get: () => selectedConfig.value?.fasterWhisperDevice ?? "cpu",
     set: (value: "cpu" | "cuda") => updateConfig({ fasterWhisperDevice: value })
   });
 
   const fasterWhisperVadFilter = computed<boolean>({
-    get: () => activeConfig.value?.fasterWhisperVadFilter ?? true,
+    get: () => selectedConfig.value?.fasterWhisperVadFilter ?? true,
     set: (value: boolean) => updateConfig({ fasterWhisperVadFilter: value })
   });
 
   const fasterWhisperVadThreshold = computed<number>({
-    get: () => activeConfig.value?.fasterWhisperVadThreshold ?? 0.5,
+    get: () => selectedConfig.value?.fasterWhisperVadThreshold ?? 0.5,
     set: (value: number) => {
-      const current = activeConfig.value?.fasterWhisperVadThreshold ?? 0.5;
+      const current = selectedConfig.value?.fasterWhisperVadThreshold ?? 0.5;
       const normalized = Number.isFinite(value) ? value : current;
       updateConfig({ fasterWhisperVadThreshold: normalized });
     }
   });
 
   const fasterWhisperVadMethod = computed<string>({
-    get: () => activeConfig.value?.fasterWhisperVadMethod ?? "",
+    get: () => selectedConfig.value?.fasterWhisperVadMethod ?? "",
     set: (value: string) => updateConfig({ fasterWhisperVadMethod: value })
   });
 
   const fasterWhisperUseKim2 = computed<boolean>({
-    get: () => activeConfig.value?.fasterWhisperUseKim2 ?? false,
+    get: () => selectedConfig.value?.fasterWhisperUseKim2 ?? false,
     set: (value: boolean) => updateConfig({ fasterWhisperUseKim2: value })
   });
 
-  watch(activeConfig, () => {
+  watch(selectedConfig, (config) => {
+    selectedConfigId.value = config?.id ?? "";
     extraParamsError.value = null;
-  });
+  }, { immediate: true });
 
   return {
     transcriptionConfigs,
     transcriptionPluginConfig,
     activeConfigId,
     activeConfig,
+    selectedConfigId,
+    selectedConfig,
     writePluginConfig,
     updateConfig,
+    updateConfigById,
     handleAddConfig,
     handleDeleteConfig,
     provider,
     isWhisperApi,
     isFasterWhisper,
-    configName,
     baseUrl,
     apiKey,
     model,

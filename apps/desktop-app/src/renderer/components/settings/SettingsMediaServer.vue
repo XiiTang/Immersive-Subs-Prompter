@@ -23,27 +23,55 @@
             <UiListItem
               v-for="config in mediaServerConfigs"
               :key="config.id"
-              as="button"
+              as="div"
               class="mediaserver-config-list__item"
               :selected="config.id === selectedMediaServerConfigId"
               :disabled="!config.enabled"
               @click="selectedMediaServerConfigId = config.id"
             >
-              <div class="mediaserver-config-list__name">
-                {{ config.name || config.serverUrl || t("mediaserver-untitled", "Untitled") }}
+              <div class="mediaserver-config-list__content">
+                <UiInput
+                  v-if="editingMediaServerNameConfigId === config.id"
+                  class="settings-config-name-input mediaserver-config-list__name-input"
+                  data-testid="mediaserver-config-name-input"
+                  :data-config-id="config.id"
+                  v-model="draftMediaServerName"
+                  :aria-label="t('server-name-label', 'Server Name')"
+                  @click.stop
+                  @mousedown.stop
+                  @dragstart.stop
+                  @keydown.enter.prevent.stop="($event.target as HTMLInputElement).blur()"
+                  @keydown.escape.prevent.stop="cancelMediaServerNameEdit"
+                  @blur="commitMediaServerName(config.id)"
+                />
+                <UiButton
+                  v-else
+                  variant="ghost"
+                  size="sm"
+                  class="settings-config-name-action mediaserver-config-list__name-action"
+                  data-testid="mediaserver-config-name-action"
+                  @click.stop="startMediaServerNameEdit(config)"
+                  @mousedown.stop
+                  @dragstart.stop
+                >
+                  {{ getMediaServerName(config) }}
+                </UiButton>
               </div>
-              <UiBadge :tone="config.enabled ? 'success' : 'neutral'">
-                {{ config.enabled ? t("mediaserver-config-enabled", "Enabled") : t("mediaserver-config-disabled", "Disabled") }}
-              </UiBadge>
+              <UiCheckIndicator
+                class="settings-config-state-indicator"
+                :checked="config.enabled"
+                :label="getMediaServerStateLabel(config)"
+                tone="success"
+                test-id="mediaserver-config-state"
+                @click.stop
+                @update:checked="(enabled) => setMediaServerEnabled(config.id, enabled)"
+              />
             </UiListItem>
           </template>
           <UiEmptyState v-else :message="t('mediaserver-no-servers', 'No servers configured')" />
         </div>
       </div>
       <div class="settings-split__editor" v-if="selectedMediaServerConfig">
-        <UiField id="server-name" :label="t('server-name-label', 'Server Name')">
-          <UiInput v-model="mediaServerName" />
-        </UiField>
         <UiField id="server-url" :label="t('server-url-label', 'Server URL')">
           <UiInput v-model="mediaServerServerUrl" />
         </UiField>
@@ -53,20 +81,18 @@
         <UiField id="server-ws-path" :label="t('ws-path-label', 'WebSocket Path')">
           <UiInput v-model="mediaServerWsPath" />
         </UiField>
-        <UiField id="server-enabled" :label="t('mediaserver-config-state-label', 'Server')" inline>
-          <UiSwitch v-model="mediaServerConfigEnabled" :label="mediaServerConfigEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
-        </UiField>
       </div>
     </div>
   </UiSection>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
+import type { JellyfinembyServerConfig } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { IconAdd, IconDelete } from "../icons";
-import { UiBadge, UiEmptyState, UiField, UiIconButton, UiInput, UiListItem, UiSection, UiSwitch } from "../ui";
+import { UiButton, UiCheckIndicator, UiEmptyState, UiField, UiIconButton, UiInput, UiListItem, UiSection } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -74,19 +100,12 @@ const { t } = useI18n(language);
 
 const mediaServerConfigs = computed(() => store.getJellyfinembyPluginConfig().servers);
 const selectedMediaServerConfigId = ref<string | null>(null);
+const editingMediaServerNameConfigId = ref<string | null>(null);
+const draftMediaServerName = ref("");
 
 const selectedMediaServerConfig = computed(() =>
   mediaServerConfigs.value.find((c) => c.id === selectedMediaServerConfigId.value)
 );
-
-const mediaServerName = computed({
-  get: () => selectedMediaServerConfig.value?.name ?? "",
-  set: (value: string) => {
-    if (selectedMediaServerConfigId.value) {
-      store.updateMediaServerConfig(selectedMediaServerConfigId.value, { name: value });
-    }
-  }
-});
 
 const mediaServerServerUrl = computed({
   get: () => selectedMediaServerConfig.value?.serverUrl ?? "",
@@ -115,15 +134,6 @@ const mediaServerWsPath = computed({
   }
 });
 
-const mediaServerConfigEnabled = computed({
-  get: () => selectedMediaServerConfig.value?.enabled ?? true,
-  set: (value: boolean) => {
-    if (selectedMediaServerConfigId.value) {
-      store.updateMediaServerConfig(selectedMediaServerConfigId.value, { enabled: value });
-    }
-  }
-});
-
 function addMediaServerConfig() {
   const id = store.addMediaServerConfig();
   if (id) {
@@ -136,6 +146,48 @@ function deleteSelectedMediaServerConfig() {
     store.deleteMediaServerConfig(selectedMediaServerConfigId.value);
     selectedMediaServerConfigId.value = null;
   }
+}
+
+function getMediaServerName(config: JellyfinembyServerConfig) {
+  return config.name || config.serverUrl || t("mediaserver-untitled", "Untitled");
+}
+
+function getMediaServerStateLabel(config: JellyfinembyServerConfig) {
+  return config.enabled
+    ? t("mediaserver-config-enabled", "Enabled")
+    : t("mediaserver-config-disabled", "Disabled");
+}
+
+function setMediaServerEnabled(configId: string, enabled: boolean) {
+  selectedMediaServerConfigId.value = configId;
+  store.updateMediaServerConfig(configId, { enabled });
+}
+
+async function startMediaServerNameEdit(config: JellyfinembyServerConfig) {
+  selectedMediaServerConfigId.value = config.id;
+  editingMediaServerNameConfigId.value = config.id;
+  draftMediaServerName.value = getMediaServerName(config);
+  await nextTick();
+  const input = Array.from(document.querySelectorAll<HTMLInputElement>('[data-testid="mediaserver-config-name-input"]')).find(
+    (element) => element.dataset.configId === config.id
+  );
+  input?.focus();
+  input?.select();
+}
+
+function cancelMediaServerNameEdit() {
+  editingMediaServerNameConfigId.value = null;
+  draftMediaServerName.value = "";
+}
+
+function commitMediaServerName(configId: string) {
+  const name = draftMediaServerName.value.trim();
+  editingMediaServerNameConfigId.value = null;
+  draftMediaServerName.value = "";
+  if (!name.length) {
+    return;
+  }
+  store.updateMediaServerConfig(configId, { name });
 }
 
 watch(

@@ -75,7 +75,6 @@
   "subtitle-secondary-color-label": "Secondary",
   "subtitle-active-primary-color-label": "Active Pri.",
   "subtitle-active-secondary-color-label": "Active Sec.",
-  "subtitle-preview-title": "Subtitle Preview",
   "primary-priority-label": "Primary Priority",
   "primary-priority-hint": "Use regular expressions; drag to reorder.",
   "primary-priority-placeholder": "e.g.: en or zh-Hans",

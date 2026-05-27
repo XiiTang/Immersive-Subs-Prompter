@@ -75,7 +75,6 @@
   "subtitle-secondary-color-label": "副字幕颜色",
   "subtitle-active-primary-color-label": "高亮主字幕颜色",
   "subtitle-active-secondary-color-label": "高亮副字幕颜色",
-  "subtitle-preview-title": "字幕预览",
   "primary-priority-label": "主字幕优先级",
   "primary-priority-hint": "用正则表达式匹配；拖动排序",
   "primary-priority-placeholder": "例如：en 或 zh-Hans",

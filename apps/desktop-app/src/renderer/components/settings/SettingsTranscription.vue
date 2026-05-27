@@ -1,18 +1,18 @@
 <template>
-  <UiSection :title="t('section-transcription', 'Speech Transcription')">
-    <div class="settings-split">
+  <UiSection class="transcription-settings" :title="t('section-transcription', 'Speech Transcription')">
+    <div class="settings-split transcription-settings__split">
       <TranscriptionConfigList
         :transcription-configs="transcriptionConfigs"
         :active-config-id="activeConfigId"
+        :selected-config-id="selectedConfigId"
         :t="t"
         @add="handleAddConfig"
         @delete="handleDeleteConfig"
-        @select="(id) => (activeConfigId = id)"
+        @activate="(id) => (activeConfigId = id)"
+        @rename="renameConfig"
+        @select="(id) => (selectedConfigId = id)"
       />
-      <div class="settings-split__editor" v-if="activeConfig">
-        <UiField id="transcription-name" :label="t('transcription-name-label', 'Config Name')">
-          <UiInput v-model="configName" />
-        </UiField>
+      <div class="settings-split__editor transcription-settings__editor" v-if="selectedConfig">
         <UiField id="transcription-provider" :label="t('transcription-provider-label', 'Provider')">
           <UiSelect :model-value="provider" :options="providerOptions" @update:model-value="handleProviderInput" />
         </UiField>
@@ -27,7 +27,7 @@
           />
         </template>
         <template v-else-if="isFasterWhisper">
-          <div class="settings-stack">
+          <div class="settings-stack transcription-settings__stack">
             <div v-if="downloadProgress" class="settings-progress">
               <div class="settings-progress__info">
                 <span>{{ downloadProgress.status }}</span>
@@ -36,7 +36,7 @@
               <UiProgress :value="downloadProgress.percent" :label="t('transcription-download-progress', 'Download progress')" />
             </div>
 
-            <div class="settings-grid settings-grid--two">
+            <div class="settings-grid settings-grid--two transcription-settings__resource-grid">
               <FasterWhisperBinariesCard
                 :t="t"
                 :binary-status="binaryStatus"
@@ -117,14 +117,15 @@ const providerOptions = computed(() => [
 const {
   transcriptionConfigs,
   activeConfigId,
-  activeConfig,
+  selectedConfigId,
+  selectedConfig,
   updateConfig,
+  updateConfigById,
   handleAddConfig,
   handleDeleteConfig,
   provider,
   isWhisperApi,
   isFasterWhisper,
-  configName,
   baseUrl,
   apiKey,
   model,
@@ -159,7 +160,7 @@ const {
   openPath
 } = useFasterWhisper({
   t,
-  activeConfig,
+  activeConfig: selectedConfig,
   isFasterWhisper,
   updateConfig,
   fasterWhisperModel,
@@ -170,5 +171,9 @@ function handleProviderInput(value: string) {
   if (value === "whisper-api" || value === "faster-whisper") {
     provider.value = value;
   }
+}
+
+function renameConfig(configId: string, name: string) {
+  updateConfigById(configId, { name });
 }
 </script>

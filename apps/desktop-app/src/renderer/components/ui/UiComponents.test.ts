@@ -5,6 +5,7 @@ import {
   UiBadge,
   UiButton,
   UiColorInput,
+  UiCheckIndicator,
   UiEmptyState,
   UiField,
   UiIconButton,
@@ -279,12 +280,25 @@ describe("UI primitives", () => {
     expect(tooltip.get("button").text()).toBe("Refresh");
   });
 
-  it("renders section, list item, badge, status, and empty state classes", () => {
+  it("renders section, list item, badge, status, check indicator, and empty state classes", () => {
     expect(mount(UiSection, { props: { title: "General" } }).classes()).toContain("ui-section");
     expect(mount(UiListItem, { props: { selected: true } }).classes()).toContain("is-selected");
     expect(mount(UiBadge, { props: { tone: "success" }, slots: { default: "Ready" } }).classes()).toContain("ui-badge--success");
     expect(mount(UiStatus, { props: { tone: "danger" }, slots: { default: "Error" } }).classes()).toContain("ui-status--danger");
+    const indicator = mount(UiCheckIndicator, { props: { checked: true, label: "Enabled" } });
+    expect(indicator.classes()).toContain("ui-check-indicator");
+    expect(indicator.classes()).toContain("ui-check-indicator--sm");
+    expect(indicator.attributes("data-state")).toBe("checked");
+    expect(indicator.get(".ui-check-indicator__check").exists()).toBe(true);
     expect(mount(UiEmptyState, { props: { message: "No items" } }).text()).toBe("No items");
+  });
+
+  it("emits check indicator state changes from the circular control", async () => {
+    const indicator = mount(UiCheckIndicator, { props: { checked: false, label: "Enable" } });
+
+    await indicator.trigger("click");
+
+    expect(indicator.emitted("update:checked")?.[0]).toEqual([true]);
   });
 
   it("renders segmented controls and emits selected values", async () => {
