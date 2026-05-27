@@ -500,6 +500,34 @@ describe("SettingsProfiles", () => {
     expect(activeActions.classes()).toContain("transcript-block__cue-actions");
   });
 
+  it("omits the fallback summary badge from the default profile URL rules panel", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const urlRules = wrapper.get('[data-testid="profile-url-rules"]');
+    const headerBounds = wrapper.get<HTMLElement>(".profile-url-rules__header").element.getBoundingClientRect();
+    const hint = urlRules.get<HTMLElement>(".profile-url-rules__hint");
+    const hintBounds = hint.element.getBoundingClientRect();
+    const hintStyle = getComputedStyle(hint.element);
+
+    expect(urlRules.text()).toContain("URL Rules");
+    expect(urlRules.text()).toContain("Fallback when no URL rule matches.");
+    expect(urlRules.find(".ui-badge").exists()).toBe(false);
+    expect(hintBounds.right).toBeCloseTo(headerBounds.right, 0);
+    expect(hintStyle.textAlign).toBe("right");
+  });
+
   it("renders the subtitle preview through the real transcript surface", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();

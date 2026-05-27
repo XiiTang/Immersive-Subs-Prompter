@@ -8,9 +8,6 @@
         </span>
       </div>
     </header>
-
-    <UiBadge v-if="isDefaultProfile">{{ t("profile-url-default-summary", "Fallback") }}</UiBadge>
-
     <PillListEditor
       v-else
       class="profile-url-rules__editor"
@@ -40,7 +37,6 @@ import type { UrlRuleMatchType } from "../../../../common/urlRuleMatcher.js";
 import type { ProfileRule } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
-import { UiBadge } from "../../ui";
 import PillListEditor from "../PillListEditor.vue";
 import type { PillListEditorItem } from "../pillListEditorTypes";
 

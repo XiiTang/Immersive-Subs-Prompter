@@ -504,6 +504,10 @@ textarea {
   min-width: 0;
 }
 
+.profile-url-rules__label-row {
+  justify-content: space-between;
+}
+
 .ui-field__control {
   display: flex;
   align-items: center;
@@ -2006,6 +2010,11 @@ body.main-window-body,
 .priority-editor__hint-link {
   color: var(--ui-text-muted);
   font-size: var(--ui-font-sm);
+}
+
+.profile-url-rules__hint {
+  margin-left: auto;
+  text-align: right;
 }
 
 .priority-editor__hint-link {
