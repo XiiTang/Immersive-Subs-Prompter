@@ -5,6 +5,7 @@ export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
 
 type Dictionary = Record<string, string>;
+type TranslationReplacements = Record<string, string | number | boolean | null | undefined>;
 
 // Each locale is emitted as a separate chunk by Vite thanks to the dynamic
 // import; only the active locale is fetched at runtime.
@@ -70,17 +71,17 @@ export function formatTranslation(
   key: string,
   fallback = "",
   language: SupportedLanguage,
-  replacements: Record<string, string> = {}
+  replacements: TranslationReplacements = {}
 ): string {
   let text = translate(key, fallback, language);
   for (const [placeholder, replacement] of Object.entries(replacements)) {
-    text = text.split(`{${placeholder}}`).join(replacement);
+    text = text.split(`{${placeholder}}`).join(String(replacement ?? ""));
   }
   return text;
 }
 
 export function useI18n(language: ComputedRef<string>) {
-  const t = (key: string, fallback = "", replacements: Record<string, string> = {}) =>
+  const t = (key: string, fallback = "", replacements: TranslationReplacements = {}) =>
     formatTranslation(key, fallback, normalizeLanguage(language.value), replacements);
   return { t };
 }

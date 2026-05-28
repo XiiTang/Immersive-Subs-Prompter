@@ -1,0 +1,179 @@
+{
+  "extensionName": {
+    "message": "Immersive Subs Prompter"
+  },
+  "extensionDescription": {
+    "message": "Captures playback info from major video sites and relays it to the Immersive Subs Prompter desktop app for immersive subtitle learning."
+  },
+  "popupTitle": {
+    "message": "Media Monitor"
+  },
+  "popupStatusConnecting": {
+    "message": "Connecting..."
+  },
+  "popupStatusDisconnected": {
+    "message": "Disconnected"
+  },
+  "popupStatusUnavailable": {
+    "message": "Unavailable"
+  },
+  "popupSettings": {
+    "message": "Settings"
+  },
+  "popupNoMediaTitle": {
+    "message": "No media detected"
+  },
+  "popupNoMediaDescription": {
+    "message": "Start playing a video to see the live breakdown here."
+  },
+  "popupNoMediaInitialDescription": {
+    "message": "Start playback on YouTube, Bilibili, Douyin, or another supported site."
+  },
+  "settingsBack": {
+    "message": "Back"
+  },
+  "settingsTitle": {
+    "message": "Settings"
+  },
+  "settingsAppearance": {
+    "message": "Appearance"
+  },
+  "settingsLanguage": {
+    "message": "Language"
+  },
+  "settingsLanguageSystem": {
+    "message": "System"
+  },
+  "settingsLanguageEnglish": {
+    "message": "English"
+  },
+  "settingsLanguageChinese": {
+    "message": "中文"
+  },
+  "settingsTheme": {
+    "message": "Theme"
+  },
+  "settingsThemeSystem": {
+    "message": "System"
+  },
+  "settingsThemeLight": {
+    "message": "Light"
+  },
+  "settingsThemeDark": {
+    "message": "Dark"
+  },
+  "settingsConnections": {
+    "message": "Connections"
+  },
+  "settingsServerSummaryEmpty": {
+    "message": "Add a server address to start syncing."
+  },
+  "settingsServerSummaryConnected": {
+    "message": "$1/$2 connected"
+  },
+  "settingsBlacklist": {
+    "message": "Blacklist"
+  },
+  "blacklistRulePlaceholder": {
+    "message": "youtube.com, *.site.com/path/*, =full URL, re:pattern"
+  },
+  "serverEndpointPlaceholder": {
+    "message": "ws://192.168.1.10:44501/?token=..."
+  },
+  "actionRemove": {
+    "message": "Remove"
+  },
+  "statusConnected": {
+    "message": "Connected"
+  },
+  "statusConnecting": {
+    "message": "Connecting"
+  },
+  "statusIdle": {
+    "message": "Idle"
+  },
+  "statusDisconnected": {
+    "message": "Disconnected"
+  },
+  "statusError": {
+    "message": "Error"
+  },
+  "statusWithError": {
+    "message": "$1 · Error"
+  },
+  "validationInvalidServerAddress": {
+    "message": "Enter a valid ws:// or wss:// address"
+  },
+  "validationInvalidRegex": {
+    "message": "Invalid regular expression"
+  },
+  "ruleTypeDomain": {
+    "message": "Domain"
+  },
+  "ruleTypeGlob": {
+    "message": "Glob"
+  },
+  "ruleTypeExact": {
+    "message": "Exact"
+  },
+  "ruleTypeRegex": {
+    "message": "Regex"
+  },
+  "ruleTypeContains": {
+    "message": "Contains"
+  },
+  "mediaUnknownTitle": {
+    "message": "Unknown media"
+  },
+  "mediaStatusPlaying": {
+    "message": "Playing"
+  },
+  "mediaStatusPaused": {
+    "message": "Paused"
+  },
+  "mediaMetaSpeed": {
+    "message": "Speed $1x"
+  },
+  "mediaMetaVolume": {
+    "message": "Volume $1"
+  },
+  "mediaMuted": {
+    "message": "Muted"
+  },
+  "mediaPictureInPicture": {
+    "message": "PiP"
+  },
+  "mediaTotalLive": {
+    "message": "Live"
+  },
+  "mediaOpenTab": {
+    "message": "Open tab"
+  },
+  "relativeJustNow": {
+    "message": "just now"
+  },
+  "relativeSecondsAgo": {
+    "message": "$1s ago"
+  },
+  "relativeMinutesAgo": {
+    "message": "$1m ago"
+  },
+  "relativeHoursAgo": {
+    "message": "$1h ago"
+  },
+  "dashboardServers": {
+    "message": "$1/$2 servers"
+  },
+  "dashboardNoServers": {
+    "message": "No servers"
+  },
+  "dashboardPlaying": {
+    "message": "$1 playing"
+  },
+  "dashboardTracked": {
+    "message": "$1 tracked"
+  },
+  "dashboardUpdated": {
+    "message": "updated $1"
+  }
+}

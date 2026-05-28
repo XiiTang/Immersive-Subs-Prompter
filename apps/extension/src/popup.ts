@@ -8,7 +8,17 @@ import {
 } from "./shared/appearance";
 import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils";
 import { normalizeBlacklistRules, areBlacklistRulesEqual } from "./shared/blacklist-utils";
-import { createCloseIcon } from "./shared/icons";
+import { createArrowLeftIcon, createCloseIcon } from "./shared/icons";
+import {
+  LANGUAGE_STORAGE_KEY,
+  applyDocumentI18n,
+  formatMessage,
+  getLanguagePreference,
+  normalizeLanguagePreference,
+  setLanguagePreference,
+  t,
+  type LanguagePreference
+} from "./shared/i18n";
 import { getUrlRuleMatchType, parseUrlRulePattern, type UrlRuleMatchType } from "./shared/url-rule-matcher";
 import type { BlacklistRule, DashboardResponseMessage, DashboardSnapshot, DesktopConnectionSnapshot, MediaInfo } from "./shared/types";
 
@@ -20,12 +30,10 @@ const settingsPanel = document.getElementById("settings-panel");
 const settingsButton = document.getElementById("settings-btn");
 const settingsBackButton = document.getElementById("settings-back");
 const appearanceOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-theme-option]"));
+const languageOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-language-option]"));
 const template = document.getElementById("media-row-template") as HTMLTemplateElement | null;
 const blacklistListEl = document.getElementById("blacklist-list");
 const blacklistDraftErrorEl = document.getElementById("blacklist-draft-error");
-
-const BLACKLIST_RULE_PLACEHOLDER = "youtube.com, *.site.com/path/*, =full URL, re:pattern";
-const SERVER_ENDPOINT_PLACEHOLDER = "ws://192.168.1.10:44501/?token=...";
 
 let port: chrome.runtime.Port | null = null;
 let blacklistRules: BlacklistRule[] = [];
@@ -40,6 +48,19 @@ let serverDraftValue = "";
 let blacklistDraftInputEl: HTMLInputElement | null = null;
 let blacklistDraftValue = "";
 let appearanceTheme: AppearanceTheme = "system";
+let lastSnapshot: DashboardSnapshot | null = null;
+let staticStatus: { key: string; fallback: string } | null = {
+  key: "popupStatusConnecting",
+  fallback: "Connecting..."
+};
+
+function blacklistRulePlaceholder() {
+  return t("blacklistRulePlaceholder", "youtube.com, *.site.com/path/*, =full URL, re:pattern");
+}
+
+function serverEndpointPlaceholder() {
+  return t("serverEndpointPlaceholder", "ws://192.168.1.10:44501/?token=...");
+}
 
 function setStatus(text: string) {
   if (statusEl) {
@@ -47,10 +68,21 @@ function setStatus(text: string) {
   }
 }
 
+function setLocalizedStatus(key: string, fallback: string) {
+  staticStatus = { key, fallback };
+  setStatus(t(key, fallback));
+}
+
+function mountStaticIcons() {
+  if (settingsBackButton && settingsBackButton.childElementCount === 0) {
+    settingsBackButton.appendChild(createArrowLeftIcon({ size: 14, className: "icon icon--arrow-left" }));
+  }
+}
+
 export function appearanceLabel(theme: AppearanceTheme): string {
-  if (theme === "light") return "Light";
-  if (theme === "dark") return "Dark";
-  return "System";
+  if (theme === "light") return t("settingsThemeLight", "Light");
+  if (theme === "dark") return t("settingsThemeDark", "Dark");
+  return t("settingsThemeSystem", "System");
 }
 
 function systemPrefersDark() {
@@ -71,6 +103,37 @@ function applyAppearance(theme: AppearanceTheme) {
 function saveAppearance(theme: AppearanceTheme) {
   applyAppearance(theme);
   chrome.storage.local.set({ [APPEARANCE_STORAGE_KEY]: theme });
+}
+
+function applyLanguagePreference(preference: LanguagePreference) {
+  setLanguagePreference(preference);
+  applyDocumentI18n(document);
+  syncLanguageOptionButtons();
+  applyAppearance(appearanceTheme);
+  renderServers();
+  renderBlacklistRules();
+  if (lastSnapshot) {
+    handleSnapshot(lastSnapshot);
+    return;
+  }
+  if (staticStatus) {
+    setStatus(t(staticStatus.key, staticStatus.fallback));
+  }
+  renderEmptyState();
+}
+
+function saveLanguagePreference(preference: LanguagePreference) {
+  applyLanguagePreference(preference);
+  chrome.storage.local.set({ [LANGUAGE_STORAGE_KEY]: preference });
+}
+
+function syncLanguageOptionButtons() {
+  const preference = getLanguagePreference();
+  for (const button of languageOptionButtons) {
+    const selected = normalizeLanguagePreference(button.dataset.languageOption) === preference;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", String(selected));
+  }
 }
 
 function normalizeConnections(input: unknown): PopupConnection[] {
@@ -94,13 +157,13 @@ function getConnectionInfo(endpoint: string): PopupConnection | null {
 function connectionStatusLabel(state: PopupConnection["state"], hasError: boolean) {
   const base =
     state === "connected"
-      ? "Connected"
+      ? t("statusConnected", "Connected")
       : state === "connecting"
-        ? "Connecting"
+        ? t("statusConnecting", "Connecting")
         : state === "idle"
-          ? "Idle"
-          : "Disconnected";
-  return hasError ? `${base} · Error` : base;
+          ? t("statusIdle", "Idle")
+          : t("statusDisconnected", "Disconnected");
+  return hasError ? formatMessage("statusWithError", "{status} · Error", { status: base }) : base;
 }
 
 function connectionPillClass(state: PopupConnection["state"], hasError: boolean) {
@@ -118,7 +181,7 @@ function setServerError(message = "") {
 function addServerEndpoint(rawValue: string) {
   const normalized = normalizeEndpoint(rawValue);
   if (!normalized) {
-    setServerError("Enter a valid ws:// or wss:// address");
+    setServerError(t("validationInvalidServerAddress", "Enter a valid ws:// or wss:// address"));
     return;
   }
   serverError = "";
@@ -153,7 +216,9 @@ function renderServers() {
   const total = serverEndpoints.length || connectionStatuses.length;
   const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
   if (serverSummaryEl) {
-    serverSummaryEl.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
+    serverSummaryEl.textContent = total
+      ? formatMessage("settingsServerSummaryConnected", "{connected}/{total} connected", { connected, total })
+      : t("settingsServerSummaryEmpty", "Add a server address to start syncing.");
   }
 
   const editor = document.createElement("div");
@@ -193,8 +258,8 @@ function renderServers() {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove server-remove";
-    removeBtn.title = "Remove";
-    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.title = t("actionRemove", "Remove");
+    removeBtn.setAttribute("aria-label", t("actionRemove", "Remove"));
     removeBtn.dataset.testid = `server-endpoint-remove-${endpoint}`;
     removeBtn.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
     removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
@@ -224,17 +289,17 @@ function createServerDraftItem() {
   const sizer = document.createElement("span");
   sizer.className = "pill-list-editor__draft-sizer";
   sizer.setAttribute("aria-hidden", "true");
-  sizer.textContent = serverDraftValue || SERVER_ENDPOINT_PLACEHOLDER || " ";
+  sizer.textContent = serverDraftValue || serverEndpointPlaceholder() || " ";
 
   serverDraftInputEl = document.createElement("input");
   serverDraftInputEl.type = "text";
   serverDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
   serverDraftInputEl.dataset.testid = "server-draft-input";
-  serverDraftInputEl.placeholder = SERVER_ENDPOINT_PLACEHOLDER;
+  serverDraftInputEl.placeholder = serverEndpointPlaceholder();
   serverDraftInputEl.value = serverDraftValue;
   serverDraftInputEl.addEventListener("input", () => {
     serverDraftValue = serverDraftInputEl?.value ?? "";
-    sizer.textContent = serverDraftValue || SERVER_ENDPOINT_PLACEHOLDER || " ";
+    sizer.textContent = serverDraftValue || serverEndpointPlaceholder() || " ";
     if (serverError) {
       serverError = "";
       if (serverDraftErrorEl) {
@@ -275,7 +340,7 @@ function formatTime(value: number | null | undefined) {
 }
 
 function formatVolume(volume: number | null | undefined, muted: boolean | null | undefined) {
-  if (muted) return "Muted";
+  if (muted) return t("mediaMuted", "Muted");
   if (typeof volume !== "number" || volume < 0) return "--";
   return `${Math.round(volume * 100)}%`;
 }
@@ -291,21 +356,25 @@ function formatResolution(width: number | null | undefined, height: number | nul
 }
 
 function formatRelative(delta: number | null | undefined) {
-  if (delta == null) return "just now";
+  if (delta == null) return t("relativeJustNow", "just now");
   const seconds = Math.floor(delta / 1000);
-  if (seconds <= 1) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds <= 1) return t("relativeJustNow", "just now");
+  if (seconds < 60) return formatMessage("relativeSecondsAgo", "{seconds}s ago", { seconds });
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return formatMessage("relativeMinutesAgo", "{minutes}m ago", { minutes });
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  return formatMessage("relativeHoursAgo", "{hours}h ago", { hours });
 }
 
 function renderEmptyState() {
   if (!mediaRoot) return;
   const empty = document.createElement("div");
   empty.className = "ui-empty-state empty-state";
-  empty.innerHTML = "<strong>No media detected</strong><p>Start playing a video to see the live breakdown here.</p>";
+  const title = document.createElement("strong");
+  title.textContent = t("popupNoMediaTitle", "No media detected");
+  const description = document.createElement("p");
+  description.textContent = t("popupNoMediaDescription", "Start playing a video to see the live breakdown here.");
+  empty.append(title, description);
   mediaRoot.replaceChildren(empty);
 }
 
@@ -362,8 +431,8 @@ function renderBlacklistRules() {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove";
-    removeButton.title = "Remove";
-    removeButton.setAttribute("aria-label", "Remove");
+    removeButton.title = t("actionRemove", "Remove");
+    removeButton.setAttribute("aria-label", t("actionRemove", "Remove"));
     removeButton.dataset.testid = `blacklist-rule-remove-${rule.id}`;
     removeButton.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
     removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
@@ -408,17 +477,17 @@ function createBlacklistDraftItem() {
   const sizer = document.createElement("span");
   sizer.className = "pill-list-editor__draft-sizer";
   sizer.setAttribute("aria-hidden", "true");
-  sizer.textContent = blacklistDraftValue || BLACKLIST_RULE_PLACEHOLDER || " ";
+  sizer.textContent = blacklistDraftValue || blacklistRulePlaceholder() || " ";
 
   blacklistDraftInputEl = document.createElement("input");
   blacklistDraftInputEl.type = "text";
   blacklistDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
   blacklistDraftInputEl.dataset.testid = "blacklist-draft-input";
-  blacklistDraftInputEl.placeholder = BLACKLIST_RULE_PLACEHOLDER;
+  blacklistDraftInputEl.placeholder = blacklistRulePlaceholder();
   blacklistDraftInputEl.value = blacklistDraftValue;
   blacklistDraftInputEl.addEventListener("input", () => {
     blacklistDraftValue = blacklistDraftInputEl?.value ?? "";
-    sizer.textContent = blacklistDraftValue || BLACKLIST_RULE_PLACEHOLDER || " ";
+    sizer.textContent = blacklistDraftValue || blacklistRulePlaceholder() || " ";
     updateBlacklistDraftError();
   });
   blacklistDraftInputEl.addEventListener("blur", () => addBlacklistDraft());
@@ -446,18 +515,18 @@ function updateBlacklistDraftError() {
 function patternErrorMessage(pattern: string) {
   const parsed = parseUrlRulePattern(pattern);
   if (parsed.error === "invalid-regex") {
-    return "Invalid regular expression";
+    return t("validationInvalidRegex", "Invalid regular expression");
   }
   return null;
 }
 
 function ruleTypeLabel(pattern: string) {
   const labels: Record<UrlRuleMatchType, string> = {
-    domain: "Domain",
-    glob: "Glob",
-    exact: "Exact",
-    regex: "Regex",
-    contains: "Contains"
+    domain: t("ruleTypeDomain", "Domain"),
+    glob: t("ruleTypeGlob", "Glob"),
+    exact: t("ruleTypeExact", "Exact"),
+    regex: t("ruleTypeRegex", "Regex"),
+    contains: t("ruleTypeContains", "Contains")
   };
   return labels[getUrlRuleMatchType(pattern)];
 }
@@ -499,8 +568,10 @@ function renderCards(items: MediaInfo[]) {
 
     if (!titleEl || !statusEl || !subtitleEl || !metaEl || !timeEl || !progressBar) return;
 
-    titleEl.textContent = item.title || item.pageUrl || "Unknown media";
-    statusEl.textContent = item.isPlaying ? "Playing" : "Paused";
+    titleEl.textContent = item.title || item.pageUrl || t("mediaUnknownTitle", "Unknown media");
+    statusEl.textContent = item.isPlaying
+      ? t("mediaStatusPlaying", "Playing")
+      : t("mediaStatusPaused", "Paused");
 
     let url = null;
     if (item.pageUrl) {
@@ -521,14 +592,14 @@ function renderCards(items: MediaInfo[]) {
 
     const metaBits = [];
     const resolution = formatResolution(item.videoWidth, item.videoHeight);
-    metaBits.push(`Speed ${formatRate(item.playbackRate)}x`);
-    metaBits.push(`Volume ${formatVolume(item.volume, item.muted)}`);
+    metaBits.push(formatMessage("mediaMetaSpeed", "Speed {rate}x", { rate: formatRate(item.playbackRate) }));
+    metaBits.push(formatMessage("mediaMetaVolume", "Volume {volume}", { volume: formatVolume(item.volume, item.muted) }));
     if (resolution) metaBits.push(resolution);
-    if (item.pictureInPicture) metaBits.push("PiP");
+    if (item.pictureInPicture) metaBits.push(t("mediaPictureInPicture", "PiP"));
     metaEl.textContent = metaBits.filter(Boolean).join(" · ");
 
     const current = formatTime(item.currentTime);
-    const total = item.duration ? formatTime(item.duration) : "Live";
+    const total = item.duration ? formatTime(item.duration) : t("mediaTotalLive", "Live");
     timeEl.textContent = `${current} / ${total}`;
 
     if (typeof item.progress === "number") {
@@ -539,7 +610,7 @@ function renderCards(items: MediaInfo[]) {
 
     if (item.pageUrl && linkEl) {
       linkEl.href = item.pageUrl;
-      linkEl.textContent = "Open tab";
+      linkEl.textContent = t("mediaOpenTab", "Open tab");
     } else if (linkEl) {
       linkEl.remove();
     }
@@ -559,6 +630,8 @@ function syncServersFromPayload(payload: Partial<DashboardSnapshot>) {
 }
 
 function handleSnapshot(payload: DashboardSnapshot) {
+  lastSnapshot = payload;
+  staticStatus = null;
   syncServersFromPayload(payload);
   const items = Array.isArray(payload?.items) ? payload.items : [];
   if (!items.length) {
@@ -571,9 +644,13 @@ function handleSnapshot(payload: DashboardSnapshot) {
   const totalServers = serverEndpoints.length || connectionStatuses.length;
   const connectedServers = connectionStatuses.filter((entry) => entry.state === "connected").length;
   const parts = [];
-  parts.push(totalServers ? `${connectedServers}/${totalServers} servers` : "No servers");
-  parts.push(playing ? `${playing} playing` : `${items.length || 0} tracked`);
-  parts.push(`updated ${formatRelative(delta)}`);
+  parts.push(totalServers
+    ? formatMessage("dashboardServers", "{connected}/{total} servers", { connected: connectedServers, total: totalServers })
+    : t("dashboardNoServers", "No servers"));
+  parts.push(playing
+    ? formatMessage("dashboardPlaying", "{count} playing", { count: playing })
+    : formatMessage("dashboardTracked", "{count} tracked", { count: items.length || 0 }));
+  parts.push(formatMessage("dashboardUpdated", "updated {relative}", { relative: formatRelative(delta) }));
   setStatus(parts.filter(Boolean).join(" · "));
 }
 
@@ -585,18 +662,23 @@ function handleMessage(message: DashboardResponseMessage) {
   }
 }
 
+mountStaticIcons();
+applyDocumentI18n(document);
+syncLanguageOptionButtons();
 renderServers();
 
-chrome.storage.local.get([APPEARANCE_STORAGE_KEY], (result) => {
+chrome.storage.local.get([APPEARANCE_STORAGE_KEY, LANGUAGE_STORAGE_KEY], (result) => {
+  applyLanguagePreference(normalizeLanguagePreference(result?.[LANGUAGE_STORAGE_KEY]));
   applyAppearance(getStoredAppearanceTheme(result ?? {}));
 });
 
 try {
   port = chrome.runtime.connect({ name: DASHBOARD_PORT });
-  setStatus("Connecting…");
+  setLocalizedStatus("popupStatusConnecting", "Connecting...");
   port.onMessage.addListener(handleMessage);
   port.onDisconnect.addListener(() => {
-    setStatus("Disconnected");
+    lastSnapshot = null;
+    setLocalizedStatus("popupStatusDisconnected", "Disconnected");
     connectionStatuses = [];
     renderServers();
     renderEmptyState();
@@ -604,7 +686,8 @@ try {
   port.postMessage({ type: "server-endpoints:get" });
 } catch (err) {
   console.error("[USP] Failed to connect to dashboard port", err);
-  setStatus("Unavailable");
+  lastSnapshot = null;
+  setLocalizedStatus("popupStatusUnavailable", "Unavailable");
   renderEmptyState();
 }
 
@@ -612,6 +695,9 @@ settingsButton?.addEventListener("click", () => setActivePanel("settings"));
 settingsBackButton?.addEventListener("click", () => setActivePanel(null));
 for (const button of appearanceOptionButtons) {
   button.addEventListener("click", () => saveAppearance(normalizeAppearanceTheme(button.dataset.themeOption)));
+}
+for (const button of languageOptionButtons) {
+  button.addEventListener("click", () => saveLanguagePreference(normalizeLanguagePreference(button.dataset.languageOption)));
 }
 
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
@@ -638,6 +724,9 @@ if (chrome?.storage?.onChanged) {
     }
     if (Object.prototype.hasOwnProperty.call(changes, APPEARANCE_STORAGE_KEY)) {
       applyAppearance(normalizeAppearanceTheme(changes[APPEARANCE_STORAGE_KEY]?.newValue));
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, LANGUAGE_STORAGE_KEY)) {
+      applyLanguagePreference(normalizeLanguagePreference(changes[LANGUAGE_STORAGE_KEY]?.newValue));
     }
     if (Object.prototype.hasOwnProperty.call(changes, BLACKLIST_STORAGE_KEY)) {
       const storageChange = changes[BLACKLIST_STORAGE_KEY];

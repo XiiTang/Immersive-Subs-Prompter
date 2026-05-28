@@ -23,6 +23,7 @@
           :ab-label="abLabel"
           :is-looping="isSingleLooping"
           :is-ab-pending-selection="isAbPendingSelection"
+          :t="translate"
           @play="$emit('play')"
           @loop="$emit('loop')"
           @loop-range="$emit('loop-range')"
@@ -59,12 +60,21 @@ import type { TranscriptLayoutLineKind } from "./transcript/types";
 import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
+function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
+  let text = fallback;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.split(`{${name}}`).join(String(value));
+  }
+  return text;
+}
+
 const {
   blockId,
   showSelectionActions,
   isAbPendingSelection,
   isSingleLooping,
-  isActive
+  isActive,
+  t: translateProp
 } = defineProps<{
   blockId: string;
   start: number;
@@ -76,7 +86,11 @@ const {
   abLabel: "AB" | "A" | "B";
   isAbPendingSelection: boolean;
   showSelectionActions: boolean;
+  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
 }>();
+
+const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
+  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
 
 const emit = defineEmits<{
   (e: "play"): void;

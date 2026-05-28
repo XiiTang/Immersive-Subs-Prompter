@@ -39,6 +39,14 @@ const ICON_CLOSE: IconDef = {
   ]
 };
 
+const ICON_ARROW_LEFT: IconDef = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "path", attrs: { d: "M10 3 5 8l5 5" } },
+    { tag: "path", attrs: { d: "M5 8h8" } }
+  ]
+};
+
 function applyAttributes(element: Element, attrs: IconAttrs) {
   Object.entries(attrs).forEach(([key, value]) => {
     element.setAttribute(key, String(value));
@@ -76,4 +84,8 @@ export function createDeleteIcon(options?: IconOptions) {
 
 export function createCloseIcon(options?: IconOptions) {
   return createIcon(ICON_CLOSE, options);
+}
+
+export function createArrowLeftIcon(options?: IconOptions) {
+  return createIcon(ICON_ARROW_LEFT, options);
 }

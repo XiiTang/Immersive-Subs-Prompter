@@ -68,7 +68,6 @@ describe("extension popup visual convergence", () => {
 
   it("uses desktop primitive class names for equivalent popup controls", () => {
     for (const className of [
-      "ui-button",
       "ui-icon-button",
       "ui-input",
       "ui-list",
@@ -87,6 +86,14 @@ describe("extension popup visual convergence", () => {
     expect(popupMarkup).not.toMatch(/\bpopup-icon-button\b|\bicon-btn\b|\bserver-input\b|\bappearance-option\b/);
   });
 
+  it("uses an icon primitive for the settings back action", () => {
+    expect(html).toMatch(
+      /<button type="button" class="ui-icon-button ui-icon-button--secondary ui-icon-button--sm drawer-back" id="settings-back"[^>]*>\s*<\/button>/
+    );
+    expect(popupTs).toContain('createArrowLeftIcon({ size: 14, className: "icon icon--arrow-left" })');
+    expect(html).not.toMatch(/id="settings-back"[^>]*>Back<\/button>/);
+  });
+
   it("merges extension configuration entries into one settings panel", () => {
     expect(html).toContain('id="settings-btn"');
     expect(html).toContain('id="settings-panel"');
@@ -101,7 +108,7 @@ describe("extension popup visual convergence", () => {
 
   it("keeps the appearance title and theme segmented control on one row", () => {
     expect(html).toMatch(
-      /<div class="settings-section__header">\s*<h3>Appearance<\/h3>\s*<div class="ui-segmented appearance-options"/
+      /<div class="settings-section__header">\s*<h3[^>]*>Appearance<\/h3>\s*<div class="ui-segmented appearance-options"/
     );
   });
 
@@ -128,7 +135,7 @@ describe("extension popup visual convergence", () => {
 
   it("uses the desktop pill-list editor shape for connection endpoints", () => {
     expect(html).toMatch(
-      /<div class="settings-section__header">\s*<h3>Connections<\/h3>\s*<span class="ui-field__hint server-summary" id="server-summary">/
+      /<div class="settings-section__header">\s*<h3[^>]*>Connections<\/h3>\s*<span class="ui-field__hint server-summary" id="server-summary"[^>]*>/
     );
     expect(popupMarkup).toContain("server-pill-list-editor");
     expect(popupMarkup).toContain("server-draft-input");

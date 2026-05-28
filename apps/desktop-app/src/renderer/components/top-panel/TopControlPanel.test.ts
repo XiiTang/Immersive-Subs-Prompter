@@ -50,6 +50,7 @@ function triggerResizeObservers(...targets: Element[]) {
 
 function mountTopControlPanel(options: {
   autoHidePanels?: boolean;
+  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
 } = {}) {
   const autoHidePanels = options.autoHidePanels ?? true;
   let pointerState = { insideWindow: false, x: null as number | null, y: null as number | null };
@@ -70,7 +71,8 @@ function mountTopControlPanel(options: {
 
   const wrapper = mount(TopControlPanel, {
     props: createTopControlPanelProps({
-      autoHideEnabled: autoHidePanels
+      autoHideEnabled: autoHidePanels,
+      ...(options.t ? { t: options.t } : {})
     }),
     attachTo: document.body,
     global: {
@@ -361,5 +363,30 @@ describe("TopControlPanel", () => {
   it("keeps opacity and icon controls in fixed non-overlapping header slots", () => {
     expect(rendererStylesheet).toMatch(/\.header-slider\s*{[\s\S]*width: 64px;[\s\S]*min-width: 64px;[\s\S]*max-width: 64px;[\s\S]*flex: 0 0 64px;/);
     expect(rendererStylesheet).toMatch(/\.top-control-panel__actions \.ui-icon-button\s*{[\s\S]*flex: 0 0 auto;/);
+  });
+
+  it("localizes top-panel chrome and connection labels through the provided translator", () => {
+    const zh: Record<string, string> = {
+      "panel-background-opacity": "背景透明度",
+      "panel-open-settings": "打开设置",
+      "panel-pin-off": "未置顶",
+      "panel-enter-fullscreen": "进入全屏",
+      "connection-extension": "扩展：{browser}"
+    };
+    const t = (key: string, fallback = "", params: Record<string, any> = {}) => {
+      let text = zh[key] ?? fallback;
+      for (const [name, value] of Object.entries(params)) {
+        text = text.split(`{${name}}`).join(String(value));
+      }
+      return text;
+    };
+
+    const { wrapper } = mountTopControlPanel({ autoHidePanels: false, t });
+
+    expect(wrapper.get('[data-testid="top-control-panel-status"]').text()).toBe("扩展：1");
+    expect(wrapper.get('[aria-label="背景透明度"]').exists()).toBe(true);
+    expect(wrapper.get('[aria-label="未置顶"]').exists()).toBe(true);
+    expect(wrapper.get('[aria-label="进入全屏"]').exists()).toBe(true);
+    expect(wrapper.get('[aria-label="打开设置"]').exists()).toBe(true);
   });
 });

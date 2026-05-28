@@ -45,12 +45,21 @@
 import { computed } from "vue";
 import { formatTime } from "../../utils/formatters";
 
+function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
+  let text = fallback;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.split(`{${name}}`).join(String(value));
+  }
+  return text;
+}
+
 const {
   start,
   end,
   abLabel,
   isLooping,
-  isAbPendingSelection
+  isAbPendingSelection,
+  t: translateProp
 } = defineProps<{
   state: "quiet" | "hover" | "active" | "selection" | "looping" | "ab-pending" | "focus-within";
   start: number;
@@ -58,7 +67,11 @@ const {
   abLabel: "AB" | "A" | "B";
   isLooping: boolean;
   isAbPendingSelection: boolean;
+  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
 }>();
+
+const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
+  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
 
 defineEmits<{
   (e: "play"): void;
@@ -67,18 +80,18 @@ defineEmits<{
 }>();
 
 const timeLabel = computed(() => `${formatTime(start)} - ${formatTime(end)}`);
-const playLabel = computed(() => `Play from cue ${timeLabel.value}`);
-const loopLabel = computed(() => `Loop cue ${timeLabel.value}`);
+const playLabel = computed(() => translate("cue-play-label", "Play from cue {time}", { time: timeLabel.value }));
+const loopLabel = computed(() => translate("cue-loop-label", "Loop cue {time}", { time: timeLabel.value }));
 const abLoopLabel = computed(() => {
   if (isAbPendingSelection) {
-    return `A point selected at cue ${timeLabel.value}, choose B`;
+    return translate("cue-ab-pending-label", "A point selected at cue {time}, choose B", { time: timeLabel.value });
   }
   if (abLabel === "A") {
-    return `A point at cue ${timeLabel.value}`;
+    return translate("cue-ab-a-label", "A point at cue {time}", { time: timeLabel.value });
   }
   if (abLabel === "B") {
-    return `B point at cue ${timeLabel.value}`;
+    return translate("cue-ab-b-label", "B point at cue {time}", { time: timeLabel.value });
   }
-  return `Set A-B endpoint at cue ${timeLabel.value}`;
+  return translate("cue-ab-set-label", "Set A-B endpoint at cue {time}", { time: timeLabel.value });
 });
 </script>

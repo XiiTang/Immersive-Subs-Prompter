@@ -152,7 +152,13 @@ export function createTopControlPanelProps(overrides: Record<string, unknown> = 
     },
     autoHideEnabled: true,
     formatSourceFile: (sourceFile: string) => sourceFile,
-    t: (_key: string, fallback?: string) => fallback ?? _key,
+    t: (_key: string, fallback?: string, params: Record<string, any> = {}) => {
+      let text = fallback ?? _key;
+      for (const [name, value] of Object.entries(params)) {
+        text = text.split(`{${name}}`).join(String(value));
+      }
+      return text;
+    },
     ...overrides
   };
 }

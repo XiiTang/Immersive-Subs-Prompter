@@ -27,6 +27,7 @@ import SettingsNav from "./SettingsNav.vue";
 import { buildSettingsSections, type SettingsNavIconKey, type SettingsSectionId } from "./settingsSections";
 import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
+import { localizePluginSettingsTitle } from "../../plugins/pluginLocalization";
 import { resolvePluginSettingsComponent } from "../../plugins/pluginSettingsRegistry";
 
 const store = useDesktopStore();
@@ -43,7 +44,7 @@ const pluginSections = computed(() => {
     .flatMap((plugin) =>
       (plugin.settings ?? []).map((section) => ({
         id: section.id,
-        label: section.title,
+        label: localizePluginSettingsTitle(section.id, section.title, t),
         icon: pluginSettingsIcon(section.id)
       }))
     );

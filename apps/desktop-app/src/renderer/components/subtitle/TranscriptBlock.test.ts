@@ -69,6 +69,28 @@ describe("TranscriptBlock", () => {
     expect(wrapper.get('[data-testid="cue-action-loop"]').attributes("aria-label")).toBe("Loop cue 00:00 - 00:01");
   });
 
+  it("localizes cue action aria labels through the provided translator", () => {
+    const labels: Record<string, string> = {
+      "cue-play-label": "从 {time} 播放",
+      "cue-ab-set-label": "在 {time} 设置 A-B 端点",
+      "cue-loop-label": "循环 {time}"
+    };
+    const t = (key: string, fallback = "", params: Record<string, any> = {}) => {
+      let text = labels[key] ?? fallback;
+      for (const [name, value] of Object.entries(params)) {
+        text = text.split(`{${name}}`).join(String(value));
+      }
+      return text;
+    };
+    const wrapper = mount(TranscriptBlock, {
+      props: { ...defaultProps, isActive: true, t }
+    });
+
+    expect(wrapper.get('[data-testid="cue-action-play"]').attributes("aria-label")).toBe("从 00:00 - 00:01 播放");
+    expect(wrapper.get('[data-testid="cue-action-ab"]').attributes("aria-label")).toBe("在 00:00 - 00:01 设置 A-B 端点");
+    expect(wrapper.get('[data-testid="cue-action-loop"]').attributes("aria-label")).toBe("循环 00:00 - 00:01");
+  });
+
   it("promotes the meta row when the block is active", () => {
     const wrapper = mount(TranscriptBlock, {
       props: { ...defaultProps, isActive: true }

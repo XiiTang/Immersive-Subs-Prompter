@@ -4,17 +4,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Media Monitor</title>
+  <title data-i18n="popupTitle">Media Monitor</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 
 <body>
   <header class="popup-header">
     <div class="popup-header__meta">
-      <span class="ui-status popup-status" id="status-indicator">Connecting…</span>
+      <span class="ui-status popup-status" id="status-indicator" data-i18n="popupStatusConnecting">Connecting…</span>
     </div>
     <div class="popup-header__actions">
-      <button type="button" class="ui-icon-button" id="settings-btn" title="Settings" aria-label="Settings">
+      <button type="button" class="ui-icon-button" id="settings-btn" title="Settings" aria-label="Settings" data-i18n-title="popupSettings" data-i18n-aria-label="popupSettings">
         <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
@@ -29,43 +29,54 @@
   <main class="popup-main">
     <section id="media-root" class="ui-list media-root">
       <div class="ui-empty-state empty-state">
-        <strong>No media detected</strong>
-        <p>Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
+        <strong data-i18n="popupNoMediaTitle">No media detected</strong>
+        <p data-i18n="popupNoMediaDescription">Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
       </div>
     </section>
   </main>
 
   <section class="drawer-panel settings-panel" id="settings-panel" aria-hidden="true">
     <div class="drawer-panel__header">
-      <button type="button" class="ui-button ui-button--secondary ui-button--sm drawer-back" id="settings-back">Back</button>
+      <button type="button" class="ui-icon-button ui-icon-button--secondary ui-icon-button--sm drawer-back" id="settings-back" title="Back" aria-label="Back" data-i18n-title="settingsBack" data-i18n-aria-label="settingsBack"></button>
       <div>
-        <h2>Settings</h2>
+        <h2 data-i18n="settingsTitle">Settings</h2>
       </div>
     </div>
 
     <div class="drawer-panel__body settings-panel__body">
       <section class="settings-section settings-section--appearance" data-settings-section="appearance">
         <div class="settings-section__header">
-          <h3>Appearance</h3>
-          <div class="ui-segmented appearance-options" role="radiogroup" aria-label="Theme">
-            <button type="button" class="ui-segmented__item" data-theme-option="system" role="radio">System</button>
-            <button type="button" class="ui-segmented__item" data-theme-option="light" role="radio">Light</button>
-            <button type="button" class="ui-segmented__item" data-theme-option="dark" role="radio">Dark</button>
+          <h3 data-i18n="settingsAppearance">Appearance</h3>
+          <div class="ui-segmented appearance-options" role="radiogroup" aria-label="Theme" data-i18n-aria-label="settingsTheme">
+            <button type="button" class="ui-segmented__item" data-theme-option="system" role="radio" data-i18n="settingsThemeSystem">System</button>
+            <button type="button" class="ui-segmented__item" data-theme-option="light" role="radio" data-i18n="settingsThemeLight">Light</button>
+            <button type="button" class="ui-segmented__item" data-theme-option="dark" role="radio" data-i18n="settingsThemeDark">Dark</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section settings-section--language" data-settings-section="language">
+        <div class="settings-section__header">
+          <h3 data-i18n="settingsLanguage">Language</h3>
+          <div class="ui-segmented language-options" role="radiogroup" aria-label="Language" data-i18n-aria-label="settingsLanguage">
+            <button type="button" class="ui-segmented__item" data-language-option="system" role="radio" data-i18n="settingsLanguageSystem">System</button>
+            <button type="button" class="ui-segmented__item" data-language-option="en" role="radio" data-i18n="settingsLanguageEnglish">English</button>
+            <button type="button" class="ui-segmented__item" data-language-option="zh" role="radio" data-i18n="settingsLanguageChinese">中文</button>
           </div>
         </div>
       </section>
 
       <section class="settings-section settings-section--connections" data-settings-section="connections">
         <div class="settings-section__header">
-          <h3>Connections</h3>
-          <span class="ui-field__hint server-summary" id="server-summary">Add a server address to start syncing.</span>
+          <h3 data-i18n="settingsConnections">Connections</h3>
+          <span class="ui-field__hint server-summary" id="server-summary" data-i18n="settingsServerSummaryEmpty">Add a server address to start syncing.</span>
         </div>
         <section id="server-root" class="server-root"></section>
       </section>
 
       <section class="settings-section settings-section--blacklist" data-settings-section="blacklist">
         <div class="settings-section__header">
-          <h3>Blacklist</h3>
+          <h3 data-i18n="settingsBlacklist">Blacklist</h3>
         </div>
         <div class="pill-list-editor blacklist-editor">
           <div class="priority-editor__list pill-list-editor__list blacklist-list" id="blacklist-list"></div>

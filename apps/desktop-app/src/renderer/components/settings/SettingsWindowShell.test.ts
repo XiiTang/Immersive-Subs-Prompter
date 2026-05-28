@@ -249,6 +249,46 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(true);
   });
 
+  it("localizes official plugin navigation titles in Chinese", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings("zh");
+    store.editingProfileId = "profile-1";
+    store.pluginCatalog = [
+      {
+        id: "official.transcription",
+        version: "1.0.0",
+        displayName: "Speech Transcription",
+        description: "Transcribe video audio.",
+        status: "enabled",
+        enabled: true,
+        error: null,
+        settings: [
+          {
+            id: "official.transcription.settings",
+            title: "Speech Transcription"
+          }
+        ]
+      }
+    ];
+
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsPlugins: sectionStub("settings-section-plugins-content"),
+          SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
+        }
+      }
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').text()).toContain("语音转写");
+    });
+    expect(wrapper.text()).not.toContain("Speech Transcription");
+  });
+
   it("shows icons for built-in and known official plugin navigation items", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("en");

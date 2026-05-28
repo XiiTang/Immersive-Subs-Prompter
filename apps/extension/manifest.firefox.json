@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Immersive Subs Prompter",
+  "name": "__MSG_extensionName__",
   "version": "0.0.1",
-  "description": "Injects into major video sites, captures playback info, and relays it to the Immersive Subs Prompter desktop app.",
+  "default_locale": "en",
+  "description": "__MSG_extensionDescription__",
   "author": "sheixunixitang3@gmail.com",
   "permissions": [
     "storage",
@@ -30,7 +31,7 @@
     }
   ],
   "action": {
-    "default_title": "Immersive Subs Prompter",
+    "default_title": "__MSG_extensionName__",
     "default_popup": "popup.html"
   },
   "icons": {

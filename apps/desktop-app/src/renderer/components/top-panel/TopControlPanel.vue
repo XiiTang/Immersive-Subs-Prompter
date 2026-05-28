@@ -37,7 +37,7 @@
           </div>
         </div>
         <div class="top-control-panel__actions" data-testid="top-control-panel-actions">
-          <UiTooltip text="Background opacity">
+          <UiTooltip :text="backgroundOpacityLabel">
             <div class="transparency-inline">
               <UiSlider
                 v-model="panelOpacityValue"
@@ -45,7 +45,7 @@
                 :min="0"
                 :max="100"
                 :step="1"
-                label="Background opacity"
+                :label="backgroundOpacityLabel"
               />
             </div>
           </UiTooltip>
@@ -70,8 +70,8 @@
               <IconFullscreen size="md" />
             </UiIconButton>
           </UiTooltip>
-          <UiTooltip text="Open settings">
-            <UiIconButton label="Open settings" @click="openSettingsWindow">
+          <UiTooltip :text="openSettingsLabel">
+            <UiIconButton :label="openSettingsLabel" @click="openSettingsWindow">
               <IconSettings size="md" />
             </UiIconButton>
           </UiTooltip>
@@ -146,6 +146,7 @@ import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { UiIconButton, UiSlider, UiTooltip } from "../ui";
 import { IconFullscreen, IconLock, IconPin, IconSettings } from "../icons";
+import { JELLYFINEMBY_PLUGIN_ID } from "../../../common/pluginIds.js";
 
 interface SubtitleTrackOption {
   id: string;
@@ -249,17 +250,39 @@ const panelGeometryStyle = computed(() => ({
   "--top-panel-collapsed-offset": `${collapsedOffset.value}px`
 }));
 
-const connectionText = computed(() => store.connectionLabel);
+const connectionText = computed(() => {
+  if (!store.desktopState) {
+    return t("connection-connecting", "Connecting...");
+  }
+  const browser = store.desktopState.connectionCount;
+  const jellyfinembyEnabled = store.pluginCatalog.some(
+    (plugin) => plugin.id === JELLYFINEMBY_PLUGIN_ID && plugin.enabled
+  );
+  if (jellyfinembyEnabled) {
+    const pluginConfig = store.settings?.plugins[JELLYFINEMBY_PLUGIN_ID]?.config as
+      | { servers?: Array<{ enabled?: boolean }> }
+      | undefined;
+    const mediaServer = pluginConfig?.servers?.filter((server) => server.enabled).length ?? 0;
+    return t("connection-extension-mediaserver", "Extension: {browser} · Media Server: {mediaServer}", {
+      browser,
+      mediaServer
+    });
+  }
+  return t("connection-extension", "Extension: {browser}", { browser });
+});
 const alwaysOnTop = computed(() => store.settings?.global.alwaysOnTop ?? "off");
-const pinLabels: Record<string, string> = {
-  off: "Not pinned",
-  floating: "Pinned",
-  "screen-saver": "Pinned (screen saver)"
-};
-const pinLabel = computed(() => pinLabels[alwaysOnTop.value] ?? "Pinned");
+const backgroundOpacityLabel = computed(() => t("panel-background-opacity", "Background opacity"));
+const openSettingsLabel = computed(() => t("panel-open-settings", "Open settings"));
+const pinLabel = computed(() => {
+  if (alwaysOnTop.value === "off") return t("panel-pin-off", "Not pinned");
+  if (alwaysOnTop.value === "floating") return t("panel-pin-floating", "Pinned");
+  return t("panel-pin-screen-saver", "Pinned (screen saver)");
+});
 const isPinned = computed(() => alwaysOnTop.value !== "off");
 const fullscreenLabel = computed(() =>
-  store.desktopState?.isFullscreen ? "Exit fullscreen" : "Enter fullscreen"
+  store.desktopState?.isFullscreen
+    ? t("panel-exit-fullscreen", "Exit fullscreen")
+    : t("panel-enter-fullscreen", "Enter fullscreen")
 );
 const panelOpacityValue = computed({
   get: () => store.panelOpacity,

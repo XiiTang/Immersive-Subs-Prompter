@@ -4,11 +4,11 @@
       <UiListItem v-for="plugin in catalog" :key="plugin.id" as="article">
         <div class="ui-list-item__main">
           <div class="ui-list-item__title-row">
-            <span class="ui-list-item__title">{{ plugin.displayName }}</span>
+            <span class="ui-list-item__title">{{ localizePluginName(plugin, t) }}</span>
             <span class="ui-list-item__meta">v{{ plugin.version }}</span>
             <UiBadge :tone="statusTone(plugin.status)">{{ statusLabel(plugin.status) }}</UiBadge>
           </div>
-          <p class="ui-list-item__description">{{ plugin.description }}</p>
+          <p class="ui-list-item__description">{{ localizePluginDescription(plugin, t) }}</p>
           <p v-if="plugin.error" class="ui-field__error">{{ plugin.error }}</p>
         </div>
 
@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import { localizePluginDescription, localizePluginName } from "../../plugins/pluginLocalization";
 import { useDesktopStore } from "../../stores/desktop";
 import { UiBadge, UiButton, UiEmptyState, UiListItem, UiSection } from "../ui";
 

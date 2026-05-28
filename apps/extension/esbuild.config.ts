@@ -37,6 +37,7 @@ async function copyStaticAssets({ manifest, outDir }: { manifest: string; outDir
     fs.copyFile(path.join(__dirname, "popup.html"), path.join(outDir, "popup.html")),
     fs.copyFile(path.join(__dirname, "popup.css"), path.join(outDir, "popup.css")),
     copyDirectory(path.join(__dirname, "icons"), path.join(outDir, "icons")),
+    copyDirectory(path.join(__dirname, "_locales"), path.join(outDir, "_locales")),
   ]);
 }
 

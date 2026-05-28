@@ -1,0 +1,179 @@
+{
+  "extensionName": {
+    "message": "Immersive Subs Prompter"
+  },
+  "extensionDescription": {
+    "message": "与桌面应用配合，捕获视频网站播放信息，实现沉浸式字幕学习体验。"
+  },
+  "popupTitle": {
+    "message": "媒体监控"
+  },
+  "popupStatusConnecting": {
+    "message": "正在连接..."
+  },
+  "popupStatusDisconnected": {
+    "message": "已断开连接"
+  },
+  "popupStatusUnavailable": {
+    "message": "不可用"
+  },
+  "popupSettings": {
+    "message": "设置"
+  },
+  "popupNoMediaTitle": {
+    "message": "未检测到媒体"
+  },
+  "popupNoMediaDescription": {
+    "message": "开始播放视频后，这里会显示实时信息。"
+  },
+  "popupNoMediaInitialDescription": {
+    "message": "在 YouTube、Bilibili、抖音或其他受支持站点开始播放视频。"
+  },
+  "settingsBack": {
+    "message": "返回"
+  },
+  "settingsTitle": {
+    "message": "设置"
+  },
+  "settingsAppearance": {
+    "message": "外观"
+  },
+  "settingsLanguage": {
+    "message": "语言"
+  },
+  "settingsLanguageSystem": {
+    "message": "跟随系统"
+  },
+  "settingsLanguageEnglish": {
+    "message": "English"
+  },
+  "settingsLanguageChinese": {
+    "message": "中文"
+  },
+  "settingsTheme": {
+    "message": "主题"
+  },
+  "settingsThemeSystem": {
+    "message": "跟随系统"
+  },
+  "settingsThemeLight": {
+    "message": "浅色"
+  },
+  "settingsThemeDark": {
+    "message": "深色"
+  },
+  "settingsConnections": {
+    "message": "连接"
+  },
+  "settingsServerSummaryEmpty": {
+    "message": "添加服务器地址以开始同步。"
+  },
+  "settingsServerSummaryConnected": {
+    "message": "$1/$2 已连接"
+  },
+  "settingsBlacklist": {
+    "message": "黑名单"
+  },
+  "blacklistRulePlaceholder": {
+    "message": "youtube.com、*.site.com/path/*、=完整 URL、re:正则"
+  },
+  "serverEndpointPlaceholder": {
+    "message": "ws://192.168.1.10:44501/?token=..."
+  },
+  "actionRemove": {
+    "message": "移除"
+  },
+  "statusConnected": {
+    "message": "已连接"
+  },
+  "statusConnecting": {
+    "message": "连接中"
+  },
+  "statusIdle": {
+    "message": "空闲"
+  },
+  "statusDisconnected": {
+    "message": "已断开"
+  },
+  "statusError": {
+    "message": "错误"
+  },
+  "statusWithError": {
+    "message": "$1 · 错误"
+  },
+  "validationInvalidServerAddress": {
+    "message": "请输入有效的 ws:// 或 wss:// 地址"
+  },
+  "validationInvalidRegex": {
+    "message": "无效的正则表达式"
+  },
+  "ruleTypeDomain": {
+    "message": "域名"
+  },
+  "ruleTypeGlob": {
+    "message": "通配符"
+  },
+  "ruleTypeExact": {
+    "message": "精确"
+  },
+  "ruleTypeRegex": {
+    "message": "正则"
+  },
+  "ruleTypeContains": {
+    "message": "包含"
+  },
+  "mediaUnknownTitle": {
+    "message": "未知媒体"
+  },
+  "mediaStatusPlaying": {
+    "message": "播放中"
+  },
+  "mediaStatusPaused": {
+    "message": "已暂停"
+  },
+  "mediaMetaSpeed": {
+    "message": "速度 $1x"
+  },
+  "mediaMetaVolume": {
+    "message": "音量 $1"
+  },
+  "mediaMuted": {
+    "message": "已静音"
+  },
+  "mediaPictureInPicture": {
+    "message": "画中画"
+  },
+  "mediaTotalLive": {
+    "message": "直播"
+  },
+  "mediaOpenTab": {
+    "message": "打开标签页"
+  },
+  "relativeJustNow": {
+    "message": "刚刚"
+  },
+  "relativeSecondsAgo": {
+    "message": "$1 秒前"
+  },
+  "relativeMinutesAgo": {
+    "message": "$1 分钟前"
+  },
+  "relativeHoursAgo": {
+    "message": "$1 小时前"
+  },
+  "dashboardServers": {
+    "message": "$1/$2 台服务器"
+  },
+  "dashboardNoServers": {
+    "message": "无服务器"
+  },
+  "dashboardPlaying": {
+    "message": "$1 个播放中"
+  },
+  "dashboardTracked": {
+    "message": "跟踪 $1 个"
+  },
+  "dashboardUpdated": {
+    "message": "$1更新"
+  }
+}

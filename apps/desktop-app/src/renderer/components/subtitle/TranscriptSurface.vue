@@ -21,6 +21,7 @@
           :ab-label="resolveAbLoopLabel(block.block.sourceCueRefs.primaryCueIndex)"
           :is-ab-pending-selection="isAbPendingSelection(block.block.sourceCueRefs.primaryCueIndex)"
           :show-selection-actions="isSelectionPaused && block.block.id === projection.activeBlockId"
+          :t="translate"
           @play="emit('play-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop="emit('loop-cue', block.block.sourceCueRefs.primaryCueIndex)"
           @loop-range="emit('loop-range', block.block.sourceCueRefs.primaryCueIndex)"
@@ -59,6 +60,14 @@ import type {
 } from "./transcript/types";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
+function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
+  let text = fallback;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.split(`{${name}}`).join(String(value));
+  }
+  return text;
+}
+
 const {
   blocks,
   currentTime,
@@ -80,7 +89,8 @@ const {
   activeSecondaryColor,
   autoScrollDelayMs,
   scrollPositionRatio,
-  autoFollowScrollBehavior = "smooth"
+  autoFollowScrollBehavior = "smooth",
+  t: translateProp
 } = defineProps<{
   blocks: TranscriptBlockModel[];
   currentTime: number | null;
@@ -103,7 +113,11 @@ const {
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
   autoFollowScrollBehavior?: ScrollBehavior;
+  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
 }>();
+
+const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
+  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
 
 const emit = defineEmits<{
   (e: "play-cue", cueIndex: number): void;

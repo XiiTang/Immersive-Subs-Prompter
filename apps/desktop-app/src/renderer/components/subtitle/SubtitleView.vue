@@ -54,6 +54,7 @@
       :active-secondary-color="playbackProfileSettings.subtitleActiveSecondaryColor"
       :auto-scroll-delay-ms="autoScrollDelayMs"
       :scroll-position-ratio="scrollPositionRatio"
+      :t="t"
       @play-cue="seekToCue"
       @loop-cue="toggleLoop"
       @loop-range="handleAbLoop"
@@ -394,7 +395,7 @@ const titleText = computed(
 const profileLabel = computed(() => {
   const profileName = store.desktopState?.appliedProfileName ?? store.activeProfile?.name ?? "Profile";
   if (store.desktopState?.appliedRulePattern) {
-    return `${profileName} (Rule: ${store.desktopState.appliedRulePattern})`;
+    return `${profileName} (${t("profile-rule-label", "Rule")}: ${store.desktopState.appliedRulePattern})`;
   }
   return `${t("active-profile-prefix", "Profile")}: ${profileName}`;
 });

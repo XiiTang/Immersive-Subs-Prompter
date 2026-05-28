@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAddIcon, createCloseIcon, createDeleteIcon } from "./icons";
+import { createAddIcon, createArrowLeftIcon, createCloseIcon, createDeleteIcon } from "./icons";
 
 describe("extension inline icons", () => {
   it("creates add icons with explicit sizing, classes, and stroke attributes", () => {
@@ -49,5 +49,18 @@ describe("extension inline icons", () => {
       { x1: "11", y1: "5", x2: "5", y2: "11" }
     ]);
     expect(icon.querySelectorAll("path")).toHaveLength(0);
+  });
+
+  it("creates arrow-left icons for back navigation", () => {
+    const icon = createArrowLeftIcon({ size: 14, className: "icon icon--arrow-left" });
+
+    expect(icon.getAttribute("width")).toBe("14");
+    expect(icon.getAttribute("height")).toBe("14");
+    expect(icon.getAttribute("viewBox")).toBe("0 0 16 16");
+    expect(icon.getAttribute("class")).toBe("icon icon--arrow-left");
+    expect(Array.from(icon.querySelectorAll("path")).map((path) => path.getAttribute("d"))).toEqual([
+      "M10 3 5 8l5 5",
+      "M5 8h8"
+    ]);
   });
 });
