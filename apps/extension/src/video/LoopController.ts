@@ -3,22 +3,6 @@ import { send } from "../connection/MessageSender";
 import { handleTimeUpdate } from "./VideoStateGatherer";
 import type { LoopSession } from "@immersive-subs/contracts";
 
-function buildLoopPayload(): LoopSession | null {
-  if (!state.loop.isLooping || state.loop.startMs === null || state.loop.endMs === null || !state.loop.mode) {
-    return null;
-  }
-
-  return {
-    mode: state.loop.mode,
-    startMs: state.loop.startMs,
-    endMs: state.loop.endMs,
-    startCueIndex: state.loop.startCueIndex,
-    endCueIndex: state.loop.endCueIndex,
-    anchorCueIndex: state.loop.anchorCueIndex,
-    origin: state.loop.origin as LoopSession["origin"]
-  };
-}
-
 function resetLoopStateFields() {
   state.loop.mode = null;
   state.loop.startMs = null;
@@ -96,10 +80,7 @@ export function startLoop(target: HTMLVideoElement, session: LoopSession) {
   }
 
   startLoopCheck();
-  const payload = buildLoopPayload();
-  if (payload) {
-    send("loop-started", payload);
-  }
+  send("loop-started", session);
 }
 
 export function clearProgrammaticSeekFlag() {

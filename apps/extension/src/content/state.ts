@@ -6,7 +6,6 @@ export const log = new Logger("content-script");
 export const state: ContentRuntimeState = {
   port: null,
   reconnectTimer: null,
-  keepAliveTimer: null,
   activeVideo: null,
   driftMonitorTimer: null,
   lastPageUrl: location.href,

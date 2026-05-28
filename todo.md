@@ -105,3 +105,8 @@
 - 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app test:renderer`：通过。
 - 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/extension build`：通过。
 - 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app build`：通过。
+- 2026-05-28 P2 复审后：`pnpm --filter @immersive-subs/extension exec vitest run src/background/messaging/ContentMessageRouter.test.ts`：通过。
+- 2026-05-28 P2 复审后：`pnpm --filter @immersive-subs/extension exec tsc -p tsconfig.json --noEmit`：通过。
+- 2026-05-28 P2 复审后：`pnpm --filter @immersive-subs/extension test`：通过。
+- 2026-05-28 P2 复审后：`pnpm --filter @immersive-subs/extension build`：通过。
+- 2026-05-28 P2 复审后：`node scripts/check-silent-catches.mjs`：通过。

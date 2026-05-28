@@ -76,7 +76,6 @@ export interface ClearFrameResult {
 export interface ContentRuntimeState {
   port: chrome.runtime.Port | null;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
-  keepAliveTimer: ReturnType<typeof setTimeout> | null;
   activeVideo: HTMLVideoElement | null;
   driftMonitorTimer: ReturnType<typeof setTimeout> | null;
   lastPageUrl: string;

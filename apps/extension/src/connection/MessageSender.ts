@@ -1,25 +1,15 @@
-import { KEEPALIVE_INTERVAL_MS } from "../content/constants";
 import { log, state } from "../content/state";
 import { connectPort, schedulePortReconnect } from "./PortManager";
 import type { ContentToBackgroundMessage } from "../shared/types";
 
 type ContentMessageType = ContentToBackgroundMessage["type"];
 type PayloadFor<Type extends ContentMessageType> = Extract<ContentToBackgroundMessage, { type: Type }>["payload"];
-type KeepalivePayload = {
-  pageUrl: string;
-  title: string;
-  timestamp: number;
-};
 
 export function send<Type extends ContentMessageType>(type: Type, payload: PayloadFor<Type>) {
   postMessage(type, payload);
 }
 
-function sendKeepalive(payload: KeepalivePayload) {
-  postMessage("keepalive", payload);
-}
-
-function postMessage(type: ContentMessageType | "keepalive", payload: unknown) {
+function postMessage<Type extends ContentMessageType>(type: Type, payload: PayloadFor<Type>) {
   if (!state.monitoringActive) {
     return;
   }
@@ -37,31 +27,5 @@ function postMessage(type: ContentMessageType | "keepalive", payload: unknown) {
       state.port = null;
     }
     schedulePortReconnect();
-  }
-}
-
-export function startKeepAlive() {
-  if (state.keepAliveTimer !== null || !state.monitoringActive) {
-    return;
-  }
-  const tick = () => {
-    if (!state.monitoringActive) {
-      stopKeepAlive();
-      return;
-    }
-    sendKeepalive({
-      pageUrl: location.href,
-      title: document.title,
-      timestamp: Date.now()
-    });
-    state.keepAliveTimer = setTimeout(tick, KEEPALIVE_INTERVAL_MS);
-  };
-  state.keepAliveTimer = setTimeout(tick, KEEPALIVE_INTERVAL_MS);
-}
-
-export function stopKeepAlive() {
-  if (state.keepAliveTimer !== null) {
-    clearTimeout(state.keepAliveTimer);
-    state.keepAliveTimer = null;
   }
 }

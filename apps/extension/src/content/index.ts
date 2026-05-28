@@ -1,6 +1,6 @@
 import { log, state } from "./state";
 import { setPortHandlers, connectPort, disconnectPort } from "../connection/PortManager";
-import { send, startKeepAlive, stopKeepAlive } from "../connection/MessageSender";
+import { send } from "../connection/MessageSender";
 import { ensureUrlWatcher, stopUrlWatcher } from "../monitoring/URLWatcher";
 import { prepareDomMonitoring, setDomCallbacks, startDOMObserver, stopDOMObserver } from "../monitoring/DOMObserver";
 import { stopDriftMonitor } from "../monitoring/DriftMonitor";
@@ -23,9 +23,7 @@ function handlePortReconnect() {
   if (state.activeVideo) {
     log.info("conn", "Reconnected successfully, syncing video state");
     const snapshot = gatherVideoState(state.activeVideo);
-    if (snapshot) {
-      send("video-context", snapshot);
-    }
+    send("video-context", snapshot);
     handleTimeUpdate(state.activeVideo);
   }
 }
@@ -41,7 +39,6 @@ function startMonitoring() {
   connectPort();
   prepareDomMonitoring();
   startDOMObserver();
-  startKeepAlive();
 }
 
 function stopMonitoring() {
@@ -54,7 +51,6 @@ function stopMonitoring() {
   resetPlaybackPrediction();
   state.activeVideo = null;
 
-  stopKeepAlive();
   stopUrlWatcher();
   stopDOMObserver();
   disconnectPort();

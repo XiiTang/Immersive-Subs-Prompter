@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { ContentMessageRouter } from "./ContentMessageRouter";
 
 describe("ContentMessageRouter", () => {
-  it("broadcasts loop-started exactly once with the shared loop payload", () => {
+  function createRouter({
+    hasMediaState = true
+  }: {
+    hasMediaState?: boolean;
+  } = {}) {
     const logger = {
       info: vi.fn(),
       debug: vi.fn(),
@@ -18,7 +22,7 @@ describe("ContentMessageRouter", () => {
         rememberActiveFrame: vi.fn()
       } as never,
       mediaStateStore: {
-        has: vi.fn(() => true),
+        has: vi.fn(() => hasMediaState),
         isValidMedia: vi.fn(() => false),
         get: vi.fn(() => ({
           currentTime: 999,
@@ -36,6 +40,12 @@ describe("ContentMessageRouter", () => {
         }))
       } as never
     });
+
+    return { connectionPool, logger, router };
+  }
+
+  it("broadcasts loop-started exactly once with the shared loop payload", () => {
+    const { connectionPool, router } = createRouter();
 
     router.handleMessage(7, 0, {
       type: "loop-started",
@@ -64,5 +74,20 @@ describe("ContentMessageRouter", () => {
         origin: "ab-loop"
       }
     });
+  });
+
+  it("ignores unknown content message types instead of forwarding them to desktop", () => {
+    const { connectionPool, router } = createRouter();
+
+    router.handleMessage(7, 0, {
+      type: "keepalive",
+      payload: {
+        pageUrl: "https://example.com/watch?v=1",
+        title: "Example",
+        timestamp: 123
+      }
+    } as never);
+
+    expect(connectionPool.broadcast).not.toHaveBeenCalled();
   });
 });

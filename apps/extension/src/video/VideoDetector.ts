@@ -16,9 +16,7 @@ function setActiveVideo(video: HTMLVideoElement | null) {
   if (nextVideo) {
     log.info("video", "Video activated", { src: nextVideo.currentSrc || nextVideo.src, duration: nextVideo.duration });
     const snapshot = gatherVideoState(nextVideo);
-    if (snapshot) {
-      send("video-context", snapshot);
-    }
+    send("video-context", snapshot);
     if (switchedVideo) {
       resetPlaybackPrediction();
     }
@@ -83,9 +81,7 @@ export function handleDocumentMediaEvent(event: Event | { type: string; target: 
         setActiveVideo(target);
       } else {
         const snapshot = gatherVideoState(target);
-        if (snapshot) {
-          send("video-context", snapshot);
-        }
+        send("video-context", snapshot);
       }
       break;
     case "loadeddata":

@@ -12,6 +12,8 @@ function detectSite(): VideoSite {
   return site;
 }
 
+export function gatherVideoState(video: HTMLVideoElement): VideoStateSnapshot;
+export function gatherVideoState(video: HTMLVideoElement | null): VideoStateSnapshot | null;
 export function gatherVideoState(video: HTMLVideoElement | null): VideoStateSnapshot | null {
   if (!video) return null;
   return {

@@ -5,6 +5,26 @@ import type { SnapshotBuilder } from "./SnapshotBuilder";
 import type { MediaStateStore } from "../tabs/MediaStateStore";
 import type { TabRegistry } from "../tabs/TabRegistry";
 
+type ContentMessageType = ContentToBackgroundMessage["type"];
+
+const CONTENT_MESSAGE_TYPES = new Set<ContentMessageType>([
+  "video-context",
+  "time-update",
+  "playback-rate",
+  "page-url-changed",
+  "video-ended",
+  "loop-started",
+  "loop-cleared"
+]);
+
+function isContentToBackgroundMessage(message: unknown): message is ContentToBackgroundMessage {
+  return (
+    !!message &&
+    typeof message === "object" &&
+    CONTENT_MESSAGE_TYPES.has((message as { type?: unknown }).type as ContentMessageType)
+  );
+}
+
 export class ContentMessageRouter {
   logger: Logger;
   tabRegistry: TabRegistry;
@@ -53,8 +73,13 @@ export class ContentMessageRouter {
     });
   }
 
-  handleMessage(tabId: number, frameId: number, message: ContentToBackgroundMessage) {
-    if (!message || typeof message !== "object") return;
+  handleMessage(tabId: number, frameId: number, message: unknown) {
+    if (!isContentToBackgroundMessage(message)) {
+      this.logger.warn("msg", `Ignored unknown content message type`, {
+        type: message && typeof message === "object" ? (message as { type?: unknown }).type : undefined
+      });
+      return;
+    }
 
     this.ingestMediaMessage(tabId, frameId, message);
 
