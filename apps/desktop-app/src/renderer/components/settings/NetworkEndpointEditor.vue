@@ -35,7 +35,7 @@ import {
   buildNetworkEndpointUrl,
   networkEndpointKey,
   parseNetworkEndpointInput
-} from "../../../common/networkEndpoints.js";
+} from "@immersive-subs/contracts";
 import PillListEditor from "./PillListEditor.vue";
 import type { PillListEditorItem } from "./pillListEditorTypes";
 

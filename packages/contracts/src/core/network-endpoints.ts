@@ -57,6 +57,37 @@ export function parseNetworkEndpointInput(value: unknown): NetworkEndpointParseR
   return parseHostPort(trimmed);
 }
 
+export function normalizeEndpoint(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  const parsed = parseNetworkEndpointInput(trimmed);
+  if (!parsed.ok) {
+    return null;
+  }
+
+  const normalized = new URL(`ws://${formatHostForUrl(parsed.endpoint.host)}:${parsed.endpoint.port}/`);
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    normalized.search = new URL(trimmed).search;
+  }
+  return normalized.toString();
+}
+
+export function normalizeEndpointList(list: unknown): string[] {
+  const endpoints: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of Array.isArray(list) ? list : []) {
+    const normalized = normalizeEndpoint(entry);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    endpoints.push(normalized);
+  }
+  return endpoints;
+}
+
 function parseEndpointUrl(value: string): NetworkEndpointParseResult {
   let url: URL;
   try {
@@ -71,6 +102,14 @@ function parseEndpointUrl(value: string): NetworkEndpointParseResult {
 
   if (!url.hostname || !url.port) {
     return { ok: false, error: "Endpoint must include a host and port" };
+  }
+
+  if (url.pathname !== "/") {
+    return { ok: false, error: "Endpoint URL path must be /" };
+  }
+
+  if (url.hash) {
+    return { ok: false, error: "Endpoint URL must not include a fragment" };
   }
 
   return validateHostPort(stripIpv6Brackets(url.hostname), Number(url.port));
@@ -106,5 +145,17 @@ function validateHostPort(hostValue: string, port: number): NetworkEndpointParse
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     return { ok: false, error: "Port must be between 1 and 65535" };
   }
+  if (!isHostUsableInWebSocketUrl(host, port)) {
+    return { ok: false, error: "Endpoint host is invalid" };
+  }
   return { ok: true, endpoint: { host, port } };
+}
+
+function isHostUsableInWebSocketUrl(host: string, port: number): boolean {
+  try {
+    new URL(`ws://${formatHostForUrl(host)}:${port}/`);
+    return true;
+  } catch {
+    return false;
+  }
 }

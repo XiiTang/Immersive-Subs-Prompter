@@ -7,9 +7,10 @@ import { sanitizeTranscriptionPluginConfig } from "./sanitizers/transcriptionSan
 import { sanitizeWordLookupPluginConfig } from "./sanitizers/wordLookupSanitizer.js";
 import { sanitizeJellyfinembyPluginConfig } from "./sanitizers/jellyfinembySanitizer.js";
 import { sanitizeCacheSettings } from "./sanitizers/cacheSanitizer.js";
-import defaultSettings from "../default-settings.json" with { type: "json" };
 import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
 import { DEFAULT_PROFILE_ID } from "./constants.js";
+import { createDefaultAppSettings } from "../../common/defaultSettings.js";
+import { createConnectionAuthToken } from "../connectionAuth.js";
 
 function sanitizePluginConfig(pluginId: string, config: unknown): Record<string, unknown> {
   if (pluginId === JELLYFINEMBY_PLUGIN_ID) {
@@ -49,20 +50,21 @@ export function sanitizeSettings(input: Partial<AppSettings> | null | undefined)
   }
 
   const raw = input as Partial<AppSettings>;
-  const global = sanitizeGlobalSettings(raw.global);
-  const network = sanitizeNetworkSettings(raw.network);
-  const sanitizedProfiles = sanitizeProfiles(raw.profiles);
+  const defaults = DEFAULT_SETTINGS_FACTORY();
+  const global = sanitizeGlobalSettings(raw.global ?? defaults.global);
+  const network = sanitizeNetworkSettings(raw.network ?? defaults.network);
+  const sanitizedProfiles = sanitizeProfiles(raw.profiles ?? defaults.profiles);
   const requestedDefaultId =
     typeof raw.defaultProfileId === "string" && raw.defaultProfileId.trim().length
       ? raw.defaultProfileId.trim()
-      : DEFAULT_PROFILE_ID;
+      : defaults.defaultProfileId;
   const defaultProfileId = sanitizedProfiles.some((profile) => profile.id === requestedDefaultId)
     ? requestedDefaultId
     : DEFAULT_PROFILE_ID;
   const profiles = ensureFallbackProfileLast(sanitizedProfiles, defaultProfileId);
-  const rules = sanitizeRules(raw.rules, profiles, defaultProfileId);
-  const plugins = sanitizePluginSettings(raw.plugins);
-  const cache = sanitizeCacheSettings(raw.cache);
+  const rules = sanitizeRules(raw.rules ?? defaults.rules, profiles, defaultProfileId);
+  const plugins = sanitizePluginSettings(raw.plugins ?? defaults.plugins);
+  const cache = sanitizeCacheSettings(raw.cache ?? defaults.cache);
   return {
     global,
     network,
@@ -111,7 +113,9 @@ export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): A
 }
 
 const DEFAULT_SETTINGS_FACTORY = (): AppSettings => {
-  return sanitizeSettings(defaultSettings as any);
+  return createDefaultAppSettings({
+    networkAuthToken: createConnectionAuthToken()
+  });
 };
 
 export const DEFAULT_SETTINGS: AppSettings = DEFAULT_SETTINGS_FACTORY();

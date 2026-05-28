@@ -53,9 +53,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
@@ -67,7 +65,6 @@ describe("SettingsWindowShell browser layout", () => {
     expect(shell.classes()).toContain("settings-window-shell");
     expect(content.attributes("data-scroll-mode")).toBeUndefined();
     expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
   });
 
   it("constrains the active settings content to the visible body row", async () => {
@@ -86,9 +83,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: tallSectionStub("settings-section-general-content"),
-          SettingsAppearance: tallSectionStub("settings-section-appearance-content"),
           SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
-          SettingsCache: tallSectionStub("settings-section-cache-content"),
           SettingsPlugins: tallSectionStub("settings-section-plugins-content")
         }
       }
@@ -113,9 +108,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
@@ -135,9 +128,7 @@ describe("SettingsWindowShell browser layout", () => {
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }

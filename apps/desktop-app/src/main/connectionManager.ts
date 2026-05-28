@@ -5,7 +5,7 @@ import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
 import { isAuthorizedDesktopClient } from "./connectionAuth.js";
-import { networkEndpointKey } from "../common/networkEndpoints.js";
+import { networkEndpointKey } from "@immersive-subs/contracts";
 import type {
   ControlLoopCommandMessage,
   ControlSeekCommandMessage,

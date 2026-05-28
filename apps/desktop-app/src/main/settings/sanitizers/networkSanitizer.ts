@@ -1,4 +1,4 @@
-import { networkEndpointKey, stripIpv6Brackets } from "../../../common/networkEndpoints.js";
+import { networkEndpointKey, stripIpv6Brackets } from "@immersive-subs/contracts";
 import type { NetworkEndpoint, NetworkSettings } from "../../types.js";
 import { DEFAULT_NETWORK_SETTINGS } from "../constants.js";
 import { sanitizeConnectionAuthToken } from "../../connectionAuth.js";

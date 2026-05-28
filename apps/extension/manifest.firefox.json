@@ -44,6 +44,6 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src ws: wss: http: https: data: blob:;"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src ws: http: https: data: blob:;"
   }
 }

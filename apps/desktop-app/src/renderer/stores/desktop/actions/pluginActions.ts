@@ -1,6 +1,6 @@
 import type { JellyfinembyPluginConfig, PluginSettingsRecord } from "../../../../main/types";
 import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../../common/pluginIds.js";
-import { DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG } from "../defaults";
+import { createDefaultTranscriptionPluginConfig } from "../../../../common/transcriptionDefaults.js";
 import type { DesktopStoreThis } from "../types";
 import type { WordLookupPluginConfig } from "../../../plugins/wordLookupTypes";
 
@@ -50,18 +50,19 @@ export function isPluginEnabled(this: DesktopStoreThis, pluginId: string) {
 
 export function getTranscriptionPluginConfig(this: DesktopStoreThis) {
   const rawConfig = this.settings?.plugins[TRANSCRIPTION_PLUGIN_ID]?.config;
+  const defaults = createDefaultTranscriptionPluginConfig();
   if (!rawConfig || typeof rawConfig !== "object") {
-    return DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG;
+    return defaults;
   }
 
-  const candidate = rawConfig as Partial<typeof DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG>;
+  const candidate = rawConfig as Partial<ReturnType<typeof createDefaultTranscriptionPluginConfig>>;
   const configs = Array.isArray(candidate.configs) && candidate.configs.length
     ? candidate.configs
-    : DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG.configs;
+    : defaults.configs;
   const activeConfigId =
     typeof candidate.activeConfigId === "string" && configs.some((config) => config.id === candidate.activeConfigId)
       ? candidate.activeConfigId
-      : configs[0]?.id ?? DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG.activeConfigId;
+      : configs[0]?.id ?? defaults.activeConfigId;
 
   return {
     activeConfigId,

@@ -102,7 +102,7 @@
     "message": "$1 · Error"
   },
   "validationInvalidServerAddress": {
-    "message": "Enter a valid ws:// or wss:// address"
+    "message": "Enter a valid ws:// host:port address"
   },
   "validationInvalidRegex": {
     "message": "Invalid regular expression"

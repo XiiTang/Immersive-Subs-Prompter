@@ -1,7 +1,7 @@
 import { computed, ref, watch, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import type { TranscriptionConfig, TranscriptionPluginConfig } from "../../../../../main/types";
 import { useDesktopStore } from "../../../../stores/desktop";
-import { BASE_TRANSCRIPTION_CONFIG } from "../../../../../common/transcriptionDefaults";
+import { createDefaultTranscriptionConfig } from "../../../../../common/transcriptionDefaults";
 import { TRANSCRIPTION_PLUGIN_ID } from "../../../../../common/pluginIds";
 
 export interface UseTranscriptionConfigReturn {
@@ -106,10 +106,7 @@ export function useTranscriptionConfig(
       activeConfigId: activeConfigId.value || id,
       configs: [
         ...transcriptionConfigs.value,
-        {
-          id,
-          ...BASE_TRANSCRIPTION_CONFIG
-        }
+        createDefaultTranscriptionConfig({ id })
       ]
     });
   }
@@ -121,10 +118,7 @@ export function useTranscriptionConfig(
     let configs = transcriptionConfigs.value.filter((config) => config.id !== selectedConfig.value?.id);
     if (!configs.length) {
       configs = [
-        {
-          id: createTranscriptionConfigId(),
-          ...BASE_TRANSCRIPTION_CONFIG
-        }
+        createDefaultTranscriptionConfig({ id: createTranscriptionConfigId() })
       ];
     }
     selectedConfigId.value = configs[0]?.id ?? "";

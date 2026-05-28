@@ -1,8 +1,8 @@
 import type {
   LoopCommandPayload,
-  LoopSnapshot
+  LoopSnapshot,
+  UrlRuleMatchType
 } from "@immersive-subs/contracts";
-import type { UrlRuleMatchType } from "../common/urlRuleMatcher.js";
 
 export interface SubtitleCue {
   start: number; // milliseconds

@@ -12,12 +12,13 @@ import type {
   SubtitleCacheSettings,
   SubtitleTrack,
   PluginSettingsRecord,
+  TranscriptionPluginConfig,
   TranscriptionState,
   VideoControlCommand
 } from "../../../main/types";
 import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
-import type { CacheStats, DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG } from "./defaults";
+import type { CacheStats } from "./defaults";
 import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
 import type { UpdateSettingsOptions } from "./actions/settingsActions";
 
@@ -89,7 +90,7 @@ export interface DesktopStoreActions {
   disablePlugin(pluginId: string): Promise<void>;
   setPluginConfig(pluginId: string, config: PluginSettingsRecord["config"]): void;
   isPluginEnabled(pluginId: string): boolean;
-  getTranscriptionPluginConfig(): typeof DEFAULT_TRANSCRIPTION_PLUGIN_CONFIG;
+  getTranscriptionPluginConfig(): TranscriptionPluginConfig;
   getWordLookupPluginConfig(): WordLookupPluginConfig;
   getJellyfinembyPluginConfig(): JellyfinembyPluginConfig;
 

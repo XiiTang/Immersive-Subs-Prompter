@@ -6,7 +6,6 @@ import {
   resolveAppearanceTheme,
   type AppearanceTheme
 } from "./shared/appearance";
-import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils";
 import { normalizeBlacklistRules, areBlacklistRulesEqual } from "./shared/blacklist-utils";
 import { createArrowLeftIcon, createCloseIcon } from "./shared/icons";
 import {
@@ -19,7 +18,13 @@ import {
   t,
   type LanguagePreference
 } from "./shared/i18n";
-import { getUrlRuleMatchType, parseUrlRulePattern, type UrlRuleMatchType } from "./shared/url-rule-matcher";
+import {
+  getUrlRuleMatchType,
+  normalizeEndpoint,
+  normalizeEndpointList,
+  parseUrlRulePattern,
+  type UrlRuleMatchType
+} from "@immersive-subs/contracts";
 import type { BlacklistRule, DashboardResponseMessage, DashboardSnapshot, DesktopConnectionSnapshot, MediaInfo } from "./shared/types";
 
 const statusEl = document.getElementById("status-indicator");
@@ -181,7 +186,7 @@ function setServerError(message = "") {
 function addServerEndpoint(rawValue: string) {
   const normalized = normalizeEndpoint(rawValue);
   if (!normalized) {
-    setServerError(t("validationInvalidServerAddress", "Enter a valid ws:// or wss:// address"));
+    setServerError(t("validationInvalidServerAddress", "Enter a valid ws:// host:port address"));
     return;
   }
   serverError = "";

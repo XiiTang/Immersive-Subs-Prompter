@@ -26,24 +26,24 @@
 
 ## 中优先级
 
-- [ ] 删除孤儿设置组件和陈旧的设置测试脚手架。
+- [x] 删除孤儿设置组件和陈旧的设置测试脚手架。
   - 证据：`apps/desktop-app/src/renderer/components/settings/SettingsWindowShell.vue` 只挂载 `general`、`profiles` 和 `plugins`。
   - 孤儿候选：`apps/desktop-app/src/renderer/components/settings/SettingsAppearance.vue`、`apps/desktop-app/src/renderer/components/settings/SettingsCache.vue`。
   - 相关源码：`apps/desktop-app/src/renderer/components/settings/SettingsGlobal.vue`、`apps/desktop-app/src/renderer/components/settings/SettingsWindowShell.test.ts`。
   - 问题：缓存 UI 已移入全局设置，但旧缓存组件和相关测试仍然保留。
   - 建议方向：删除未使用组件，以及只服务于已移除设置分区的测试和 stub。
 
-- [ ] 去重 URL 规则匹配逻辑。
+- [x] 去重 URL 规则匹配逻辑。
   - 证据：`apps/desktop-app/src/common/urlRuleMatcher.ts` 和 `apps/extension/src/shared/url-rule-matcher.ts` 内容完全重复。
   - 问题：共享领域逻辑分散在桌面端和扩展端两份副本中，后续容易漂移。
   - 建议方向：迁移到共享包，只保留一套实现和测试。
 
-- [ ] 统一桌面端和扩展端的 endpoint 解析。
+- [x] 统一桌面端和扩展端的 endpoint 解析。
   - 证据：`apps/desktop-app/src/common/networkEndpoints.ts` 和 `apps/extension/src/shared/endpoint-utils.ts` 实现了不同的解析和校验规则。
   - 问题：桌面端会拒绝一些扩展端接受的值，包括更宽泛的协议处理、更弱的端口和 host 校验。
   - 建议方向：使用同一个共享 parser，或把扩展端 parser 收窄到桌面端生成的精确 endpoint 格式。
 
-- [ ] 将默认设置收敛为单一事实来源。
+- [x] 将默认设置收敛为单一事实来源。
   - 证据：默认值分散在 `apps/desktop-app/src/main/default-settings.json`、`apps/desktop-app/src/main/settings/constants.ts` 和 `apps/desktop-app/src/renderer/stores/desktop/defaults.ts`。
   - 问题：不同来源的值已经不一致，例如 profile 字号和全局行为默认值。
   - 建议方向：建立一个 canonical default object/factory，删除与产品默认值不一致的兼容式 fallback 常量。

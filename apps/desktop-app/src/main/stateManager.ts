@@ -14,7 +14,7 @@ import {
   TranscriptionStatus
 } from "./types.js";
 import { normalizeRegexPattern } from "../common/regex.js";
-import { getUrlRuleMatchType, matchesUrlRule } from "../common/urlRuleMatcher.js";
+import { getUrlRuleMatchType, matchesUrlRule } from "@immersive-subs/contracts";
 
 const clone = <T>(value: T): T => {
   if (typeof (globalThis as any).structuredClone === "function") {

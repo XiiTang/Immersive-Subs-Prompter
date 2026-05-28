@@ -187,6 +187,7 @@ import { computed, ref } from "vue";
 import type { AppearanceTheme, NetworkEndpoint } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import { DEFAULT_CACHE_SETTINGS } from "../../../common/defaultSettings.js";
 import { IconFolder, IconRefresh } from "../icons";
 import { UiBadge, UiField, UiIconButton, UiInput, UiSection, UiSegmentedControl, UiSelect, UiSwitch } from "../ui";
 import NetworkEndpointEditor from "./NetworkEndpointEditor.vue";
@@ -272,7 +273,7 @@ const cachePath = computed({
 });
 
 const cacheRetentionDays = computed({
-  get: () => store.settings?.cache.retentionDays ?? 30,
+  get: () => store.settings?.cache.retentionDays ?? DEFAULT_CACHE_SETTINGS.retentionDays,
   set: (value: number) => store.updateCacheSetting("retentionDays", value)
 });
 

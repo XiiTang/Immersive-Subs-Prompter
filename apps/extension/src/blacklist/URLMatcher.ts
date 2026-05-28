@@ -1,5 +1,5 @@
 import { state } from "../content/state";
-import { matchesUrlRule } from "../shared/url-rule-matcher";
+import { matchesUrlRule } from "@immersive-subs/contracts";
 import type { BlacklistRule } from "../shared/types";
 
 function matchesBlacklistRule(rule: BlacklistRule, url: string) {

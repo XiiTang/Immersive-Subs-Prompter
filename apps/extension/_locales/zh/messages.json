@@ -102,7 +102,7 @@
     "message": "$1 · 错误"
   },
   "validationInvalidServerAddress": {
-    "message": "请输入有效的 ws:// 或 wss:// 地址"
+    "message": "请输入有效的 ws:// host:port 地址"
   },
   "validationInvalidRegex": {
     "message": "无效的正则表达式"

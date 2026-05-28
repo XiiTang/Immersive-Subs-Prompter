@@ -28,7 +28,7 @@ import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/reg
 import { JELLYFINEMBY_MANIFEST } from "../plugins/official/jellyfinemby/manifest.js";
 import { registerJellyfinembyPluginMain } from "../plugins/official/jellyfinemby/registerMain.js";
 import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
-import { networkEndpointKey } from "../../common/networkEndpoints.js";
+import { networkEndpointKey } from "@immersive-subs/contracts";
 
 type WindowControllerOptions = {
   bus: AppEventBus;

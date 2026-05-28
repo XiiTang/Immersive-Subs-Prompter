@@ -32,8 +32,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { parseUrlRulePattern } from "../../../../common/urlRuleMatcher.js";
-import type { UrlRuleMatchType } from "../../../../common/urlRuleMatcher.js";
+import { parseUrlRulePattern, type UrlRuleMatchType } from "@immersive-subs/contracts";
 import type { ProfileRule } from "../../../../main/types.js";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";

@@ -275,6 +275,25 @@ describe("desktop store profile selection", () => {
     expect(store.pluginCatalog[0]?.enabled).toBe(true);
   });
 
+  it("returns fresh transcription defaults when plugin settings are missing", () => {
+    const store = useDesktopStore();
+    const settings = createSettings();
+    store.settings = {
+      ...settings,
+      plugins: {}
+    };
+
+    const first = store.getTranscriptionPluginConfig();
+    first.configs[0]!.model = "mutated";
+    first.configs.push({ ...first.configs[0]!, id: "transcription-mutated" });
+
+    const second = store.getTranscriptionPluginConfig();
+
+    expect(second.configs).toHaveLength(1);
+    expect(second.configs[0]?.id).toBe("default-transcription");
+    expect(second.configs[0]?.model).toBe("whisper-1");
+  });
+
   it("rolls back optimistic settings when updateSettings rejects", async () => {
     const store = useDesktopStore();
     const original = createSettings();

@@ -1,5 +1,5 @@
 import { Logger } from "../../shared/Logger";
-import { normalizeEndpointList } from "../../shared/endpoint-utils";
+import { normalizeEndpointList } from "@immersive-subs/contracts";
 import type { StorageKey } from "../../shared/constants";
 
 export class EndpointManager {

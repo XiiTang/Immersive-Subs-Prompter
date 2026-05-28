@@ -4,11 +4,13 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, defineProject } from "vitest/config";
 
 const sharedSetupFiles = ["./src/renderer/test/setup.ts"];
+const contractsSource = fileURLToPath(new URL("../../packages/contracts/src/index.ts", import.meta.url));
 const rendererProjectConfig = {
   plugins: [vue()],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src/renderer", import.meta.url))
+      "@": fileURLToPath(new URL("./src/renderer", import.meta.url)),
+      "@immersive-subs/contracts": contractsSource
     }
   }
 };
@@ -53,6 +55,11 @@ export default defineConfig({
         }
       }),
       defineProject({
+        resolve: {
+          alias: {
+            "@immersive-subs/contracts": contractsSource
+          }
+        },
         test: {
           name: "main",
           environment: "node",
@@ -65,4 +72,3 @@ export default defineConfig({
     ]
   }
 });
-

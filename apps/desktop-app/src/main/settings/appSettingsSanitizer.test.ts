@@ -9,7 +9,7 @@ import {
   DEFAULT_SUBTITLE_FONT_FAMILY,
   SUBTITLE_FONT_OPTIONS
 } from "../../common/subtitleFonts.js";
-import { DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
+import { DEFAULT_GLOBAL_SETTINGS, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
@@ -281,12 +281,33 @@ describe("appSettingsSanitizer", () => {
 
       expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(14);
-      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(13);
+      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
+      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
       expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.primarySubtitleFontSize).toBe(26);
       expect(settings.secondarySubtitleFontSize).toBe(25);
+    });
+
+    it("uses the product global defaults as the sanitizer defaults", () => {
+      const result = sanitizeSettings(null);
+
+      expect(DEFAULT_GLOBAL_SETTINGS).toEqual({
+        closeBehavior: "quit",
+        autoLaunch: true,
+        toggleWindowShortcut: "CommandOrControl+Shift+S",
+        gameProcessBlacklist: ["r5apex_dx12.exe"],
+        autoHidePanels: true,
+        alwaysOnTop: "screen-saver",
+        panelOpacity: 0,
+        language: "zh",
+        appearance: {
+          theme: "system"
+        }
+      });
+      expect(result.global).toEqual(DEFAULT_GLOBAL_SETTINGS);
+      expect(result.cache.enabled).toBe(true);
+      expect(result.cache.retentionDays).toBe(7);
     });
 
     it("returns a fresh object on each factory invocation", () => {

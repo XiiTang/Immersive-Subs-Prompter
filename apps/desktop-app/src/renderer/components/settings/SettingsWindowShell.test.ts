@@ -93,9 +93,7 @@ describe("SettingsWindowShell", () => {
       global: {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsAppearance: sectionStub("settings-section-appearance-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
@@ -105,7 +103,6 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.find('[data-testid="settings-nav-item-appearance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="settings-nav-item-cache"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-appearance-content"]').exists()).toBe(false);
 
     await wrapper.get('[data-testid="settings-nav-item-profiles"]').trigger("click");
 
@@ -165,7 +162,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content"),
           SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
         }
@@ -220,7 +216,6 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsCache: sectionStub("settings-section-cache-content"),
           SettingsPlugins: sectionStub("settings-section-plugins-content"),
           SettingsMediaServer: sectionStub("settings-section-plugin-official-jellyfinemby-content")
         }

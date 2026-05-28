@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { buildNetworkEndpointUrl, isLoopbackHost } from "../common/networkEndpoints.js";
+import { buildNetworkEndpointUrl, isLoopbackHost } from "@immersive-subs/contracts";
 import type { NetworkEndpoint } from "./types.js";
 
 const TOKEN_BYTES = 32;

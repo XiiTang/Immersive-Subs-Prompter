@@ -1,4 +1,4 @@
-import { normalizeEndpointList } from "../../shared/endpoint-utils";
+import { normalizeEndpointList } from "@immersive-subs/contracts";
 import type { DesktopConnectionSnapshot } from "../../shared/types";
 import type { FromExtensionBroadcastMessage, ToExtensionMessage } from "@immersive-subs/contracts";
 import { DesktopConnection } from "./DesktopConnection";
