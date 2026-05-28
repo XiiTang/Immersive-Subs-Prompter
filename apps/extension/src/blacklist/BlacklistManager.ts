@@ -7,7 +7,6 @@ import type { BlacklistRule, StorageChangeMap } from "../shared/types";
 export function setBlacklistRules(rawRules: unknown): BlacklistRule[] {
   const normalized = normalizeBlacklistRules(rawRules ?? []);
   state.blacklistRules = normalized;
-  state.regexCache.clear();
   return normalized;
 }
 

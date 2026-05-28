@@ -11,105 +11,79 @@
 <body>
   <header class="popup-header">
     <div class="popup-header__meta">
-      <span class="popup-status" id="status-indicator">Connecting…</span>
+      <span class="ui-status popup-status" id="status-indicator">Connecting…</span>
     </div>
     <div class="popup-header__actions">
-      <button type="button" class="popup-icon-button" id="appearance-btn" title="Appearance" aria-label="Appearance">
-        <span aria-hidden="true">Aa</span>
-      </button>
-      <button type="button" class="popup-icon-button" id="connections-btn" title="Connections" aria-label="Connections">
+      <button type="button" class="ui-icon-button" id="settings-btn" title="Settings" aria-label="Settings">
         <span aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="6" cy="6" r="2.5" />
-            <circle cx="18" cy="6" r="2.5" />
-            <circle cx="12" cy="18" r="2.5" />
-            <path d="M8 7l2.5 3.5M16 7l-2.5 3.5" />
-          </svg>
-        </span>
-      </button>
-      <button type="button" class="popup-icon-button" id="blacklist-btn" title="Blacklist" aria-label="Blacklist">
-        <span aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 5h16v3H4zM4 10h16v10H4z" />
-            <path d="M9 10V5M15 10V5" />
-            <path d="M9 14l6 6M15 14l-6 6" />
+            <path
+              d="M12 3.5l1.2 2.1 2.4.3.5 2.3 2 1.3-1 2.2.8 2.3-2 1.2-.6 2.3-2.4.2L12 20.5l-1.2-2.1-2.4-.3-.5-2.3-2-1.3 1-2.2-.8-2.3 2-1.2.6-2.3 2.4-.2L12 3.5z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
         </span>
       </button>
     </div>
   </header>
   <main class="popup-main">
-    <section id="media-root" class="media-root">
-      <div class="empty-state">
+    <section id="media-root" class="ui-list media-root">
+      <div class="ui-empty-state empty-state">
         <strong>No media detected</strong>
         <p>Start playback on YouTube, Bilibili, Douyin, or another supported site.</p>
       </div>
     </section>
   </main>
 
-  <section class="drawer-panel connections-panel" id="connections-panel" aria-hidden="true">
+  <section class="drawer-panel settings-panel" id="settings-panel" aria-hidden="true">
     <div class="drawer-panel__header">
-      <button type="button" class="drawer-back" id="connections-back">Back</button>
+      <button type="button" class="ui-button ui-button--secondary ui-button--sm drawer-back" id="settings-back">Back</button>
       <div>
-        <h2>Connections</h2>
+        <h2>Settings</h2>
       </div>
     </div>
-    <div class="drawer-panel__body">
-      <section id="server-root" class="server-root"></section>
-    </div>
-  </section>
 
-  <section class="drawer-panel blacklist-panel" id="blacklist-panel" aria-hidden="true">
-    <div class="drawer-panel__header">
-      <button type="button" class="drawer-back" id="blacklist-back">Back</button>
-      <div>
-        <h2>Blacklist</h2>
-      </div>
-    </div>
-    <div class="drawer-panel__actions">
-      <button type="button" class="blacklist-add icon-btn" id="add-blacklist-rule" title="Add rule"
-        aria-label="Add rule">
-        <svg class="icon icon--add" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"
-          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-          aria-hidden="true">
-          <circle cx="8" cy="8" r="6" />
-          <line x1="8" y1="5" x2="8" y2="11" />
-          <line x1="5" y1="8" x2="11" y2="8" />
-        </svg>
-      </button>
-    </div>
-    <div class="blacklist-empty" id="blacklist-empty-state">
-      <p>No rules added yet.</p>
-    </div>
-    <div class="blacklist-list" id="blacklist-list"></div>
-  </section>
+    <div class="drawer-panel__body settings-panel__body">
+      <section class="settings-section settings-section--appearance" data-settings-section="appearance">
+        <div class="settings-section__header">
+          <h3>Appearance</h3>
+        </div>
+        <div class="ui-segmented appearance-options" role="radiogroup" aria-label="Theme">
+          <button type="button" class="ui-segmented__item" data-theme-option="system" role="radio">System</button>
+          <button type="button" class="ui-segmented__item" data-theme-option="light" role="radio">Light</button>
+          <button type="button" class="ui-segmented__item" data-theme-option="dark" role="radio">Dark</button>
+        </div>
+      </section>
 
-  <section class="drawer-panel appearance-panel" id="appearance-panel" aria-hidden="true">
-    <div class="drawer-panel__header">
-      <button type="button" class="drawer-back" id="appearance-back">Back</button>
-      <div>
-        <h2>Appearance</h2>
-      </div>
-    </div>
-    <div class="appearance-options" role="radiogroup" aria-label="Theme">
-      <button type="button" class="appearance-option" data-theme-option="system" role="radio">System</button>
-      <button type="button" class="appearance-option" data-theme-option="light" role="radio">Light</button>
-      <button type="button" class="appearance-option" data-theme-option="dark" role="radio">Dark</button>
+      <section class="settings-section settings-section--connections" data-settings-section="connections">
+        <div class="settings-section__header">
+          <h3>Connections</h3>
+        </div>
+        <section id="server-root" class="server-root"></section>
+      </section>
+
+      <section class="settings-section settings-section--blacklist" data-settings-section="blacklist">
+        <div class="settings-section__header">
+          <h3>Blacklist</h3>
+        </div>
+        <div class="pill-list-editor blacklist-editor">
+          <div class="priority-editor__list pill-list-editor__list blacklist-list" id="blacklist-list"></div>
+          <div class="settings-field__error blacklist-draft-error" id="blacklist-draft-error" hidden></div>
+        </div>
+      </section>
     </div>
   </section>
 
   <template id="media-row-template">
-    <article class="media-row">
+    <article class="ui-list-item media-row">
       <div class="media-row__header">
         <div class="media-row__title"></div>
-        <span class="media-row__status"></span>
+        <span class="ui-badge media-row__status"></span>
       </div>
       <div class="media-row__subtitle"></div>
       <div class="media-row__meta"></div>
-      <div class="media-row__progress">
-        <div class="media-row__progress-bar"></div>
+      <div class="ui-progress media-row__progress">
+        <div class="ui-progress__bar media-row__progress-bar"></div>
       </div>
       <div class="media-row__time"></div>
       <div class="media-row__actions">

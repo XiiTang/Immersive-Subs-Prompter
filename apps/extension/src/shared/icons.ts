@@ -31,6 +31,14 @@ const ICON_DELETE: IconDef = {
   ]
 };
 
+const ICON_CLOSE: IconDef = {
+  viewBox: "0 0 16 16",
+  segments: [
+    { tag: "line", attrs: { x1: 5, y1: 5, x2: 11, y2: 11 } },
+    { tag: "line", attrs: { x1: 11, y1: 5, x2: 5, y2: 11 } }
+  ]
+};
+
 function applyAttributes(element: Element, attrs: IconAttrs) {
   Object.entries(attrs).forEach(([key, value]) => {
     element.setAttribute(key, String(value));
@@ -64,4 +72,8 @@ export function createAddIcon(options?: IconOptions) {
 
 export function createDeleteIcon(options?: IconOptions) {
   return createIcon(ICON_DELETE, options);
+}
+
+export function createCloseIcon(options?: IconOptions) {
+  return createIcon(ICON_CLOSE, options);
 }

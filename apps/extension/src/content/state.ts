@@ -17,7 +17,6 @@ export const state: ContentRuntimeState = {
   urlWatcherInitialized: false,
   urlWatcherCleanups: [],
   urlFallbackTimer: null,
-  regexCache: new Map(),
   lastReportedPlayback: null,
   loop: createEmptyLoopState(),
   domObserver: null,

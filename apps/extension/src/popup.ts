@@ -8,26 +8,23 @@ import {
 } from "./shared/appearance";
 import { normalizeEndpoint, normalizeEndpointList } from "./shared/endpoint-utils";
 import { normalizeBlacklistRules, areBlacklistRulesEqual } from "./shared/blacklist-utils";
-import { createAddIcon, createDeleteIcon } from "./shared/icons";
+import { createCloseIcon } from "./shared/icons";
+import { getUrlRuleMatchType, parseUrlRulePattern, type UrlRuleMatchType } from "./shared/url-rule-matcher";
 import type { BlacklistRule, DashboardResponseMessage, DashboardSnapshot, DesktopConnectionSnapshot, MediaInfo } from "./shared/types";
 
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
 const serverRoot = document.getElementById("server-root");
-const connectionsPanel = document.getElementById("connections-panel");
-const connectionsButton = document.getElementById("connections-btn");
-const connectionsBackButton = document.getElementById("connections-back");
-const appearancePanel = document.getElementById("appearance-panel");
-const appearanceButton = document.getElementById("appearance-btn");
-const appearanceBackButton = document.getElementById("appearance-back");
+const settingsPanel = document.getElementById("settings-panel");
+const settingsButton = document.getElementById("settings-btn");
+const settingsBackButton = document.getElementById("settings-back");
 const appearanceOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-theme-option]"));
 const template = document.getElementById("media-row-template") as HTMLTemplateElement | null;
-const blacklistPanel = document.getElementById("blacklist-panel");
-const blacklistButton = document.getElementById("blacklist-btn");
-const blacklistBackButton = document.getElementById("blacklist-back");
 const blacklistListEl = document.getElementById("blacklist-list");
-const blacklistEmptyStateEl = document.getElementById("blacklist-empty-state");
-const addBlacklistRuleButton = document.getElementById("add-blacklist-rule");
+const blacklistDraftErrorEl = document.getElementById("blacklist-draft-error");
+
+const BLACKLIST_RULE_PLACEHOLDER = "youtube.com, *.site.com/path/*, =full URL, re:pattern";
+const SERVER_ENDPOINT_PLACEHOLDER = "ws://192.168.1.10:44501/?token=...";
 
 let port: chrome.runtime.Port | null = null;
 let blacklistRules: BlacklistRule[] = [];
@@ -36,8 +33,11 @@ type PopupConnection = Pick<DesktopConnectionSnapshot, "endpoint" | "state" | "l
 
 let connectionStatuses: PopupConnection[] = [];
 let serverError = "";
-let serverInputEl: HTMLInputElement | null = null;
-let activePanel: "blacklist" | "connections" | "appearance" | null = null;
+let serverDraftInputEl: HTMLInputElement | null = null;
+let serverDraftErrorEl: HTMLElement | null = null;
+let serverDraftValue = "";
+let blacklistDraftInputEl: HTMLInputElement | null = null;
+let blacklistDraftValue = "";
 let appearanceTheme: AppearanceTheme = "system";
 
 function setStatus(text: string) {
@@ -102,16 +102,11 @@ function connectionStatusLabel(state: PopupConnection["state"], hasError: boolea
   return hasError ? `${base} · Error` : base;
 }
 
-function connectionStatusClass(state: PopupConnection["state"], hasError: boolean) {
-  let cls = "server-status";
-  if (state === "connected") {
-    cls += " server-status--connected";
-  } else if (state === "connecting") {
-    cls += " server-status--connecting";
-  } else if (hasError) {
-    cls += " server-status--error";
-  }
-  return cls;
+function connectionPillClass(state: PopupConnection["state"], hasError: boolean) {
+  if (hasError) return "server-pill--error";
+  if (state === "connected") return "server-pill--connected";
+  if (state === "connecting") return "server-pill--connecting";
+  return "server-pill--disconnected";
 }
 
 function setServerError(message = "") {
@@ -125,10 +120,16 @@ function addServerEndpoint(rawValue: string) {
     setServerError("Enter a valid ws:// or wss:// address");
     return;
   }
-  setServerError("");
-  if (serverInputEl) {
-    serverInputEl.value = "";
+  serverError = "";
+  serverDraftValue = "";
+  if (serverDraftInputEl) {
+    serverDraftInputEl.value = "";
   }
+  if (serverEndpoints.includes(normalized)) {
+    renderServers();
+    return;
+  }
+  renderServers();
   try {
     port?.postMessage({ type: "server-endpoints:add", endpoint: normalized });
   } catch (error) {
@@ -147,99 +148,116 @@ function removeServerEndpoint(endpoint: string) {
 function renderServers() {
   if (!serverRoot) return;
 
-  const previousValue = serverInputEl?.value ?? "";
-  const card = document.createElement("div");
-  card.className = "popup-section";
+  serverDraftValue = serverDraftInputEl?.value ?? serverDraftValue;
+  const editor = document.createElement("div");
+  editor.className = "pill-list-editor server-pill-list-editor";
 
-  const header = document.createElement("div");
-  header.className = "popup-section__header";
-  const titleWrap = document.createElement("div");
-  const title = document.createElement("div");
-  title.className = "popup-section__title";
-  title.textContent = "Desktop Apps";
-  const subtitle = document.createElement("div");
-  subtitle.className = "popup-section__subtitle";
+  const summary = document.createElement("div");
+  summary.className = "ui-field__hint server-summary";
   const total = serverEndpoints.length || connectionStatuses.length;
   const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
-  subtitle.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
-  titleWrap.appendChild(title);
-  titleWrap.appendChild(subtitle);
-  header.appendChild(titleWrap);
-  card.appendChild(header);
-
-  const addRow = document.createElement("div");
-  addRow.className = "server-add";
-  serverInputEl = document.createElement("input");
-  serverInputEl.type = "text";
-  serverInputEl.className = "server-input";
-  serverInputEl.placeholder = "ws://192.168.1.10:44501/?token=...";
-  serverInputEl.autocomplete = "off";
-  serverInputEl.value = previousValue;
-  serverInputEl.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      addServerEndpoint(serverInputEl?.value ?? "");
-    }
-  });
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "icon-btn";
-  addBtn.title = "Add";
-  addBtn.setAttribute("aria-label", "Add");
-  addBtn.appendChild(createAddIcon({ size: 16, className: "icon icon--add" }));
-      addBtn.addEventListener("click", () => addServerEndpoint(serverInputEl?.value ?? ""));
-  addRow.appendChild(serverInputEl);
-  addRow.appendChild(addBtn);
-  card.appendChild(addRow);
-
-  if (serverError) {
-    const errorEl = document.createElement("div");
-    errorEl.className = "server-error";
-    errorEl.textContent = serverError;
-    card.appendChild(errorEl);
-  }
+  summary.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
+  editor.appendChild(summary);
 
   const list = document.createElement("div");
-  list.className = "server-list";
-  if (!serverEndpoints.length) {
-    const empty = document.createElement("div");
-    empty.className = "server-empty";
-    empty.textContent = "No servers configured.";
-    list.appendChild(empty);
-  } else {
-    serverEndpoints.forEach((endpoint) => {
-      const row = document.createElement("div");
-      row.className = "server-row";
+  list.className = "priority-editor__list pill-list-editor__list server-pill-list";
 
-      const endpointEl = document.createElement("div");
-      endpointEl.className = "server-endpoint";
-      endpointEl.textContent = endpoint;
+  serverEndpoints.forEach((endpoint) => {
+    const info = getConnectionInfo(endpoint);
+    const state = info?.state || "disconnected";
+    const hasError = !!info?.lastError;
+    const label = connectionStatusLabel(state, hasError);
 
-      const info = getConnectionInfo(endpoint);
-      const state = info?.state || "disconnected";
-      const statusEl = document.createElement("div");
-      statusEl.className = connectionStatusClass(state, !!info?.lastError);
-      statusEl.title = info?.lastError || "";
-      statusEl.innerHTML = `<span class="server-status__dot"></span><span>${connectionStatusLabel(
-        state,
-        !!info?.lastError
-      )}</span>`;
+    const pill = document.createElement("span");
+    pill.className = [
+      "ui-chip",
+      "priority-editor__item",
+      "pill-list-editor__item",
+      "pill-list-editor__item--removable",
+      "server-pill",
+      connectionPillClass(state, hasError)
+    ].join(" ");
+    pill.dataset.endpoint = endpoint;
 
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "server-remove icon-btn";
-      removeBtn.title = "Remove";
-      removeBtn.setAttribute("aria-label", "Remove");
-      removeBtn.appendChild(createDeleteIcon({ size: 16, className: "icon icon--delete" }));
-      removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
+    const statusDot = document.createElement("span");
+    statusDot.className = "server-status-dot";
+    statusDot.title = info?.lastError || label;
+    statusDot.setAttribute("aria-label", label);
 
-      row.appendChild(endpointEl);
-      row.appendChild(statusEl);
-      row.appendChild(removeBtn);
-      list.appendChild(row);
-    });
-  }
-  card.appendChild(list);
-  serverRoot.replaceChildren(card);
+    const endpointEl = document.createElement("span");
+    endpointEl.className = "pill-list-editor__display server-endpoint";
+    endpointEl.dataset.testid = `server-endpoint-display-${endpoint}`;
+    endpointEl.title = `${endpoint} (${label})`;
+    endpointEl.textContent = endpoint;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove server-remove";
+    removeBtn.title = "Remove";
+    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.dataset.testid = `server-endpoint-remove-${endpoint}`;
+    removeBtn.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
+    removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
+
+    pill.appendChild(statusDot);
+    pill.appendChild(endpointEl);
+    pill.appendChild(removeBtn);
+    list.appendChild(pill);
+  });
+
+  list.appendChild(createServerDraftItem());
+  editor.appendChild(list);
+
+  serverDraftErrorEl = document.createElement("div");
+  serverDraftErrorEl.className = "settings-field__error server-error";
+  serverDraftErrorEl.hidden = !serverError;
+  serverDraftErrorEl.textContent = serverError;
+  editor.appendChild(serverDraftErrorEl);
+
+  serverRoot.replaceChildren(editor);
+}
+
+function createServerDraftItem() {
+  const draft = document.createElement("span");
+  draft.className = "priority-editor__item priority-editor__draft pill-list-editor__draft server-draft";
+
+  const sizer = document.createElement("span");
+  sizer.className = "pill-list-editor__draft-sizer";
+  sizer.setAttribute("aria-hidden", "true");
+  sizer.textContent = serverDraftValue || SERVER_ENDPOINT_PLACEHOLDER || " ";
+
+  serverDraftInputEl = document.createElement("input");
+  serverDraftInputEl.type = "text";
+  serverDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
+  serverDraftInputEl.dataset.testid = "server-draft-input";
+  serverDraftInputEl.placeholder = SERVER_ENDPOINT_PLACEHOLDER;
+  serverDraftInputEl.value = serverDraftValue;
+  serverDraftInputEl.addEventListener("input", () => {
+    serverDraftValue = serverDraftInputEl?.value ?? "";
+    sizer.textContent = serverDraftValue || SERVER_ENDPOINT_PLACEHOLDER || " ";
+    if (serverError) {
+      serverError = "";
+      if (serverDraftErrorEl) {
+        serverDraftErrorEl.hidden = true;
+        serverDraftErrorEl.textContent = "";
+      }
+    }
+  });
+  serverDraftInputEl.addEventListener("blur", () => {
+    if (serverDraftValue.trim()) {
+      addServerEndpoint(serverDraftValue);
+    }
+  });
+  serverDraftInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addServerEndpoint(serverDraftValue);
+    }
+  });
+
+  draft.appendChild(sizer);
+  draft.appendChild(serverDraftInputEl);
+  return draft;
 }
 
 function formatTime(value: number | null | undefined) {
@@ -286,7 +304,7 @@ function formatRelative(delta: number | null | undefined) {
 function renderEmptyState() {
   if (!mediaRoot) return;
   const empty = document.createElement("div");
-  empty.className = "empty-state";
+  empty.className = "ui-empty-state empty-state";
   empty.innerHTML = "<strong>No media detected</strong><p>Start playing a video to see the live breakdown here.</p>";
   mediaRoot.replaceChildren(empty);
 }
@@ -321,113 +339,42 @@ function saveBlacklistRules(nextRules: BlacklistRule[], { render = true }: { ren
   });
 }
 
-function isRegexValid(pattern: string) {
-  if (!pattern) {
-    return true;
-  }
-  try {
-    new RegExp(pattern);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
 function renderBlacklistRules() {
-  if (!blacklistListEl || !blacklistEmptyStateEl) {
+  if (!blacklistListEl) {
     return;
   }
   blacklistListEl.innerHTML = "";
-  if (!blacklistRules.length) {
-    blacklistEmptyStateEl.hidden = false;
-    blacklistListEl.hidden = true;
-    return;
-  }
-  blacklistEmptyStateEl.hidden = true;
-  blacklistListEl.hidden = false;
 
   blacklistRules.forEach((rule) => {
-    const item = document.createElement("div");
-    item.className = "blacklist-item";
+    const item = document.createElement("span");
+    item.className = "ui-chip priority-editor__item pill-list-editor__item pill-list-editor__item--removable";
+    if (parseUrlRulePattern(rule.value).error) {
+      item.classList.add("pill-list-editor__item--error");
+    }
     item.dataset.id = rule.id;
 
-    const row = document.createElement("div");
-    row.className = "blacklist-item__row";
-
-    const select = document.createElement("select");
-    select.className = "blacklist-item__select";
-    [
-      { value: "contains", label: "Contains" },
-      { value: "exact", label: "Exact Match" },
-      { value: "regex", label: "Regex" }
-    ].forEach((optionMeta) => {
-      const option = document.createElement("option");
-      option.value = optionMeta.value;
-      option.textContent = optionMeta.label;
-      select.appendChild(option);
-    });
-    select.value = rule.mode;
-    const input = document.createElement("input");
-    input.className = "blacklist-item__input";
-    input.type = "text";
-    input.placeholder = "Enter URL or keywords to match";
-    input.value = rule.value;
-    const error = document.createElement("div");
-    error.className = "blacklist-item__error";
-    const updateErrorMessage = () => {
-      const currentMode = select.value;
-      const currentValue = input.value;
-      error.textContent = currentMode === "regex" && !isRegexValid(currentValue) ? "Invalid regex" : "";
-    };
-    select.addEventListener("change", () => {
-      updateBlacklistRule(rule.id, { mode: select.value as BlacklistRule["mode"] });
-      updateErrorMessage();
-    });
-    input.addEventListener("input", () => {
-      updateBlacklistRule(rule.id, { value: input.value });
-      updateErrorMessage();
-    });
-
-    row.appendChild(select);
-    row.appendChild(input);
-
-    const footer = document.createElement("div");
-    footer.className = "blacklist-item__footer";
-    updateErrorMessage();
+    const display = document.createElement("span");
+    display.className = "pill-list-editor__display";
+    display.dataset.testid = `blacklist-rule-display-${rule.id}`;
+    display.title = `${rule.value} (${ruleTypeLabel(rule.value)})`;
+    display.textContent = rule.value;
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
-    removeButton.className = "blacklist-item__remove icon-btn";
+    removeButton.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove";
     removeButton.title = "Remove";
     removeButton.setAttribute("aria-label", "Remove");
-    removeButton.appendChild(createDeleteIcon({ size: 16, className: "icon icon--delete" }));
+    removeButton.dataset.testid = `blacklist-rule-remove-${rule.id}`;
+    removeButton.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
     removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
 
-    footer.appendChild(error);
-    footer.appendChild(removeButton);
-
-    item.appendChild(row);
-    item.appendChild(footer);
+    item.appendChild(display);
+    item.appendChild(removeButton);
     blacklistListEl.appendChild(item);
   });
-}
 
-function updateBlacklistRule(ruleId: string, partial: Partial<BlacklistRule>) {
-  const index = blacklistRules.findIndex((rule) => rule.id === ruleId);
-  if (index === -1) {
-    return;
-  }
-  const current = blacklistRules[index];
-  if (!current) {
-    return;
-  }
-  const next = { ...current, ...partial };
-  if (current.mode === next.mode && current.value === next.value) {
-    return;
-  }
-  const nextRules = [...blacklistRules];
-  nextRules[index] = next;
-  saveBlacklistRules(nextRules, { render: false });
+  blacklistListEl.appendChild(createBlacklistDraftItem());
+  updateBlacklistDraftError();
 }
 
 function removeBlacklistRule(ruleId: string) {
@@ -435,51 +382,101 @@ function removeBlacklistRule(ruleId: string) {
   saveBlacklistRules(nextRules);
 }
 
-function addBlacklistRule() {
+function addBlacklistDraft() {
+  const value = blacklistDraftValue.trim();
+  if (!value || patternErrorMessage(value)) {
+    updateBlacklistDraftError();
+    return;
+  }
+  if (blacklistRules.some((rule) => rule.value === value)) {
+    blacklistDraftValue = "";
+    renderBlacklistRules();
+    return;
+  }
   const id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
     : `rule-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-  const nextRules: BlacklistRule[] = [...blacklistRules, { id, mode: "contains", value: "" }];
+  const nextRules: BlacklistRule[] = [...blacklistRules, { id, value }];
+  blacklistDraftValue = "";
   saveBlacklistRules(nextRules);
 }
 
-function setActivePanel(nextPanel: "blacklist" | "connections" | "appearance" | null) {
-  const prevPanel = activePanel;
-  activePanel = nextPanel;
+function createBlacklistDraftItem() {
+  const draft = document.createElement("span");
+  draft.className = "priority-editor__item priority-editor__draft pill-list-editor__draft";
+
+  const sizer = document.createElement("span");
+  sizer.className = "pill-list-editor__draft-sizer";
+  sizer.setAttribute("aria-hidden", "true");
+  sizer.textContent = blacklistDraftValue || BLACKLIST_RULE_PLACEHOLDER || " ";
+
+  blacklistDraftInputEl = document.createElement("input");
+  blacklistDraftInputEl.type = "text";
+  blacklistDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
+  blacklistDraftInputEl.dataset.testid = "blacklist-draft-input";
+  blacklistDraftInputEl.placeholder = BLACKLIST_RULE_PLACEHOLDER;
+  blacklistDraftInputEl.value = blacklistDraftValue;
+  blacklistDraftInputEl.addEventListener("input", () => {
+    blacklistDraftValue = blacklistDraftInputEl?.value ?? "";
+    sizer.textContent = blacklistDraftValue || BLACKLIST_RULE_PLACEHOLDER || " ";
+    updateBlacklistDraftError();
+  });
+  blacklistDraftInputEl.addEventListener("blur", () => addBlacklistDraft());
+  blacklistDraftInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addBlacklistDraft();
+    }
+  });
+
+  draft.appendChild(sizer);
+  draft.appendChild(blacklistDraftInputEl);
+  return draft;
+}
+
+function updateBlacklistDraftError() {
+  if (!blacklistDraftErrorEl) {
+    return;
+  }
+  const message = patternErrorMessage(blacklistDraftValue);
+  blacklistDraftErrorEl.textContent = message ?? "";
+  blacklistDraftErrorEl.hidden = !message;
+}
+
+function patternErrorMessage(pattern: string) {
+  const parsed = parseUrlRulePattern(pattern);
+  if (parsed.error === "invalid-regex") {
+    return "Invalid regular expression";
+  }
+  return null;
+}
+
+function ruleTypeLabel(pattern: string) {
+  const labels: Record<UrlRuleMatchType, string> = {
+    domain: "Domain",
+    glob: "Glob",
+    exact: "Exact",
+    regex: "Regex",
+    contains: "Contains"
+  };
+  return labels[getUrlRuleMatchType(pattern)];
+}
+
+function setActivePanel(nextPanel: "settings" | null) {
   const isDrawerOpen = Boolean(nextPanel);
   document.body.classList.toggle("drawer-open", isDrawerOpen);
-  document.body.classList.toggle("blacklist-open", nextPanel === "blacklist");
-  document.body.classList.toggle("connections-open", nextPanel === "connections");
-  document.body.classList.toggle("appearance-open", nextPanel === "appearance");
+  document.body.classList.toggle("settings-open", nextPanel === "settings");
 
-  if (blacklistPanel) {
-    blacklistPanel.setAttribute("aria-hidden", String(nextPanel !== "blacklist"));
-  }
-  if (connectionsPanel) {
-    connectionsPanel.setAttribute("aria-hidden", String(nextPanel !== "connections"));
-  }
-  if (appearancePanel) {
-    appearancePanel.setAttribute("aria-hidden", String(nextPanel !== "appearance"));
+  if (settingsPanel) {
+    settingsPanel.setAttribute("aria-hidden", String(nextPanel !== "settings"));
   }
 
   if (!nextPanel) {
-    if (prevPanel === "blacklist") {
-      blacklistButton?.focus();
-    } else if (prevPanel === "connections") {
-      connectionsButton?.focus();
-    } else if (prevPanel === "appearance") {
-      appearanceButton?.focus();
-    }
+    settingsButton?.focus();
     return;
   }
 
-  if (nextPanel === "blacklist") {
-    (addBlacklistRuleButton || blacklistPanel)?.focus();
-  } else if (nextPanel === "connections") {
-    (serverInputEl || connectionsPanel)?.focus();
-  } else if (nextPanel === "appearance") {
-    (appearanceOptionButtons.find((button) => button.dataset.themeOption === appearanceTheme) || appearancePanel)?.focus();
-  }
+  (settingsBackButton || appearanceOptionButtons.find((button) => button.dataset.themeOption === appearanceTheme) || settingsPanel)?.focus();
 }
 
 function renderCards(items: MediaInfo[]) {
@@ -611,13 +608,8 @@ try {
   renderEmptyState();
 }
 
-blacklistButton?.addEventListener("click", () => setActivePanel("blacklist"));
-blacklistBackButton?.addEventListener("click", () => setActivePanel(null));
-connectionsButton?.addEventListener("click", () => setActivePanel("connections"));
-connectionsBackButton?.addEventListener("click", () => setActivePanel(null));
-appearanceButton?.addEventListener("click", () => setActivePanel("appearance"));
-appearanceBackButton?.addEventListener("click", () => setActivePanel(null));
-addBlacklistRuleButton?.addEventListener("click", () => addBlacklistRule());
+settingsButton?.addEventListener("click", () => setActivePanel("settings"));
+settingsBackButton?.addEventListener("click", () => setActivePanel(null));
 for (const button of appearanceOptionButtons) {
   button.addEventListener("click", () => saveAppearance(normalizeAppearanceTheme(button.dataset.themeOption)));
 }

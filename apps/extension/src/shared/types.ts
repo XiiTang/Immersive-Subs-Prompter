@@ -8,11 +8,8 @@ import type {
   VideoStateSnapshot
 } from "@immersive-subs/contracts";
 
-export type BlacklistMode = "contains" | "exact" | "regex";
-
 export interface BlacklistRule {
   id: string;
-  mode: BlacklistMode;
   value: string;
 }
 
@@ -90,7 +87,6 @@ export interface ContentRuntimeState {
   urlWatcherInitialized: boolean;
   urlWatcherCleanups: Array<() => void>;
   urlFallbackTimer: ReturnType<typeof setTimeout> | null;
-  regexCache: Map<string, RegExp | null>;
   lastReportedPlayback: PlaybackPrediction | null;
   loop: LoopRuntimeState;
   domObserver: MutationObserver | null;

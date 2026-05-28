@@ -214,10 +214,11 @@ The extension popup uses the same visual grammar with native DOM.
 
 Final shape:
 
-- Header: status text plus icon buttons.
+- Header: status text plus one settings icon button.
 - Media records: list rows or flat repeated surfaces, no shadow cards.
-- Connections: endpoint input, add/remove actions, connection statuses.
-- Blacklist: match mode, pattern input, regex validation, add/remove.
+- Settings panel: one drawer that groups Appearance, Connections, and Blacklist as stacked sections.
+- Connections: read-only endpoint pills, trailing draft endpoint input, close-button removal, and status dots with semantic status colors.
+- Blacklist: read-only rule pills, trailing draft rule input, URL-rule pattern parsing, regex validation, remove.
 - Appearance: segmented system/light/dark control.
 - Drawers/panels use solid surfaces and one-pixel lines.
 - Extension appearance storage remains independent from desktop settings.
