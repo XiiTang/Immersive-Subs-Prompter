@@ -22,5 +22,4 @@ allowBuilds:
   esbuild: true
   fs-xattr: true
   get-windows: true
-  koffi: true
   macos-alias: true

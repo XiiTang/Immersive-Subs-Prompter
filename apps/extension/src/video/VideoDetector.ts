@@ -15,7 +15,10 @@ function setActiveVideo(video: HTMLVideoElement | null) {
   state.activeVideo = nextVideo;
   if (nextVideo) {
     log.info("video", "Video activated", { src: nextVideo.currentSrc || nextVideo.src, duration: nextVideo.duration });
-    send("video-context", gatherVideoState(nextVideo));
+    const snapshot = gatherVideoState(nextVideo);
+    if (snapshot) {
+      send("video-context", snapshot);
+    }
     if (switchedVideo) {
       resetPlaybackPrediction();
     }
@@ -34,7 +37,7 @@ export function endActiveVideoSession(reason = "ended") {
   const src = state.activeVideo.currentSrc || state.activeVideo.src || "(no src)";
   clearLoopState();
   log.info("video", `Video ${reason}`, { src });
-  send("video-ended", { pageUrl: location.href });
+  send("video-ended", {});
   setActiveVideo(null);
 }
 
@@ -79,7 +82,10 @@ export function handleDocumentMediaEvent(event: Event | { type: string; target: 
       if (!state.activeVideo) {
         setActiveVideo(target);
       } else {
-        send("video-context", gatherVideoState(target));
+        const snapshot = gatherVideoState(target);
+        if (snapshot) {
+          send("video-context", snapshot);
+        }
       }
       break;
     case "loadeddata":

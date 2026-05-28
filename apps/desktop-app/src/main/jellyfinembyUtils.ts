@@ -75,23 +75,14 @@ export function pickSubtitleExtension(stream: MediaServerSubtitleStream): string
   return CODEC_EXTENSION_MAP[key] ?? key.split(/[^a-z0-9]/i).pop()?.toLowerCase() ?? "vtt";
 }
 
-/**
- * Intelligently guess subtitle format from stream metadata
- * Migrated from jellyfinemby-desktop-client for better format detection
- * 
- * @param stream - The jellyfinemby subtitle stream
- * @returns 'srt' or 'vtt' format identifier
- */
 export function guessSubtitleFormatFromStream(stream: MediaServerSubtitleStream): 'srt' | 'vtt' {
   const normalizedTitle = (stream.displayTitle ?? '').toLowerCase();
   const normalizedCodec = (stream.codec ?? '').toLowerCase();
 
-  // Check display title first (more explicit)
   if (normalizedTitle.includes('vtt') || normalizedTitle.includes('webvtt')) {
     return 'vtt';
   }
   
-  // Check codec
   if (normalizedCodec.includes('vtt') || normalizedCodec.includes('webvtt')) {
     return 'vtt';
   }
@@ -100,7 +91,6 @@ export function guessSubtitleFormatFromStream(stream: MediaServerSubtitleStream)
     return 'srt';
   }
 
-  // Default to SRT for most subtitle formats
   return 'srt';
 }
 

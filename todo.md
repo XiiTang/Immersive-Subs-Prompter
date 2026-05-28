@@ -4,11 +4,6 @@
 
 ## P0 - 阻塞与安全
 
-- [x] 修复扩展无法类型检查/构建的问题。
-  - 位置：`apps/extension/src/shared/icons.ts`
-  - 问题：导入了不存在的 `../../../desktop-app/src/renderer/shared/iconDefs`，这是残留的跨应用过渡层。
-  - 处理：改为扩展本地 icon 定义，或移到真实 shared package；不要从桌面端源码深层导入。
-
 - [ ] 收紧桌面端 WebSocket 鉴权。
   - 位置：`apps/desktop-app/src/main/connectionAuth.ts`
   - 问题：loopback host 直接放行，且信任任意 `chrome-extension://` / `moz-extension://` origin。
@@ -53,37 +48,37 @@
 
 ## P2 - 冗余、旧链路和过度兜底
 
-- [ ] 删除 transcription 旧名称迁移逻辑和对应测试。
+- [x] 删除 transcription 旧名称迁移逻辑和对应测试。
   - 位置：`apps/desktop-app/src/main/settings/sanitizers/transcriptionSanitizer.ts`
   - 问题：保留 `LEGACY_DEFAULT_WHISPER_CONFIG_NAME` 并迁移旧名称；项目未上线不需要。
   - 处理：删除 legacy 常量、判断分支和对应测试。
 
-- [ ] 删除一次性升级测试和旧代码拒绝层。
+- [x] 删除一次性升级测试和旧代码拒绝层。
   - 位置示例：`apps/desktop-app/src/renderer/electron41-upgrade.test.ts`、`apps/desktop-app/src/renderer/vue35-upgrade.test.ts`、`apps/desktop-app/src/renderer/testingStackUpgrade.test.ts`、`apps/desktop-app/src/renderer/styleConvergence.test.ts`、`apps/desktop-app/src/renderer/uiLibraryBoundary.test.ts`、`apps/extension/src/popup-style.test.ts`
   - 问题：大量测试检查版本 pin、历史替换、源码字符串或旧样式拒绝，固化实现历史而不是产品行为。
   - 处理：删除一次性升级/迁移/旧代码拒绝测试；只保留产品行为、契约、安全边界和渲染测试。
 
-- [ ] 简化 `ytDlpManager` 的平台映射、fallback 和失败缓存。
+- [x] 简化 `ytDlpManager` 的平台映射、fallback 和失败缓存。
   - 位置：`apps/desktop-app/src/main/ytDlpManager.ts`
   - 问题：为大量 Node 平台映射同一 Linux binary；release API 失败后重复 fallback 到 latest URL；失败的 promise 会被缓存。
   - 处理：只支持明确平台；失败后清空 promise；移除重复 latest fallback，失败时清晰报错或只使用已有缓存。
 
-- [ ] 合并低价值 IPC `try/catch` 包装。
+- [x] 合并低价值 IPC `try/catch` 包装。
   - 位置：`apps/desktop-app/src/main/ipc/handlers/cacheHandlers.ts`
   - 问题：多个 handler 只是 `try -> log -> throw`，没有恢复或错误转换。
   - 处理：抽统一 IPC 错误记录器，或让 rejection 直接传播。
 
-- [ ] 让扩展发送消息真正受 contracts 约束。
+- [x] 让扩展发送消息真正受 contracts 约束。
   - 位置：`packages/contracts/src/messages/from-extension.ts`、`apps/extension/src/connection/MessageSender.ts`、`apps/extension/src/video/VideoDetector.ts`
   - 问题：contract 声明 `video-ended` payload 为空，但实际发送 `{ pageUrl }`；`send` 接受 `unknown`，绕过类型约束。
   - 处理：用泛型把 message type 和 payload 绑定，修正 `video-ended` payload 或 contract。
 
-- [ ] 删除无用或过时依赖。
+- [x] 删除无用或过时依赖。
   - 位置：`apps/desktop-app/package.json`、`pnpm-workspace.yaml`
   - 问题：`koffi` 只被升级测试引用；`pnpm-workspace.yaml` 仍允许构建它。`lucide-vue-next` 在 lockfile 中标记 deprecated。
   - 处理：确认无运行时引用后删除 `koffi` 和 allowBuild；评估将 lucide 包迁到当前推荐包。
 
-- [ ] 清理迁移/兼容叙述性注释。
+- [x] 清理迁移/兼容叙述性注释。
   - 位置示例：`apps/desktop-app/src/main/jellyfinemby/JellyfinembySubtitleLoader.ts`、`apps/desktop-app/src/main/subtitleParser.ts`
   - 问题：代码注释仍保留 “Migrated from ...”“compatibility”等历史叙述。
   - 处理：保留必要行为，删除迁移来源和兼容历史描述。
@@ -99,3 +94,14 @@
 - `pnpm --filter @immersive-subs/extension exec vitest run src/shared/icons.test.ts`：通过。
 - `pnpm --filter @immersive-subs/extension exec tsc -p tsconfig.json --noEmit`：通过。
 - `pnpm --filter @immersive-subs/extension build`：通过。
+- 2026-05-28 P2 修复后：`node scripts/check-silent-catches.mjs`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/contracts exec tsc -p tsconfig.json --noEmit`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/plugin-sdk exec tsc -p tsconfig.json --noEmit`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app exec tsc --project tsconfig.json --noEmit`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app exec tsc --project tsconfig.preload.json --noEmit`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app exec vue-tsc --noEmit -p tsconfig.renderer.json`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/contracts test`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/extension test`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app test:renderer`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/extension build`：通过。
+- 2026-05-28 P2 修复后：`pnpm --filter @immersive-subs/desktop-app build`：通过。

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { state } from "../content/state";
 import * as sender from "../connection/MessageSender";
-import { handleDocumentMediaEvent } from "./VideoDetector";
+import { endActiveVideoSession, handleDocumentMediaEvent } from "./VideoDetector";
 import { startLoop } from "./LoopController";
 
 describe("VideoDetector", () => {
@@ -53,5 +53,14 @@ describe("VideoDetector", () => {
 
     expect(state.loop.isLooping).toBe(true);
     expect(sender.send).not.toHaveBeenCalledWith("loop-cleared", {});
+  });
+
+  it("reports video-ended with the empty contract payload", () => {
+    const video = document.createElement("video");
+    state.activeVideo = video;
+
+    endActiveVideoSession("playback-ended");
+
+    expect(sender.send).toHaveBeenCalledWith("video-ended", {});
   });
 });

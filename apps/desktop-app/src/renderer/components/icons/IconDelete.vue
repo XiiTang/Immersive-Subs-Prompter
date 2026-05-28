@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { Trash2 } from "lucide-vue-next";
+import { Trash2 } from "@lucide/vue";
 import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
 
 const { size = "md" } = defineProps<{

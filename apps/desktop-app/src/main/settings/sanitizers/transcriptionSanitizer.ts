@@ -7,8 +7,6 @@ import {
   DEFAULT_TRANSCRIPTION_YTDLP_ARGS
 } from "../constants.js";
 
-const LEGACY_DEFAULT_WHISPER_CONFIG_NAME = "Default Whisper API";
-
 export function sanitizeExtraParams(input: unknown): Record<string, string> {
   if (!input) {
     return {};
@@ -62,7 +60,7 @@ export function sanitizeTranscriptionConfig(
     source.provider === "faster-whisper" ? "faster-whisper" : "whisper-api";
   const defaultName = provider === "faster-whisper" ? "Faster-Whisper" : "Whisper API";
   const rawName = typeof source.name === "string" ? source.name.trim() : "";
-  const name = rawName && rawName !== LEGACY_DEFAULT_WHISPER_CONFIG_NAME ? rawName : defaultName;
+  const name = rawName || defaultName;
   const baseUrl =
     typeof source.baseUrl === "string" && source.baseUrl.trim().length
       ? source.baseUrl.trim()

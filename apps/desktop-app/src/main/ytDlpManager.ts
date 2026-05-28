@@ -4,7 +4,6 @@ import path from "path";
 import { createLogger } from "./logger.js";
 
 const RELEASE_API = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
-const LATEST_DOWNLOAD_BASE = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/";
 const METADATA_FILE = "yt-dlp.json";
 
 type PlatformBinary = {
@@ -22,7 +21,7 @@ type BinaryMetadata = {
   downloadedAt: string;
 };
 
-const PLATFORM_BINARIES: Record<NodeJS.Platform, PlatformBinary> = {
+const PLATFORM_BINARIES = {
   win32: {
     fileName: "yt-dlp.exe",
     assetName: "yt-dlp.exe"
@@ -34,40 +33,8 @@ const PLATFORM_BINARIES: Record<NodeJS.Platform, PlatformBinary> = {
   linux: {
     fileName: "yt-dlp",
     assetName: "yt-dlp"
-  },
-  aix: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  android: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  freebsd: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  openbsd: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  netbsd: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  sunos: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
-  },
-  cygwin: {
-    fileName: "yt-dlp.exe",
-    assetName: "yt-dlp.exe"
-  },
-  haiku: {
-    fileName: "yt-dlp",
-    assetName: "yt-dlp"
   }
-};
+} satisfies Partial<Record<NodeJS.Platform, PlatformBinary>>;
 
 export class YtDlpManager {
   private binaryPath: string | null = null;
@@ -81,26 +48,30 @@ export class YtDlpManager {
     }
 
     if (!this.ensurePromise) {
-      this.ensurePromise = this.ensureBinary();
+      this.ensurePromise = this.ensureBinary().catch((error) => {
+        this.ensurePromise = null;
+        throw error;
+      });
     }
 
     return this.ensurePromise;
   }
 
   private async ensureBinary(): Promise<string> {
-    const config = PLATFORM_BINARIES[process.platform] ?? PLATFORM_BINARIES.linux;
+    const config = this.getPlatformBinary();
     const storageDir = await this.ensureStorageDir();
     const targetPath = path.join(storageDir, config.fileName);
     const metadata = await this.readMetadata(storageDir);
 
     try {
       this.log.info("Checking yt-dlp binary status");
-      
+
       const releaseInfo = await this.fetchLatestReleaseInfo();
       const releaseVersion = releaseInfo.version;
-      const downloadUrl =
-        releaseInfo.assets.get(config.assetName) ??
-        `${LATEST_DOWNLOAD_BASE}${config.assetName}`;
+      const downloadUrl = releaseInfo.assets.get(config.assetName);
+      if (!downloadUrl) {
+        throw new Error(`yt-dlp release does not include asset ${config.assetName}.`);
+      }
 
       const needsDownload =
         !(await this.fileExists(targetPath)) || metadata?.version !== releaseVersion;
@@ -129,18 +100,16 @@ export class YtDlpManager {
         return targetPath;
       }
 
-      this.log.info("Attempting to download yt-dlp from fallback URL");
-      const fallbackUrl = `${LATEST_DOWNLOAD_BASE}${config.assetName}`;
-      await this.downloadBinary(fallbackUrl, targetPath);
-      await this.ensurePermissions(targetPath);
-      await this.writeMetadata(storageDir, {
-        version: "latest",
-        downloadedAt: new Date().toISOString()
-      });
-      this.log.info("yt-dlp downloaded successfully from fallback URL");
-      this.binaryPath = targetPath;
-      return targetPath;
+      throw error;
     }
+  }
+
+  private getPlatformBinary(): PlatformBinary {
+    const config = PLATFORM_BINARIES[process.platform as keyof typeof PLATFORM_BINARIES];
+    if (!config) {
+      throw new Error(`Unsupported platform for yt-dlp: ${process.platform}`);
+    }
+    return config;
   }
 
   private async ensureStorageDir(): Promise<string> {
@@ -182,7 +151,10 @@ export class YtDlpManager {
 
   private async fetchLatestReleaseInfo(): Promise<ReleaseInfo> {
     if (!this.releaseInfoPromise) {
-      this.releaseInfoPromise = this.requestLatestReleaseInfo();
+      this.releaseInfoPromise = this.requestLatestReleaseInfo().catch((error) => {
+        this.releaseInfoPromise = null;
+        throw error;
+      });
     }
     return this.releaseInfoPromise;
   }

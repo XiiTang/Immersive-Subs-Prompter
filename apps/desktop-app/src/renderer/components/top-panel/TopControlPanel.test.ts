@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -17,6 +18,7 @@ const rendererStylesheet = readFileSync(path.resolve(process.cwd(), "src/rendere
 type ResizeObserverCallback = (entries: Array<{ target: Element }>) => void;
 
 let resizeObserverCallbacks: ResizeObserverCallback[] = [];
+let mountedWrappers: VueWrapper[] = [];
 
 class ResizeObserverMock {
   private readonly callback: ResizeObserverCallback;
@@ -84,6 +86,7 @@ function mountTopControlPanel(options: {
       }
     }
   });
+  mountedWrappers.push(wrapper);
 
   return {
     wrapper,
@@ -110,10 +113,14 @@ describe("TopControlPanel", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     resizeObserverCallbacks = [];
+    mountedWrappers = [];
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
   afterEach(() => {
+    for (const wrapper of mountedWrappers.splice(0)) {
+      wrapper.unmount();
+    }
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

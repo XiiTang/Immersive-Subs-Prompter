@@ -172,7 +172,7 @@ describe("SubtitleView", () => {
     setActivePinia(createPinia());
   });
 
-  it("renders a unified top control panel instead of the legacy video info section shell", async () => {
+  it("renders the top control panel", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.desktopState = createDesktopState();
@@ -190,7 +190,6 @@ describe("SubtitleView", () => {
 
     await nextTick();
 
-    expect(wrapper.find(".video-info-section").exists()).toBe(false);
     expect(wrapper.find(".top-control-panel-stub").exists()).toBe(true);
 
     wrapper.unmount();

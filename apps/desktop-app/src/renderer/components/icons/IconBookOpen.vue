@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { BookOpen } from "lucide-vue-next";
+import { BookOpen } from "@lucide/vue";
 import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
 
 const { size = "md" } = defineProps<{ size?: IconSize }>();

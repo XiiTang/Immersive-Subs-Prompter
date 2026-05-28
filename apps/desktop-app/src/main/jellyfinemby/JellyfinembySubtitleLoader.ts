@@ -195,21 +195,11 @@ export class JellyfinembySubtitleLoader {
     };
   }
 
-  /**
-   * Resolve subtitle streams with recursive retry mechanism
-   * Migrated from jellyfinemby-desktop-client for robust metadata fetching
-   * 
-   * @param summary - Current session summary
-   * @param config - Active Jellyfinemby configuration
-   * @param allowRefresh - Whether to allow API refresh on missing data
-   * @returns Object containing resolved streams and mediaSourceId
-   */
   private async resolveSubtitleStreams(
     summary: MediaServerSessionSummary,
     config: MediaServerConfig,
     allowRefresh: boolean
   ): Promise<{ streams: MediaServerSubtitleStream[]; mediaSourceId: string | null }> {
-    // 1. First, try to use streams from session
     if (summary.subtitleStreams.length > 0 && summary.mediaSourceId) {
       this.log.debug("Using subtitle streams from session", {
         sessionId: summary.id,
@@ -222,7 +212,6 @@ export class JellyfinembySubtitleLoader {
       };
     }
 
-    // 2. If streams are missing and refresh is allowed, fetch from API
     if (allowRefresh && summary.nowPlayingItemId) {
       this.log.info("Subtitle metadata missing from session, fetching from Jellyfinemby API", {
         sessionId: summary.id,
@@ -239,7 +228,6 @@ export class JellyfinembySubtitleLoader {
           mediaSourceId: metadata.mediaSourceId
         });
 
-        // Recursively call with allowRefresh=false to avoid infinite loop
         return this.resolveSubtitleStreams(
           {
             ...summary,
@@ -247,12 +235,11 @@ export class JellyfinembySubtitleLoader {
             mediaSourceId: metadata.mediaSourceId ?? summary.mediaSourceId
           },
           config,
-          false // Prevent infinite recursion
+          false
         );
       }
     }
 
-    // 3. Fallback: return what we have (may be empty)
     return {
       streams: summary.subtitleStreams,
       mediaSourceId: summary.mediaSourceId
@@ -280,12 +267,10 @@ export class JellyfinembySubtitleLoader {
       const item = await response.json();
       const mediaSources = Array.isArray(item?.MediaSources) ? (item.MediaSources as RawSessionRecord[]) : [];
 
-      // Use mediaSourceId from summary first, then fallback to first source
       const mediaSourceIdFromSummary = summary.mediaSourceId;
       const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
       const resolvedMediaSourceId = mediaSourceIdFromSummary ?? mediaSourceIdFromSources;
 
-      // Find matching media source
       const mediaSource = resolvedMediaSourceId
         ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
         : mediaSources[0] ?? null;
@@ -308,10 +293,6 @@ export class JellyfinembySubtitleLoader {
     }
   }
 
-  /**
-   * Get preferred subtitle extension with intelligent format detection
-   * Enhanced version using guessSubtitleFormatFromStream from jellyfinemby-desktop-client
-   */
   private getPreferredExtension(stream: MediaServerSubtitleStream): string {
     return guessSubtitleFormatFromStream(stream);
   }

@@ -22,7 +22,10 @@ function handlePortMessage(message: BackgroundToContentMessage) {
 function handlePortReconnect() {
   if (state.activeVideo) {
     log.info("conn", "Reconnected successfully, syncing video state");
-    send("video-context", gatherVideoState(state.activeVideo));
+    const snapshot = gatherVideoState(state.activeVideo);
+    if (snapshot) {
+      send("video-context", snapshot);
+    }
     handleTimeUpdate(state.activeVideo);
   }
 }

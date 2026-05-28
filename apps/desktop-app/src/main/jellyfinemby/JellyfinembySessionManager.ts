@@ -32,12 +32,10 @@ export class JellyfinembySessionManager {
     const nowPlayingItem: Record<string, unknown> | null = (record as any).NowPlayingItem ?? null;
     const mediaSources = (nowPlayingItem?.MediaSources as RawSessionRecord[] | undefined) ?? [];
 
-    // Extract mediaSourceId directly from PlayState first, then fallback to MediaSources
     const mediaSourceIdFromPlayState = typeof playState?.MediaSourceId === "string" ? playState.MediaSourceId : null;
     const mediaSourceIdFromSources = (mediaSources[0]?.Id as string | undefined) ?? null;
     const resolvedMediaSourceId = mediaSourceIdFromPlayState ?? mediaSourceIdFromSources;
 
-    // Find the matching media source
     const mediaSource = resolvedMediaSourceId
       ? mediaSources.find((source) => source?.Id === resolvedMediaSourceId) ?? mediaSources[0] ?? null
       : mediaSources[0] ?? null;

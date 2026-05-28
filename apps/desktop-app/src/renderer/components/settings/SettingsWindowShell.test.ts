@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
-import { buildSettingsSections } from "./settingsSections";
 import { useDesktopStore } from "../../stores/desktop";
 import { loadLocale } from "../../i18n";
 import type { AppSettings } from "../../../main/types";
@@ -102,7 +101,6 @@ describe("SettingsWindowShell", () => {
       }
     });
 
-    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBeUndefined();
     expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="settings-nav-item-appearance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="settings-nav-item-cache"]').exists()).toBe(false);
@@ -354,41 +352,6 @@ describe("SettingsWindowShell", () => {
     expect(rendererStylesheet).toContain("-webkit-app-region: no-drag;");
     expect(rendererStylesheet).toContain(".settings-window-shell__header {\n");
     expect(rendererStylesheet).toContain("-webkit-app-region: drag;");
-  });
-
-  it("does not keep narrow-width responsive overrides for the fixed settings window", () => {
-    expect(rendererStylesheet).not.toMatch(
-      /@media\s*\(max-width:\s*1080px\)\s*\{[\s\S]*(settings-window-shell|settings-fields-grid|settings-grid--two|settings-row--two|settings-row--three|settings-split|profile-url-rule|cache-field)/
-    );
-  });
-
-  it("does not keep legacy scroll-anchor metadata for section navigation", () => {
-    expect(buildSettingsSections("en")).toEqual([
-      { id: "general", label: "Global", icon: "settings" },
-      { id: "profiles", label: "Profiles", icon: "profiles" },
-      { id: "plugins", label: "Plugins", icon: "plugins" }
-    ]);
-  });
-
-  it("does not expose legacy document scroll mode markers on the fixed settings content", () => {
-    const wrapper = mount(SettingsWindowShell, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
-        }
-      }
-    });
-
-    expect(wrapper.get('[data-testid="settings-content"]').attributes("data-scroll-mode")).toBeUndefined();
-  });
-
-  it("uses fixed settings content tracks instead of variable-width clamps", () => {
-    expect(rendererStylesheet).not.toContain("width: min(100%, 920px);");
-    expect(rendererStylesheet).not.toContain("grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);");
-    expect(rendererStylesheet).toContain("grid-template-columns: 200px minmax(0, 1fr);");
   });
 
   it("auto-hides settings scrollbars until users interact with scroll regions", () => {

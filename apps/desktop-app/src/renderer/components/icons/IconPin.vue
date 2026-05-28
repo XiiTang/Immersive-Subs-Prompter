@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { Pin } from "lucide-vue-next";
+import { Pin } from "@lucide/vue";
 import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
 
 const { size = "md" } = defineProps<{ size?: IconSize }>();

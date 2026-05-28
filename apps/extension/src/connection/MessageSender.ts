@@ -3,7 +3,23 @@ import { log, state } from "../content/state";
 import { connectPort, schedulePortReconnect } from "./PortManager";
 import type { ContentToBackgroundMessage } from "../shared/types";
 
-export function send(type: ContentToBackgroundMessage["type"] | "keepalive", payload: unknown = {}) {
+type ContentMessageType = ContentToBackgroundMessage["type"];
+type PayloadFor<Type extends ContentMessageType> = Extract<ContentToBackgroundMessage, { type: Type }>["payload"];
+type KeepalivePayload = {
+  pageUrl: string;
+  title: string;
+  timestamp: number;
+};
+
+export function send<Type extends ContentMessageType>(type: Type, payload: PayloadFor<Type>) {
+  postMessage(type, payload);
+}
+
+function sendKeepalive(payload: KeepalivePayload) {
+  postMessage("keepalive", payload);
+}
+
+function postMessage(type: ContentMessageType | "keepalive", payload: unknown) {
   if (!state.monitoringActive) {
     return;
   }
@@ -33,7 +49,7 @@ export function startKeepAlive() {
       stopKeepAlive();
       return;
     }
-    send("keepalive", {
+    sendKeepalive({
       pageUrl: location.href,
       title: document.title,
       timestamp: Date.now()

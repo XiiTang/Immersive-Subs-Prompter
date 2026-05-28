@@ -96,7 +96,10 @@ export function startLoop(target: HTMLVideoElement, session: LoopSession) {
   }
 
   startLoopCheck();
-  send("loop-started", buildLoopPayload());
+  const payload = buildLoopPayload();
+  if (payload) {
+    send("loop-started", payload);
+  }
 }
 
 export function clearProgrammaticSeekFlag() {
