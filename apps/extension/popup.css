@@ -23,6 +23,9 @@
   --ui-warning: #b45309;
   --ui-danger: #dc2626;
   --ui-info: #2563eb;
+  --server-status-connected: #16803c;
+  --server-status-connecting: #b45309;
+  --server-status-error: #dc2626;
 }
 
 :root[data-theme="dark"] {
@@ -38,6 +41,9 @@
   --ui-warning: #b8b8b8;
   --ui-danger: #e0e0e0;
   --ui-info: #cfcfcf;
+  --server-status-connected: #22c55e;
+  --server-status-connecting: #f59e0b;
+  --server-status-error: #ef4444;
 }
 
 *,
@@ -610,6 +616,7 @@ body.settings-open .settings-panel {
   color: var(--ui-text);
   font-size: 14px;
   font-weight: 650;
+  flex: 0 0 auto;
 }
 
 .server-root {
@@ -627,6 +634,12 @@ body.settings-open .settings-panel {
 
 .server-summary {
   min-height: 16px;
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .server-pill {
@@ -642,34 +655,6 @@ body.settings-open .settings-panel {
   flex: 0 0 auto;
 }
 
-.server-pill--connected {
-  border-color: var(--ui-success);
-}
-
-.server-pill--connected .server-status-dot {
-  background: var(--ui-success);
-}
-
-.server-pill--connecting {
-  border-color: var(--ui-warning);
-}
-
-.server-pill--connecting .server-status-dot {
-  background: var(--ui-warning);
-}
-
-.server-pill--error {
-  border-color: var(--ui-danger);
-}
-
-.server-pill--error .server-status-dot {
-  background: var(--ui-danger);
-}
-
-.server-pill--disconnected .server-status-dot {
-  background: var(--ui-text-muted);
-}
-
 .server-draft {
   max-width: min(100%, 320px);
 }
@@ -680,9 +665,6 @@ body.settings-open .settings-panel {
 
 .server-error {
   font-size: var(--ui-font-sm);
-}
-
-.server-error {
   color: var(--ui-danger);
 }
 
@@ -728,6 +710,38 @@ body.settings-open .settings-panel {
 
 .pill-list-editor__item--error {
   border-color: var(--ui-danger);
+}
+
+.server-pill--connected {
+  border-color: var(--server-status-connected);
+}
+
+.server-pill--connected .server-status-dot {
+  background: var(--server-status-connected);
+}
+
+.server-pill--connecting {
+  border-color: var(--server-status-connecting);
+}
+
+.server-pill--connecting .server-status-dot {
+  background: var(--server-status-connecting);
+}
+
+.server-pill--error {
+  border-color: var(--server-status-error);
+}
+
+.server-pill--error .server-status-dot {
+  background: var(--server-status-error);
+}
+
+.server-pill--disconnected {
+  border-color: var(--ui-border);
+}
+
+.server-pill--disconnected .server-status-dot {
+  background: var(--ui-text-muted);
 }
 
 .pill-list-editor__display {

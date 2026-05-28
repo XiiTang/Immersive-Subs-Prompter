@@ -47,17 +47,18 @@
       <section class="settings-section settings-section--appearance" data-settings-section="appearance">
         <div class="settings-section__header">
           <h3>Appearance</h3>
-        </div>
-        <div class="ui-segmented appearance-options" role="radiogroup" aria-label="Theme">
-          <button type="button" class="ui-segmented__item" data-theme-option="system" role="radio">System</button>
-          <button type="button" class="ui-segmented__item" data-theme-option="light" role="radio">Light</button>
-          <button type="button" class="ui-segmented__item" data-theme-option="dark" role="radio">Dark</button>
+          <div class="ui-segmented appearance-options" role="radiogroup" aria-label="Theme">
+            <button type="button" class="ui-segmented__item" data-theme-option="system" role="radio">System</button>
+            <button type="button" class="ui-segmented__item" data-theme-option="light" role="radio">Light</button>
+            <button type="button" class="ui-segmented__item" data-theme-option="dark" role="radio">Dark</button>
+          </div>
         </div>
       </section>
 
       <section class="settings-section settings-section--connections" data-settings-section="connections">
         <div class="settings-section__header">
           <h3>Connections</h3>
+          <span class="ui-field__hint server-summary" id="server-summary">Add a server address to start syncing.</span>
         </div>
         <section id="server-root" class="server-root"></section>
       </section>

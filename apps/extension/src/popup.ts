@@ -15,6 +15,7 @@ import type { BlacklistRule, DashboardResponseMessage, DashboardSnapshot, Deskto
 const statusEl = document.getElementById("status-indicator");
 const mediaRoot = document.getElementById("media-root");
 const serverRoot = document.getElementById("server-root");
+const serverSummaryEl = document.getElementById("server-summary");
 const settingsPanel = document.getElementById("settings-panel");
 const settingsButton = document.getElementById("settings-btn");
 const settingsBackButton = document.getElementById("settings-back");
@@ -149,15 +150,14 @@ function renderServers() {
   if (!serverRoot) return;
 
   serverDraftValue = serverDraftInputEl?.value ?? serverDraftValue;
-  const editor = document.createElement("div");
-  editor.className = "pill-list-editor server-pill-list-editor";
-
-  const summary = document.createElement("div");
-  summary.className = "ui-field__hint server-summary";
   const total = serverEndpoints.length || connectionStatuses.length;
   const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
-  summary.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
-  editor.appendChild(summary);
+  if (serverSummaryEl) {
+    serverSummaryEl.textContent = total ? `${connected}/${total} connected` : "Add a server address to start syncing.";
+  }
+
+  const editor = document.createElement("div");
+  editor.className = "pill-list-editor server-pill-list-editor";
 
   const list = document.createElement("div");
   list.className = "priority-editor__list pill-list-editor__list server-pill-list";

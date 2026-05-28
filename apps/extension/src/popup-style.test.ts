@@ -99,6 +99,12 @@ describe("extension popup visual convergence", () => {
     expect(popupTs).not.toMatch(/setActivePanel\("appearance"\)|setActivePanel\("connections"\)|setActivePanel\("blacklist"\)/);
   });
 
+  it("keeps the appearance title and theme segmented control on one row", () => {
+    expect(html).toMatch(
+      /<div class="settings-section__header">\s*<h3>Appearance<\/h3>\s*<div class="ui-segmented appearance-options"/
+    );
+  });
+
   it("uses the desktop pill-list editor shape for blacklist rules", () => {
     for (const className of [
       "pill-list-editor",
@@ -121,6 +127,9 @@ describe("extension popup visual convergence", () => {
   });
 
   it("uses the desktop pill-list editor shape for connection endpoints", () => {
+    expect(html).toMatch(
+      /<div class="settings-section__header">\s*<h3>Connections<\/h3>\s*<span class="ui-field__hint server-summary" id="server-summary">/
+    );
     expect(popupMarkup).toContain("server-pill-list-editor");
     expect(popupMarkup).toContain("server-draft-input");
     expect(popupMarkup).toContain("server-status-dot");
@@ -130,5 +139,15 @@ describe("extension popup visual convergence", () => {
     expect(popupMarkup).toContain("server-pill--disconnected");
     expect(popupMarkup).toContain('createCloseIcon({ size: 14, className: "icon icon--close" })');
     expect(popupMarkup).not.toMatch(/\bserver-add\b|\bserver-row\b|\bserver-empty\b|No servers configured|createAddIcon|createDeleteIcon/);
+  });
+
+  it("keeps connection status colors distinct and later than the shared pill border", () => {
+    expect(css).toContain("--server-status-connected: #16803c;");
+    expect(css).toContain("--server-status-connecting: #b45309;");
+    expect(css).toContain("--server-status-error: #dc2626;");
+    expect(css).toContain("--server-status-connected: #22c55e;");
+    expect(css).toContain("--server-status-connecting: #f59e0b;");
+    expect(css).toContain("--server-status-error: #ef4444;");
+    expect(css.indexOf(".server-pill--connected")).toBeGreaterThan(css.indexOf(".priority-editor__item"));
   });
 });
