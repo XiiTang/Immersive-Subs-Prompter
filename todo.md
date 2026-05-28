@@ -4,7 +4,7 @@
 
 ## P0 - 阻塞与安全
 
-- [ ] 修复扩展无法类型检查/构建的问题。
+- [x] 修复扩展无法类型检查/构建的问题。
   - 位置：`apps/extension/src/shared/icons.ts`
   - 问题：导入了不存在的 `../../../desktop-app/src/renderer/shared/iconDefs`，这是残留的跨应用过渡层。
   - 处理：改为扩展本地 icon 定义，或移到真实 shared package；不要从桌面端源码深层导入。
@@ -96,4 +96,6 @@
 - `pnpm --filter @immersive-subs/desktop-app exec tsc --project tsconfig.json --noEmit`：通过。
 - `pnpm --filter @immersive-subs/desktop-app exec tsc --project tsconfig.preload.json --noEmit`：通过。
 - `pnpm --filter @immersive-subs/desktop-app exec vue-tsc --noEmit -p tsconfig.renderer.json`：通过。
-- `pnpm --filter @immersive-subs/extension exec tsc -p tsconfig.json --noEmit`：失败，原因是 `apps/extension/src/shared/icons.ts` 导入不存在的 `desktop-app/src/renderer/shared/iconDefs`。
+- `pnpm --filter @immersive-subs/extension exec vitest run src/shared/icons.test.ts`：通过。
+- `pnpm --filter @immersive-subs/extension exec tsc -p tsconfig.json --noEmit`：通过。
+- `pnpm --filter @immersive-subs/extension build`：通过。
