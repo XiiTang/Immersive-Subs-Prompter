@@ -5,6 +5,8 @@ import { ensureUniqueId, normalizeColor, sanitizePriorityList } from "../utils.j
 
 const MIN_SUBTITLE_FONT_SIZE = 3;
 const MAX_SUBTITLE_FONT_SIZE = 96;
+const MIN_TIMESTAMP_FONT_SIZE = 6;
+const MAX_TIMESTAMP_FONT_SIZE = 24;
 
 function sanitizeSubtitleFontSize(value: unknown, fallback: number): number {
   let fontSize = Number(value);
@@ -12,6 +14,14 @@ function sanitizeSubtitleFontSize(value: unknown, fallback: number): number {
     fontSize = fallback;
   }
   return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(fontSize)));
+}
+
+function sanitizeTimestampFontSize(value: unknown, fallback: number): number {
+  let fontSize = Number(value);
+  if (!Number.isFinite(fontSize)) {
+    fontSize = fallback;
+  }
+  return Math.min(MAX_TIMESTAMP_FONT_SIZE, Math.max(MIN_TIMESTAMP_FONT_SIZE, Math.round(fontSize)));
 }
 
 export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null | undefined): ProfileSettings {
@@ -25,6 +35,10 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
   const secondarySubtitleFontSize = sanitizeSubtitleFontSize(
     source.secondarySubtitleFontSize,
     DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize
+  );
+  const subtitleTimestampFontSize = sanitizeTimestampFontSize(
+    source.subtitleTimestampFontSize,
+    DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize
   );
 
   const subtitleAutoHideMetaRow =
@@ -89,6 +103,7 @@ export function sanitizeProfileSettings(input: Partial<ProfileSettings> | null |
     primarySubtitleFontSize,
     secondarySubtitleFontFamily,
     secondarySubtitleFontSize,
+    subtitleTimestampFontSize,
     subtitleAutoHideMetaRow,
     subtitlePrimarySecondaryGap,
     subtitleLineHeight,

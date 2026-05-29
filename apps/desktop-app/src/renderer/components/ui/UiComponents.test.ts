@@ -264,6 +264,7 @@ describe("UI primitives", () => {
 
     const input = slider.get('input[type="range"]');
     expect(input.attributes("aria-label")).toBe("Playback position");
+    expect(input.attributes("style")).toContain("--slider-progress: 10%");
     await input.setValue("42");
 
     expect(slider.emitted("update:modelValue")?.[0]).toEqual([42]);

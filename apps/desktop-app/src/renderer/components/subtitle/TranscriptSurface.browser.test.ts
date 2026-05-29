@@ -868,4 +868,29 @@ describe("TranscriptSurface", () => {
 
     wrapper.unmount();
   });
+
+  it("applies timestamp font sizing to metadata controls and block layout", async () => {
+    restoreSize = mockViewportSize(220, 220);
+
+    const wrapper = mount(TranscriptSurface, {
+      attachTo: document.body,
+      props: defaultProps({
+        blocks: [blocks[0]!],
+        timestampFontSize: 20
+      })
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const block = wrapper.get<HTMLElement>(".transcript-block");
+    const primaryLine = wrapper.get<HTMLElement>(".transcript-block__line--primary");
+
+    expect(block.attributes("style")).toContain("--transcript-meta-row-height: 27px");
+    expect(block.attributes("style")).toContain("--transcript-timestamp-font-size: 20px");
+    expect(block.attributes("style")).toContain("--transcript-action-font-size: 22px");
+    expect(primaryLine.element.style.top).toBe("27px");
+
+    wrapper.unmount();
+  });
 });

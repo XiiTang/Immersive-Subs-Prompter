@@ -44,6 +44,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   primarySubtitleFontSize: 26,
   secondarySubtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,
   secondarySubtitleFontSize: 25,
+  subtitleTimestampFontSize: 11,
   subtitleAutoHideMetaRow: true,
   subtitlePrimarySecondaryGap: 0,
   subtitleLineHeight: 1,

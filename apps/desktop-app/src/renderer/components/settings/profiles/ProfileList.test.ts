@@ -13,6 +13,7 @@ const profile: ProfileDefinition = {
     primarySubtitleFontSize: 18,
     secondarySubtitleFontFamily: "Inter",
     secondarySubtitleFontSize: 17,
+    subtitleTimestampFontSize: 11,
     subtitlePrimaryColor: "#ffffff",
     subtitleSecondaryColor: "#b8c0cc",
     subtitleActivePrimaryColor: "#ffffff",

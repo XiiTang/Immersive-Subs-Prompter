@@ -15,6 +15,9 @@
           :start="block.block.start"
           :end="block.block.end"
           :lines="block.lines"
+          :meta-row-height="metadataSizing.metaRowHeight"
+          :timestamp-font-size="metadataSizing.timestampFontSize"
+          :action-font-size="metadataSizing.actionFontSize"
           :auto-hide-meta-row="autoHideMetaRow"
           :is-active="block.block.id === projection.activeBlockId"
           :is-single-looping="singleLoopCueIndex === block.block.sourceCueRefs.primaryCueIndex"
@@ -72,6 +75,7 @@ const {
   primaryFontSize,
   secondaryFontFamily,
   secondaryFontSize,
+  timestampFontSize = 11,
   autoHideMetaRow = false,
   lineHeight,
   primarySecondaryGap,
@@ -95,6 +99,7 @@ const {
   primaryFontSize: number;
   secondaryFontFamily: string;
   secondaryFontSize: number;
+  timestampFontSize?: number;
   autoHideMetaRow?: boolean;
   lineHeight: number;
   primarySecondaryGap: number;
@@ -132,6 +137,14 @@ const META_ROW_HEIGHT_PX = 18;
 let scrollRafId: number | null = null;
 
 const surfaceStyle = computed(() => subtitlePanelStyle);
+const metadataSizing = computed(() => {
+  const safeTimestampFontSize = normalizeTimestampFontSize(timestampFontSize);
+  return {
+    timestampFontSize: safeTimestampFontSize,
+    metaRowHeight: Math.max(META_ROW_HEIGHT_PX, safeTimestampFontSize + 7),
+    actionFontSize: Math.max(12, Math.round(safeTimestampFontSize * 1.1))
+  };
+});
 const contentStyle = computed(() => ({
   height: `${layout.value.totalHeight + projection.value.scrollPaddingBottom}px`
 }));
@@ -147,7 +160,7 @@ const layout = computed(() =>
     secondaryFontFamily,
     primarySecondaryGap,
     blockGap,
-    metaRowHeight: META_ROW_HEIGHT_PX,
+    metaRowHeight: metadataSizing.value.metaRowHeight,
     preparedTextCache
   })
 );
@@ -270,6 +283,14 @@ function resolveAbLoopLabel(cueIndex: number) {
 
 function isAbPendingSelection(cueIndex: number) {
   return abLoopSelectionState.kind === "selecting-second" && abLoopSelectionState.anchorCueIndex === cueIndex;
+}
+
+function normalizeTimestampFontSize(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 11;
+  }
+  return Math.min(24, Math.max(6, Math.round(numeric)));
 }
 
 function handleViewportScroll() {

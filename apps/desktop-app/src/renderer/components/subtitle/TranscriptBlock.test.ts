@@ -30,6 +30,9 @@ describe("TranscriptBlock", () => {
     abLabel: "AB" as const,
     isAbPendingSelection: false,
     showSelectionActions: false,
+    metaRowHeight: 18,
+    timestampFontSize: 11,
+    actionFontSize: 12,
     autoHideMetaRow: false
   };
 
@@ -197,6 +200,25 @@ describe("TranscriptBlock", () => {
     );
 
     expect(metaRowHoverRule?.[1]).not.toContain("translateY(-1px)");
+  });
+
+  it("uses profile-controlled CSS variables for timestamp metadata sizing", () => {
+    const wrapper = mount(TranscriptBlock, {
+      props: {
+        ...defaultProps,
+        metaRowHeight: 27,
+        timestampFontSize: 20,
+        actionFontSize: 22
+      }
+    });
+    const stylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
+
+    expect(wrapper.attributes("style")).toContain("--transcript-meta-row-height: 27px");
+    expect(wrapper.attributes("style")).toContain("--transcript-timestamp-font-size: 20px");
+    expect(wrapper.attributes("style")).toContain("--transcript-action-font-size: 22px");
+    expect(stylesheet).toContain("height: var(--transcript-meta-row-height, 18px);");
+    expect(stylesheet).toContain("font-size: var(--transcript-timestamp-font-size, 11px);");
+    expect(stylesheet).toContain("font-size: var(--transcript-action-font-size, 12px);");
   });
 
   it("marks quiet meta rows for full hiding when auto-hide is enabled", () => {

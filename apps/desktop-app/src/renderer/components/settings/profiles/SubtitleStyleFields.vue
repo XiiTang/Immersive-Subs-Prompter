@@ -1,7 +1,10 @@
 <template>
   <div class="subtitle-style-fields" data-testid="subtitle-style-compact-panel">
     <div class="subtitle-style-fields__typography">
-      <div class="subtitle-style-fields__typography-row" data-testid="primary-subtitle-typography-row">
+      <div
+        class="subtitle-style-fields__typography-row subtitle-style-fields__typography-row--primary"
+        data-testid="primary-subtitle-typography-row"
+      >
         <UiField
           id="primary-subtitle-font"
           class="subtitle-style-fields__field subtitle-style-fields__field--font"
@@ -25,6 +28,21 @@
             :max="96"
             :step="1"
             :label="t('primary-subtitle-font-size-label', 'Primary Size')"
+            @change="flushDeferredProfileSettings"
+          />
+        </UiField>
+        <UiField
+          id="subtitle-timestamp-font-size"
+          class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+          :label="t('subtitle-timestamp-font-size-label', 'Timestamp Size')"
+          :value="`${subtitleTimestampFontSize}px`"
+        >
+          <UiSlider
+            v-model="subtitleTimestampFontSize"
+            :min="6"
+            :max="24"
+            :step="1"
+            :label="t('subtitle-timestamp-font-size-label', 'Timestamp Size')"
             @change="flushDeferredProfileSettings"
           />
         </UiField>
@@ -164,7 +182,7 @@
 import { computed } from "vue";
 import type { ProfileSettings } from "../../../../main/types";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
-import { useDesktopStore } from "../../../stores/desktop";
+import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { UiField, UiInput, UiSelect, UiSlider, UiSwitch } from "../../ui";
 import ColorSchemeGrid from "./ColorSchemeGrid.vue";
@@ -207,6 +225,11 @@ const secondarySubtitleFontFamily = computed({
 const secondarySubtitleFontSize = computed({
   get: () => store.editingProfileSettings.secondarySubtitleFontSize,
   set: (value: number) => updateDeferredProfileSetting("secondarySubtitleFontSize", value)
+});
+
+const subtitleTimestampFontSize = computed({
+  get: () => store.editingProfileSettings.subtitleTimestampFontSize ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimestampFontSize,
+  set: (value: number) => updateDeferredProfileSetting("subtitleTimestampFontSize", value)
 });
 
 const subtitleAutoHideMetaRow = computed({

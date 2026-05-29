@@ -13,6 +13,7 @@
         :primary-font-size="primaryFontSize"
         :secondary-font-family="secondaryFontFamily"
         :secondary-font-size="secondaryFontSize"
+        :timestamp-font-size="timestampFontSize"
         :auto-hide-meta-row="settings.subtitleAutoHideMetaRow"
         :line-height="lineHeight"
         :primary-secondary-gap="primarySecondaryGap"
@@ -345,6 +346,12 @@ const secondaryFontSize = computed(() =>
     DEFAULT_PROFILE_TEMPLATE.secondarySubtitleFontSize
   )
 );
+const timestampFontSize = computed(() =>
+  normalizeTimestampFontSize(
+    settings.value.subtitleTimestampFontSize,
+    DEFAULT_PROFILE_TEMPLATE.subtitleTimestampFontSize
+  )
+);
 const lineHeight = computed(() =>
   Math.max(Number(settings.value.subtitleLineHeight) || DEFAULT_PROFILE_TEMPLATE.subtitleLineHeight, 1)
 );
@@ -383,6 +390,12 @@ function normalizeSubtitleFontSize(value: number | null | undefined, fallback: n
   const size = Number(value);
   const finiteSize = Number.isFinite(size) ? size : fallback;
   return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(finiteSize)));
+}
+
+function normalizeTimestampFontSize(value: number | null | undefined, fallback: number): number {
+  const size = Number(value);
+  const finiteSize = Number.isFinite(size) ? size : fallback;
+  return Math.min(24, Math.max(6, Math.round(finiteSize)));
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -18,6 +18,7 @@ export function createTopPanelProfile(): ProfileDefinition {
       primarySubtitleFontSize: 20,
       secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
       secondarySubtitleFontSize: 18,
+      subtitleTimestampFontSize: 11,
       subtitleAutoHideMetaRow: true,
       subtitlePrimarySecondaryGap: 4,
       subtitleLineHeight: 1.6,

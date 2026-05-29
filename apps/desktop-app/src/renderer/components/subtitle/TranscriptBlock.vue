@@ -3,6 +3,7 @@
     class="transcript-block"
     :class="{ 'transcript-block--active': isActive, 'transcript-block--looping': isSingleLooping }"
     :data-transcript-block-id="blockId"
+    :style="metadataStyle"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
     @focusin="focusedWithin = true"
@@ -67,12 +68,18 @@ const {
   isAbPendingSelection,
   isSingleLooping,
   isActive,
+  metaRowHeight,
+  timestampFontSize,
+  actionFontSize,
   t: translateProp
 } = defineProps<{
   blockId: string;
   start: number;
   end: number;
   lines: Array<{ key: string; kind: TranscriptLayoutLineKind; text: string; style: Record<string, string> }>;
+  metaRowHeight: number;
+  timestampFontSize: number;
+  actionFontSize: number;
   autoHideMetaRow: boolean;
   isActive: boolean;
   isSingleLooping: boolean;
@@ -94,6 +101,11 @@ const emit = defineEmits<{
 
 const hovered = ref(false);
 const focusedWithin = ref(false);
+const metadataStyle = computed(() => ({
+  "--transcript-meta-row-height": `${Math.max(metaRowHeight, 0)}px`,
+  "--transcript-timestamp-font-size": `${Math.max(timestampFontSize, 1)}px`,
+  "--transcript-action-font-size": `${Math.max(actionFontSize, 1)}px`
+}));
 
 function tokenizeLineParts(text: string) {
   return tokenizeWordLookupText(text);

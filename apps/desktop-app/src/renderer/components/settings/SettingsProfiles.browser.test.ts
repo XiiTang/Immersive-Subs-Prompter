@@ -60,6 +60,7 @@ function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
       primarySubtitleFontSize: 14,
       secondarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
       secondarySubtitleFontSize: 13,
+      subtitleTimestampFontSize: 11,
       subtitleAutoHideMetaRow: true,
       subtitlePrimarySecondaryGap: 3,
       subtitleLineHeight: 1.45,
@@ -231,6 +232,41 @@ describe("SettingsProfiles", () => {
     expect(secondarySizeSlider.element.value).toBe("13");
   });
 
+  it("renders the fallback profile timestamp size slider in the compact shared style panel", () => {
+    const store = useDesktopStore();
+    store.settings = {
+      ...createSettings(),
+      profiles: [createProfile("profile-youtube", "YouTube"), createProfile("profile-default", "Fallback")],
+      defaultProfileId: "profile-default",
+      rules: []
+    } as AppSettings;
+    store.editingProfileId = "profile-default";
+
+    const wrapper = mount(SettingsProfiles, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    const timestampSizeSlider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="subtitle-timestamp-font-size-label"]'
+    );
+    const timestampField = wrapper
+      .get("#subtitle-timestamp-font-size-label")
+      .element.closest(".subtitle-style-fields__field") as HTMLElement;
+
+    expect(timestampSizeSlider.attributes("min")).toBe("6");
+    expect(timestampSizeSlider.attributes("max")).toBe("24");
+    expect(timestampSizeSlider.attributes("step")).toBe("1");
+    expect(timestampSizeSlider.element.value).toBe("11");
+    expect(timestampField.classList.contains("subtitle-style-fields__field--slider")).toBe(true);
+    expect(wrapper.get('[data-testid="subtitle-style-compact-panel"]').element.contains(timestampField)).toBe(true);
+  });
+
   it("updates independent typography settings from the profile editor", async () => {
     const store = useDesktopStore();
     const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;
@@ -261,11 +297,15 @@ describe("SettingsProfiles", () => {
     await wrapper
       .get<HTMLInputElement>('input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]')
       .setValue("18");
+    await wrapper
+      .get<HTMLInputElement>('input[type="range"][aria-labelledby="subtitle-timestamp-font-size-label"]')
+      .setValue("16");
 
     expect(store.editingProfileSettings.primarySubtitleFontFamily).toBe(timesFont);
     expect(store.editingProfileSettings.secondarySubtitleFontFamily).toBe(arialFont);
     expect(store.editingProfileSettings.primarySubtitleFontSize).toBe(22);
     expect(store.editingProfileSettings.secondarySubtitleFontSize).toBe(18);
+    expect(store.editingProfileSettings.subtitleTimestampFontSize).toBe(16);
   });
 
   it("does not render a separate subtitle line spacing control", () => {
@@ -411,6 +451,7 @@ describe("SettingsProfiles", () => {
     expect(fields.text()).toContain("Primary Size");
     expect(fields.text()).toContain("Secondary Font");
     expect(fields.text()).toContain("Secondary Size");
+    expect(fields.text()).toContain("Timestamp Size");
     expect(fields.text()).toContain("Scroll Position");
     expect(fields.text()).toContain("Subtitle Gap");
     expect(fields.text()).toContain("Auto-hide Controls");
@@ -428,6 +469,7 @@ describe("SettingsProfiles", () => {
     expect(
       secondaryTypographyRow.find('input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]').exists()
     ).toBe(true);
+    expect(fields.find('input[type="range"][aria-labelledby="subtitle-timestamp-font-size-label"]').exists()).toBe(true);
     expect(layoutGrid.find('input[aria-labelledby="subtitle-scroll-position-label"]').exists()).toBe(true);
     expect(layoutGrid.find('input[aria-labelledby="subtitle-primary-secondary-gap-label"]').exists()).toBe(true);
     expect(layoutGrid.find('input[aria-labelledby="subtitle-line-height-label"]').exists()).toBe(true);
@@ -649,6 +691,38 @@ describe("SettingsProfiles", () => {
 
     expect(updateSettings).toHaveBeenCalledTimes(1);
     expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.primarySubtitleFontSize).toBe(28);
+  });
+
+  it("keeps timestamp font size slider local until the slider commits", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = "profile-1";
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const slider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="subtitle-timestamp-font-size-label"]'
+    );
+
+    slider.element.value = "18";
+    await slider.trigger("input");
+
+    expect(store.editingProfileSettings.subtitleTimestampFontSize).toBe(18);
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await slider.trigger("change");
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitleTimestampFontSize).toBe(18);
   });
 
   it("keeps subtitle color palette drag live locally until the palette commits", async () => {

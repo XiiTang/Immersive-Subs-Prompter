@@ -12,7 +12,7 @@
     :aria-label="sliderAriaLabel"
     :aria-labelledby="fieldLabelledBy"
     :aria-describedby="fieldDescribedBy"
-    :style="fillStyle"
+    :style="sliderStyle"
     @pointerdown="$emit('pointerdown', $event)"
     @pointercancel="$emit('pointercancel', $event)"
     @input="handleInput"
@@ -60,6 +60,19 @@ const { fieldLabelledBy, fieldDescribedBy } = useUiFieldControl({
 const sliderAriaLabel = computed(() =>
   fieldLabelledBy.value ? undefined : String(attrs["aria-label"] ?? props.label)
 );
+const sliderStyle = computed(() => ({
+  "--slider-progress": `${sliderProgress.value}%`,
+  ...props.fillStyle
+}));
+const sliderProgress = computed(() => {
+  const min = Number(props.min);
+  const max = Number(props.max);
+  const value = Number(props.modelValue);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+});
 
 function handleInput(event: Event) {
   const value = Number((event.target as HTMLInputElement).value);

@@ -64,6 +64,7 @@
   "primary-subtitle-font-size-label": "Primary Size",
   "secondary-subtitle-font-label": "Secondary Font",
   "secondary-subtitle-font-size-label": "Secondary Size",
+  "subtitle-timestamp-font-size-label": "Timestamp Size",
   "subtitle-meta-auto-hide-label": "Auto-hide Controls",
   "subtitle-autoscroll-label": "Restore Delay (s)",
   "subtitle-scroll-position-label": "Scroll Position",

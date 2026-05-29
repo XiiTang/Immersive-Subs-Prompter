@@ -44,6 +44,7 @@
       :primary-font-size="transcriptPrimaryFontSize"
       :secondary-font-family="transcriptSecondaryFontFamily"
       :secondary-font-size="transcriptSecondaryFontSize"
+      :timestamp-font-size="transcriptTimestampFontSize"
       :auto-hide-meta-row="subtitleAutoHideMetaRow"
       :line-height="transcriptLineHeight"
       :primary-secondary-gap="transcriptPrimarySecondaryGap"
@@ -118,6 +119,8 @@ const playbackProfileSettings = computed(
 );
 const MIN_SUBTITLE_FONT_SIZE = 3;
 const MAX_SUBTITLE_FONT_SIZE = 96;
+const MIN_TIMESTAMP_FONT_SIZE = 6;
+const MAX_TIMESTAMP_FONT_SIZE = 24;
 
 function normalizeSubtitleFontSize(value: number | null | undefined, fallback: number): number {
   const numeric = Number(value);
@@ -125,6 +128,14 @@ function normalizeSubtitleFontSize(value: number | null | undefined, fallback: n
     return fallback;
   }
   return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(numeric)));
+}
+
+function normalizeTimestampFontSize(value: number | null | undefined, fallback: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.min(MAX_TIMESTAMP_FONT_SIZE, Math.max(MIN_TIMESTAMP_FONT_SIZE, Math.round(numeric)));
 }
 
 const transcriptPrimaryFontFamily = computed(() =>
@@ -143,6 +154,12 @@ const transcriptSecondaryFontSize = computed(() =>
   normalizeSubtitleFontSize(
     playbackProfileSettings.value.secondarySubtitleFontSize,
     DEFAULT_PROFILE_TEMPLATE.secondarySubtitleFontSize
+  )
+);
+const transcriptTimestampFontSize = computed(() =>
+  normalizeTimestampFontSize(
+    playbackProfileSettings.value.subtitleTimestampFontSize,
+    DEFAULT_PROFILE_TEMPLATE.subtitleTimestampFontSize
   )
 );
 const subtitleAutoHideMetaRow = computed(() => playbackProfileSettings.value.subtitleAutoHideMetaRow);

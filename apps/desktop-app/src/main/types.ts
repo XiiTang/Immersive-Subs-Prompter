@@ -175,6 +175,7 @@ export interface ProfileSettings {
   primarySubtitleFontSize: number;
   secondarySubtitleFontFamily: string;
   secondarySubtitleFontSize: number;
+  subtitleTimestampFontSize: number;
   subtitleAutoHideMetaRow: boolean;
   subtitlePrimarySecondaryGap: number;
   subtitleLineHeight: number;

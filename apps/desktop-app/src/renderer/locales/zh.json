@@ -64,6 +64,7 @@
   "primary-subtitle-font-size-label": "主字幕字号",
   "secondary-subtitle-font-label": "副字幕字体",
   "secondary-subtitle-font-size-label": "副字幕字号",
+  "subtitle-timestamp-font-size-label": "时间戳字号",
   "subtitle-meta-auto-hide-label": "自动隐藏时间戳与交互栏",
   "subtitle-autoscroll-label": "自动滚动恢复时间（秒）",
   "subtitle-scroll-position-label": "字幕滚动位置",

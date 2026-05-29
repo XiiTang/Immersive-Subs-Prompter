@@ -260,7 +260,8 @@ describe("appSettingsSanitizer", () => {
               primarySubtitleFontFamily: "Papyrus",
               primarySubtitleFontSize: 2.2,
               secondarySubtitleFontFamily: georgiaFont,
-              secondarySubtitleFontSize: 111.7
+              secondarySubtitleFontSize: 111.7,
+              subtitleTimestampFontSize: 25.7
             }
           }
         ],
@@ -273,6 +274,7 @@ describe("appSettingsSanitizer", () => {
       expect(settings.primarySubtitleFontSize).toBe(3);
       expect(settings.secondarySubtitleFontFamily).toBe(georgiaFont);
       expect(settings.secondarySubtitleFontSize).toBe(96);
+      expect(settings.subtitleTimestampFontSize).toBe(24);
     });
 
     it("uses explicit default primary and secondary subtitle typography", () => {
@@ -283,10 +285,12 @@ describe("appSettingsSanitizer", () => {
       expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
       expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
+      expect(DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize).toBe(11);
       expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.primarySubtitleFontSize).toBe(26);
       expect(settings.secondarySubtitleFontSize).toBe(25);
+      expect(settings.subtitleTimestampFontSize).toBe(11);
     });
 
     it("uses the product global defaults as the sanitizer defaults", () => {
