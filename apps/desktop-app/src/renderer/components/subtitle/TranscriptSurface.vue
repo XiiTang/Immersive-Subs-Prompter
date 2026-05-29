@@ -58,15 +58,8 @@ import type {
   TranscriptSeekRequest,
   TranscriptViewportAnchor
 } from "./transcript/types";
+import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
-
-function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
-  let text = fallback;
-  for (const [name, value] of Object.entries(params)) {
-    text = text.split(`{${name}}`).join(String(value));
-  }
-  return text;
-}
 
 const {
   blocks,
@@ -113,11 +106,10 @@ const {
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
   autoFollowScrollBehavior?: ScrollBehavior;
-  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t?: SubtitleTranslate;
 }>();
 
-const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
-  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
+const translate = resolveSubtitleTranslate(translateProp);
 
 const emit = defineEmits<{
   (e: "play-cue", cueIndex: number): void;

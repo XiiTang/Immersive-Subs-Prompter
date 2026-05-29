@@ -43,15 +43,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
 import { formatTime } from "../../utils/formatters";
-
-function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
-  let text = fallback;
-  for (const [name, value] of Object.entries(params)) {
-    text = text.split(`{${name}}`).join(String(value));
-  }
-  return text;
-}
 
 const {
   start,
@@ -67,11 +60,10 @@ const {
   abLabel: "AB" | "A" | "B";
   isLooping: boolean;
   isAbPendingSelection: boolean;
-  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t?: SubtitleTranslate;
 }>();
 
-const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
-  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
+const translate = resolveSubtitleTranslate(translateProp);
 
 defineEmits<{
   (e: "play"): void;

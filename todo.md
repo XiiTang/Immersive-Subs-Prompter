@@ -33,12 +33,12 @@
 
 ## 低优先级
 
-- [ ] 移除字幕组件中重复的翻译 fallback helper。
+- [x] 移除字幕组件中重复的翻译 fallback helper。
   - 证据：`TranscriptBlock.vue`、`TranscriptSurface.vue` 和 `CueAnchorRail.vue` 都实现了相似的 `fallbackTranslate` / `translate` 逻辑。
   - 问题：规模不大，但属于不必要重复。
   - 建议方向：抽一个很小的共享 helper，或要求父层统一提供翻译函数。
 
-- [ ] 简化 FasterWhisper 压缩包解压 fallback 链。
+- [x] 简化 FasterWhisper 压缩包解压 fallback 链。
   - 证据：`apps/desktop-app/src/main/fasterWhisperManager.ts` 依次尝试 7z、tar、PowerShell，但包资产是 `.7z`，PowerShell 路径偏向 zip 解压。
   - 问题：fallback 链里包含很可能无效或误导性的分支。
   - 建议方向：明确唯一支持的解压路径；不可用时给出清晰安装错误，不继续走无效兜底。

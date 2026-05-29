@@ -57,16 +57,9 @@
 import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
+import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
 import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
-
-function fallbackTranslate(_key: string, fallback = "", params: Record<string, any> = {}) {
-  let text = fallback;
-  for (const [name, value] of Object.entries(params)) {
-    text = text.split(`{${name}}`).join(String(value));
-  }
-  return text;
-}
 
 const {
   blockId,
@@ -86,11 +79,10 @@ const {
   abLabel: "AB" | "A" | "B";
   isAbPendingSelection: boolean;
   showSelectionActions: boolean;
-  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t?: SubtitleTranslate;
 }>();
 
-const translate = (key: string, fallback = "", params: Record<string, any> = {}) =>
-  translateProp?.(key, fallback, params) ?? fallbackTranslate(key, fallback, params);
+const translate = resolveSubtitleTranslate(translateProp);
 
 const emit = defineEmits<{
   (e: "play"): void;

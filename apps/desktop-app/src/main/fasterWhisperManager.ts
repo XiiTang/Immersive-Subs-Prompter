@@ -3,7 +3,6 @@ import { promises as fs, createWriteStream } from "fs";
 import path from "path";
 import { Readable } from "stream";
 import { createLogger } from "./logger.js";
-import decompress from "decompress";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -226,45 +225,16 @@ export class FasterWhisperManager {
   }
 
   private async extractArchive(archivePath: string, extractDir: string) {
+    await fs.mkdir(extractDir, { recursive: true });
+
     try {
-      // Ensure extraction directory exists
-      await fs.mkdir(extractDir, { recursive: true });
-      
-      if (process.platform === "win32") {
-        // Try multiple extraction methods in order of preference
-        // 1. Try using 7-Zip command line tool (if installed)
-        try {
-          await execAsync(`7z x "${archivePath}" -o"${extractDir}" -y`);
-          return;
-        } catch (e) {
-          this.log.info("7-Zip not found, trying Windows tar...");
-        }
-        
-        // 2. Try using tar (Windows 10+ has built-in tar with 7z support)
-        try {
-          await execAsync(`tar -xf "${archivePath}" -C "${extractDir}"`);
-          return;
-        } catch (tarError) {
-          this.log.info("Windows tar failed, trying PowerShell...");
-        }
-        
-        // 3. Last resort: PowerShell with Expand-Archive (only works for zip files)
-        try {
-          await execAsync(`powershell -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force"`);
-          return;
-        } catch (psError) {
-          throw new Error(
-            `Failed to extract archive. Please install 7-Zip from https://www.7-zip.org/ or ensure you have Windows 10+ with tar support.`
-          );
-        }
-      } else {
-        // On non-Windows platforms, use decompress library
-        await decompress(archivePath, extractDir);
-      }
+      await execAsync(`7z x "${archivePath}" -o"${extractDir}" -y`);
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-      throw new Error(`Failed to extract GPU package: ${message}`);
+      throw new Error(
+        `Failed to extract GPU package with 7z. 7-Zip command line tool is required to extract .7z packages. Install 7-Zip from https://www.7-zip.org/ and ensure the 7z command is available in PATH. ${message}`
+      );
     }
   }
 
