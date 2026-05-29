@@ -52,27 +52,29 @@
           <UiTooltip :text="pinLabel">
             <UiIconButton
               :label="pinLabel"
+              size="sm"
               :pressed="isPinned"
               :active="isPinned"
               @click="cyclePin"
             >
-              <IconPin v-if="alwaysOnTop === 'off'" size="md" />
-              <IconPin v-else-if="alwaysOnTop === 'floating'" size="md" />
-              <IconLock v-else size="md" />
+              <IconPin v-if="alwaysOnTop === 'off'" size="sm" />
+              <IconPin v-else-if="alwaysOnTop === 'floating'" size="sm" />
+              <IconLock v-else size="sm" />
             </UiIconButton>
           </UiTooltip>
           <UiTooltip :text="fullscreenLabel">
             <UiIconButton
               :label="fullscreenLabel"
+              size="sm"
               :pressed="store.desktopState?.isFullscreen"
               @click="store.toggleFullscreen()"
             >
-              <IconFullscreen size="md" />
+              <IconFullscreen size="sm" />
             </UiIconButton>
           </UiTooltip>
           <UiTooltip :text="openSettingsLabel">
-            <UiIconButton :label="openSettingsLabel" @click="openSettingsWindow">
-              <IconSettings size="md" />
+            <UiIconButton :label="openSettingsLabel" size="sm" @click="openSettingsWindow">
+              <IconSettings size="sm" />
             </UiIconButton>
           </UiTooltip>
         </div>
@@ -84,22 +86,24 @@
           <p class="top-control-panel__info-url">{{ displayUrl }}</p>
         </section>
         <section v-if="hasActiveVideo" class="control-panel">
-          <TrackSelector
-            v-model="localPrimaryTrackId"
-            :tracks="subtitleTracks"
-            :lead-label="t('primary-track-label', 'Primary Subtitle')"
-            :aria-label="t('primary-track-label', 'Primary Subtitle')"
-            :grow="!transcriptionEnabled"
-            :format-source-file="formatSourceFile"
-          />
-          <TrackSelector
-            v-model="localSecondaryTrackId"
-            :tracks="subtitleTracks"
-            :aria-label="t('secondary-track-none', 'None')"
-            :none-label="t('secondary-track-none', 'None')"
-            :grow="!transcriptionEnabled"
-            :format-source-file="formatSourceFile"
-          />
+          <div class="control-panel__track-row" data-testid="top-control-panel-track-row">
+            <TrackSelector
+              v-model="localPrimaryTrackId"
+              :tracks="subtitleTracks"
+              :lead-label="t('primary-track-label', 'Primary Subtitle')"
+              :aria-label="t('primary-track-label', 'Primary Subtitle')"
+              :grow="!transcriptionEnabled"
+              :format-source-file="formatSourceFile"
+            />
+            <TrackSelector
+              v-model="localSecondaryTrackId"
+              :tracks="subtitleTracks"
+              :aria-label="t('secondary-track-none', 'None')"
+              :none-label="t('secondary-track-none', 'None')"
+              :grow="!transcriptionEnabled"
+              :format-source-file="formatSourceFile"
+            />
+          </div>
           <TranscriptionControls
             v-if="transcriptionEnabled"
             :configs="transcriptionConfigs"

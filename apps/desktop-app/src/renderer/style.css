@@ -1103,9 +1103,9 @@ body.main-window-body,
 .top-control-panel__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 5px 16px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 3px 12px;
   border-bottom: 1px solid var(--ui-border);
   -webkit-app-region: no-drag;
 }
@@ -1146,8 +1146,8 @@ body.main-window-body,
 .top-control-panel__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: 8px;
+  gap: 4px;
+  margin-left: 6px;
 }
 
 .top-control-panel__actions .ui-icon-button {
@@ -1207,6 +1207,19 @@ body.main-window-body,
   flex-wrap: wrap;
   gap: 8px;
   padding: 0 16px;
+}
+
+.control-panel__track-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+  flex: 2 1 296px;
+  min-width: 0;
+}
+
+.control-panel__track-row .track-picker {
+  min-width: 0;
 }
 
 .track-picker {
