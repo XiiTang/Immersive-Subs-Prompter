@@ -33,7 +33,8 @@ class Logger {
       "shadow",       // Shadow DOM
       "drift",        // Playback drift
       "filter",       // Media filtering
-      "dashboard"     // Dashboard port
+      "dashboard",    // Dashboard port
+      "storage"       // Extension storage
     ]);
   }
 
@@ -81,122 +82,6 @@ class Logger {
   error(category: string, message: string, data?: unknown) {
     this._log(LOG_LEVELS.ERROR, category, message, data);
   }
-
-  videoDetected(video: HTMLVideoElement, details?: Record<string, unknown>) {
-    this.info("video-detection", "Video element detected", {
-      src: video.currentSrc || video.src || "(no src)",
-      readyState: video.readyState,
-      duration: video.duration,
-      paused: video.paused,
-      ...details,
-    });
-  }
-
-  videoActivated(video: HTMLVideoElement, reason: string) {
-    this.info("video-detection", `Video activated: ${reason}`, {
-      src: video.currentSrc || video.src,
-      currentTime: video.currentTime,
-      duration: video.duration,
-    });
-  }
-
-  videoStateChange(eventType: string, state: unknown) {
-    this.debug("media-state", `Video state changed: ${eventType}`, state);
-  }
-
-  messageSent(type: string, payload: unknown, target: string) {
-    this.debug("message-transmission", `Message sent: ${type} -> ${target}`, payload);
-  }
-
-  messageReceived(type: string, payload: unknown, source: string) {
-    this.debug("message-transmission", `Message received: ${type} <- ${source}`, payload);
-  }
-
-  messageDeliveryFailed(type: string, error: unknown, target: string) {
-    this.error("message-transmission", `Message delivery failed: ${type} -> ${target}`, error);
-  }
-
-  desktopConnected() {
-    this.info("desktop-communication", "Connected to desktop-app");
-  }
-
-  desktopDisconnected() {
-    this.warn("desktop-communication", "desktop-app connection closed");
-  }
-
-  desktopMessageSent(data: { type?: string; tabId?: number; payload?: unknown }) {
-    this.debug("desktop-communication", "Sending data to desktop-app", {
-      type: data.type,
-      tabId: data.tabId,
-      payloadKeys: data.payload ? Object.keys(data.payload) : [],
-    });
-  }
-
-  desktopMessageReceived(data: { type?: string; source?: string }) {
-    this.debug("desktop-communication", "Receiving data from desktop-app", {
-      type: data.type,
-      source: data.source,
-    });
-  }
-
-  portConnected(portName: string, details?: unknown) {
-    this.info("connection", `Port connected: ${portName}`, details);
-  }
-
-  portDisconnected(portName: string, details?: unknown) {
-    this.info("connection", `Port disconnected: ${portName}`, details);
-  }
-
-  reconnecting(target: string, delay: number) {
-    this.info("connection", `Reconnecting: ${target}`, { delayMs: delay });
-  }
-
-  controlCommandReceived(action: string, payload: unknown) {
-    this.info("control", `Control command received: ${action}`, payload);
-  }
-
-  controlCommandExecuted(action: string, success: boolean, details?: unknown) {
-    if (success) {
-      this.info("control", `Control command executed successfully: ${action}`, details);
-    } else {
-      this.warn("control", `Control command execution failed: ${action}`, details);
-    }
-  }
-
-  mediaFiltered(reason: string, payload?: { duration?: unknown; readyState?: unknown }) {
-    this.debug("media-state", `Media filtered: ${reason}`, {
-      duration: payload?.duration,
-      readyState: payload?.readyState,
-    });
-  }
-
-  mediaStateUpdated(tabId: number, eventType: string, isValid: boolean) {
-    this.debug("media-state", `Media state updated: Tab ${tabId}, Event: ${eventType}, Valid: ${isValid}`);
-  }
-
-  logError(category: string, message: string, error: unknown) {
-    const normalized = error instanceof Error ? error : new Error(String(error));
-    this.error(category, message, {
-      error: normalized.message,
-      stack: normalized.stack,
-    });
-  }
-
-  enableCategory(category: string) {
-    this.enabledCategories.add(category);
-  }
-
-  disableCategory(category: string) {
-    this.enabledCategories.delete(category);
-  }
-
-  setLevel(level: string | LogLevelValue) {
-    if (typeof level === "string") {
-      this.minLevel = LOG_LEVELS[level.toUpperCase() as LogLevelName] || LOG_LEVELS.DEBUG;
-    } else {
-      this.minLevel = level;
-    }
-  }
 }
 
-export { Logger, LOG_LEVELS };
+export { Logger };

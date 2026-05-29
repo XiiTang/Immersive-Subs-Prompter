@@ -40,19 +40,19 @@
 
 ### P3
 
-- [ ] 删除危险且过时的 node_modules 清理脚本
+- [x] 删除危险且过时的 node_modules 清理脚本
   - 文件：
     - `apps/desktop-app/scripts/cleanup-node-modules.cjs`
     - `apps/desktop-app/package.json`
   - 问题：脚本注释称打包前运行，但实际 package/make 未调用；脚本会删除 `node_modules` 内 `.d.ts`、`.map`、测试、文档等文件，容易破坏后续 typecheck/build。
   - 建议：删除脚本和 `clean:node-modules` npm script；不要保留手工打包补丁。
 
-- [ ] 删除 extension Logger 中未使用的 facade 方法
+- [x] 删除 extension Logger 中未使用的 facade 方法
   - 文件：`apps/extension/src/shared/Logger.ts`
   - 问题：`videoDetected`、`videoActivated`、`messageSent`、`desktopConnected`、`portConnected` 等方法未被调用；部分 category 还不在 enabled list 中。
   - 建议：删除未使用 facade，只保留实际使用的 `debug/info/warn/error`，或统一 category 后再按需恢复调用。
 
-- [ ] 删除 monorepo 迁移守卫测试
+- [x] 删除 monorepo 迁移守卫测试
   - 文件：`apps/desktop-app/src/renderer/monorepoWorkspace.test.ts`
   - 问题：测试主要断言旧目录不存在、README 包含命令、workspace 脚本存在，属于迁移完成后的结构守卫，不验证产品行为。
   - 建议：删除该测试；如确有必要，只把最小构建校验留在 CI 脚本中。

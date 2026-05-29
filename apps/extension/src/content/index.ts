@@ -87,7 +87,7 @@ async function bootstrap() {
     const raw = await loadBlacklistRules();
     setBlacklistRules(raw);
   } catch (error) {
-    log.logError("blacklist", "Failed to init blacklist", error);
+    log.error("blacklist", "Failed to init blacklist", error);
     setBlacklistRules([]);
   }
 

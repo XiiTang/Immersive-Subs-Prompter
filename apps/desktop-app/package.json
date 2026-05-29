@@ -19,7 +19,6 @@
     "word-list:normalize": "tsx src/main/plugins/official/wordLookup/wordListCli.ts",
     "start": "pnpm run build && electron-forge start . --app-path .",
     "clean": "rimraf dist",
-    "clean:node-modules": "node scripts/cleanup-node-modules.cjs",
     "package": "pnpm run build && electron-forge package . --app-path .",
     "make": "pnpm run build && electron-forge make . --app-path .",
     "dist:win": "pnpm run build && electron-forge make . --app-path . --platform=win32",

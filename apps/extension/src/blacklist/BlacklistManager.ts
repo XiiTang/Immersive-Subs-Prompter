@@ -15,7 +15,7 @@ export async function loadBlacklistRules(): Promise<unknown[]> {
     try {
       chrome.storage.local.get([BLACKLIST_STORAGE_KEY], (result) => {
         if (chrome.runtime?.lastError) {
-          log.logError("blacklist", "Failed to read blacklist", chrome.runtime.lastError);
+          log.error("blacklist", "Failed to read blacklist", chrome.runtime.lastError);
           resolve([]);
           return;
         }
@@ -23,7 +23,7 @@ export async function loadBlacklistRules(): Promise<unknown[]> {
         resolve(Array.isArray(stored) ? stored : []);
       });
     } catch (error) {
-      log.logError("blacklist", "Failed to read blacklist", error);
+      log.error("blacklist", "Failed to read blacklist", error);
       resolve([]);
     }
   });
