@@ -3,7 +3,7 @@ import { createLogger } from "../logger.js";
 import type { StateManager } from "../stateManager.js";
 import type { MediaServerSessionSummary } from "../types.js";
 import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
-import { TabContextRegistry } from "./TabContextRegistry.js";
+import { TabContextRegistry, type TabMediaServerContext } from "./TabContextRegistry.js";
 
 type SessionHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession">;
 
@@ -27,46 +27,24 @@ export class MediaServerSessionHandler {
     this.stateManager.setMediaServerSessions(sessions);
 
     for (const [tabId, context] of this.tabRegistry.entries()) {
-      const sessionById = context.sessionId && sessions.find((session) => session.id === context.sessionId);
-      if (sessionById) {
+      const matchingSession = this.findSessionForContext(sessions, context);
+      if (matchingSession) {
         this.tabRegistry.update(tabId, {
-          sessionId: sessionById.id,
-          serverConfigId: sessionById.serverConfigId,
-          itemId: sessionById.nowPlayingItemId ?? context.itemId
-        });
-        continue;
-      }
-      if (!context.itemId) {
-        continue;
-      }
-      // First try to match with server preference
-      let matchingByItem = sessions.find(
-        (session) =>
-          session.nowPlayingItemId === context.itemId &&
-          context.serverConfigId && session.serverConfigId === context.serverConfigId
-      );
-
-      // Fallback: match any session with the same itemId (allows cross-server switching)
-      if (!matchingByItem) {
-        matchingByItem = sessions.find(
-          (session) => session.nowPlayingItemId === context.itemId
-        );
-      }
-
-      if (matchingByItem) {
-        this.tabRegistry.update(tabId, {
-          sessionId: matchingByItem.id,
-          serverConfigId: matchingByItem.serverConfigId,
-          itemId: matchingByItem.nowPlayingItemId ?? context.itemId
+          sessionId: matchingSession.id,
+          serverConfigId: matchingSession.serverConfigId,
+          itemId: matchingSession.nowPlayingItemId ?? context.itemId
         });
       }
     }
 
     const currentState = this.stateManager.getState();
     if (currentState.pendingMediaServerItemId && currentState.activeSource === "mediaserver") {
-      const matchingSession = sessions.find(
-        (session) => session.nowPlayingItemId === currentState.pendingMediaServerItemId
-      );
+      const activeTabContext = this.tabRegistry.get(currentState.activeTabId);
+      const matchingSession = this.findSessionForContext(sessions, {
+        itemId: currentState.pendingMediaServerItemId,
+        sessionId: null,
+        serverConfigId: activeTabContext?.serverConfigId ?? null
+      });
 
       if (matchingSession) {
         this.stateManager.updateState((draft) => {
@@ -102,20 +80,27 @@ export class MediaServerSessionHandler {
           draft.mediaServer.selectedSessionId = null;
         });
 
-        if (state.activeSource === "mediaserver" && sessions.length > 0) {
-          this.stateManager.setMediaServerSelectedSession(sessions[0].id);
-          this.mediaServerService.setActiveSession(sessions[0].id);
-        } else if (state.activeSource === "mediaserver") {
-          this.stateManager.updateState((draft) => {
-            draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
-            draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
-            draft.title = null;
-            draft.pageUrl = null;
-            draft.videoUrl = null;
-            draft.site = null;
-          });
-          this.stateManager.resetSubtitleState();
-          this.mediaServerService.setActiveSession(null);
+        if (state.activeSource === "mediaserver") {
+          const replacement = this.findSessionForContext(
+            sessions,
+            this.tabRegistry.get(state.activeTabId)
+          );
+          if (replacement) {
+            this.stateManager.setMediaServerSelectedSession(replacement.id);
+            this.mediaServerService.setActiveSession(replacement.id);
+          } else {
+            this.mediaServerService.setActiveSession(null);
+            this.stateManager.updateState((draft) => {
+              draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
+              draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
+              draft.title = null;
+              draft.pageUrl = null;
+              draft.videoUrl = null;
+              draft.site = null;
+              draft.pendingMediaServerItemId = null;
+            });
+            this.stateManager.resetSubtitleState();
+          }
         }
       } else if (state.activeSource === "mediaserver") {
         const activeTabContext = this.tabRegistry.get(state.activeTabId);
@@ -143,37 +128,10 @@ export class MediaServerSessionHandler {
       }
     } else if (state.activeSource === "mediaserver" && sessions.length > 0) {
       const activeTabContext = this.tabRegistry.get(state.activeTabId);
-      const activeTabItemId = activeTabContext?.itemId ?? null;
-      const activeTabSessionId = activeTabContext?.sessionId ?? null;
-      const activeServerId = activeTabContext?.serverConfigId ?? null;
-
-      let sessionToSelect = sessions[0];
-      if (activeTabSessionId) {
-        const matchingBySession = sessions.find((session) => session.id === activeTabSessionId);
-        if (matchingBySession) {
-          sessionToSelect = matchingBySession;
-        }
-      } else if (activeTabItemId) {
-        // First try to match with server preference
-        let matchingSession = sessions.find(
-          (session) =>
-            session.nowPlayingItemId === activeTabItemId &&
-            activeServerId && session.serverConfigId === activeServerId
-        );
-        // Fallback: match any session with the same itemId
-        if (!matchingSession) {
-          matchingSession = sessions.find(
-            (session) => session.nowPlayingItemId === activeTabItemId
-          );
-        }
-        if (matchingSession) {
-          sessionToSelect = matchingSession;
-        }
-      } else if (activeServerId) {
-        const matchingByServer = sessions.find((session) => session.serverConfigId === activeServerId);
-        if (matchingByServer) {
-          sessionToSelect = matchingByServer;
-        }
+      const sessionToSelect = this.findSessionForContext(sessions, activeTabContext);
+      if (!sessionToSelect) {
+        this.stateManager.emitCurrentState();
+        return;
       }
 
       if (state.activeTabId) {
@@ -189,12 +147,35 @@ export class MediaServerSessionHandler {
         serverConfigId: sessionToSelect.serverConfigId,
         serverName: sessionToSelect.serverName,
         nowPlayingItemId: sessionToSelect.nowPlayingItemId,
-        activeTabItemId
+        activeTabItemId: activeTabContext?.itemId ?? null
       });
       this.stateManager.setMediaServerSelectedSession(sessionToSelect.id);
       this.mediaServerService.setActiveSession(sessionToSelect.id);
     }
 
     this.stateManager.emitCurrentState();
+  }
+
+  private findSessionForContext(
+    sessions: MediaServerSessionSummary[],
+    context: TabMediaServerContext | null
+  ): MediaServerSessionSummary | null {
+    if (!context) {
+      return null;
+    }
+    if (context.sessionId) {
+      const matchingBySession = sessions.find((session) => session.id === context.sessionId);
+      if (matchingBySession) {
+        return matchingBySession;
+      }
+    }
+    if (!context.serverConfigId || !context.itemId) {
+      return null;
+    }
+    return sessions.find(
+      (session) =>
+        session.serverConfigId === context.serverConfigId &&
+        session.nowPlayingItemId === context.itemId
+    ) ?? null;
   }
 }

@@ -33,7 +33,7 @@ export class MediaServerMessageHandler {
       event.message.payload.videoSrc ?? null
     ]);
     const existingTabContext = this.tabRegistry.get(event.message.tabId);
-    const mediaServerConfigId = configId ?? existingTabContext?.serverConfigId ?? null;
+    const mediaServerConfigId = configId;
     const isMediaServer = Boolean(mediaServerConfigId);
 
     if (!isMediaServer) {
@@ -155,15 +155,19 @@ export class MediaServerMessageHandler {
         this.mediaServerService.requestSessionsBurst(`mediaserver-video-change:${itemId}`);
       }
 
-      const targetServerConfigId = currentServerConfigId ?? tabContext?.serverConfigId ?? null;
-      const matchingSession =
+      const targetServerConfigId = currentServerConfigId;
+      const storedSessionMatchesContext =
         storedSession?.nowPlayingItemId === itemId &&
-        (!targetServerConfigId || storedSession.serverConfigId === targetServerConfigId)
-          ? storedSession
+        targetServerConfigId !== null &&
+        storedSession.serverConfigId === targetServerConfigId;
+      const matchingSession = storedSessionMatchesContext
+        ? storedSession
+        : targetServerConfigId === null
+          ? null
           : latestState.mediaServer.sessions.find(
               (session) =>
                 session.nowPlayingItemId === itemId &&
-                (!targetServerConfigId || session.serverConfigId === targetServerConfigId)
+                session.serverConfigId === targetServerConfigId
             ) ?? null;
 
       if (matchingSession) {

@@ -52,7 +52,6 @@ export interface DesktopConnectionSnapshot {
   state: ConnectionState;
   lastError: string | null;
   lastChangeAt: number;
-  pendingMessages: number;
 }
 
 export interface DashboardSnapshot {

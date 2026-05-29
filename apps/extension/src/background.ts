@@ -3,6 +3,7 @@ import { CONTENT_PORT, DASHBOARD_PORT, ENDPOINTS_STORAGE_KEY } from "./shared/co
 
 import { DesktopConnectionPool } from "./background/desktop/DesktopConnectionPool";
 import { createDesktopMessageHandler } from "./background/desktop/DesktopMessageHandler";
+import { sendCurrentMediaContext } from "./background/desktop/reconnectMediaSync";
 import { TabRegistry } from "./background/tabs/TabRegistry";
 import { MediaStateStore } from "./background/tabs/MediaStateStore";
 import { EndpointManager } from "./background/endpoints/EndpointManager";
@@ -32,7 +33,8 @@ const connectionPool = new DesktopConnectionPool(
       desktopMessageHandler(message, sourceEndpoint);
     }
   },
-  () => broadcastMediaSnapshot()
+  () => broadcastMediaSnapshot(),
+  (connection) => sendCurrentMediaContext(connection, mediaStateStore)
 );
 
 const endpointManager = new EndpointManager({

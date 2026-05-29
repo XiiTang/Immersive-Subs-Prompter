@@ -3,6 +3,9 @@ import type { DesktopConnectionSnapshot } from "../../shared/types";
 import type { FromExtensionBroadcastMessage, ToExtensionMessage } from "@immersive-subs/contracts";
 import { DesktopConnection } from "./DesktopConnection";
 
+type WithoutTransportEnvelope<T> = T extends unknown ? Omit<T, "source" | "sentAt"> : never;
+type DesktopBroadcastPayload = WithoutTransportEnvelope<FromExtensionBroadcastMessage>;
+
 export class DesktopConnectionPool {
   onDesktopMessage?: (message: ToExtensionMessage, sourceEndpoint: string) => void;
   onStatusChange?: (snapshot: DesktopConnectionSnapshot[]) => void;
@@ -10,7 +13,8 @@ export class DesktopConnectionPool {
 
   constructor(
     onDesktopMessage?: (message: ToExtensionMessage, sourceEndpoint: string) => void,
-    onStatusChange?: (snapshot: DesktopConnectionSnapshot[]) => void
+    onStatusChange?: (snapshot: DesktopConnectionSnapshot[]) => void,
+    private readonly onConnectionOpen?: (connection: DesktopConnection) => void
   ) {
     this.onDesktopMessage = onDesktopMessage;
     this.onStatusChange = onStatusChange;
@@ -35,7 +39,8 @@ export class DesktopConnectionPool {
       const conn = new DesktopConnection(
         endpoint,
         (message, sourceEndpoint) => this.onDesktopMessage?.(message, sourceEndpoint),
-        () => this.onStatusChange?.(this.describe())
+        () => this.onStatusChange?.(this.describe()),
+        (connection) => this.onConnectionOpen?.(connection)
       );
       this.connections.set(endpoint, conn);
       conn.connect();
@@ -44,7 +49,7 @@ export class DesktopConnectionPool {
     this.onStatusChange?.(this.describe());
   }
 
-  broadcast(payload: Omit<FromExtensionBroadcastMessage, "source" | "sentAt">) {
+  broadcast(payload: DesktopBroadcastPayload) {
     for (const connection of this.connections.values()) {
       connection.send(payload);
     }

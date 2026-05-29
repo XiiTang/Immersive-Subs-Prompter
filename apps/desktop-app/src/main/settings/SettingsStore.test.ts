@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { promises as fsp } from "node:fs";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -77,6 +78,24 @@ describe("SettingsStore", () => {
     vi.resetModules();
     const second = await loadStore();
     expect(second.get().global.language).toBe("en");
+  });
+
+  it("keeps previous settings in memory when persistence fails", async () => {
+    const store = await loadStore();
+    const previous = store.get();
+    const writeFileSync = vi.spyOn(fs, "writeFileSync").mockImplementationOnce(() => {
+      throw new Error("disk full");
+    });
+
+    expect(() =>
+      store.update({
+        global: { ...previous.global, language: "en" }
+      })
+    ).toThrow("disk full");
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1);
+    expect(store.get()).toBe(previous);
+    expect(store.get().global.language).toBe(previous.global.language);
   });
 
   it("recovers to defaults if settings file is corrupted", async () => {

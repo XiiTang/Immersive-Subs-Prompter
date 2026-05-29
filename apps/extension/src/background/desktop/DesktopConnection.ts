@@ -9,13 +9,16 @@ const RETRY_DELAY_MS = 2000;
 
 const logger = new Logger("desktop-conn");
 
+type OutgoingDesktopMessage = FromExtensionBroadcastMessage | HeartbeatAckMessage;
+type WithoutTransportEnvelope<T> = T extends unknown ? Omit<T, "source" | "sentAt"> : never;
+export type DesktopConnectionSendPayload = WithoutTransportEnvelope<OutgoingDesktopMessage>;
+
 export class DesktopConnection {
   endpoint: string;
   onDesktopMessage?: (message: ToExtensionMessage, sourceEndpoint: string) => void;
   onStatusChange?: (snapshot: DesktopConnectionSnapshot) => void;
   socket: WebSocket | null;
   retryTimer: ReturnType<typeof setTimeout> | null;
-  pending: string[];
   stopped: boolean;
   state: ConnectionState;
   lastError: string | null;
@@ -24,14 +27,14 @@ export class DesktopConnection {
   constructor(
     endpoint: string,
     onDesktopMessage?: (message: ToExtensionMessage, sourceEndpoint: string) => void,
-    onStatusChange?: (snapshot: DesktopConnectionSnapshot) => void
+    onStatusChange?: (snapshot: DesktopConnectionSnapshot) => void,
+    private readonly onConnected?: (connection: DesktopConnection) => void
   ) {
     this.endpoint = endpoint;
     this.onDesktopMessage = onDesktopMessage;
     this.onStatusChange = onStatusChange;
     this.socket = null;
     this.retryTimer = null;
-    this.pending = [];
     this.stopped = false;
     this.state = "idle";
     this.lastError = null;
@@ -43,8 +46,7 @@ export class DesktopConnection {
       endpoint: this.endpoint,
       state: this.state,
       lastError: this.lastError,
-      lastChangeAt: this.lastChangeAt,
-      pendingMessages: this.pending.length
+      lastChangeAt: this.lastChangeAt
     };
   }
 
@@ -80,7 +82,7 @@ export class DesktopConnection {
 
     this.socket.addEventListener("open", () => {
       this.updateState("connected");
-      this.flushPending();
+      this.onConnected?.(this);
     });
 
     this.socket.addEventListener("close", () => {
@@ -101,10 +103,7 @@ export class DesktopConnection {
         const payload = JSON.parse(raw) as ToExtensionMessage;
 
         if (payload.type === "heartbeat") {
-          const ack: Omit<HeartbeatAckMessage, "sentAt"> = {
-            type: "heartbeat-ack",
-            source: "usp-extension"
-          };
+          const ack: DesktopConnectionSendPayload = { type: "heartbeat-ack" };
           this.send(ack);
           logger.debug("ws", "Received heartbeat, sent ACK", { endpoint: this.endpoint });
           return;
@@ -133,20 +132,7 @@ export class DesktopConnection {
     this.retryTimer = setTimeout(() => this.connect(), RETRY_DELAY_MS);
   }
 
-  flushPending() {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-    if (this.pending.length > 0) {
-      logger.info("ws", `Sending queue: ${this.pending.length} messages`, { endpoint: this.endpoint });
-    }
-    while (this.pending.length) {
-      const nextMessage = this.pending.shift();
-      if (nextMessage) {
-        this.socket.send(nextMessage);
-      }
-    }
-  }
-
-  send(payload: Omit<FromExtensionBroadcastMessage | HeartbeatAckMessage, "source" | "sentAt">) {
+  send(payload: DesktopConnectionSendPayload) {
     const data = JSON.stringify({
       source: "usp-extension",
       ...payload,
@@ -161,7 +147,6 @@ export class DesktopConnection {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
-      this.pending.push(data);
       this.connect();
     }
   }
@@ -179,7 +164,6 @@ export class DesktopConnection {
       }
     }
     this.socket = null;
-    this.pending = [];
     this.updateState("idle");
   }
 }

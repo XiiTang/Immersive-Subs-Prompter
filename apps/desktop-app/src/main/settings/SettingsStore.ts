@@ -34,17 +34,15 @@ export class SettingsStore {
     }
   }
 
-  private save() {
+  private save(data: AppSettings) {
     try {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-      fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), "utf-8");
+      fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), "utf-8");
     } catch (error) {
       reportError(error, "settings.save", {
         scope: "settings",
         extra: { filePath: this.filePath }
       });
-      // Propagate so IPC callers surface the failure to the renderer instead of
-      // silently reporting success while the on-disk state is stale.
       throw error;
     }
   }
@@ -58,8 +56,9 @@ export class SettingsStore {
     if (partial.network) {
       merged.network = validateNetworkSettingsForUpdate(merged.network);
     }
-    this.data = sanitizeSettings(merged);
-    this.save();
+    const next = sanitizeSettings(merged);
+    this.save(next);
+    this.data = next;
     return this.data;
   }
 }

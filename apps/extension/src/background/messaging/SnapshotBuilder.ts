@@ -2,6 +2,7 @@ import { Logger } from "../../shared/Logger";
 import type { DashboardSnapshot, MediaInfo, MediaStateRecord } from "../../shared/types";
 import type { DesktopConnectionPool } from "../desktop/DesktopConnectionPool";
 import type { MediaStateStore } from "../tabs/MediaStateStore";
+import { isMediaStatePlaying, sortMediaStatesByPriority } from "../tabs/MediaStateSelectors";
 
 export class SnapshotBuilder {
   mediaStateStore: MediaStateStore;
@@ -32,28 +33,20 @@ export class SnapshotBuilder {
       typeof state.currentTime === "number" && Number.isFinite(state.currentTime) ? state.currentTime : 0;
     const progress =
       duration && duration > 0 ? Math.min(Math.max(currentTime / duration, 0), 1) : null;
-    const isPlaying = !state.paused && (state.readyState || 0) >= 2;
     return {
       ...state,
       duration,
       currentTime,
       progress,
-      isPlaying,
+      isPlaying: isMediaStatePlaying(state),
       updatedAgo: now - (state.updatedAt || now)
     };
   }
 
   buildMediaSnapshot(): MediaInfo[] {
     const now = Date.now();
-    return this.mediaStateStore
-      .list()
-      .map((state) => this.buildMediaInfo(state, now))
-      .sort((a, b) => {
-        if (a.isPlaying !== b.isPlaying) {
-          return a.isPlaying ? -1 : 1;
-        }
-        return (b.updatedAt || 0) - (a.updatedAt || 0);
-      });
+    return sortMediaStatesByPriority(this.mediaStateStore.list())
+      .map((state) => this.buildMediaInfo(state, now));
   }
 
   buildConnectionSnapshot() {

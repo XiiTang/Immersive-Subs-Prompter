@@ -44,7 +44,13 @@ For a tab with a known `serverConfigId` and `itemId`, item matching requires bot
 
 For a tab without a known `serverConfigId`, `itemId` alone is not enough to bind or select a media server session.
 
+This applies both to session list updates and to direct media-server `video-context` processing. A known exact `sessionId` can still identify a session, but an unknown server must not fall back to searching all sessions by `nowPlayingItemId`.
+
+The current `video-context` message must resolve to a configured media-server URL before it is handled as media-server traffic. A stale tab context from a previous media-server page is not a valid fallback for classifying an ordinary extension video or for supplying `serverConfigId` during item matching.
+
 When the selected media-server session disappears, automatic replacement is allowed only when the active tab has a known server and a matching session exists on that same server. Otherwise the selected session is cleared and the media server service active session becomes `null`.
+
+When there is no same-server replacement, media-server runtime UI state is cleared even if other sessions still exist on other servers. Other sessions are not a valid fallback for the vanished active session.
 
 The handler must not select `sessions[0]` as a generic fallback for media-server mode. Session selection must come from an exact session id or an explicit same-server match.
 
@@ -57,5 +63,8 @@ Tests should verify the final behavior directly:
 - Opening a WebSocket sends at most one fresh `video-context` for the current best media state.
 - Media server session handling does not match equal item ids across different `serverConfigId` values.
 - Unknown-server tab context does not select a session by item id.
+- Unknown-server direct media-server video context does not select a session by item id.
+- Stale tab context does not make an ordinary extension video look like a media-server video.
+- Stale tab context does not provide `serverConfigId` for direct unknown-server item matching.
 - Vanished selected sessions do not fall back to the first available session.
-
+- Vanished selected sessions without a same-server replacement clear stale media-server runtime state.

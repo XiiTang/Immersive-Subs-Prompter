@@ -1,6 +1,7 @@
 import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import { describe, expect, it, vi } from "vitest";
 import type { ConnectionMessageEvent } from "../appEventBus.js";
+import type { MediaServerSessionSummary } from "../types.js";
 import { MediaServerMessageHandler } from "./MediaServerMessageHandler.js";
 import { TabContextRegistry } from "./TabContextRegistry.js";
 
@@ -43,8 +44,45 @@ function createEvent(message = createVideoContextMessage()): ConnectionMessageEv
   return event;
 }
 
+function session(
+  id: string,
+  serverConfigId: string,
+  nowPlayingItemId: string | null
+): MediaServerSessionSummary {
+  return {
+    id,
+    serverConfigId,
+    serverName: serverConfigId,
+    serverType: "jellyfinemby",
+    deviceName: null,
+    client: null,
+    userName: null,
+    nowPlayingItemId,
+    nowPlayingItemName: null,
+    mediaSourceId: null,
+    runTimeTicks: null,
+    positionTicks: null,
+    isPaused: false,
+    playbackRate: 1,
+    subtitleStreams: []
+  };
+}
+
+type TestState = {
+  activeSource: "extension" | "mediaserver" | null;
+  mediaServer: {
+    selectedSessionId: string | null;
+    sessions: MediaServerSessionSummary[];
+  };
+  subtitleTracks: unknown[];
+  pendingMediaServerItemId: string | null;
+  status?: string;
+  videoUrl?: string;
+  site?: string;
+};
+
 function createStateManager() {
-  const state = {
+  const state: TestState = {
     activeSource: "extension",
     mediaServer: {
       selectedSessionId: null,
@@ -122,5 +160,105 @@ describe("MediaServerMessageHandler", () => {
 
     expect(event.handled).toBe(false);
     expect(stateManager.updateState).not.toHaveBeenCalled();
+  });
+
+  it("does not treat ordinary videos as media-server videos through stale tab context", () => {
+    const stateManager = createStateManager();
+    stateManager.getState().activeSource = "mediaserver";
+    stateManager.getState().mediaServer.selectedSessionId = "server-1:s1";
+    const service = {
+      setActiveSession: vi.fn(),
+      requestSessionsBurst: vi.fn()
+    };
+    const tabRegistry = new TabContextRegistry();
+    tabRegistry.update(7, {
+      serverConfigId: "server-1",
+      sessionId: "server-1:s1",
+      itemId: "ITEM1"
+    });
+    const handler = new MediaServerMessageHandler(
+      stateManager as never,
+      service as never,
+      tabRegistry,
+      createUrlResolver(null) as never,
+      () => true
+    );
+
+    const event = createEvent({
+      ...createVideoContextMessage(),
+      payload: {
+        ...createVideoContextMessage().payload,
+        pageUrl: "https://example.com/watch",
+        videoSrc: "https://cdn.example.com/video.mp4"
+      }
+    });
+    handler.handleConnectionMessage(event);
+
+    expect(event.handled).toBe(false);
+    expect(tabRegistry.get(7)).toBeNull();
+    expect(stateManager.getState().activeSource).toBe("extension");
+    expect(stateManager.getState().mediaServer.selectedSessionId).toBeNull();
+    expect(service.setActiveSession).toHaveBeenCalledWith(null);
+    expect(service.requestSessionsBurst).not.toHaveBeenCalled();
+  });
+
+  it("does not select a same-item session when the server is unknown", async () => {
+    const stateManager = createStateManager();
+    stateManager.getState().mediaServer.sessions = [
+      session("server-b:s1", "server-b", "ITEM1")
+    ];
+    const service = {
+      setActiveSession: vi.fn(),
+      requestSessionsBurst: vi.fn()
+    };
+    const handler = new MediaServerMessageHandler(
+      stateManager as never,
+      service as never,
+      new TabContextRegistry(),
+      createUrlResolver(null) as never,
+      () => true
+    );
+
+    await handler.processMediaServerVideoContext(
+      createVideoContextMessage(),
+      "http://unknown.local/videos/ITEM1/stream.mp4"
+    );
+
+    expect(stateManager.getState().mediaServer.selectedSessionId).toBeNull();
+    expect(service.setActiveSession).not.toHaveBeenCalled();
+    expect(stateManager.getState().pendingMediaServerItemId).toBe("ITEM1");
+  });
+
+  it("does not select a same-item session through stale server context when the current server is unknown", async () => {
+    const stateManager = createStateManager();
+    stateManager.getState().mediaServer.sessions = [
+      session("server-b:s1", "server-b", "ITEM1")
+    ];
+    const service = {
+      setActiveSession: vi.fn(),
+      requestSessionsBurst: vi.fn()
+    };
+    const tabRegistry = new TabContextRegistry();
+    tabRegistry.update(7, {
+      serverConfigId: "server-b",
+      sessionId: null,
+      itemId: "ITEM1"
+    });
+    const handler = new MediaServerMessageHandler(
+      stateManager as never,
+      service as never,
+      tabRegistry,
+      createUrlResolver(null) as never,
+      () => true
+    );
+
+    await handler.processMediaServerVideoContext(
+      createVideoContextMessage(),
+      "http://unknown.local/videos/ITEM1/stream.mp4"
+    );
+
+    expect(stateManager.getState().mediaServer.selectedSessionId).toBeNull();
+    expect(service.setActiveSession).not.toHaveBeenCalled();
+    expect(stateManager.getState().pendingMediaServerItemId).toBe("ITEM1");
   });
 });
