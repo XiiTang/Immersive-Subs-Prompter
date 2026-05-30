@@ -154,10 +154,18 @@ describe("SubtitleService ytdlp cache identity", () => {
       `${quoteArg(scriptPath)} --sub-lang en --delay-ms 50`,
       `${quoteArg(scriptPath)} --sub-lang zh --delay-ms 50`
     ];
+    let nextArgLineIndex = 0;
     manager = new SubtitleCacheManager(() => makeSettings(false));
     const service = new SubtitleService(
       async () => process.execPath,
-      () => ({ ytDlpArgs: argLines.shift() ?? argLines[0] ?? "" }),
+      () => {
+        if (nextArgLineIndex >= argLines.length) {
+          throw new Error("Unexpected extra profile settings read");
+        }
+        const ytDlpArgs = argLines[nextArgLineIndex]!;
+        nextArgLineIndex += 1;
+        return { ytDlpArgs };
+      },
       manager
     );
 
