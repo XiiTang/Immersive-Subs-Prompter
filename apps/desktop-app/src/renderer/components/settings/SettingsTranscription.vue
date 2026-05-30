@@ -40,6 +40,8 @@
               <FasterWhisperBinariesCard
                 :t="t"
                 :binary-status="binaryStatus"
+                :binary-downloads-supported="binaryDownloadsSupported"
+                :unsupported-reason="binaryDownloadUnsupportedReason"
                 :is-busy="isBusy"
                 :binary-dir="paths?.binaryDir"
                 v-model:faster-whisper-binary="fasterWhisperBinary"
@@ -153,6 +155,8 @@ const {
   availableModels,
   customModelInput,
   binaryStatus,
+  binaryDownloadsSupported,
+  binaryDownloadUnsupportedReason,
   downloadProgress,
   selectedDownloadedModel,
   handleDownloadBinary,

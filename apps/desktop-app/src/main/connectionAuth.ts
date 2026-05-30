@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { buildNetworkEndpointUrl, isLoopbackHost } from "@immersive-subs/contracts";
+import { isLoopbackHost } from "@immersive-subs/contracts";
 import type { NetworkEndpoint } from "./types.js";
 
 const TOKEN_BYTES = 32;
@@ -46,10 +46,6 @@ export function isAuthorizedDesktopClient(
     return true;
   }
   return hasExpectedToken(extractToken(request.requestUrl), context.authToken);
-}
-
-export function buildAuthenticatedEndpoint(endpoint: NetworkEndpoint, authToken: string): string {
-  return buildNetworkEndpointUrl(endpoint, authToken);
 }
 
 function extractToken(requestUrl: string | undefined): string | null {

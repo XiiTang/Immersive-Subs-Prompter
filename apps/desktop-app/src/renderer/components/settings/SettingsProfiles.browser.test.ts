@@ -81,7 +81,6 @@ function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
 function createSettings(): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],

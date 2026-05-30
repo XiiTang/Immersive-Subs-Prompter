@@ -13,7 +13,6 @@ describe("SettingsPlugins", () => {
     const store = useDesktopStore();
     store.settings = {
       global: {
-        closeBehavior: "tray",
         autoLaunch: false,
         toggleWindowShortcut: "CommandOrControl+Shift+S",
         gameProcessBlacklist: [],
@@ -63,7 +62,6 @@ describe("SettingsPlugins", () => {
     const store = useDesktopStore();
     store.settings = {
       global: {
-        closeBehavior: "tray",
         autoLaunch: false,
         toggleWindowShortcut: "CommandOrControl+Shift+S",
         gameProcessBlacklist: [],

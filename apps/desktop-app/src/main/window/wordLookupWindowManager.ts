@@ -6,7 +6,7 @@ import type {
   WordLookupMatch,
   WordLookupPanelSize
 } from "../plugins/official/wordLookup/wordLookupTypes.js";
-import { WORD_LOOKUP_PANEL_SIZE_LIMITS } from "../plugins/official/wordLookup/defaults.js";
+import { WORD_LOOKUP_PANEL_SIZE_LIMITS } from "../../common/wordLookupDefaults.js";
 
 type Rect = {
   left: number;

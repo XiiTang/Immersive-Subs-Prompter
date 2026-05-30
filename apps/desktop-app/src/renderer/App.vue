@@ -2,7 +2,7 @@
   <div class="window">
     <div class="window__content">
       <div class="primary-view">
-        <SubtitleView />
+        <SubtitleView v-if="store.settings" />
       </div>
     </div>
   </div>

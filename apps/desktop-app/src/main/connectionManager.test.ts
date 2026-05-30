@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import { AppEventBus } from "./appEventBus.js";
 import { ConnectionManager } from "./connectionManager.js";
-import type { AppSettings, DesktopState, NetworkSettings } from "./types.js";
+import type { AppSettings, DesktopState, NetworkSettings, SubtitleTrack } from "./types.js";
 
 class FakeWebSocketServer extends EventEmitter {
   clients = new Set<any>();
@@ -16,23 +16,44 @@ function createStateManager() {
     connectionCount: 0,
     networkListeners: [],
     activeTabId: null,
+    activeSource: "extension",
+    videoUrl: null,
+    subtitleTracks: [],
+    status: "idle",
     playback: { currentTime: 0, duration: null, playbackRate: 1, lastUpdate: null, loop: null }
   };
   return {
     getState: () => state,
+    state,
     setNetworkListenerStatuses: vi.fn((statuses) => {
       state.networkListeners = statuses;
     }),
     changeConnectionCount: vi.fn(),
-    updateState: vi.fn(),
+    updateState: vi.fn((producer: (draft: Partial<DesktopState>) => void) => {
+      producer(state);
+    }),
     setPageContext: vi.fn(),
     updatePlayback: vi.fn(),
     selectProfileForUrl: vi.fn(() => ({ profile: null, rule: null })),
     applyProfileSelection: vi.fn(),
-    resetSubtitleState: vi.fn(),
-    setSubtitleTracks: vi.fn(),
+    resetSubtitleState: vi.fn(() => {
+      state.subtitleTracks = [];
+    }),
+    setSubtitleTracks: vi.fn((tracks: SubtitleTrack[]) => {
+      state.subtitleTracks = tracks;
+    }),
     applyPreferredTracksFromSettings: vi.fn()
   };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
 }
 
 function makeSettings(network: NetworkSettings): AppSettings {
@@ -148,5 +169,54 @@ describe("ConnectionManager network listeners", () => {
 
     expect(created.get("192.168.1.2:44502")?.close).toHaveBeenCalledTimes(1);
     expect(created.get("127.0.0.1:44501")?.close).not.toHaveBeenCalled();
+  });
+
+  it("does not let a stale extension subtitle request overwrite media server state", async () => {
+    const network: NetworkSettings = {
+      endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+      authToken: "0123456789abcdef0123456789abcdef"
+    };
+    const subtitleDownload = createDeferred<{ tracks: SubtitleTrack[] }>();
+    const stateManager = createStateManager();
+    const manager = new ConnectionManager({
+      getNetworkSettings: () => network,
+      getSettings: () => makeSettings(network),
+      subtitleService: {
+        getSubtitles: vi.fn(() => subtitleDownload.promise)
+      } as never,
+      stateManager: stateManager as never,
+      bus: new AppEventBus(),
+      createWebSocketServer: () => new FakeWebSocketServer() as never
+    });
+    const handleMessage = (manager as unknown as {
+      handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
+    }).handleMessage.bind(manager);
+
+    const pending = handleMessage(
+      {
+        source: "usp-extension",
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://example.test/watch",
+          videoSrc: "https://cdn.example.test/video.mp4",
+          site: "example",
+          title: "Example",
+          currentTime: 0,
+          paused: false
+        }
+      },
+      "https://cdn.example.test/video.mp4"
+    );
+
+    stateManager.state.activeSource = "mediaserver";
+    stateManager.state.videoUrl = "jellyfinemby://server/item-1";
+    subtitleDownload.resolve({
+      tracks: [{ id: "stale", sourceFile: "stale.srt", cues: [{ start: 0, end: 1000, text: "stale" }] }]
+    });
+    await pending;
+
+    expect(stateManager.setSubtitleTracks).not.toHaveBeenCalled();
+    expect(stateManager.state.status).toBe("loading-subtitles");
   });
 });

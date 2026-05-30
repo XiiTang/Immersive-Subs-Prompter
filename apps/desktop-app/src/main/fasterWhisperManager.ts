@@ -53,6 +53,13 @@ const MODEL_BASES = [
   "https://modelscope.cn/models"
 ];
 
+const MANAGED_BINARY_DOWNLOAD_UNSUPPORTED_REASON =
+  "Managed Faster-Whisper binary downloads are only supported on Windows. Set a Faster-Whisper binary path manually on this platform.";
+
+function supportsManagedBinaryDownloads(): boolean {
+  return process.platform === "win32";
+}
+
 export class FasterWhisperManager {
   private readonly log = createLogger("faster-whisper");
   private readonly baseDir = path.join(app.getPath("userData"), "faster-whisper");
@@ -74,6 +81,9 @@ export class FasterWhisperManager {
   }
 
   async downloadBinary(variant: FasterWhisperBinaryVariant, progress?: ProgressCb): Promise<string> {
+    if (!supportsManagedBinaryDownloads()) {
+      throw new Error(MANAGED_BINARY_DOWNLOAD_UNSUPPORTED_REASON);
+    }
     await this.ensureDirs();
     const asset = BINARY_ASSETS[variant];
     const targetPath = path.join(this.binDir, asset.targetName);
@@ -271,6 +281,10 @@ export class FasterWhisperManager {
 
     return {
       paths,
+      binaryDownloadsSupported: supportsManagedBinaryDownloads(),
+      binaryDownloadUnsupportedReason: supportsManagedBinaryDownloads()
+        ? null
+        : MANAGED_BINARY_DOWNLOAD_UNSUPPORTED_REASON,
       binaries: {
         cpu: { exists: cpuExists, path: paths.cpuBinaryPath },
         gpu: { exists: gpuExists, path: paths.gpuBinaryPath }

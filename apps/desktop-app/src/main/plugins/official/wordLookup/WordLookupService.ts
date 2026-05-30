@@ -8,7 +8,6 @@ import type {
 } from "./wordLookupTypes.js";
 import { parseWordListJsonl } from "./wordListParser.js";
 import { normalizeCase, normalizeLookupKey, normalizeTokenSurface } from "./wordLookupNormalizer.js";
-import { sanitizeWordLookupPluginConfig } from "../../../settings/sanitizers/wordLookupSanitizer.js";
 
 interface WordLookupIndexes {
   exactWord: Map<string, number[]>;
@@ -39,7 +38,7 @@ export class WordLookupService {
     error: null
   };
 
-  constructor(private readonly getConfig: () => unknown) {}
+  constructor(private readonly getConfig: () => WordLookupPluginConfig) {}
 
   async refresh(): Promise<WordLookupStatus> {
     return this.load(true);
@@ -147,7 +146,7 @@ export class WordLookupService {
   }
 
   private readConfig(): WordLookupPluginConfig {
-    return sanitizeWordLookupPluginConfig(this.getConfig() as Partial<WordLookupPluginConfig> | null | undefined);
+    return this.getConfig();
   }
 }
 

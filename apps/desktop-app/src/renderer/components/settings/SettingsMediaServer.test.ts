@@ -10,7 +10,6 @@ describe("SettingsMediaServer", () => {
     const store = useDesktopStore();
     store.settings = {
       global: {
-        closeBehavior: "tray",
         autoLaunch: false,
         toggleWindowShortcut: "CommandOrControl+Shift+S",
         gameProcessBlacklist: [],

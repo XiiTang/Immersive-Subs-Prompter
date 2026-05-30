@@ -1,8 +1,8 @@
 import { ipcMain } from "electron";
 import { IpcContext } from "../ipcRouter.js";
 
-type BinaryPayload = { variant: "cpu" | "gpu"; jobId?: string } | "cpu" | "gpu";
-type ModelPayload = { model: string; jobId?: string } | string;
+type BinaryPayload = { variant: "cpu" | "gpu"; jobId?: string };
+type ModelPayload = { model: string; jobId?: string };
 
 export function registerFasterWhisperHandlers(context: IpcContext) {
   ipcMain.handle("usp:faster-whisper-paths", async () => {
@@ -21,23 +21,10 @@ export function registerFasterWhisperHandlers(context: IpcContext) {
     }
   });
 
-  ipcMain.handle("usp:faster-whisper-list-models", async (_event, modelDir?: string) => {
-    try {
-      const result = await context.fasterWhisperManager.listDownloadedModels(modelDir);
-      return { ok: true, ...result };
-    } catch (error) {
-      const message =
-        error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-      context.logger.error("Failed to list Faster-Whisper models", error);
-      return { ok: false, error: message };
-    }
-  });
-
   ipcMain.handle(
     "usp:faster-whisper-download-binary",
     async (event, payload: BinaryPayload) => {
-      const variant = typeof payload === "string" ? payload : payload.variant;
-      const jobId = typeof payload === "string" ? undefined : payload.jobId;
+      const { variant, jobId } = payload;
       const downloadId = jobId || `fw-bin-${Date.now()}`;
       const progress = (percent: number, status: string) => {
         event.sender.send("usp:faster-whisper-download-progress", {
@@ -70,8 +57,7 @@ export function registerFasterWhisperHandlers(context: IpcContext) {
   ipcMain.handle(
     "usp:faster-whisper-download-model",
     async (event, payload: ModelPayload) => {
-      const model = typeof payload === "string" ? payload : payload.model;
-      const jobId = typeof payload === "string" ? undefined : payload.jobId;
+      const { model, jobId } = payload;
       const downloadId = jobId || `fw-model-${Date.now()}`;
       const progress = (percent: number, status: string) => {
         event.sender.send("usp:faster-whisper-download-progress", {

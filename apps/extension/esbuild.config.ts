@@ -31,9 +31,25 @@ async function copyDirectory(src: string, dest: string) {
   await fs.cp(src, dest, { recursive: true });
 }
 
-async function copyStaticAssets({ manifest, outDir }: { manifest: string; outDir: string }) {
+async function readPackageVersion(): Promise<string> {
+  const raw = await fs.readFile(path.join(__dirname, "package.json"), "utf-8");
+  const parsed = JSON.parse(raw) as { version?: unknown };
+  if (typeof parsed.version !== "string" || !parsed.version.trim()) {
+    throw new Error("Extension package.json must define a non-empty version.");
+  }
+  return parsed.version.trim();
+}
+
+async function copyManifest(manifest: string, outDir: string, version: string) {
+  const raw = await fs.readFile(manifest, "utf-8");
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  parsed.version = version;
+  await fs.writeFile(path.join(outDir, "manifest.json"), `${JSON.stringify(parsed, null, 2)}\n`, "utf-8");
+}
+
+async function copyStaticAssets({ manifest, outDir, version }: { manifest: string; outDir: string; version: string }) {
   await Promise.all([
-    fs.copyFile(manifest, path.join(outDir, "manifest.json")),
+    copyManifest(manifest, outDir, version),
     fs.copyFile(path.join(__dirname, "popup.html"), path.join(outDir, "popup.html")),
     fs.copyFile(path.join(__dirname, "popup.css"), path.join(outDir, "popup.css")),
     copyDirectory(path.join(__dirname, "icons"), path.join(outDir, "icons")),
@@ -77,8 +93,9 @@ async function build() {
   }
 
   await fs.rm(target.outDir, { recursive: true, force: true });
+  const version = await readPackageVersion();
   await bundleScripts(target.outDir);
-  await copyStaticAssets(target);
+  await copyStaticAssets({ ...target, version });
 
   console.log(`Built ${targetName} extension to ${target.outDir}`);
 }

@@ -3,7 +3,12 @@ import fs from "fs";
 import path from "path";
 import { reportError } from "../errors.js";
 import { AppSettings } from "../types.js";
-import { DEFAULT_SETTINGS_FACTORY, mergeSettings, sanitizeSettings } from "./appSettingsSanitizer.js";
+import {
+  DEFAULT_SETTINGS_FACTORY,
+  mergeSettings,
+  sanitizeSettings,
+  validateSettingsForUpdate
+} from "./appSettingsSanitizer.js";
 import { validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
 
 export class SettingsStore {
@@ -52,11 +57,12 @@ export class SettingsStore {
   }
 
   update(partial: Partial<AppSettings>): AppSettings {
+    validateSettingsForUpdate(partial, this.data);
     const merged = mergeSettings(this.data, partial);
     if (partial.network) {
       merged.network = validateNetworkSettingsForUpdate(merged.network);
     }
-    const next = sanitizeSettings(merged);
+    const next = merged;
     this.save(next);
     this.data = next;
     return this.data;

@@ -22,7 +22,6 @@ const sectionStub = (testId: string) =>
 function createSettings(language: "en" | "zh" = "en"): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],

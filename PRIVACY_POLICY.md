@@ -1,6 +1,6 @@
 # Privacy Policy for Immersive Subs Prompter
 
-**Last Updated: January 1, 2026**
+**Last Updated: May 30, 2026**
 
 ## Overview
 
@@ -33,7 +33,7 @@ All collected data is used solely for:
 ## Data Sharing
 
 We do not sell, trade, or transfer your data to third parties. The extension only communicates with:
-- The Immersive Subs Prompter desktop application on your local machine (via `wss://127.0.0.1:44501`)
+- The Immersive Subs Prompter desktop application on your local machine (via `ws://127.0.0.1:44501`)
 
 ## Permissions Explained
 
@@ -41,7 +41,6 @@ We do not sell, trade, or transfer your data to third parties. The extension onl
 |------------|----------------|
 | `<all_urls>` | To detect video playback on supported video websites |
 | `storage` | To save your extension preferences locally |
-| `alarms` | To maintain connection with the desktop application |
 
 ## Your Rights
 

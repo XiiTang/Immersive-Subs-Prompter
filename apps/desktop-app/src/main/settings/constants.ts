@@ -42,9 +42,6 @@ export {
 
 export const SUPPORTED_LANGUAGES = ["en", "zh"];
 export const DEFAULT_LANGUAGE = DEFAULT_GLOBAL_SETTINGS.language;
-export const DEFAULT_WS_HOST = DEFAULT_NETWORK_ENDPOINTS[0]!.host;
-export const DEFAULT_WS_PORT = DEFAULT_NETWORK_ENDPOINTS[0]!.port;
-export const DEFAULT_WS_ENDPOINT_ID = DEFAULT_NETWORK_ENDPOINTS[0]!.id;
 
 export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   endpoints: DEFAULT_NETWORK_ENDPOINTS.map((endpoint) => ({ ...endpoint })),

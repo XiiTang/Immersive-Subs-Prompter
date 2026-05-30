@@ -2,6 +2,23 @@ const { contextBridge, ipcRenderer } = require("electron");
 import type { AppSettings } from "./main/types.js" with { "resolution-mode": "import" };
 
 type Listener<T> = (payload: T) => void;
+type FasterWhisperPaths = {
+  binaryDir: string;
+  modelsDir: string;
+  cpuBinaryPath: string;
+  gpuBinaryPath: string;
+};
+type FasterWhisperStatusResult =
+  | {
+      ok: true;
+      paths: FasterWhisperPaths;
+      binaryDownloadsSupported: boolean;
+      binaryDownloadUnsupportedReason: string | null;
+      binaries: { cpu: { exists: boolean; path: string }; gpu: { exists: boolean; path: string } };
+      models: Array<{ name: string; path: string; folder: string }>;
+      modelsBaseDir: string;
+    }
+  | { ok: false; error: string };
 
 function subscribe<T>(channel: string, listener: Listener<T>) {
   const wrapped = (_event: any, payload: T) => listener(payload);
@@ -22,26 +39,9 @@ const api = {
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
   onPluginCatalogChange: (listener: Listener<any[]>) => subscribe("usp:plugin-catalog", listener),
-  getFasterWhisperPaths: (): Promise<{
-    binaryDir: string;
-    modelsDir: string;
-    cpuBinaryPath: string;
-    gpuBinaryPath: string;
-  }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
-  listFasterWhisperModels: (
-    modelDir?: string
-  ): Promise<{ ok: boolean; models?: Array<{ name: string; path: string; folder: string }>; baseDir?: string; error?: string }> =>
-    ipcRenderer.invoke("usp:faster-whisper-list-models", modelDir),
-  getFasterWhisperStatus: (
-    modelDir?: string
-  ): Promise<{
-    ok: boolean;
-    paths?: { binaryDir: string; modelsDir: string; cpuBinaryPath: string; gpuBinaryPath: string };
-    binaries?: { cpu: { exists: boolean; path: string }; gpu: { exists: boolean; path: string } };
-    models?: Array<{ name: string; path: string; folder: string }>;
-    modelsBaseDir?: string;
-    error?: string;
-  }> => ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
+  getFasterWhisperPaths: (): Promise<FasterWhisperPaths> => ipcRenderer.invoke("usp:faster-whisper-paths"),
+  getFasterWhisperStatus: (modelDir?: string): Promise<FasterWhisperStatusResult> =>
+    ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
   onFasterWhisperDownloadProgress: (
     listener: Listener<{
       id: string;

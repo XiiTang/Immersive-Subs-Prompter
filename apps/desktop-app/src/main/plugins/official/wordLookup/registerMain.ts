@@ -3,11 +3,11 @@ import type { WordLookupPluginConfig } from "./wordLookupTypes.js";
 import { WordLookupService } from "./WordLookupService.js";
 
 export interface WordLookupPluginContext {
-  getWordLookupSettings: () => unknown;
+  getWordLookupSettings: () => WordLookupPluginConfig;
 }
 
 export function registerWordLookupPluginMain(context: WordLookupPluginContext): PluginMainContribution {
-  const service = new WordLookupService(() => context.getWordLookupSettings() as Partial<WordLookupPluginConfig>);
+  const service = new WordLookupService(context.getWordLookupSettings);
   void service.refresh();
 
   return {

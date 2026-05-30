@@ -39,7 +39,6 @@ export function createTopPanelProfile(): ProfileDefinition {
 export function createTopPanelSettings(autoHidePanels = true): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],

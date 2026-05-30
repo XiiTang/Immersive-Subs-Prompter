@@ -84,10 +84,9 @@ By default the app listens on `ws://127.0.0.1:44501/`. Under **Settings → Netw
 
 ### Test Stack
 
-- `desktop-app` renderer tests run on **Vitest Browser Mode** with **Playwright 1.59.1 Chromium** for component interaction, layout, and visual regression coverage.
+- `desktop-app` renderer tests run on **Vitest Browser Mode** with **Playwright 1.59.1 Chromium** for component interaction and layout coverage.
 - `desktop-app` jsdom tests remain for lightweight renderer unit tests and upgrade/config assertions on **jsdom 29.1.1**.
 - `extension` runs on **TypeScript + esbuild**, with **Vitest 4 + jsdom 29.1.1** for tests and `tsc --noEmit` for type checks.
-- Browser-mode screenshot baselines live in `__screenshots__/` directories next to the browser test files that own them.
 
 ### Load Browser Extension
 

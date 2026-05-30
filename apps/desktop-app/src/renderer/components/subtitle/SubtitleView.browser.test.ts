@@ -7,6 +7,13 @@ import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
+import {
+  JELLYFINEMBY_PLUGIN_ID,
+  TRANSCRIPTION_PLUGIN_ID,
+  WORD_LOOKUP_PLUGIN_ID
+} from "../../../common/pluginIds.js";
+import { createDefaultTranscriptionPluginConfig } from "../../../common/transcriptionDefaults.js";
+import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "../../../common/wordLookupDefaults.js";
 
 const topControlPanelStub = defineComponent({
   name: "TopControlPanelStub",
@@ -80,7 +87,6 @@ function createProfile(): ProfileDefinition {
 function createSettings(): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
@@ -99,7 +105,18 @@ function createSettings(): AppSettings {
     profiles: [createProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    plugins: { "official.jellyfinemby": { config: { servers: [] } } },
+    plugins: {
+      [JELLYFINEMBY_PLUGIN_ID]: { config: { servers: [] } },
+      [TRANSCRIPTION_PLUGIN_ID]: {
+        config: createDefaultTranscriptionPluginConfig() as unknown as Record<string, unknown>
+      },
+      [WORD_LOOKUP_PLUGIN_ID]: {
+        config: {
+          ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG,
+          panelSize: { ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelSize }
+        } as unknown as Record<string, unknown>
+      }
+    },
     cache: {
       enabled: false,
       path: "",
@@ -809,10 +826,12 @@ describe("SubtitleView", () => {
     });
 
     const store = useDesktopStore();
+    const settings = createSettings();
     store.settings = {
-      ...createSettings(),
+      ...settings,
       plugins: {
-        "official.word-lookup": {
+        ...settings.plugins,
+        [WORD_LOOKUP_PLUGIN_ID]: {
           config: {
             wordListPath: "/tmp/words.jsonl",
             modifierKey: "alt",
@@ -929,10 +948,12 @@ describe("SubtitleView", () => {
     const store = useDesktopStore();
     const desktopState = createDesktopState();
     desktopState.primarySubtitles!.cues[0]!.text = "alpha alpha";
+    const settings = createSettings();
     store.settings = {
-      ...createSettings(),
+      ...settings,
       plugins: {
-        "official.word-lookup": {
+        ...settings.plugins,
+        [WORD_LOOKUP_PLUGIN_ID]: {
           config: {
             wordListPath: "/tmp/words.jsonl",
             modifierKey: "alt",

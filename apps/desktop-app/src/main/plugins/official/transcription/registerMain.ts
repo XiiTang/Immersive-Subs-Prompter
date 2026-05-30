@@ -5,13 +5,12 @@ import type { TranscriptionService } from "../../../transcriptionService.js";
 import type { SubtitleCacheManager } from "../../../subtitleCacheManager.js";
 import type { createLogger } from "../../../logger.js";
 import { buildTranscriptionCacheKey } from "../../../transcriptionCache.js";
-import { sanitizeTranscriptionPluginConfig } from "../../../settings/sanitizers/transcriptionSanitizer.js";
 
 export interface TranscriptionPluginContext {
   stateManager: StateManager;
   transcriptionService: TranscriptionService;
   cacheManager: SubtitleCacheManager;
-  getTranscriptionSettings: () => unknown;
+  getTranscriptionSettings: () => TranscriptionPluginConfig;
   logger: ReturnType<typeof createLogger>;
 }
 
@@ -24,9 +23,7 @@ export function registerTranscriptionPluginMain(context: TranscriptionPluginCont
   }
 
   async function startTranscription(): Promise<{ ok: boolean; error?: string; trackId?: string; cached?: boolean }> {
-    const transcriptionSettings = sanitizeTranscriptionPluginConfig(
-      context.getTranscriptionSettings() as Partial<TranscriptionPluginConfig> | null | undefined
-    );
+    const transcriptionSettings = context.getTranscriptionSettings();
     const config = resolveActiveConfig(transcriptionSettings);
     if (!config) {
       const message = "No transcription configuration available.";

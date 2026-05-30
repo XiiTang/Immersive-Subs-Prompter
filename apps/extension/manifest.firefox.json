@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.0.1",
   "default_locale": "en",
   "description": "__MSG_extensionDescription__",
   "author": "sheixunixitang3@gmail.com",
   "permissions": [
-    "storage",
-    "alarms"
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"

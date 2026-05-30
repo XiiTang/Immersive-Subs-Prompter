@@ -8,12 +8,19 @@ import type {
   SubtitleCacheSettings
 } from "../main/types.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "./subtitleFonts.js";
+import {
+  JELLYFINEMBY_PLUGIN_ID,
+  TRANSCRIPTION_PLUGIN_ID,
+  WORD_LOOKUP_PLUGIN_ID
+} from "./pluginIds.js";
+import { createDefaultTranscriptionPluginConfig } from "./transcriptionDefaults.js";
+import { createDefaultJellyfinembyPluginConfig } from "./jellyfinembyDefaults.js";
+import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "./wordLookupDefaults.js";
 
 export const DEFAULT_PROFILE_ID = "default-profile";
 export const DEFAULT_PROFILE_NAME = "Default Profile";
 
 export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
-  closeBehavior: "quit",
   autoLaunch: true,
   toggleWindowShortcut: "CommandOrControl+Shift+S",
   gameProcessBlacklist: ["r5apex_dx12.exe"],
@@ -115,10 +122,14 @@ export function createDefaultAppSettings(options: DefaultAppSettingsOptions): Ap
     defaultProfileId: DEFAULT_PROFILE_ID,
     rules: createDefaultRules(),
     plugins: {
-      "official.jellyfinemby": {
-        config: {
-          servers: []
-        }
+      [JELLYFINEMBY_PLUGIN_ID]: {
+        config: createDefaultJellyfinembyPluginConfig() as unknown as Record<string, unknown>
+      },
+      [TRANSCRIPTION_PLUGIN_ID]: {
+        config: createDefaultTranscriptionPluginConfig() as unknown as Record<string, unknown>
+      },
+      [WORD_LOOKUP_PLUGIN_ID]: {
+        config: cloneWordLookupPluginConfig() as unknown as Record<string, unknown>
       }
     },
     cache: { ...DEFAULT_CACHE_SETTINGS }
@@ -194,5 +205,12 @@ function cloneProfileSettings(settings: ProfileSettings): ProfileSettings {
     ...settings,
     primarySubtitlePriority: [...settings.primarySubtitlePriority],
     secondarySubtitlePriority: [...settings.secondarySubtitlePriority]
+  };
+}
+
+function cloneWordLookupPluginConfig() {
+  return {
+    ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG,
+    panelSize: { ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelSize }
   };
 }

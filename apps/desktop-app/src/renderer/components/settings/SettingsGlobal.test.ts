@@ -9,7 +9,6 @@ import { useDesktopStore } from "../../stores/desktop";
 function createSettings(): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],

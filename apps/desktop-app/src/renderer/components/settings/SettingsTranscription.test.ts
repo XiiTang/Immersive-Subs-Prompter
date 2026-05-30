@@ -10,7 +10,6 @@ describe("SettingsTranscription", () => {
     const store = useDesktopStore();
     store.settings = {
       global: {
-        closeBehavior: "tray",
         autoLaunch: false,
         toggleWindowShortcut: "CommandOrControl+Shift+S",
         gameProcessBlacklist: [],
@@ -93,8 +92,18 @@ describe("SettingsTranscription", () => {
         })),
         getFasterWhisperStatus: vi.fn(async () => ({
           ok: true,
-          paths: null,
-          binaries: {},
+          paths: {
+            binaryDir: "",
+            modelsDir: "",
+            cpuBinaryPath: "",
+            gpuBinaryPath: ""
+          },
+          binaryDownloadsSupported: true,
+          binaryDownloadUnsupportedReason: null,
+          binaries: {
+            cpu: { exists: false, path: "" },
+            gpu: { exists: false, path: "" }
+          },
           models: [],
           modelsBaseDir: ""
         }))

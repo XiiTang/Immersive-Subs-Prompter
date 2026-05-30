@@ -4,7 +4,7 @@ import { ConnectionManager } from "../connectionManager.js";
 import { SettingsStore, DEFAULT_SETTINGS } from "../settings/index.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
-import { AppSettings, DesktopState, PlaybackState } from "../types.js";
+import { AppSettings, DesktopState, PlaybackState, TranscriptionPluginConfig } from "../types.js";
 import { MediaServerController } from "../mediaServerController.js";
 import { TranscriptionService } from "../transcriptionService.js";
 import { FasterWhisperManager } from "../fasterWhisperManager.js";
@@ -25,6 +25,7 @@ import { TRANSCRIPTION_MANIFEST } from "../plugins/official/transcription/manife
 import { registerTranscriptionPluginMain } from "../plugins/official/transcription/registerMain.js";
 import { WORD_LOOKUP_MANIFEST } from "../plugins/official/wordLookup/manifest.js";
 import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/registerMain.js";
+import type { WordLookupPluginConfig } from "../plugins/official/wordLookup/wordLookupTypes.js";
 import { JELLYFINEMBY_MANIFEST } from "../plugins/official/jellyfinemby/manifest.js";
 import { registerJellyfinembyPluginMain } from "../plugins/official/jellyfinemby/registerMain.js";
 import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
@@ -119,13 +120,15 @@ export class WindowController {
         stateManager: this.options.stateManager,
         transcriptionService: this.options.transcriptionService,
         cacheManager: this.options.cacheManager,
-        getTranscriptionSettings: () => this.options.getSettings().plugins[TRANSCRIPTION_PLUGIN_ID]?.config,
+        getTranscriptionSettings: () =>
+          this.options.getSettings().plugins[TRANSCRIPTION_PLUGIN_ID]?.config as unknown as TranscriptionPluginConfig,
         logger: this.log
       })
     );
     this.pluginHost.registerBundledPlugin(WORD_LOOKUP_MANIFEST, () =>
       registerWordLookupPluginMain({
-        getWordLookupSettings: () => this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config
+        getWordLookupSettings: () =>
+          this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config as unknown as WordLookupPluginConfig
       })
     );
     this.pluginHost.registerBundledPlugin(JELLYFINEMBY_MANIFEST, () =>

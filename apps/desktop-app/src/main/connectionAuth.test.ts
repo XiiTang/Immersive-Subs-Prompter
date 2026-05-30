@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildAuthenticatedEndpoint,
   createConnectionAuthToken,
   isAuthorizedDesktopClient
 } from "./connectionAuth.js";
@@ -67,10 +66,7 @@ describe("connectionAuth", () => {
     ).toBe(true);
   });
 
-  it("creates strong URL-safe tokens and endpoint URLs", () => {
+  it("creates strong URL-safe tokens", () => {
     expect(createConnectionAuthToken()).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(buildAuthenticatedEndpoint(makeEndpoint({ host: "192.168.1.2" }), authToken)).toBe(
-      "ws://192.168.1.2:44501/?token=0123456789abcdef0123456789abcdef"
-    );
   });
 });

@@ -114,7 +114,7 @@ export class JellyfinembyConnection {
     }
 
     this.tracker.setActive(normalizedId);
-    this.subtitleLoader.clearLastSubtitleItemKey();
+    this.subtitleLoader.clearSubtitleState();
 
     if (!normalizedId) {
       this.hooks.onSubtitles({ serverType: "jellyfinemby", sessionId: null, itemName: null, tracks: [] });
@@ -194,20 +194,12 @@ export class JellyfinembyConnection {
 
     const summary = this.tracker.getSessionById(activeSessionId);
     if (summary) {
-      const { shouldSwitch, effectiveItemId } = this.tracker.determineEffectiveItem(summary);
-      const reportedItemId = summary.nowPlayingItemId;
+      this.emitPlayback(summary);
 
-      // Emit playback using the effective (sticky) itemId
-      // Only emit if the reported item matches our effective item
-      if (reportedItemId === effectiveItemId) {
-        // This is the active item, emit its playback state
-        this.emitPlayback(summary);
-      }
-
-      // Only try to load subtitles if there's actually a playing item and we switched
-      if (effectiveItemId && shouldSwitch) {
+      if (summary.nowPlayingItemId) {
         void this.loadSubtitlesForSession(summary);
-      } else if (!effectiveItemId) {
+      } else {
+        this.subtitleLoader.clearSubtitleState();
         this.hooks.onSubtitles({
           serverType: "jellyfinemby",
           sessionId: summary.id,
@@ -216,7 +208,7 @@ export class JellyfinembyConnection {
         });
       }
     } else {
-      this.tracker.clearActiveItemTracking();
+      this.subtitleLoader.clearSubtitleState();
       this.hooks.onPlayback({
         serverType: "jellyfinemby",
         sessionId: null,

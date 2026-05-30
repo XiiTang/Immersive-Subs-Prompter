@@ -296,27 +296,26 @@ export class TranscriptionService {
 
   private buildTrackFromJson(payload: any, config: TranscriptionConfig, sourceFile: string): SubtitleTrack {
     const segments = Array.isArray(payload?.segments) ? payload.segments : [];
-    const cues =
-      segments.length > 0
-        ? segments
-          .map((segment: any) => ({
-            start: Math.round(Number(segment.start || 0) * 1000),
-            end: Math.round(Number(segment.end || 0) * 1000),
-            text: typeof segment.text === "string" ? segment.text.trim() : ""
-          }))
-          .filter((entry: any) => entry.text.length > 0)
-        : [];
-
-    if (!cues.length && typeof payload?.text === "string" && payload.text.trim()) {
+    const cues: SubtitleTrack["cues"] = [];
+    for (const segment of segments) {
+      const text = typeof segment?.text === "string" ? segment.text.trim() : "";
+      if (!text) {
+        continue;
+      }
+      const startSeconds = segment?.start;
+      const endSeconds = segment?.end;
+      if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || endSeconds <= startSeconds) {
+        throw new Error("Transcription service returned no timestamped segments.");
+      }
       cues.push({
-        start: 0,
-        end: Math.max(1000, payload.text.trim().length * 20),
-        text: payload.text.trim()
+        start: Math.round(startSeconds * 1000),
+        end: Math.round(endSeconds * 1000),
+        text
       });
     }
 
     if (!cues.length) {
-      throw new Error("Transcription service returned no segments.");
+      throw new Error("Transcription service returned no timestamped segments.");
     }
 
     return {

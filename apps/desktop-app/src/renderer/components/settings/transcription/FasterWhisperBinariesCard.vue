@@ -17,7 +17,7 @@
               }}
             </UiBadge>
           </div>
-          <UiButton variant="secondary" :disabled="isBusy" @click="$emit('download-binary', 'cpu')">
+          <UiButton variant="secondary" :disabled="isBusy || !binaryDownloadsSupported" @click="$emit('download-binary', 'cpu')">
             {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
           </UiButton>
         </div>
@@ -33,11 +33,15 @@
               }}
             </UiBadge>
           </div>
-          <UiButton variant="secondary" :disabled="isBusy" @click="$emit('download-binary', 'gpu')">
+          <UiButton variant="secondary" :disabled="isBusy || !binaryDownloadsSupported" @click="$emit('download-binary', 'gpu')">
             {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
           </UiButton>
         </div>
       </div>
+
+      <p v-if="!binaryDownloadsSupported" class="ui-message ui-message--info">
+        {{ unsupportedReason || t("transcription-faster-binary-download-windows-only", "Managed binary downloads are only available on Windows.") }}
+      </p>
 
       <div class="settings-field-stack">
         <div class="settings-row settings-row--between">
@@ -63,6 +67,8 @@ import { UiBadge, UiButton, UiIconButton, UiInput } from "../../ui";
 defineProps<{
   t: (key: string, fallback: string) => string;
   binaryStatus: { cpu: boolean; gpu: boolean };
+  binaryDownloadsSupported: boolean;
+  unsupportedReason: string | null;
   isBusy: boolean;
   binaryDir: string | undefined;
 }>();

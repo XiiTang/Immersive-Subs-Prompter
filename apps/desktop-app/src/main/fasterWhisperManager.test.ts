@@ -57,4 +57,16 @@ describe("FasterWhisperManager", () => {
     expect(execMock).toHaveBeenCalledTimes(1);
     expect(execMock.mock.calls[0]?.[0]).toContain("7z x");
   });
+
+  it("rejects managed binary downloads outside Windows before fetching assets", async () => {
+    setPlatform("darwin");
+    const fetchMock = vi.fn(async () => createArchiveResponse());
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(new FasterWhisperManager().downloadBinary("cpu")).rejects.toThrow(
+      "Managed Faster-Whisper binary downloads are only supported on Windows"
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

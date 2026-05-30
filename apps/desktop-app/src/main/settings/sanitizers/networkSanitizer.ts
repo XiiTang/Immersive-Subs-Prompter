@@ -2,6 +2,10 @@ import { networkEndpointKey, stripIpv6Brackets } from "@immersive-subs/contracts
 import type { NetworkEndpoint, NetworkSettings } from "../../types.js";
 import { DEFAULT_NETWORK_SETTINGS } from "../constants.js";
 import { sanitizeConnectionAuthToken } from "../../connectionAuth.js";
+import { assertNoUnknownKeys } from "../utils.js";
+
+const NETWORK_SETTINGS_KEYS = ["endpoints", "authToken"] as const;
+const NETWORK_ENDPOINT_KEYS = ["id", "host", "port"] as const;
 
 export function sanitizeNetworkSettings(input: Partial<NetworkSettings> | null | undefined): NetworkSettings {
   try {
@@ -27,6 +31,9 @@ function normalizeNetworkSettings(
   options: { throwOnInvalid: boolean }
 ): NetworkSettings {
   const source = input ?? {};
+  if (options.throwOnInvalid) {
+    assertNoUnknownKeys(source as Record<string, unknown>, NETWORK_SETTINGS_KEYS, "network");
+  }
   const endpoints = normalizeEndpoints(source.endpoints, options);
   const authToken = sanitizeConnectionAuthToken(source.authToken);
   return { endpoints, authToken };
@@ -44,6 +51,9 @@ function normalizeEndpoints(value: unknown, options: { throwOnInvalid: boolean }
   for (const entry of value) {
     if (!entry || typeof entry !== "object") {
       return invalid("Network endpoint must be an object", options);
+    }
+    if (options.throwOnInvalid) {
+      assertNoUnknownKeys(entry as Record<string, unknown>, NETWORK_ENDPOINT_KEYS, "network endpoint");
     }
 
     const candidate = entry as Partial<NetworkEndpoint>;

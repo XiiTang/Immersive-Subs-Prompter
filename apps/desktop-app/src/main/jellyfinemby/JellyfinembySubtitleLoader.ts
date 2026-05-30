@@ -23,6 +23,7 @@ type Logger = ReturnType<typeof createLogger>;
 export class JellyfinembySubtitleLoader {
   private subtitleRequestToken = 0;
   private lastSubtitleItemKey: string | null = null;
+  private inFlightSubtitleItemKey: string | null = null;
 
   constructor(
     private config: MediaServerConfig,
@@ -37,12 +38,15 @@ export class JellyfinembySubtitleLoader {
   }
 
   resetState() {
-    this.subtitleRequestToken = 0;
+    this.subtitleRequestToken += 1;
     this.lastSubtitleItemKey = null;
+    this.inFlightSubtitleItemKey = null;
   }
 
-  clearLastSubtitleItemKey() {
+  clearSubtitleState() {
+    this.subtitleRequestToken += 1;
     this.lastSubtitleItemKey = null;
+    this.inFlightSubtitleItemKey = null;
   }
 
   async loadSubtitlesForSession(
@@ -66,6 +70,8 @@ export class JellyfinembySubtitleLoader {
       this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing item ID`, {
         sessionId: summary.id
       });
+      this.lastSubtitleItemKey = null;
+      this.inFlightSubtitleItemKey = null;
       return {
         serverType: "jellyfinemby",
         sessionId: summary.id,
@@ -74,125 +80,177 @@ export class JellyfinembySubtitleLoader {
       };
     }
 
-    const resolvedStreams = await this.resolveSubtitleStreams(summary, this.config, true);
-
-    if (!resolvedStreams.streams.length) {
-      this.log.info(
-        `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
-      );
-      return {
-        serverType: "jellyfinemby",
-        sessionId: summary.id,
-        itemName: summary.nowPlayingItemName ?? null,
-        tracks: []
-      };
-    }
-
-    const workingSummary: MediaServerSessionSummary = {
-      ...summary,
-      mediaSourceId: resolvedStreams.mediaSourceId ?? summary.mediaSourceId,
-      subtitleStreams: resolvedStreams.streams
-    };
-
-    if (!workingSummary.mediaSourceId) {
-      this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing media source ID`, {
-        itemId: workingSummary.nowPlayingItemId
-      });
-      return {
-        serverType: "jellyfinemby",
-        sessionId: summary.id,
-        itemName: workingSummary.nowPlayingItemName ?? null,
-        tracks: []
-      };
-    }
-
-    const subtitleKey = `${workingSummary.id}:${workingSummary.nowPlayingItemId}:${workingSummary.mediaSourceId}`;
-    if (!force && this.lastSubtitleItemKey === subtitleKey) {
+    const knownSubtitleKey = this.buildSubtitleKey(summary.id, summary.nowPlayingItemId, summary.mediaSourceId);
+    if (!force && knownSubtitleKey && this.lastSubtitleItemKey === knownSubtitleKey) {
       this.log.debug(
-        `[${this.config.name}] Skipping subtitle refresh for session ${workingSummary.id}, media unchanged (${workingSummary.nowPlayingItemId})`
+        `[${this.config.name}] Skipping subtitle refresh for session ${summary.id}, media unchanged (${summary.nowPlayingItemId})`
       );
       return null;
     }
-
-    this.lastSubtitleItemKey = subtitleKey;
+    const requestKey = this.buildSubtitleRequestKey(summary.id, summary.nowPlayingItemId, summary.mediaSourceId);
+    if (!force && requestKey && this.inFlightSubtitleItemKey === requestKey) {
+      this.log.debug(
+        `[${this.config.name}] Skipping subtitle refresh for session ${summary.id}, media already loading (${summary.nowPlayingItemId})`
+      );
+      return null;
+    }
+    if (requestKey && this.lastSubtitleItemKey !== requestKey) {
+      this.lastSubtitleItemKey = null;
+    }
 
     const currentToken = ++this.subtitleRequestToken;
-    this.log.info(
-      `[${this.config.name}] Fetching ${workingSummary.subtitleStreams.length} subtitle stream(s) from session ${workingSummary.id} (${workingSummary.nowPlayingItemName ?? "unknown"})`
-    );
+    this.inFlightSubtitleItemKey = requestKey;
+    try {
+      const resolvedStreams = await this.resolveSubtitleStreams(summary, this.config, true);
+      if (currentToken !== this.subtitleRequestToken) {
+        return null;
+      }
 
-    const tracks: SubtitleTrack[] = [];
-    for (const stream of workingSummary.subtitleStreams) {
-      try {
-        const extension = this.getPreferredExtension(stream);
-        const url = buildSubtitleUrl(this.config, workingSummary, stream, extension);
-        const fallbackSourceFile = `${workingSummary.nowPlayingItemId ?? "item"}#${stream.index}.${extension}`;
+      if (!resolvedStreams.streams.length) {
+        this.log.info(
+          `[${this.config.name}] No subtitle streams available for session ${summary.id} (${summary.nowPlayingItemName ?? "unknown"})`
+        );
+        this.lastSubtitleItemKey = null;
+        return {
+          serverType: "jellyfinemby",
+          sessionId: summary.id,
+          itemName: summary.nowPlayingItemName ?? null,
+          tracks: []
+        };
+      }
 
-        // Check cache first
-        let content: string | null = null;
-        if (this.cacheManager) {
-          const cached = await this.cacheManager.get(url, "mediaserver");
-          if (cached && cached.tracks.length > 0) {
-            const cachedTrack = cached.tracks[0];
-            const sourceFile = stream.displayTitle ?? cachedTrack.sourceFile ?? fallbackSourceFile;
-            tracks.push({
-              id: `${workingSummary.id}:${stream.index}`,
-              sourceFile,
-              cues: cachedTrack.cues
-            });
-            this.log.debug(`[${this.config.name}] Cache hit for subtitle stream #${stream.index}`);
+      const workingSummary: MediaServerSessionSummary = {
+        ...summary,
+        mediaSourceId: resolvedStreams.mediaSourceId ?? summary.mediaSourceId,
+        subtitleStreams: resolvedStreams.streams
+      };
+
+      if (!workingSummary.mediaSourceId) {
+        this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing media source ID`, {
+          itemId: workingSummary.nowPlayingItemId
+        });
+        this.lastSubtitleItemKey = null;
+        return {
+          serverType: "jellyfinemby",
+          sessionId: summary.id,
+          itemName: workingSummary.nowPlayingItemName ?? null,
+          tracks: []
+        };
+      }
+
+      const subtitleKey = this.buildSubtitleKey(
+        workingSummary.id,
+        workingSummary.nowPlayingItemId,
+        workingSummary.mediaSourceId
+      );
+      if (!subtitleKey) {
+        this.log.warn(`[${this.config.name}] Skipping Jellyfinemby subtitles due to missing subtitle key`, {
+          sessionId: workingSummary.id,
+          itemId: workingSummary.nowPlayingItemId,
+          mediaSourceId: workingSummary.mediaSourceId
+        });
+        this.lastSubtitleItemKey = null;
+        return {
+          serverType: "jellyfinemby",
+          sessionId: summary.id,
+          itemName: workingSummary.nowPlayingItemName ?? null,
+          tracks: []
+        };
+      }
+      if (!force && this.lastSubtitleItemKey === subtitleKey) {
+        this.log.debug(
+          `[${this.config.name}] Skipping subtitle refresh for session ${workingSummary.id}, media unchanged (${workingSummary.nowPlayingItemId})`
+        );
+        return null;
+      }
+
+      this.log.info(
+        `[${this.config.name}] Fetching ${workingSummary.subtitleStreams.length} subtitle stream(s) from session ${workingSummary.id} (${workingSummary.nowPlayingItemName ?? "unknown"})`
+      );
+
+      const tracks: SubtitleTrack[] = [];
+      for (const stream of workingSummary.subtitleStreams) {
+        try {
+          const extension = this.getPreferredExtension(stream);
+          const url = buildSubtitleUrl(this.config, workingSummary, stream, extension);
+          const fallbackSourceFile = `${workingSummary.nowPlayingItemId ?? "item"}#${stream.index}.${extension}`;
+
+          let content: string | null = null;
+          if (this.cacheManager) {
+            const cached = await this.cacheManager.get(url, "mediaserver");
+            if (currentToken !== this.subtitleRequestToken) {
+              return null;
+            }
+            if (cached && cached.tracks.length > 0) {
+              const cachedTrack = cached.tracks[0];
+              const sourceFile = stream.displayTitle ?? cachedTrack.sourceFile ?? fallbackSourceFile;
+              tracks.push({
+                id: `${workingSummary.id}:${stream.index}`,
+                sourceFile,
+                cues: cachedTrack.cues
+              });
+              this.log.debug(`[${this.config.name}] Cache hit for subtitle stream #${stream.index}`);
+              continue;
+            }
+          }
+
+          this.log.info(
+            `[${this.config.name}] Downloading subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
+          );
+          const response = await fetch(url, {
+            headers: {
+              Accept: "text/vtt, text/plain, application/octet-stream",
+              ...createAuthHeaders(this.config.apiKey, this.identity)
+            }
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          content = await response.text();
+          if (currentToken !== this.subtitleRequestToken) {
+            return null;
+          }
+          const cues = parseSubtitle(content, extension);
+          if (!cues.length) {
+            this.log.warn(`[${this.config.name}] Parsed subtitle stream #${stream.index} but found no cues`);
             continue;
           }
-        }
 
-        this.log.info(
-          `[${this.config.name}] Downloading subtitle stream #${stream.index} (${stream.language ?? "unknown"}) as .${extension}`
-        );
-        const response = await fetch(url, {
-          headers: {
-            Accept: "text/vtt, text/plain, application/octet-stream",
-            ...createAuthHeaders(this.config.apiKey, this.identity)
+          const track = {
+            id: `${workingSummary.id}:${stream.index}`,
+            sourceFile: stream.displayTitle ?? fallbackSourceFile,
+            cues
+          };
+          tracks.push(track);
+
+          if (this.cacheManager && content) {
+            await this.cacheManager.set(url, "mediaserver", { tracks: [track] });
           }
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        } catch (error) {
+          this.log.warn(`[${this.config.name}] Failed to fetch Jellyfinemby subtitle stream`, {
+            sessionId: workingSummary.id,
+            streamIndex: stream.index,
+            error
+          });
         }
-        content = await response.text();
-        const cues = parseSubtitle(content, extension);
-        if (!cues.length) {
-          this.log.warn(`[${this.config.name}] Parsed subtitle stream #${stream.index} but found no cues`);
-          continue;
-        }
+      }
 
-        const track = {
-          id: `${workingSummary.id}:${stream.index}`,
-          sourceFile: stream.displayTitle ?? fallbackSourceFile,
-          cues
-        };
-        tracks.push(track);
+      if (currentToken !== this.subtitleRequestToken) {
+        return null;
+      }
 
-        if (this.cacheManager && content) {
-          await this.cacheManager.set(url, "mediaserver", { tracks: [track] });
-        }
-      } catch (error) {
-        this.log.warn(`[${this.config.name}] Failed to fetch Jellyfinemby subtitle stream`, {
-          sessionId: workingSummary.id,
-          streamIndex: stream.index,
-          error
-        });
+      this.lastSubtitleItemKey = tracks.length ? subtitleKey : null;
+      return {
+        serverType: "jellyfinemby",
+        sessionId: workingSummary.id,
+        itemName: workingSummary.nowPlayingItemName ?? null,
+        tracks
+      };
+    } finally {
+      if (this.inFlightSubtitleItemKey === requestKey) {
+        this.inFlightSubtitleItemKey = null;
       }
     }
-
-    if (currentToken !== this.subtitleRequestToken) {
-      return null;
-    }
-
-    return {
-      serverType: "jellyfinemby",
-      sessionId: workingSummary.id,
-      itemName: workingSummary.nowPlayingItemName ?? null,
-      tracks
-    };
   }
 
   private async resolveSubtitleStreams(
@@ -295,5 +353,19 @@ export class JellyfinembySubtitleLoader {
 
   private getPreferredExtension(stream: MediaServerSubtitleStream): string {
     return guessSubtitleFormatFromStream(stream);
+  }
+
+  private buildSubtitleKey(sessionId: string, itemId: string | null, mediaSourceId: string | null): string | null {
+    if (!itemId || !mediaSourceId) {
+      return null;
+    }
+    return `${sessionId}:${itemId}:${mediaSourceId}`;
+  }
+
+  private buildSubtitleRequestKey(sessionId: string, itemId: string | null, mediaSourceId: string | null): string | null {
+    if (!itemId) {
+      return null;
+    }
+    return `${sessionId}:${itemId}:${mediaSourceId ?? "pending-media-source"}`;
   }
 }

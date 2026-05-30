@@ -10,7 +10,6 @@ import "../../style.css";
 function createSettings(): AppSettings {
   return {
     global: {
-      closeBehavior: "tray",
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
@@ -105,6 +104,8 @@ describe("SettingsTranscription browser layout", () => {
             cpuBinaryPath: "/Users/demo/.immersive-subs/faster-whisper/bin/faster-whisper",
             gpuBinaryPath: "/Users/demo/.immersive-subs/faster-whisper/bin/faster-whisper-cuda"
           },
+          binaryDownloadsSupported: true,
+          binaryDownloadUnsupportedReason: null,
           binaries: {
             cpu: { exists: true, path: "/Users/demo/.immersive-subs/faster-whisper/bin/faster-whisper" },
             gpu: { exists: false, path: "/Users/demo/.immersive-subs/faster-whisper/bin/faster-whisper-cuda" }

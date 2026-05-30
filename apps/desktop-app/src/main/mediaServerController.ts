@@ -3,13 +3,13 @@ import { StateManager } from "./stateManager.js";
 import { JellyfinembySubtitleService } from "./jellyfinemby/index.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
-import type { AppSettings, MediaServerSettings } from "./types.js";
+import type { AppSettings, JellyfinembyPluginConfig, MediaServerSettings } from "./types.js";
 import { TabContextRegistry } from "./mediaServer/TabContextRegistry.js";
 import { MediaServerUrlResolver } from "./mediaServer/MediaServerUrlResolver.js";
 import { MediaServerSessionHandler } from "./mediaServer/MediaServerSessionHandler.js";
 import { MediaServerMessageHandler } from "./mediaServer/MediaServerMessageHandler.js";
 import { MediaServerStatusHandler } from "./mediaServer/MediaServerStatusHandler.js";
-import { sanitizeJellyfinembyPluginConfig, toMediaServerSettings } from "./settings/sanitizers/jellyfinembySanitizer.js";
+import { toMediaServerSettings } from "./settings/sanitizers/jellyfinembySanitizer.js";
 import { JELLYFINEMBY_PLUGIN_ID } from "../common/pluginIds.js";
 
 type MediaServerControllerOptions = {
@@ -139,9 +139,11 @@ export class MediaServerController {
   }
 
   private getJellyfinembyConfig() {
-    return sanitizeJellyfinembyPluginConfig(
-      this.options.getSettings().plugins[JELLYFINEMBY_PLUGIN_ID]?.config
-    );
+    const config = this.options.getSettings().plugins[JELLYFINEMBY_PLUGIN_ID]?.config;
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      throw new Error("Missing Jellyfin / Emby plugin config.");
+    }
+    return config as unknown as JellyfinembyPluginConfig;
   }
 
   private clearRuntimeState() {

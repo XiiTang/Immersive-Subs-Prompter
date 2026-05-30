@@ -69,8 +69,6 @@ export type VideoControlCommand =
     }
   | { type: "stopLoop" };
 
-export type CloseBehavior = "quit" | "tray";
-
 export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
 
 export type AppearanceTheme = "system" | "light" | "dark";
@@ -83,7 +81,6 @@ export type TranscriptionProvider = "whisper-api" | "faster-whisper";
 export type FasterWhisperDevice = "cpu" | "cuda";
 
 export interface GlobalSettings {
-  closeBehavior: CloseBehavior;
   autoLaunch: boolean;
   toggleWindowShortcut: string;
   gameProcessBlacklist: string[];

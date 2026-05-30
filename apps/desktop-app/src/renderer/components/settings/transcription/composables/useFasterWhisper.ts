@@ -43,6 +43,8 @@ export interface UseFasterWhisperReturn {
   modelsBaseDir: Ref<string>;
   customModelInput: Ref<string>;
   binaryStatus: Ref<{ cpu: boolean; gpu: boolean }>;
+  binaryDownloadsSupported: Ref<boolean>;
+  binaryDownloadUnsupportedReason: Ref<string | null>;
   downloadProgress: Ref<DownloadProgress | null>;
   activeJobId: Ref<string | null>;
   selectedDownloadedModel: WritableComputedRef<string>;
@@ -79,6 +81,8 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
   const modelsBaseDir = ref("");
   const customModelInput = ref("");
   const binaryStatus = ref({ cpu: false, gpu: false });
+  const binaryDownloadsSupported = ref(true);
+  const binaryDownloadUnsupportedReason = ref<string | null>(null);
   const downloadProgress = ref<DownloadProgress | null>(null);
   const activeJobId = ref<string | null>(null);
   let unsubscribeDownloadProgress: (() => void) | null = null;
@@ -143,6 +147,8 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       if (status.paths) {
         paths.value = status.paths;
       }
+      binaryDownloadsSupported.value = status.binaryDownloadsSupported;
+      binaryDownloadUnsupportedReason.value = status.binaryDownloadUnsupportedReason;
       binaryStatus.value = {
         cpu: !!status.binaries?.cpu?.exists,
         gpu: !!status.binaries?.gpu?.exists
@@ -161,6 +167,12 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
     if (isBusy.value) return;
     downloadMessage.value = "";
     downloadError.value = "";
+    if (!binaryDownloadsSupported.value) {
+      downloadError.value =
+        binaryDownloadUnsupportedReason.value ||
+        t("transcription-faster-binary-download-windows-only", "Managed binary downloads are only available on Windows.");
+      return;
+    }
     const jobId = createJobId(`fw-${variant}`);
     activeJobId.value = jobId;
     downloadProgress.value = {
@@ -331,6 +343,8 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
     modelsBaseDir,
     customModelInput,
     binaryStatus,
+    binaryDownloadsSupported,
+    binaryDownloadUnsupportedReason,
     downloadProgress,
     activeJobId,
     selectedDownloadedModel,

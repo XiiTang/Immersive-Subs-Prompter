@@ -470,7 +470,7 @@ export class ConnectionManager {
         const requestId = ++this.subtitleRequestToken;
         try {
           const result = await this.options.subtitleService.getSubtitles(normalizedUrl);
-          if (requestId === this.subtitleRequestToken) {
+          if (this.isCurrentExtensionSubtitleRequest(requestId, normalizedUrl)) {
             const tracks: SubtitleTrack[] = result.tracks;
             this.options.stateManager.setSubtitleTracks(tracks);
             this.options.stateManager.applyPreferredTracksFromSettings(tracks);
@@ -480,7 +480,7 @@ export class ConnectionManager {
             });
           }
         } catch (error) {
-          if (requestId === this.subtitleRequestToken) {
+          if (this.isCurrentExtensionSubtitleRequest(requestId, normalizedUrl)) {
             this.options.stateManager.updateState((draft) => {
               draft.status = "error";
               draft.error =
@@ -667,6 +667,14 @@ export class ConnectionManager {
       this.log.warn(`Failed to normalize URL: ${url}`, error);
       return url;
     }
+  }
+
+  private isCurrentExtensionSubtitleRequest(requestId: number, normalizedUrl: string): boolean {
+    if (requestId !== this.subtitleRequestToken) {
+      return false;
+    }
+    const state = this.options.stateManager.getState();
+    return state.activeSource === "extension" && state.videoUrl === normalizedUrl;
   }
 
   private resolveVideoUrl(
