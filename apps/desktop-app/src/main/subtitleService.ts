@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import * as iconv from "iconv-lite";
 import { tmpdir } from "os";
@@ -27,39 +27,43 @@ export class SubtitleService {
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
+    const ytDlpArgs = this.resolveYtDlpArgs();
+    const cacheVariant = createYtDlpArgsVariant(ytDlpArgs);
+    const inflightKey = `${cacheVariant}:${videoUrl}`;
+
     // Check cache first
     if (this.cacheManager) {
-      const cached = await this.cacheManager.get(videoUrl, "ytdlp");
+      const cached = await this.cacheManager.get(videoUrl, "ytdlp", cacheVariant);
       if (cached) {
         this.log.debug("Cache hit for:", videoUrl);
         return cached;
       }
     }
 
-    const inProgress = this.inflight.get(videoUrl);
+    const inProgress = this.inflight.get(inflightKey);
     if (inProgress) {
       return inProgress;
     }
 
-    const job = this.downloadSubtitles(videoUrl);
-    this.inflight.set(videoUrl, job);
+    const job = this.downloadSubtitles(videoUrl, ytDlpArgs);
+    this.inflight.set(inflightKey, job);
 
     try {
       const result = await job;
       // Save to cache
       if (this.cacheManager) {
-        await this.cacheManager.set(videoUrl, "ytdlp", result);
+        await this.cacheManager.set(videoUrl, "ytdlp", result, cacheVariant);
       }
       return result;
     } finally {
-      this.inflight.delete(videoUrl);
+      this.inflight.delete(inflightKey);
     }
   }
 
-  private async downloadSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
+  private async downloadSubtitles(videoUrl: string, ytDlpArgs: string[]): Promise<SubtitleLoadResult> {
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-"));
     const baseOutput = path.join(workingDir, randomUUID());
-    const args = this.buildArgs(videoUrl, baseOutput);
+    const args = this.buildArgs(videoUrl, baseOutput, ytDlpArgs);
     let binaryPath: string | null = null;
     let commandLine = "";
     let commandResult: CommandResult | null = null;
@@ -125,17 +129,24 @@ export class SubtitleService {
     }
   }
 
-  private buildArgs(videoUrl: string, baseOutput: string): string[] {
+  private resolveYtDlpArgs(): string[] {
     const settings = this.settingsProvider ? this.settingsProvider() : DEFAULT_PROFILE_SETTINGS;
     const customLine = settings?.ytDlpArgs?.trim() || DEFAULT_YTDLP_ARGS;
-    const customArgs = splitArgs(customLine);
+    return splitArgs(customLine);
+  }
+
+  private buildArgs(videoUrl: string, baseOutput: string, ytDlpArgs: string[]): string[] {
     return [
-      ...customArgs,
+      ...ytDlpArgs,
       "-o",
       baseOutput,
       videoUrl
     ];
   }
+}
+
+function createYtDlpArgsVariant(args: string[]): string {
+  return createHash("sha256").update(JSON.stringify(args)).digest("hex");
 }
 
 export type CommandResult = {

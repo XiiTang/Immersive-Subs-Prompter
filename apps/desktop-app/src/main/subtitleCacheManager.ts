@@ -39,13 +39,13 @@ export class SubtitleCacheManager {
   /**
    * Get cached subtitles for a URL
    */
-  async get(url: string, source: CacheSource): Promise<SubtitleLoadResult | null> {
+  async get(url: string, source: CacheSource, variant = ""): Promise<SubtitleLoadResult | null> {
     const settings = this.settingsProvider();
     if (!settings.enabled) {
       return null;
     }
 
-    const key = this.getCacheKey(url, source);
+    const key = this.getCacheKey(url, source, variant);
     const redactedUrl = redactUrlSecrets(url);
     const cacheDir = settings.path || DEFAULT_CACHE_DIR;
     const cacheFile = path.join(cacheDir, `${key}.json`);
@@ -94,13 +94,13 @@ export class SubtitleCacheManager {
   /**
    * Save subtitles to cache
    */
-  async set(url: string, source: CacheSource, data: SubtitleLoadResult): Promise<void> {
+  async set(url: string, source: CacheSource, data: SubtitleLoadResult, variant = ""): Promise<void> {
     const settings = this.settingsProvider();
     if (!settings.enabled) {
       return;
     }
 
-    const key = this.getCacheKey(url, source);
+    const key = this.getCacheKey(url, source, variant);
     const redactedUrl = redactUrlSecrets(url);
     const entry: CacheEntry = {
       url: redactedUrl,
@@ -293,11 +293,11 @@ export class SubtitleCacheManager {
   }
 
   /**
-   * Generate cache key from URL and source
+   * Generate cache key from URL, source, and optional variant
    */
-  private getCacheKey(url: string, source: CacheSource): string {
+  private getCacheKey(url: string, source: CacheSource, variant: string): string {
     const hash = createHash("sha256");
-    hash.update(`${source}:${url}`);
+    hash.update(JSON.stringify({ source, url, variant }));
     return hash.digest("hex");
   }
 

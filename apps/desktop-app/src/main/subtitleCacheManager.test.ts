@@ -90,6 +90,18 @@ describe("SubtitleCacheManager", () => {
     expect(b?.tracks[0].cues[0].text).toBe("from-media");
   });
 
+  it("segregates entries by variant", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings());
+    await manager.set("http://x", "ytdlp", makeData("from-en"), "args-en");
+    await manager.set("http://x", "ytdlp", makeData("from-zh"), "args-zh");
+
+    const en = await manager.get("http://x", "ytdlp", "args-en");
+    const zh = await manager.get("http://x", "ytdlp", "args-zh");
+
+    expect(en?.tracks[0].cues[0].text).toBe("from-en");
+    expect(zh?.tracks[0].cues[0].text).toBe("from-zh");
+  });
+
   it("treats expired entries as misses", async () => {
     // Negative retention forces every entry to be considered expired.
     manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: -1 }));

@@ -74,7 +74,7 @@ Tests verify final behavior directly:
 Verification commands:
 
 ```bash
-pnpm --filter @immersive-subs/desktop-app test:renderer -- subtitleCacheManager
+pnpm --filter @immersive-subs/desktop-app test:renderer -- subtitleCacheManager subtitleService
 pnpm --filter @immersive-subs/desktop-app test:renderer
 pnpm --filter @immersive-subs/desktop-app typecheck
 ```

@@ -7,7 +7,7 @@
 
 ### P1
 
-- [ ] 修复 ytdlp 字幕缓存 key 未包含 profile / yt-dlp 参数的问题
+- [x] 修复 ytdlp 字幕缓存 key 未包含 profile / yt-dlp 参数的问题
   - 文件：
     - `apps/desktop-app/src/main/subtitleService.ts`
     - `apps/desktop-app/src/main/subtitleCacheManager.ts`
