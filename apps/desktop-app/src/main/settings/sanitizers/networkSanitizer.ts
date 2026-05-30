@@ -37,7 +37,8 @@ function normalizeEndpoints(value: unknown, options: { throwOnInvalid: boolean }
     return invalid("At least one network endpoint is required", options);
   }
 
-  const seen = new Set<string>();
+  const seenKeys = new Set<string>();
+  const seenIds = new Set<string>();
   const endpoints: NetworkEndpoint[] = [];
 
   for (const entry of value) {
@@ -61,11 +62,16 @@ function normalizeEndpoints(value: unknown, options: { throwOnInvalid: boolean }
     }
 
     const normalized = { id, host, port };
+    if (seenIds.has(id)) {
+      return invalid(`Duplicate network endpoint id: ${id}`, options);
+    }
+    seenIds.add(id);
+
     const key = networkEndpointKey(normalized);
-    if (seen.has(key)) {
+    if (seenKeys.has(key)) {
       return invalid(`Duplicate network endpoint: ${key}`, options);
     }
-    seen.add(key);
+    seenKeys.add(key);
     endpoints.push(normalized);
   }
 

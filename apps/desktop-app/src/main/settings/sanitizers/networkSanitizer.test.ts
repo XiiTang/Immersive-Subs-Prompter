@@ -48,4 +48,16 @@ describe("networkSanitizer", () => {
       })
     ).toThrow("Duplicate network endpoint: 127.0.0.1:44501");
   });
+
+  it("rejects duplicate endpoint ids", () => {
+    expect(() =>
+      validateNetworkSettingsForUpdate({
+        endpoints: [
+          { id: "same", host: "127.0.0.1", port: 44501 },
+          { id: "same", host: "192.168.1.2", port: 44502 }
+        ],
+        authToken: "0123456789abcdef0123456789abcdef"
+      })
+    ).toThrow("Duplicate network endpoint id: same");
+  });
 });
