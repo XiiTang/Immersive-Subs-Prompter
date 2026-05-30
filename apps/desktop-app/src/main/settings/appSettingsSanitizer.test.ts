@@ -156,6 +156,20 @@ describe("appSettingsSanitizer", () => {
       expect(result.plugins["official.jellyfinemby"]?.config).toEqual({ servers: [] });
     });
 
+    it("drops unknown plugin settings from disk-loaded settings", () => {
+      const result = sanitizeSettings({
+        plugins: {
+          "experimental.unknown": {
+            config: {
+              enabled: true
+            }
+          }
+        }
+      });
+
+      expect(result.plugins["experimental.unknown"]).toBeUndefined();
+    });
+
     it("returns a fresh Jellyfin / Emby plugin config when plugin settings are missing", () => {
       const a = sanitizeSettings({});
       const b = sanitizeSettings({});

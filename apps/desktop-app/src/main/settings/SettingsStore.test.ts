@@ -132,7 +132,7 @@ describe("SettingsStore", () => {
     expect(store.get()).toBe(previous);
   });
 
-  it("rejects unknown global fields instead of writing removed settings", async () => {
+  it("rejects unknown global fields instead of writing stray settings", async () => {
     const store = await loadStore();
     const previous = store.get();
 
@@ -140,10 +140,29 @@ describe("SettingsStore", () => {
       store.update({
         global: {
           ...previous.global,
-          closeBehavior: "tray"
+          straySetting: "value"
         }
       } as never)
-    ).toThrow("global contains unknown setting: closeBehavior");
+    ).toThrow("global contains unknown setting: straySetting");
+
+    expect(store.get()).toBe(previous);
+  });
+
+  it("rejects network payloads that would otherwise be ignored or normalized", async () => {
+    const store = await loadStore();
+    const previous = store.get();
+
+    expect(() => store.update({ network: null } as never)).toThrow(
+      "network settings must use the current object setting"
+    );
+    expect(() =>
+      store.update({
+        network: {
+          ...previous.network,
+          authToken: "bad-token"
+        }
+      })
+    ).toThrow("network.authToken must use the current token setting");
 
     expect(store.get()).toBe(previous);
   });
@@ -298,6 +317,23 @@ describe("SettingsStore", () => {
         }
       } as never)
     ).toThrow("jellyfinemby.servers must use the current array setting");
+
+    expect(store.get()).toBe(previous);
+  });
+
+  it("rejects unknown plugin settings instead of preserving unused plugin records", async () => {
+    const store = await loadStore();
+    const previous = store.get();
+
+    expect(() =>
+      store.update({
+        plugins: {
+          "experimental.unknown": {
+            config: {}
+          }
+        }
+      })
+    ).toThrow("plugins contains unknown plugin: experimental.unknown");
 
     expect(store.get()).toBe(previous);
   });

@@ -59,14 +59,14 @@ export function useTranscriptionConfig(
   }
 
   const activeConfigId = computed<string>({
-    get: () => transcriptionPluginConfig.value.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
+    get: () => transcriptionPluginConfig.value.activeConfigId,
     set: (value: string) => {
-      const nextActiveId = transcriptionConfigs.value.some((config) => config.id === value)
-        ? value
-        : transcriptionConfigs.value[0]?.id ?? null;
+      if (!transcriptionConfigs.value.some((config) => config.id === value)) {
+        return;
+      }
       writePluginConfig({
         ...transcriptionPluginConfig.value,
-        activeConfigId: nextActiveId
+        activeConfigId: value
       });
     }
   });
@@ -103,7 +103,7 @@ export function useTranscriptionConfig(
     const id = createTranscriptionConfigId();
     selectedConfigId.value = id;
     writePluginConfig({
-      activeConfigId: activeConfigId.value || id,
+      activeConfigId: activeConfigId.value,
       configs: [
         ...transcriptionConfigs.value,
         createDefaultTranscriptionConfig({ id })
@@ -124,7 +124,7 @@ export function useTranscriptionConfig(
     selectedConfigId.value = configs[0]?.id ?? "";
     const nextActiveConfigId = configs.some((config) => config.id === activeConfigId.value)
       ? activeConfigId.value
-      : configs[0]?.id ?? null;
+      : configs[0]!.id;
     writePluginConfig({
       activeConfigId: nextActiveConfigId,
       configs

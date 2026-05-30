@@ -19,7 +19,7 @@ export function registerTranscriptionPluginMain(context: TranscriptionPluginCont
 
   function resolveActiveConfig(settings: TranscriptionPluginConfig): TranscriptionConfig | null {
     if (!settings.configs.length) return null;
-    return settings.configs.find((c) => c.id === settings.activeConfigId) ?? settings.configs[0];
+    return settings.configs.find((c) => c.id === settings.activeConfigId) ?? null;
   }
 
   async function startTranscription(): Promise<{ ok: boolean; error?: string; trackId?: string; cached?: boolean }> {

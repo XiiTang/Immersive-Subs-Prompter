@@ -23,11 +23,15 @@ export function createConnectionAuthToken(): string {
 export function sanitizeConnectionAuthToken(value: unknown): string {
   if (typeof value === "string") {
     const trimmed = value.trim();
-    if (TOKEN_PATTERN.test(trimmed)) {
+    if (isConnectionAuthToken(trimmed)) {
       return trimmed;
     }
   }
   return createConnectionAuthToken();
+}
+
+export function isConnectionAuthToken(value: unknown): value is string {
+  return typeof value === "string" && TOKEN_PATTERN.test(value);
 }
 
 export function isTrustedExtensionOrigin(origin: string | string[] | undefined): boolean {

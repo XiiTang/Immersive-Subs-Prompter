@@ -7,7 +7,6 @@ import {
   guessSubtitleFormatFromStream,
   normalizeServerUrl,
   pickSubtitleExtension,
-  resolveWebSocketPath,
   ticksToMilliseconds,
   ticksToSeconds
 } from "./jellyfinembyUtils.js";
@@ -52,19 +51,6 @@ describe("jellyfinembyUtils", () => {
     });
   });
 
-  describe("resolveWebSocketPath", () => {
-    it("defaults to /socket", () => {
-      expect(resolveWebSocketPath()).toBe("/socket");
-      expect(resolveWebSocketPath(null)).toBe("/socket");
-      expect(resolveWebSocketPath("")).toBe("/socket");
-    });
-
-    it("prefixes leading slash when absent", () => {
-      expect(resolveWebSocketPath("custom")).toBe("/custom");
-      expect(resolveWebSocketPath("/ws")).toBe("/ws");
-    });
-  });
-
   describe("buildWebSocketUrl", () => {
     it("upgrades http to ws and sets path", () => {
       const url = buildWebSocketUrl(makeConfig({ serverUrl: "http://s:80" }));
@@ -73,7 +59,7 @@ describe("jellyfinembyUtils", () => {
 
     it("upgrades https to wss", () => {
       const url = buildWebSocketUrl(
-        makeConfig({ serverUrl: "https://s.example:443", webSocketPath: "custom" })
+        makeConfig({ serverUrl: "https://s.example:443", webSocketPath: "/custom" })
       );
       expect(url).toBe("wss://s.example/custom");
     });
@@ -81,6 +67,12 @@ describe("jellyfinembyUtils", () => {
     it("throws when server url is missing", () => {
       expect(() => buildWebSocketUrl(makeConfig({ serverUrl: "" }))).toThrow(
         /Missing jellyfinemby server URL/
+      );
+    });
+
+    it("rejects websocket paths that are not already current settings", () => {
+      expect(() => buildWebSocketUrl(makeConfig({ webSocketPath: "custom" }))).toThrow(
+        "Jellyfin / Emby webSocketPath must start with /"
       );
     });
   });

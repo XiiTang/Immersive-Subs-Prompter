@@ -1,7 +1,6 @@
 import { MediaServerSessionSummary, MediaServerConfig, MediaServerSubtitleStream } from "./types.js";
 
 const TICKS_PER_MILLISECOND = 10_000;
-const DEFAULT_WS_PATH = "/socket";
 const CODEC_EXTENSION_MAP: Record<string, string> = {
   ass: "ass",
   ssa: "ssa",
@@ -34,21 +33,17 @@ export function normalizeServerUrl(input: string | null | undefined): string {
   }
 }
 
-export function resolveWebSocketPath(path?: string | null): string {
-  if (!path) {
-    return DEFAULT_WS_PATH;
-  }
-  return path.startsWith("/") ? path : `/${path}`;
-}
-
 export function buildWebSocketUrl(config: MediaServerConfig): string {
   if (!config.serverUrl) {
     throw new Error("Missing jellyfinemby server URL");
   }
+  if (!config.webSocketPath.startsWith("/")) {
+    throw new Error("Jellyfin / Emby webSocketPath must start with /");
+  }
   const normalized = normalizeServerUrl(config.serverUrl);
   const url = new URL(normalized || config.serverUrl);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = resolveWebSocketPath(config.webSocketPath);
+  url.pathname = config.webSocketPath;
   return url.toString();
 }
 

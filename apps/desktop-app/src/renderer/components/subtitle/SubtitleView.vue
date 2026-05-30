@@ -319,13 +319,15 @@ const sliderFillStyle = computed(() => {
 });
 
 const activeTranscriptionId = computed({
-  get: () => transcriptionPluginConfig.value.activeConfigId ?? transcriptionConfigs.value[0]?.id ?? "",
+  get: () => transcriptionPluginConfig.value.activeConfigId,
   set: (value: string) => {
     const configs = transcriptionPluginConfig.value.configs;
-    const nextActiveId = configs.some((config) => config.id === value) ? value : configs[0]?.id ?? null;
+    if (!configs.some((config) => config.id === value)) {
+      return;
+    }
     store.setPluginConfig(TRANSCRIPTION_PLUGIN_ID, {
       ...transcriptionPluginConfig.value,
-      activeConfigId: nextActiveId
+      activeConfigId: value
     });
   }
 });

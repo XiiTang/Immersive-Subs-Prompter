@@ -138,7 +138,7 @@ export interface TranscriptionConfig {
 }
 
 export interface TranscriptionPluginConfig {
-  activeConfigId: string | null;
+  activeConfigId: string;
   configs: TranscriptionConfig[];
 }
 

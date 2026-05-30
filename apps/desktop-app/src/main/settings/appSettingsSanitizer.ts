@@ -1,6 +1,6 @@
 import type { AppSettings, PluginSettingsRecord } from "../types.js";
 import { sanitizeGlobalSettings, validateGlobalSettingsForUpdate } from "./sanitizers/globalSanitizer.js";
-import { sanitizeNetworkSettings } from "./sanitizers/networkSanitizer.js";
+import { sanitizeNetworkSettings, validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
 import { ensureFallbackProfileLast, sanitizeProfiles, validateProfilesForUpdate } from "./sanitizers/profileSanitizer.js";
 import { sanitizeRules, validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
 import {
@@ -24,18 +24,22 @@ import { assertNoUnknownKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "plugins", "cache"] as const;
 const PLUGIN_SETTINGS_RECORD_KEYS = ["config"] as const;
+const BUILTIN_PLUGIN_IDS = [JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID] as const;
+type BuiltinPluginId = (typeof BUILTIN_PLUGIN_IDS)[number];
 
-function sanitizePluginConfig(pluginId: string, config: unknown): Record<string, unknown> {
-  if (pluginId === JELLYFINEMBY_PLUGIN_ID) {
-    return sanitizeJellyfinembyPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
+function isBuiltinPluginId(pluginId: string): pluginId is BuiltinPluginId {
+  return (BUILTIN_PLUGIN_IDS as readonly string[]).includes(pluginId);
+}
+
+function sanitizePluginConfig(pluginId: BuiltinPluginId, config: unknown): Record<string, unknown> {
+  switch (pluginId) {
+    case JELLYFINEMBY_PLUGIN_ID:
+      return sanitizeJellyfinembyPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
+    case TRANSCRIPTION_PLUGIN_ID:
+      return sanitizeTranscriptionPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
+    case WORD_LOOKUP_PLUGIN_ID:
+      return sanitizeWordLookupPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
   }
-  if (pluginId === TRANSCRIPTION_PLUGIN_ID) {
-    return sanitizeTranscriptionPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
-  }
-  if (pluginId === WORD_LOOKUP_PLUGIN_ID) {
-    return sanitizeWordLookupPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
-  }
-  return config && typeof config === "object" ? (config as Record<string, unknown>) : {};
 }
 
 function sanitizePluginSettings(
@@ -54,6 +58,9 @@ function sanitizePluginSettings(
   };
   if (!input || typeof input !== "object") return result;
   for (const [pluginId, record] of Object.entries(input as Record<string, unknown>)) {
+    if (!isBuiltinPluginId(pluginId)) {
+      continue;
+    }
     if (!record || typeof record !== "object") continue;
     const config = (record as { config?: unknown }).config;
     result[pluginId] = {
@@ -125,6 +132,9 @@ export function validateSettingsForUpdate(
   if (Object.prototype.hasOwnProperty.call(input, "global")) {
     validateGlobalSettingsForUpdate((input as { global?: unknown }).global);
   }
+  if (Object.prototype.hasOwnProperty.call(input, "network")) {
+    validateNetworkSettingsForUpdate((input as { network?: unknown }).network);
+  }
   const profiles = Object.prototype.hasOwnProperty.call(input, "profiles")
     ? validateProfilesForUpdate((input as { profiles?: unknown }).profiles, current.defaultProfileId)
     : current.profiles;
@@ -146,6 +156,9 @@ export function validateSettingsForUpdate(
       throw new Error("plugins settings must use the current object setting");
     }
     for (const [pluginId, record] of Object.entries(plugins as Record<string, unknown>)) {
+      if (!isBuiltinPluginId(pluginId)) {
+        throw new Error(`plugins contains unknown plugin: ${pluginId}`);
+      }
       validatePluginSettingsRecordForUpdate(pluginId, record);
     }
   }

@@ -9,7 +9,6 @@ import {
   sanitizeSettings,
   validateSettingsForUpdate
 } from "./appSettingsSanitizer.js";
-import { validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
 
 export class SettingsStore {
   private readonly filePath: string;
@@ -59,9 +58,6 @@ export class SettingsStore {
   update(partial: Partial<AppSettings>): AppSettings {
     validateSettingsForUpdate(partial, this.data);
     const merged = mergeSettings(this.data, partial);
-    if (partial.network) {
-      merged.network = validateNetworkSettingsForUpdate(merged.network);
-    }
     const next = merged;
     this.save(next);
     this.data = next;
