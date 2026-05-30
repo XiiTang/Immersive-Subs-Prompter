@@ -6,7 +6,7 @@ export type ResolvedTheme = "light" | "dark";
 
 const darkQuery = "(prefers-color-scheme: dark)";
 
-export function getSystemPrefersDark(): boolean {
+function getSystemPrefersDark(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function"
     ? window.matchMedia(darkQuery).matches
     : false;

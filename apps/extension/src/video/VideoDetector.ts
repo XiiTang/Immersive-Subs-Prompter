@@ -1,10 +1,9 @@
 import { log, state } from "../content/state";
 import { send } from "../connection/MessageSender";
-import { ensureDocListeners, scanForShadowRoots } from "../monitoring/DOMObserver";
+import { observeShadowRoot } from "../monitoring/DOMObserver";
 import { ensureDriftMonitor, stopDriftMonitor } from "../monitoring/DriftMonitor";
 import { clearLoopState, clearProgrammaticSeekFlag, isProgrammaticSeek } from "./LoopController";
 import { gatherVideoState, handleTimeUpdate, resetPlaybackPrediction } from "./VideoStateGatherer";
-import type { BackgroundToContentMessage } from "../shared/types";
 
 function setActiveVideo(video: HTMLVideoElement | null) {
   if (!state.monitoringActive) {
@@ -152,8 +151,7 @@ export function ensurePrototypeHooks() {
     Element.prototype.attachShadow = function (...args: Parameters<Element["attachShadow"]>) {
       const shadowRoot = originalAttachShadow.apply(this, args);
       log.info("shadow", "attachShadow called", { host: this.tagName, mode: args[0]?.mode });
-      ensureDocListeners(shadowRoot);
-      scanForShadowRoots(shadowRoot);
+      observeShadowRoot(shadowRoot);
       return shadowRoot;
     };
     Element.prototype.attachShadow.toString = () => originalAttachShadow.toString();

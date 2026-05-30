@@ -12,7 +12,7 @@ import {
 } from "./subtitleService.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { createLogger } from "./logger.js";
-import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "./settings/index.js";
+import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../common/transcriptionDefaults.js";
 import { SubtitleTrack, TranscriptionConfig } from "./types.js";
 
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
@@ -153,11 +153,11 @@ export class TranscriptionService {
 
     if (contentType.includes("application/json")) {
       const data = await response.json();
-      return this.buildTrackFromJson(data, config, sourceFile);
+      return this.buildTrackFromJson(data, sourceFile);
     }
 
     const text = await response.text();
-    return this.buildTrackFromText(text, config, sourceFile);
+    return this.buildTrackFromText(text, sourceFile);
   }
 
   private async submitToFasterWhisper(audioPath: string, config: TranscriptionConfig): Promise<SubtitleTrack> {
@@ -294,7 +294,7 @@ export class TranscriptionService {
     return `${baseFile}.${providerName}.${modelName}.${language}`;
   }
 
-  private buildTrackFromJson(payload: any, config: TranscriptionConfig, sourceFile: string): SubtitleTrack {
+  private buildTrackFromJson(payload: any, sourceFile: string): SubtitleTrack {
     const segments = Array.isArray(payload?.segments) ? payload.segments : [];
     const cues: SubtitleTrack["cues"] = [];
     for (const segment of segments) {
@@ -325,7 +325,7 @@ export class TranscriptionService {
     };
   }
 
-  private buildTrackFromText(content: string, config: TranscriptionConfig, sourceFile: string): SubtitleTrack {
+  private buildTrackFromText(content: string, sourceFile: string): SubtitleTrack {
     const trimmed = content?.trim() ?? "";
     if (!trimmed) {
       throw new Error("Empty subtitle content returned by transcription service.");

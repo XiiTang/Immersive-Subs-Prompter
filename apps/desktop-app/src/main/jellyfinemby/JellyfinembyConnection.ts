@@ -18,7 +18,6 @@ export class JellyfinembyConnection {
   private readonly transport: JellyfinembyWebSocketTransport;
   private readonly subscription: JellyfinembySessionSubscription;
   private readonly tracker: JellyfinembySessionTracker;
-  private disposed = false;
 
   constructor(
     private config: MediaServerConfig,
@@ -59,13 +58,11 @@ export class JellyfinembyConnection {
   }
 
   start() {
-    this.disposed = false;
     this.transport.reset();
     this.transport.connect();
   }
 
   dispose() {
-    this.disposed = true;
     this.subscription.dispose();
     this.tracker.reset();
     this.subtitleLoader.resetState();

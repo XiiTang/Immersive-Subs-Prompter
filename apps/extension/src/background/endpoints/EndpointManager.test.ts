@@ -36,7 +36,7 @@ describe("EndpointManager", () => {
     await expect(manager.load()).resolves.toEqual(defaultEndpoints);
   });
 
-  it("falls back to default endpoints on empty set when fallbackToDefault is enabled", () => {
+  it("keeps an explicit empty endpoint list", () => {
     const onChange = vi.fn();
     const manager = new EndpointManager({
       storageKey: ENDPOINTS_STORAGE_KEY,
@@ -44,11 +44,11 @@ describe("EndpointManager", () => {
       onChange
     });
 
-    const result = manager.set([], { persist: false, fallbackToDefault: true });
+    const result = manager.set([], { persist: false });
 
-    expect(result).toEqual(defaultEndpoints);
-    expect(manager.getEndpoints()).toEqual(defaultEndpoints);
-    expect(onChange).toHaveBeenCalledWith(defaultEndpoints);
+    expect(result).toEqual([]);
+    expect(manager.getEndpoints()).toEqual([]);
+    expect(onChange).toHaveBeenCalledWith([]);
     expect(setMock).not.toHaveBeenCalled();
   });
 });

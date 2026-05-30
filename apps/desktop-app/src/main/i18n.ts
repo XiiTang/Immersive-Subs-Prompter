@@ -32,16 +32,3 @@ export function translate(key: string, fallback: string, language: SupportedLang
     const dictionary = TRANSLATIONS[language] ?? TRANSLATIONS[DEFAULT_LANGUAGE];
     return dictionary[key] ?? fallback;
 }
-
-export function formatTranslation(
-    key: string,
-    fallback: string,
-    language: SupportedLanguage,
-    replacements: Record<string, string> = {}
-): string {
-    let text = translate(key, fallback, language);
-    for (const [placeholder, replacement] of Object.entries(replacements)) {
-        text = text.split(`{${placeholder}}`).join(replacement);
-    }
-    return text;
-}

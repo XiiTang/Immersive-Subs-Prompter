@@ -27,7 +27,7 @@ describe("official Jellyfin / Emby plugin", () => {
     const contribution = registerJellyfinembyPluginMain({ mediaServerController: controller });
 
     expect(controller.activate).toHaveBeenCalledTimes(1);
-    expect(contribution.commands).toEqual({});
+    expect(contribution.commands).toBeUndefined();
 
     contribution.dispose?.();
     expect(controller.deactivate).toHaveBeenCalledTimes(1);

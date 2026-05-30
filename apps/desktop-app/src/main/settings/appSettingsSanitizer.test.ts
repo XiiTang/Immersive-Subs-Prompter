@@ -1,314 +1,108 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_SETTINGS,
   DEFAULT_SETTINGS_FACTORY,
   sanitizeSettings
 } from "./appSettingsSanitizer.js";
-import {
-  DEFAULT_SUBTITLE_FONT_FAMILY,
-  SUBTITLE_FONT_OPTIONS
-} from "../../common/subtitleFonts.js";
+import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import { DEFAULT_GLOBAL_SETTINGS, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
-    it("returns defaults when input is null or undefined", () => {
-      const result = sanitizeSettings(null);
-      expect(result.defaultProfileId).toBe(DEFAULT_SETTINGS.defaultProfileId);
-      expect(result.profiles.length).toBe(DEFAULT_SETTINGS.profiles.length);
-      expect(sanitizeSettings(undefined).profiles).toHaveLength(
-        DEFAULT_SETTINGS.profiles.length
+    it("accepts the current complete settings shape", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(sanitizeSettings(settings)).toBe(settings);
+    });
+
+    it("rejects missing settings instead of creating defaults", () => {
+      expect(() => sanitizeSettings(null)).toThrow("settings file must use the current object setting");
+      expect(() => sanitizeSettings(undefined)).toThrow("settings file must use the current object setting");
+    });
+
+    it("rejects unknown top-level fields", () => {
+      const settings = {
+        ...DEFAULT_SETTINGS_FACTORY(),
+        mediaServer: {}
+      };
+
+      expect(() => sanitizeSettings(settings as never)).toThrow("settings contains unknown setting: mediaServer");
+    });
+
+    it("rejects saved defaultProfileId values that are not the fixed fallback profile", () => {
+      const settings = {
+        ...DEFAULT_SETTINGS_FACTORY(),
+        defaultProfileId: "profile-youtube"
+      };
+
+      expect(() => sanitizeSettings(settings)).toThrow(
+        "settings.defaultProfileId must use the fixed current fallback profile"
       );
     });
 
-    it("falls back to the fixed fallback profile id when defaultProfileId is unknown", () => {
-      const result = sanitizeSettings({ defaultProfileId: "does-not-exist" });
-      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
-      expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
+    it("rejects missing or reordered fallback profiles", () => {
+      const withoutFallback = {
+        ...DEFAULT_SETTINGS_FACTORY(),
+        profiles: DEFAULT_SETTINGS_FACTORY().profiles.filter((profile) => profile.id !== DEFAULT_PROFILE_ID)
+      };
+      const reordered = {
+        ...DEFAULT_SETTINGS_FACTORY(),
+        profiles: [...DEFAULT_SETTINGS_FACTORY().profiles].reverse()
+      };
+
+      expect(() => sanitizeSettings(withoutFallback)).toThrow("profiles must include the current fallback profile");
+      expect(() => sanitizeSettings(reordered)).toThrow("profiles must keep the current fallback profile last");
     });
 
-    it("ignores saved defaultProfileId values and uses the fixed fallback profile", () => {
-      const result = sanitizeSettings({
-        profiles: [
-          {
-            id: "profile-default",
-            name: "Default",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          },
-          {
-            id: "profile-youtube",
-            name: "YouTube",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
+    it("rejects values that only old disk-load sanitizers normalized", () => {
+      const unsupportedAppearance = DEFAULT_SETTINGS_FACTORY();
+      unsupportedAppearance.global = {
+        ...unsupportedAppearance.global,
+        appearance: { theme: "blue" as never }
+      };
+
+      const unsupportedFont = DEFAULT_SETTINGS_FACTORY();
+      unsupportedFont.profiles = unsupportedFont.profiles.map((profile) =>
+        profile.id === DEFAULT_PROFILE_ID
+          ? {
+            ...profile,
+            settings: {
+              ...profile.settings,
+              primarySubtitleFontFamily: "Papyrus"
+            }
           }
-        ],
-        defaultProfileId: "profile-youtube"
-      });
+          : profile
+      );
 
-      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
-      expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
-    });
-
-    it("keeps the fallback profile last while preserving non-fallback profile order", () => {
-      const result = sanitizeSettings({
-        profiles: [
-          {
-            id: "profile-default",
-            name: "Default",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          },
-          {
-            id: "profile-youtube",
-            name: "YouTube",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          },
-          {
-            id: "profile-bilibili",
-            name: "Bilibili",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          }
-        ],
-        defaultProfileId: "profile-default"
-      });
-
-      expect(result.profiles.map((profile) => profile.id)).toEqual([
-        "profile-default",
-        "profile-youtube",
-        "profile-bilibili",
-        DEFAULT_PROFILE_ID
-      ]);
-    });
-
-    it("creates the fixed fallback profile when saved profiles do not contain one", () => {
-      const result = sanitizeSettings({
-        profiles: [
-          {
-            id: "profile-youtube",
-            name: "YouTube",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          }
-        ],
-        defaultProfileId: "does-not-exist"
-      });
-
-      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
-      expect(result.profiles.map((profile) => profile.id)).toEqual([
-        "profile-youtube",
-        DEFAULT_PROFILE_ID
-      ]);
-    });
-
-    it("keeps URL rules only on non-default existing profiles", () => {
-      const result = sanitizeSettings({
-        profiles: [
-          {
-            id: "profile-default",
-            name: "Default",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          },
-          {
-            id: "profile-youtube",
-            name: "YouTube",
-            description: null,
-            settings: DEFAULT_SETTINGS.profiles[0].settings
-          }
-        ],
-        defaultProfileId: "profile-default",
-        rules: [
-          {
-            id: "rule-youtube",
-            name: "YouTube",
-            pattern: "youtube.com",
-            profileId: "profile-youtube"
-          },
-          {
-            id: "rule-default",
-            name: "Default",
-            pattern: "example.com",
-            profileId: DEFAULT_PROFILE_ID
-          },
-          {
-            id: "rule-missing",
-            name: "Missing",
-            pattern: "missing.example",
-            profileId: "profile-missing"
-          }
-        ]
-      });
-
-      expect(result.rules.map((rule) => rule.id)).toEqual(["rule-youtube"]);
-      expect(result.rules[0]).toEqual({
-        id: "rule-youtube",
-        name: "YouTube",
-        pattern: "youtube.com",
-        profileId: "profile-youtube"
-      });
-    });
-
-    it("initializes Jellyfin / Emby plugin config when missing", () => {
-      const result = sanitizeSettings({});
-      expect(result.plugins["official.jellyfinemby"]?.config).toEqual({ servers: [] });
-    });
-
-    it("drops unknown plugin settings from disk-loaded settings", () => {
-      const result = sanitizeSettings({
-        plugins: {
-          "experimental.unknown": {
-            config: {
+      const websocketPathWithoutSlash = DEFAULT_SETTINGS_FACTORY();
+      websocketPathWithoutSlash.plugins["official.jellyfinemby"] = {
+        config: {
+          servers: [
+            {
+              id: "srv-1",
+              name: "Home",
+              serverUrl: "http://server.local:8096",
+              apiKey: "key",
+              webSocketPath: "socket",
               enabled: true
             }
-          }
+          ]
         }
-      });
+      };
 
-      expect(result.plugins["experimental.unknown"]).toBeUndefined();
-    });
-
-    it("returns a fresh Jellyfin / Emby plugin config when plugin settings are missing", () => {
-      const a = sanitizeSettings({});
-      const b = sanitizeSettings({});
-      expect(a.plugins["official.jellyfinemby"]?.config).not.toBe(
-        b.plugins["official.jellyfinemby"]?.config
+      expect(() => sanitizeSettings(unsupportedAppearance)).toThrow(
+        "global.appearance.theme must use the current string setting"
+      );
+      expect(() => sanitizeSettings(unsupportedFont)).toThrow(
+        "profile.primarySubtitleFontFamily must use a supported current font setting"
+      );
+      expect(() => sanitizeSettings(websocketPathWithoutSlash)).toThrow(
+        "jellyfinemby.server.webSocketPath must start with /"
       );
     });
 
-    it("does not expose persistent host mediaServer settings", () => {
-      const result = sanitizeSettings({});
-      expect(Object.prototype.hasOwnProperty.call(result, "mediaServer")).toBe(false);
-    });
-
-    it("uses endpoint-list network settings", () => {
-      const result = sanitizeSettings({});
-      expect(result.network.endpoints).toEqual([
-        { id: "default", host: "127.0.0.1", port: 44501 }
-      ]);
-      expect(Object.prototype.hasOwnProperty.call(result.network, "host")).toBe(false);
-      expect(Object.prototype.hasOwnProperty.call(result.network, "port")).toBe(false);
-    });
-
-    it("keeps supported appearance themes", () => {
-      expect(sanitizeSettings({ global: { appearance: { theme: "light" } } } as never).global.appearance.theme).toBe("light");
-      expect(sanitizeSettings({ global: { appearance: { theme: "dark" } } } as never).global.appearance.theme).toBe("dark");
-      expect(sanitizeSettings({ global: { appearance: { theme: "system" } } } as never).global.appearance.theme).toBe("system");
-    });
-
-    it("preserves an empty global shortcut as disabled", () => {
-      expect(sanitizeSettings({ global: { toggleWindowShortcut: "" } } as never).global.toggleWindowShortcut).toBe("");
-      expect(sanitizeSettings({ global: { toggleWindowShortcut: "   " } } as never).global.toggleWindowShortcut).toBe("");
-    });
-
-    it("falls back to system appearance for unsupported themes", () => {
-      const result = sanitizeSettings({
-        global: { appearance: { theme: "blue" } }
-      } as never);
-
-      expect(result.global.appearance.theme).toBe("system");
-    });
-
-    it("sanitizes Jellyfin / Emby plugin server config", () => {
-      const result = sanitizeSettings({
-        plugins: {
-          "official.jellyfinemby": {
-            config: {
-              servers: [
-                {
-                  id: " srv-1 ",
-                  name: " Home ",
-                  serverUrl: " http://server.local:8096/ ",
-                  apiKey: " key ",
-                  webSocketPath: "socket",
-                  enabled: true
-                },
-                {
-                  id: "",
-                  name: "",
-                  serverUrl: 42,
-                  apiKey: null,
-                  webSocketPath: "",
-                  enabled: "yes"
-                }
-              ]
-            }
-          }
-        }
-      } as never);
-
-      expect(result.plugins["official.jellyfinemby"]?.config).toEqual({
-        servers: [
-          {
-            id: "srv-1",
-            name: "Home",
-            serverUrl: "http://server.local:8096/",
-            apiKey: "key",
-            webSocketPath: "/socket",
-            enabled: true
-          },
-          {
-            id: "jellyfinemby-server-1",
-            name: "Server 2",
-            serverUrl: "",
-            apiKey: "",
-            webSocketPath: "/socket",
-            enabled: false
-          }
-        ]
-      });
-    });
-
-    it("sanitizes independent primary and secondary subtitle typography", () => {
-      const georgiaFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Georgia")!.value;
-      const result = sanitizeSettings({
-        profiles: [
-          {
-            id: "profile-typography",
-            name: "Typography",
-            description: null,
-            settings: {
-              ...DEFAULT_SETTINGS.profiles[0]!.settings,
-              primarySubtitleFontFamily: "Papyrus",
-              primarySubtitleFontSize: 2.2,
-              secondarySubtitleFontFamily: georgiaFont,
-              secondarySubtitleFontSize: 111.7,
-              subtitleTimestampFontSize: 25.7
-            }
-          }
-        ],
-        defaultProfileId: "profile-typography"
-      } as never);
-
-      const settings = result.profiles[0]!.settings;
-
-      expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(settings.primarySubtitleFontSize).toBe(3);
-      expect(settings.secondarySubtitleFontFamily).toBe(georgiaFont);
-      expect(settings.secondarySubtitleFontSize).toBe(96);
-      expect(settings.subtitleTimestampFontSize).toBe(24);
-    });
-
-    it("uses explicit default primary and secondary subtitle typography", () => {
-      const result = sanitizeSettings(null);
+    it("uses explicit product defaults from the factory", () => {
+      const result = DEFAULT_SETTINGS_FACTORY();
       const settings = result.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!.settings;
-
-      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
-      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
-      expect(DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize).toBe(11);
-      expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
-      expect(settings.primarySubtitleFontSize).toBe(26);
-      expect(settings.secondarySubtitleFontSize).toBe(25);
-      expect(settings.subtitleTimestampFontSize).toBe(11);
-    });
-
-    it("uses the product global defaults as the sanitizer defaults", () => {
-      const result = sanitizeSettings(null);
 
       expect(DEFAULT_GLOBAL_SETTINGS).toEqual({
         autoLaunch: true,
@@ -323,6 +117,16 @@ describe("appSettingsSanitizer", () => {
         }
       });
       expect(result.global).toEqual(DEFAULT_GLOBAL_SETTINGS);
+      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
+      expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
+      expect(DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize).toBe(11);
+      expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
+      expect(settings.primarySubtitleFontSize).toBe(26);
+      expect(settings.secondarySubtitleFontSize).toBe(25);
+      expect(settings.subtitleTimestampFontSize).toBe(11);
       expect(result.cache.enabled).toBe(true);
       expect(result.cache.retentionDays).toBe(7);
     });

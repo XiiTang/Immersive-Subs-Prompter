@@ -63,12 +63,9 @@ export class EndpointManager {
     }
   }
 
-  set(
-    endpoints: string[],
-    { persist = true, fallbackToDefault = false }: { persist?: boolean; fallbackToDefault?: boolean } = {}
-  ): string[] {
+  set(endpoints: string[], { persist = true }: { persist?: boolean } = {}): string[] {
     const normalized = normalizeEndpointList(endpoints);
-    this.endpoints = normalized.length || !fallbackToDefault ? normalized : [...this.defaultEndpoints];
+    this.endpoints = normalized;
     if (persist) {
       this.persist(this.endpoints);
     }

@@ -11,26 +11,6 @@ const ICON_STROKE_PROPS: IconAttrs = {
   "stroke-linejoin": "round"
 };
 
-const ICON_ADD: IconDef = {
-  viewBox: "0 0 16 16",
-  segments: [
-    { tag: "circle", attrs: { cx: 8, cy: 8, r: 6 } },
-    { tag: "line", attrs: { x1: 8, y1: 5, x2: 8, y2: 11 } },
-    { tag: "line", attrs: { x1: 5, y1: 8, x2: 11, y2: 8 } }
-  ]
-};
-
-const ICON_DELETE: IconDef = {
-  viewBox: "0 0 16 16",
-  segments: [
-    { tag: "path", attrs: { d: "M4 5h8" } },
-    { tag: "path", attrs: { d: "M6 5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1" } },
-    { tag: "path", attrs: { d: "M5 5v7a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V5" } },
-    { tag: "line", attrs: { x1: 7, y1: 8, x2: 7, y2: 11 } },
-    { tag: "line", attrs: { x1: 9, y1: 8, x2: 9, y2: 11 } }
-  ]
-};
-
 const ICON_CLOSE: IconDef = {
   viewBox: "0 0 16 16",
   segments: [
@@ -72,14 +52,6 @@ function createIcon(def: IconDef, { size = 16, className = "" }: IconOptions = {
   });
 
   return svg;
-}
-
-export function createAddIcon(options?: IconOptions) {
-  return createIcon(ICON_ADD, options);
-}
-
-export function createDeleteIcon(options?: IconOptions) {
-  return createIcon(ICON_DELETE, options);
 }
 
 export function createCloseIcon(options?: IconOptions) {

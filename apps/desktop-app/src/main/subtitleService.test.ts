@@ -3,7 +3,7 @@ import { promises as fsp } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_YTDLP_ARGS } from "./settings/index.js";
+import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService, splitArgs } from "./subtitleService.js";
 import type { SubtitleLoadResult } from "./types.js";

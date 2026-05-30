@@ -84,12 +84,6 @@ function mountStaticIcons() {
   }
 }
 
-export function appearanceLabel(theme: AppearanceTheme): string {
-  if (theme === "light") return t("settingsThemeLight", "Light");
-  if (theme === "dark") return t("settingsThemeDark", "Dark");
-  return t("settingsThemeSystem", "System");
-}
-
 function systemPrefersDark() {
   return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
 }

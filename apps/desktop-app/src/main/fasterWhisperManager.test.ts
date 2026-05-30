@@ -45,7 +45,7 @@ describe("FasterWhisperManager", () => {
 
   it("requires 7-Zip for GPU package extraction instead of trying unrelated archive tools", async () => {
     const execMock = vi.mocked(exec);
-    execMock.mockImplementation(((command: string, callback: (error: Error | null) => void) => {
+    execMock.mockImplementation(((_command: string, callback: (error: Error | null) => void) => {
       callback(new Error("7z unavailable"));
       return {} as ReturnType<typeof exec>;
     }) as typeof exec);

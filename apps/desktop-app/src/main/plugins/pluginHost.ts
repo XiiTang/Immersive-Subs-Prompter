@@ -1,4 +1,4 @@
-import type { PluginManifest, PluginMainContribution } from "@immersive-subs/plugin-sdk";
+import type { PluginManifest, PluginMainContribution } from "./pluginManifest.js";
 import type { PluginRegistryStore } from "./pluginRegistryStore.js";
 import type { PluginCatalogRow } from "./pluginTypes.js";
 import { createLogger } from "../logger.js";
@@ -23,14 +23,11 @@ export class PluginHost {
 
   async loadEnabledPlugins(): Promise<void> {
     for (const record of await this.registryStore.listPlugins()) {
-      if (!record.enabled) continue;
-
       const bundled = this.bundled.get(record.id);
       if (!bundled) {
-        this.log.warn(`Dropping unknown plugin record "${record.id}" from registry.`);
-        await this.registryStore.deletePlugin(record.id);
-        continue;
+        throw new Error(`Plugin "${record.id}" has no bundled code.`);
       }
+      if (!record.enabled) continue;
 
       try {
         const contribution = bundled.factory();
@@ -50,11 +47,7 @@ export class PluginHost {
 
   getCommand(pluginId: string, commandName: string): ((...args: unknown[]) => Promise<unknown>) | null {
     const contribution = this.loaded.get(pluginId);
-    return contribution?.commands[commandName] ?? null;
-  }
-
-  isPluginLoaded(pluginId: string): boolean {
-    return this.loaded.has(pluginId);
+    return contribution?.commands?.[commandName] ?? null;
   }
 
   async listCatalog(): Promise<PluginCatalogRow[]> {

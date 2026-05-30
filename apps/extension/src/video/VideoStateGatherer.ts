@@ -1,7 +1,6 @@
 import { log, state } from "../content/state";
 import { send } from "../connection/MessageSender";
 import type { VideoSite, VideoStateSnapshot } from "@immersive-subs/contracts";
-import type { PlaybackPrediction } from "../shared/types";
 
 function detectSite(): VideoSite {
   const host = location.hostname;

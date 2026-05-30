@@ -33,4 +33,12 @@ describe("PluginRegistryStore", () => {
 
     await expect(store.read()).rejects.toThrow();
   });
+
+  it("throws when the registry file is not the current object shape", async () => {
+    const registryPath = await createTempPath();
+    await fs.writeFile(registryPath, JSON.stringify({ plugins: [] }), "utf-8");
+    const store = new PluginRegistryStore(registryPath);
+
+    await expect(store.read()).rejects.toThrow("plugin registry must use the current object setting");
+  });
 });

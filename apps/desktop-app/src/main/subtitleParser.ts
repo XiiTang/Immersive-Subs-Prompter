@@ -207,7 +207,7 @@ function stripTags(input: string): string {
   return cleaned;
 }
 
-export function parseTimestamp(value: string): number {
+function parseTimestamp(value: string): number {
   const normalized = value.replace(/,/g, ".");
   const match = normalized.match(/(?:(\d+):)?(\d{2}):(\d{2}(?:\.\d+)?)/);
   if (!match) {

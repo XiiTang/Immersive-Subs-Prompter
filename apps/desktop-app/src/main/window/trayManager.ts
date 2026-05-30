@@ -8,7 +8,6 @@ type TrayManagerOptions = {
   getLanguage: () => string;
   onShow: () => void;
   onQuickShow: () => void;
-  onQuit: () => void;
 };
 
 export class TrayManager {
@@ -66,7 +65,6 @@ export class TrayManager {
         {
           label: translate("tray-quit", "Quit", lang),
           click: () => {
-            this.options.onQuit();
             this.destroy();
             app.quit();
           }

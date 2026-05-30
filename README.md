@@ -161,7 +161,7 @@ Empty catch blocks are banned. `pnpm test` (and the `lint:silent-catches` script
 Imports:
 - Main process: `import { reportError, swallow } from "./errors.js"` (or the correct relative path)
 - Renderer: `import { reportError, swallow } from "../utils/errorBus"`
-- Extension: `import { reportError, swallow } from "../shared/reportError"`
+- Extension: `import { swallow } from "../shared/reportError"`
 
 If you genuinely need an empty catch (e.g., defensive fallbacks in hot paths), add a comment ending in `usp-allow-empty-catch` on the line above the `catch` to opt out of the check.
 

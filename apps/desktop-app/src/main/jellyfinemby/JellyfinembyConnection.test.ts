@@ -9,7 +9,6 @@ import type { MediaServerConfig, MediaServerSessionSummary } from "../types.js";
 const config: MediaServerConfig = {
   id: "server-1",
   name: "Home",
-  type: "jellyfinemby",
   serverUrl: "",
   apiKey: "",
   webSocketPath: "/socket",

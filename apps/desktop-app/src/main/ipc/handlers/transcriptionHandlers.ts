@@ -5,7 +5,7 @@ export function registerTranscriptionHandlers(context: IpcContext) {
   ipcMain.handle("usp:start-transcription", async () => {
     const run = context.pluginHost?.getCommand("official.transcription", "startTranscription");
     if (!run) {
-      return { ok: false, error: "Speech Transcription plugin is not enabled." };
+      throw new Error("Speech Transcription plugin is not enabled.");
     }
     return run();
   });

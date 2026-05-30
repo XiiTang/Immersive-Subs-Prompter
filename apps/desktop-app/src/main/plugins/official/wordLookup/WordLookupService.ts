@@ -91,12 +91,13 @@ export class WordLookupService {
   private async load(force: boolean): Promise<WordLookupStatus> {
     const config = this.readConfig();
     if (!config.wordListPath) {
+      this.index = null;
       this.status = {
         ok: false,
         wordListPath: "",
-        entryCount: this.index?.entryCount ?? 0,
-        fileMtimeMs: this.index?.fileMtimeMs ?? null,
-        loadedAt: this.index?.loadedAt ?? null,
+        entryCount: 0,
+        fileMtimeMs: null,
+        loadedAt: null,
         error: "No word list path configured."
       };
       return this.status;
@@ -133,12 +134,13 @@ export class WordLookupService {
       return this.status;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      this.index = null;
       this.status = {
         ok: false,
         wordListPath: config.wordListPath,
-        entryCount: this.index?.entryCount ?? 0,
-        fileMtimeMs: this.index?.fileMtimeMs ?? null,
-        loadedAt: this.index?.loadedAt ?? null,
+        entryCount: 0,
+        fileMtimeMs: null,
+        loadedAt: null,
         error: message
       };
       return this.status;

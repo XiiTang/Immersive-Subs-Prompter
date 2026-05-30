@@ -2,7 +2,7 @@ import { Logger } from "../../shared/Logger";
 import type { VideoStateSnapshot } from "@immersive-subs/contracts";
 import type { MediaStateRecord } from "../../shared/types";
 
-export const MINIMUM_DURATION = 10000;
+const MINIMUM_DURATION = 10000;
 
 export class MediaStateStore {
   logger: Logger;

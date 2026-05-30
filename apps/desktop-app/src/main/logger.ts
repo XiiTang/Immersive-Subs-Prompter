@@ -313,6 +313,4 @@ const dispatcher = new LogDispatcher();
 const rootLogger = new ScopedLogger("USP", dispatcher);
 
 export type { LogLevel };
-export const logger = rootLogger;
 export const createLogger = (scope: string): ScopedLogger => rootLogger.child(scope);
-export const setLogLevel = (level: LogLevel) => dispatcher.setLevel(level);

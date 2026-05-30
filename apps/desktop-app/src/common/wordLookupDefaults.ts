@@ -1,6 +1,6 @@
 import type { WordLookupPluginConfig } from "../main/plugins/official/wordLookup/wordLookupTypes.js";
 
-export const DEFAULT_WORD_LOOKUP_PANEL_SIZE = {
+const DEFAULT_WORD_LOOKUP_PANEL_SIZE = {
   width: 360,
   height: 300
 };

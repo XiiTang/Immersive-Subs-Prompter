@@ -1,16 +1,16 @@
 import { AppEventBus } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
-import { JellyfinembySubtitleService } from "./jellyfinemby/index.js";
+import { JellyfinembySubtitleService } from "./jellyfinemby/JellyfinembySubtitlesService.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
-import type { AppSettings, JellyfinembyPluginConfig, MediaServerSettings } from "./types.js";
+import type { AppSettings, JellyfinembyPluginConfig } from "./types.js";
 import { TabContextRegistry } from "./mediaServer/TabContextRegistry.js";
 import { MediaServerUrlResolver } from "./mediaServer/MediaServerUrlResolver.js";
 import { MediaServerSessionHandler } from "./mediaServer/MediaServerSessionHandler.js";
 import { MediaServerMessageHandler } from "./mediaServer/MediaServerMessageHandler.js";
 import { MediaServerStatusHandler } from "./mediaServer/MediaServerStatusHandler.js";
-import { toMediaServerSettings } from "./settings/sanitizers/jellyfinembySanitizer.js";
 import { JELLYFINEMBY_PLUGIN_ID } from "../common/pluginIds.js";
+import type { JellyfinembyRuntimeSettings } from "./jellyfinemby/types.js";
 
 type MediaServerControllerOptions = {
   bus: AppEventBus;
@@ -18,7 +18,7 @@ type MediaServerControllerOptions = {
   getSettings: () => AppSettings;
   cacheManager: SubtitleCacheManager;
   createService?: (
-    settingsProvider: () => MediaServerSettings,
+    settingsProvider: () => JellyfinembyRuntimeSettings,
     cacheManager: SubtitleCacheManager
   ) => MediaServerRuntimeService;
 };
@@ -46,11 +46,10 @@ export class MediaServerController {
   private listenersRegistered = false;
 
   constructor(private readonly options: MediaServerControllerOptions) {
-    const settingsProvider = () =>
-      toMediaServerSettings(
-        this.getJellyfinembyConfig(),
-        this.active
-      );
+    const settingsProvider = () => ({
+      enabled: this.active,
+      servers: this.getJellyfinembyConfig().servers
+    });
     this.mediaServerService = (
       this.options.createService ??
       ((provider, cacheManager) => new JellyfinembySubtitleService(provider, cacheManager))

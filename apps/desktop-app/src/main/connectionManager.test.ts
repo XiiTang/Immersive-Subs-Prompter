@@ -210,7 +210,7 @@ describe("ConnectionManager network listeners", () => {
     );
 
     stateManager.state.activeSource = "mediaserver";
-    stateManager.state.videoUrl = "jellyfinemby://server/item-1";
+    stateManager.state.videoUrl = "http://server.local:8096/Items/item-1";
     subtitleDownload.resolve({
       tracks: [{ id: "stale", sourceFile: "stale.srt", cues: [{ start: 0, end: 1000, text: "stale" }] }]
     });

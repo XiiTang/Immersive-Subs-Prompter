@@ -1,10 +1,10 @@
-export interface ReportedError {
+interface ReportedError {
   context: string;
   message: string;
   error: unknown;
 }
 
-export type ErrorListener = (error: ReportedError) => void;
+type ErrorListener = (error: ReportedError) => void;
 
 const listeners = new Set<ErrorListener>();
 

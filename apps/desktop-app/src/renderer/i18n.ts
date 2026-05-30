@@ -67,7 +67,7 @@ export function translate(key: string, fallback = "", language: SupportedLanguag
   return base?.[key] ?? fallback;
 }
 
-export function formatTranslation(
+function formatTranslation(
   key: string,
   fallback = "",
   language: SupportedLanguage,

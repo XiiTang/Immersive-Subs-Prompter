@@ -1,9 +1,8 @@
 import { createLogger } from "../logger.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import {
-  MediaServerConfig,
+  JellyfinembyServerConfig,
   MediaServerSessionSummary,
-  MediaServerSettings,
   MediaServerStatusPayload
 } from "../types.js";
 import { createJellyfinembyIdentity } from "./identity.js";
@@ -14,6 +13,7 @@ import {
   JellyfinembyEventMap,
   JellyfinembyEventName,
   JellyfinembyListener,
+  JellyfinembyRuntimeSettings,
   SettingsProvider
 } from "./types.js";
 
@@ -31,7 +31,7 @@ export class JellyfinembySubtitleService {
   private readonly log = createLogger("jellyfinemby");
   private readonly listeners = createListenerMap();
   private readonly identity = createJellyfinembyIdentity();
-  private settings: MediaServerSettings;
+  private settings: JellyfinembyRuntimeSettings;
   private connections = new Map<string, JellyfinembyConnection>();
   private connectionStatuses = new Map<string, boolean>();
   private sessionsByConfig = new Map<string, MediaServerSessionSummary[]>();
@@ -59,7 +59,7 @@ export class JellyfinembySubtitleService {
   }
 
   stop() {
-    this.applySettings({ enabled: false, configs: [] });
+    this.applySettings({ enabled: false, servers: [] });
   }
 
   refresh() {
@@ -135,7 +135,7 @@ export class JellyfinembySubtitleService {
     return Array.from(this.sessions.values());
   }
 
-  private applySettings(next: MediaServerSettings) {
+  private applySettings(next: JellyfinembyRuntimeSettings) {
     this.settings = next;
     if (!next.enabled) {
       this.teardownAllConnections();
@@ -149,8 +149,8 @@ export class JellyfinembySubtitleService {
 
   private syncConnections() {
     const enabledConfigs = new Map(
-      this.settings.configs
-        .filter((config) => config.enabled && config.type === "jellyfinemby")
+      this.settings.servers
+        .filter((config) => config.enabled)
         .map((config) => [config.id, config])
     );
 
@@ -179,7 +179,7 @@ export class JellyfinembySubtitleService {
     }
   }
 
-  private createConnection(config: MediaServerConfig) {
+  private createConnection(config: JellyfinembyServerConfig) {
     const hooks: ConnectionHooks = {
       onStatus: (payload) => {
         this.log.debug("Connection status update", {

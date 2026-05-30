@@ -1,8 +1,7 @@
 import {
+  JellyfinembyServerConfig,
   MediaServerPlaybackPayload,
   MediaServerSessionSummary,
-  MediaServerSettings,
-  MediaServerConfig,
   MediaServerStatusPayload,
   MediaServerSubtitlesPayload
 } from "../types.js";
@@ -20,7 +19,12 @@ export type JellyfinembyListener<K extends JellyfinembyEventName> = (payload: Je
 
 export type RawSessionRecord = Record<string, unknown>;
 
-export type SettingsProvider = () => MediaServerSettings;
+export type JellyfinembyRuntimeSettings = {
+  enabled: boolean;
+  servers: JellyfinembyServerConfig[];
+};
+
+export type SettingsProvider = () => JellyfinembyRuntimeSettings;
 
 export type SessionSubscriptionMode = "idle" | "burst" | "continuous";
 

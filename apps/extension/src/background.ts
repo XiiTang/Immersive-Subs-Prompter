@@ -69,7 +69,7 @@ const contentMessageRouter = new ContentMessageRouter({
 });
 
 endpointManager.load().then((endpoints) => {
-  endpointManager.set(endpoints, { persist: false, fallbackToDefault: true });
+  endpointManager.set(endpoints, { persist: false });
 });
 
 chrome.runtime.onConnect.addListener((port) => {

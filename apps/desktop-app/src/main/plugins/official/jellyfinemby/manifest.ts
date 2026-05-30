@@ -1,4 +1,4 @@
-import type { PluginManifest } from "@immersive-subs/plugin-sdk";
+import type { PluginManifest } from "../../pluginManifest.js";
 
 export const JELLYFINEMBY_MANIFEST: PluginManifest = {
   id: "official.jellyfinemby",

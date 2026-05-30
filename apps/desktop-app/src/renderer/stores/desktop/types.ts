@@ -22,7 +22,7 @@ import type { CacheStats } from "./defaults";
 import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
 import type { UpdateSettingsOptions } from "./actions/settingsActions";
 
-export interface DesktopStoreState {
+interface DesktopStoreState {
   desktopState: DesktopState | null;
   settings: AppSettings | null;
   playback: PlaybackState | null;
@@ -33,7 +33,7 @@ export interface DesktopStoreState {
   pluginCatalog: PluginCatalogRow[];
 }
 
-export interface DesktopStoreGetters {
+interface DesktopStoreGetters {
   subtitleTracks: SubtitleTrack[];
   transcriptBlocks: TranscriptBlock[];
   connectionLabel: string;
@@ -45,7 +45,7 @@ export interface DesktopStoreGetters {
   transcriptionState: TranscriptionState | null;
 }
 
-export interface DesktopStoreActions {
+interface DesktopStoreActions {
   // init
   initialize(): Promise<void>;
   attachIpcListeners(): void;

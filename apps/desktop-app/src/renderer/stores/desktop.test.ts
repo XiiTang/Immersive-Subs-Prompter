@@ -427,28 +427,30 @@ describe("desktop store profile selection", () => {
     expect(store.settings?.rules).toEqual([]);
   });
 
-  it("keeps the fallback profile at the bottom when profiles are reordered", () => {
+  it("keeps profile drag operations inside the sortable profile rows", () => {
     const store = useDesktopStore();
     const settings = createSettings();
+    const defaultProfile = settings.profiles[0]!;
+    const bilibiliProfile = settings.profiles[1]!;
     const youtubeProfile = {
-      ...settings.profiles[1]!,
+      ...bilibiliProfile,
       id: "profile-youtube",
       name: "YouTube"
     };
     store.settings = {
       ...settings,
-      profiles: [settings.profiles[0]!, settings.profiles[1]!, youtubeProfile]
+      profiles: [bilibiliProfile, youtubeProfile, defaultProfile]
     };
 
     store.reorderProfile(1, 0);
 
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
-      "profile-bilibili",
       "profile-youtube",
+      "profile-bilibili",
       "profile-default"
     ]);
 
-    store.reorderProfile(2, 0);
+    store.reorderProfile(0, 2);
 
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
       "profile-bilibili",

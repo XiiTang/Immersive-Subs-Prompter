@@ -35,10 +35,6 @@ export type WordLookupWindowOpenPayload = {
   matches: WordLookupMatch[];
 };
 
-export type WordLookupWindowPayload = {
-  matches: WordLookupMatch[];
-};
-
 export type WordLookupWindowBounds = {
   x: number;
   y: number;

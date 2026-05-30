@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { TranscriptionService } from "./transcriptionService.js";
-import { createDefaultTranscriptionConfig } from "../common/transcriptionDefaults.js";
-import type { SubtitleTrack, TranscriptionConfig } from "./types.js";
+import type { SubtitleTrack } from "./types.js";
 
 describe("TranscriptionService", () => {
   it("rejects Whisper JSON without timestamped segments", () => {
     const service = new TranscriptionService(async () => "yt-dlp");
     const buildTrackFromJson = (service as unknown as {
-      buildTrackFromJson(payload: unknown, config: TranscriptionConfig, sourceFile: string): SubtitleTrack;
+      buildTrackFromJson(payload: unknown, sourceFile: string): SubtitleTrack;
     }).buildTrackFromJson.bind(service);
 
     expect(() =>
@@ -15,7 +14,6 @@ describe("TranscriptionService", () => {
         {
           text: "plain transcript text"
         },
-        createDefaultTranscriptionConfig(),
         "source.wav.Whisper API.whisper-1.unknown"
       )
     ).toThrow("timestamped segments");
@@ -24,7 +22,7 @@ describe("TranscriptionService", () => {
   it("rejects Whisper JSON segments without finite timestamps", () => {
     const service = new TranscriptionService(async () => "yt-dlp");
     const buildTrackFromJson = (service as unknown as {
-      buildTrackFromJson(payload: unknown, config: TranscriptionConfig, sourceFile: string): SubtitleTrack;
+      buildTrackFromJson(payload: unknown, sourceFile: string): SubtitleTrack;
     }).buildTrackFromJson.bind(service);
 
     expect(() =>
@@ -36,7 +34,6 @@ describe("TranscriptionService", () => {
             }
           ]
         },
-        createDefaultTranscriptionConfig(),
         "source.wav.Whisper API.whisper-1.unknown"
       )
     ).toThrow("timestamped segments");
@@ -45,7 +42,7 @@ describe("TranscriptionService", () => {
   it("rejects Whisper JSON segments whose timestamps are not numbers", () => {
     const service = new TranscriptionService(async () => "yt-dlp");
     const buildTrackFromJson = (service as unknown as {
-      buildTrackFromJson(payload: unknown, config: TranscriptionConfig, sourceFile: string): SubtitleTrack;
+      buildTrackFromJson(payload: unknown, sourceFile: string): SubtitleTrack;
     }).buildTrackFromJson.bind(service);
 
     expect(() =>
@@ -59,7 +56,6 @@ describe("TranscriptionService", () => {
             }
           ]
         },
-        createDefaultTranscriptionConfig(),
         "source.wav.Whisper API.whisper-1.unknown"
       )
     ).toThrow("timestamped segments");

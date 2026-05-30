@@ -84,7 +84,6 @@ export interface ContentRuntimeState {
   prototypesHooked: boolean;
   urlWatcherInitialized: boolean;
   urlWatcherCleanups: Array<() => void>;
-  urlFallbackTimer: ReturnType<typeof setTimeout> | null;
   lastReportedPlayback: PlaybackPrediction | null;
   loop: LoopRuntimeState;
   domObserver: MutationObserver | null;

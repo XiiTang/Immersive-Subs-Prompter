@@ -22,7 +22,7 @@ export function registerPluginHandlers(context: IpcContext) {
   ipcMain.handle("usp:word-lookup", async (_event, token: string) => {
     const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "lookup");
     if (!command) {
-      return { token, normalizedToken: "", matches: [] };
+      throw new Error("Word Lookup plugin is not enabled.");
     }
     return command(token);
   });
@@ -30,14 +30,7 @@ export function registerPluginHandlers(context: IpcContext) {
   ipcMain.handle("usp:word-lookup-refresh", async () => {
     const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "refresh");
     if (!command) {
-      return {
-        ok: false,
-        wordListPath: "",
-        entryCount: 0,
-        fileMtimeMs: null,
-        loadedAt: null,
-        error: "Word Lookup plugin is disabled."
-      };
+      throw new Error("Word Lookup plugin is not enabled.");
     }
     return command();
   });
@@ -45,14 +38,7 @@ export function registerPluginHandlers(context: IpcContext) {
   ipcMain.handle("usp:word-lookup-status", async () => {
     const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "getStatus");
     if (!command) {
-      return {
-        ok: false,
-        wordListPath: "",
-        entryCount: 0,
-        fileMtimeMs: null,
-        loadedAt: null,
-        error: "Word Lookup plugin is disabled."
-      };
+      throw new Error("Word Lookup plugin is not enabled.");
     }
     return command();
   });

@@ -3,12 +3,12 @@ import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
 import type { MediaServerConfig } from "../types.js";
 
 type TestJellyfinembyPluginConfig = {
-  servers: Array<Omit<MediaServerConfig, "type">>;
+  servers: MediaServerConfig[];
 };
 
 function makeConfigProvider(configs: MediaServerConfig[]): () => TestJellyfinembyPluginConfig {
   return () => ({
-    servers: configs.map(({ type: _type, ...config }) => config)
+    servers: configs
   });
 }
 
@@ -16,7 +16,6 @@ function makeConfig(overrides: Partial<MediaServerConfig>): MediaServerConfig {
   return {
     id: "cfg-1",
     name: "srv",
-    type: "jellyfinemby",
     serverUrl: "http://server.local:8096",
     apiKey: "k",
     webSocketPath: "/socket",
@@ -114,14 +113,14 @@ describe("MediaServerUrlResolver", () => {
       expect(resolver.resolveMediaServerConfig()?.id).toBe("b");
     });
 
-    it("falls back to first config if none enabled", () => {
+    it("returns null if no config is enabled and no id is supplied", () => {
       const resolver = new MediaServerUrlResolver(
         makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: false })
         ]) as never
       );
-      expect(resolver.resolveMediaServerConfig()?.id).toBe("a");
+      expect(resolver.resolveMediaServerConfig()).toBeNull();
     });
   });
 
@@ -187,14 +186,14 @@ describe("MediaServerUrlResolver", () => {
       ).toBe("http://server.local:8096/Items/42");
     });
 
-    it("falls back to jellyfinemby:// scheme when no base url is found", () => {
+    it("returns null when no base url is found", () => {
       const empty = new MediaServerUrlResolver(makeConfigProvider([]) as never);
       expect(
         empty.buildMediaServerItemUrl({
           nowPlayingItemId: "9",
           serverConfigId: "x"
         } as any)
-      ).toBe("jellyfinemby://9");
+      ).toBeNull();
     });
 
     it("builds a details page url when session has an item id", () => {

@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/plugin-sdk build && pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
     "typecheck:renderer": "vue-tsc --noEmit -p tsconfig.renderer.json",
@@ -16,7 +16,6 @@
     "test:renderer:browser": "vitest run --project browser",
     "test:renderer:jsdom": "vitest run --project jsdom",
     "test:renderer:watch": "vitest --project browser --project jsdom",
-    "word-list:normalize": "tsx src/main/plugins/official/wordLookup/wordListCli.ts",
     "start": "pnpm run build && electron-forge start . --app-path .",
     "clean": "rimraf dist",
     "package": "pnpm run build && electron-forge package . --app-path .",
@@ -24,7 +23,7 @@
     "dist:win": "pnpm run build && electron-forge make . --app-path . --platform=win32",
     "dist:mac": "pnpm run build && electron-forge make . --app-path . --platform=darwin",
     "dist:linux": "pnpm run build && electron-forge make . --app-path . --platform=linux",
-    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/plugin-sdk build && pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
+    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
   },
   "keywords": [
     "electron",
@@ -36,7 +35,6 @@
   "dependencies": {
     "@chenglou/pretext": "0.0.7",
     "@immersive-subs/contracts": "workspace:*",
-    "@immersive-subs/plugin-sdk": "workspace:*",
     "@lucide/vue": "1.17.0",
     "get-windows": "9.3.0",
     "iconv-lite": "0.7.2",

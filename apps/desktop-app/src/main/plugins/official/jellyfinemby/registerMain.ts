@@ -1,6 +1,6 @@
-import type { PluginMainContribution } from "@immersive-subs/plugin-sdk";
+import type { PluginMainContribution } from "../../pluginManifest.js";
 
-export interface JellyfinembyPluginController {
+interface JellyfinembyPluginController {
   activate: () => void;
   deactivate: () => void;
 }
@@ -13,7 +13,6 @@ export function registerJellyfinembyPluginMain(context: JellyfinembyPluginContex
   context.mediaServerController.activate();
 
   return {
-    commands: {},
     dispose: () => context.mediaServerController.deactivate()
   };
 }

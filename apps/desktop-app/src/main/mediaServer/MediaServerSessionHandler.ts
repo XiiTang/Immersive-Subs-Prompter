@@ -1,4 +1,4 @@
-import type { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
+import type { JellyfinembySubtitleService } from "../jellyfinemby/JellyfinembySubtitlesService.js";
 import { createLogger } from "../logger.js";
 import type { StateManager } from "../stateManager.js";
 import type { MediaServerSessionSummary } from "../types.js";

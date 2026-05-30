@@ -1,5 +1,4 @@
 import { log, state } from "../content/state";
-import { send } from "../connection/MessageSender";
 import { clearLoopState, startLoop } from "./LoopController";
 import { handleTimeUpdate } from "./VideoStateGatherer";
 import type { ControlMessage } from "../shared/types";

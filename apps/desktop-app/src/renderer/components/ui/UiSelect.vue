@@ -62,7 +62,7 @@ defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
 
-export type UiSelectOption = {
+type UiSelectOption = {
   value: string;
   label: string;
   disabled?: boolean;

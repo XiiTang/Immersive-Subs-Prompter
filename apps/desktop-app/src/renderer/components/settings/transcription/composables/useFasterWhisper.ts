@@ -1,6 +1,7 @@
 import { computed, onWatcherCleanup, ref, watch, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import type { TranscriptionConfig } from "../../../../../main/types";
 import { reportError } from "../../../../utils/errorBus";
+import { normalizeFasterWhisperModelName } from "../../../../../common/fasterWhisperModels";
 
 export interface FasterWhisperPaths {
   binaryDir: string;
@@ -55,19 +56,12 @@ export interface UseFasterWhisperReturn {
   openPath: (target?: string | null) => Promise<void>;
 }
 
-function normalizeModelName(name: string) {
-  const trimmed = (name || "").trim();
-  return trimmed.startsWith("faster-whisper-") ? trimmed.replace(/^faster-whisper-/, "") : trimmed;
-}
-
 function createJobId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${(crypto as Crypto).randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
-
-export { normalizeModelName };
 
 export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhisperReturn {
   const { t, activeConfig, isFasterWhisper, updateConfig, fasterWhisperModel, fasterWhisperModelDir } = options;
@@ -307,7 +301,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       if (!current) {
         return availableModels.value.length ? availableModels.value[0].name : "custom";
       }
-      const normalized = normalizeModelName(current);
+      const normalized = normalizeFasterWhisperModelName(current);
       const match = availableModels.value.find(
         (entry) => entry.name === normalized || entry.folder === current || entry.path === current
       );

@@ -1539,10 +1539,6 @@ body.main-window-body,
   gap: 12px;
 }
 
-.settings-field--wide {
-  grid-column: 1 / -1;
-}
-
 .settings-grid {
   display: grid;
   gap: 12px;
@@ -1836,10 +1832,9 @@ body.main-window-body,
 .profile-list__name,
 .profile-list__name-action,
 .profile-list__name-input,
-.settings-config-name-action,
-.settings-config-name-input,
-.transcription-config-list__label,
-.mediaserver-config-list__name {
+  .settings-config-name-action,
+  .settings-config-name-input,
+  .mediaserver-config-list__name {
   color: var(--ui-text);
   font-weight: 650;
 }
@@ -2287,21 +2282,6 @@ body.main-window-body,
 
 .color-swatch-input {
   width: 100%;
-}
-
-.cache-field-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.cache-field--grow {
-  flex: 1;
-  min-width: 0;
-}
-
-.cache-field--fixed {
-  flex: 0 0 auto;
 }
 
 .transcript-surface {

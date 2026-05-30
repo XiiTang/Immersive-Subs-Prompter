@@ -6,7 +6,6 @@ import type {
   MediaServerConfig,
   MediaServerSessionSummary
 } from "../types.js";
-import { toMediaServerConfig } from "../settings/sanitizers/jellyfinembySanitizer.js";
 
 export class MediaServerUrlResolver {
   private readonly log = createLogger("mediaserver-url-resolver");
@@ -101,7 +100,7 @@ export class MediaServerUrlResolver {
     if (enabled) {
       return enabled;
     }
-    return configs[0] ?? null;
+    return null;
   }
 
   getMediaServerBaseUrl(configId?: string | null): string | null {
@@ -119,7 +118,7 @@ export class MediaServerUrlResolver {
     }
     const base = this.getMediaServerBaseUrl(session.serverConfigId);
     if (!base) {
-      return `jellyfinemby://${session.nowPlayingItemId}`;
+      return null;
     }
     return `${base}/Items/${session.nowPlayingItemId}`;
   }
@@ -139,6 +138,6 @@ export class MediaServerUrlResolver {
   }
 
   private getMediaServerConfigs(): MediaServerConfig[] {
-    return this.getConfig().servers.map(toMediaServerConfig);
+    return this.getConfig().servers;
   }
 }

@@ -1,7 +1,6 @@
 import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import type { ConnectionMessageEvent } from "../appEventBus.js";
-import type { JellyfinembySubtitleService } from "../jellyfinemby/index.js";
-import { createLogger } from "../logger.js";
+import type { JellyfinembySubtitleService } from "../jellyfinemby/JellyfinembySubtitlesService.js";
 import type { StateManager } from "../stateManager.js";
 import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
 import { TabContextRegistry } from "./TabContextRegistry.js";
@@ -12,8 +11,6 @@ type MessageHandlerService = Pick<
 >;
 
 export class MediaServerMessageHandler {
-  private readonly log = createLogger("mediaserver-message-handler");
-
   constructor(
     private readonly stateManager: StateManager,
     private readonly mediaServerService: MessageHandlerService,

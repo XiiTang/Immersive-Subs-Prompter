@@ -1,7 +1,7 @@
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
-import { SettingsStore, DEFAULT_SETTINGS } from "../settings/index.js";
+import { SettingsStore } from "../settings/index.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
 import { AppSettings, DesktopState, PlaybackState, TranscriptionPluginConfig } from "../types.js";
@@ -55,7 +55,6 @@ function areNetworkSettingsEqual(a: AppSettings["network"], b: AppSettings["netw
 }
 
 export class WindowController {
-  private isQuitting = false;
   private readonly log = createLogger("desktop");
   private readonly displayManager: DisplayManager;
   private readonly autoLaunchManager: AutoLaunchManager;
@@ -76,10 +75,7 @@ export class WindowController {
       getTrayIconPath: () => this.getTrayIconPath(),
       getLanguage: () => this.options.getSettings().global.language ?? "en",
       onShow: () => this.showMainWindow(),
-      onQuickShow: () => this.quickShowMainWindow(),
-      onQuit: () => {
-        this.isQuitting = true;
-      }
+      onQuickShow: () => this.quickShowMainWindow()
     });
     this.windowManager = new WindowManager({
       getSettings: this.options.getSettings,
@@ -159,9 +155,9 @@ export class WindowController {
 
   initialize() {
     const previousSettings = this.options.getSettings();
-    const loadedSettings = this.options.settingsStore.get() ?? DEFAULT_SETTINGS;
+    const loadedSettings = this.options.settingsStore.get();
     this.options.setSettings(loadedSettings);
-    this.options.stateManager.handleSettingsUpdated(previousSettings, loadedSettings);
+    this.options.stateManager.handleSettingsUpdated(previousSettings);
     const defaultSelection = this.options.stateManager.selectProfileForUrl(null);
     this.options.stateManager.applyProfileSelection(defaultSelection.profile, defaultSelection.rule);
 
@@ -178,7 +174,6 @@ export class WindowController {
   }
 
   handleBeforeQuit() {
-    this.isQuitting = true;
     this.gameProcessMonitor.stop();
     this.shortcutManager.clearRegistration();
     this.options.cacheManager.stop();
@@ -271,7 +266,7 @@ export class WindowController {
     const previousNetwork = previous.network;
     const appSettings = this.options.settingsStore.update(partial);
     this.options.setSettings(appSettings);
-    this.options.stateManager.handleSettingsUpdated(previous, appSettings);
+    this.options.stateManager.handleSettingsUpdated(previous);
     this.options.mediaServerController.handleSettingsUpdated();
 
     if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {

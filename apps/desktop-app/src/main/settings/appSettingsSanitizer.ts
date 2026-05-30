@@ -1,73 +1,42 @@
-import type { AppSettings, PluginSettingsRecord } from "../types.js";
-import { sanitizeGlobalSettings, validateGlobalSettingsForUpdate } from "./sanitizers/globalSanitizer.js";
-import { sanitizeNetworkSettings, validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
-import { ensureFallbackProfileLast, sanitizeProfiles, validateProfilesForUpdate } from "./sanitizers/profileSanitizer.js";
-import { sanitizeRules, validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
+import type { AppSettings } from "../types.js";
+import { validateGlobalSettingsForUpdate } from "./sanitizers/globalSanitizer.js";
+import { validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
+import { validateProfilesForUpdate } from "./sanitizers/profileSanitizer.js";
+import { validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
 import {
-  sanitizeTranscriptionPluginConfig,
   validateTranscriptionPluginConfigForUpdate
 } from "./sanitizers/transcriptionSanitizer.js";
 import {
-  sanitizeWordLookupPluginConfig,
   validateWordLookupPluginConfigForUpdate
 } from "./sanitizers/wordLookupSanitizer.js";
 import {
-  sanitizeJellyfinembyPluginConfig,
   validateJellyfinembyPluginConfigForUpdate
 } from "./sanitizers/jellyfinembySanitizer.js";
-import { sanitizeCacheSettings, validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
+import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
 import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
-import { DEFAULT_PROFILE_ID } from "./constants.js";
+import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "./constants.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
-import { assertNoUnknownKeys } from "./utils.js";
+import { assertNoUnknownKeys, assertRequiredKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "plugins", "cache"] as const;
 const PLUGIN_SETTINGS_RECORD_KEYS = ["config"] as const;
 const BUILTIN_PLUGIN_IDS = [JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID] as const;
+const GLOBAL_SETTINGS_KEYS = [
+  "autoLaunch",
+  "toggleWindowShortcut",
+  "gameProcessBlacklist",
+  "autoHidePanels",
+  "alwaysOnTop",
+  "panelOpacity",
+  "language",
+  "appearance"
+] as const;
+const CACHE_SETTINGS_KEYS = Object.keys(DEFAULT_CACHE_SETTINGS);
 type BuiltinPluginId = (typeof BUILTIN_PLUGIN_IDS)[number];
 
 function isBuiltinPluginId(pluginId: string): pluginId is BuiltinPluginId {
   return (BUILTIN_PLUGIN_IDS as readonly string[]).includes(pluginId);
-}
-
-function sanitizePluginConfig(pluginId: BuiltinPluginId, config: unknown): Record<string, unknown> {
-  switch (pluginId) {
-    case JELLYFINEMBY_PLUGIN_ID:
-      return sanitizeJellyfinembyPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
-    case TRANSCRIPTION_PLUGIN_ID:
-      return sanitizeTranscriptionPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
-    case WORD_LOOKUP_PLUGIN_ID:
-      return sanitizeWordLookupPluginConfig(config as Record<string, unknown>) as unknown as Record<string, unknown>;
-  }
-}
-
-function sanitizePluginSettings(
-  input: Partial<AppSettings>["plugins"]
-): Record<string, PluginSettingsRecord> {
-  const result: Record<string, PluginSettingsRecord> = {
-    [JELLYFINEMBY_PLUGIN_ID]: {
-      config: sanitizeJellyfinembyPluginConfig(undefined) as unknown as Record<string, unknown>
-    },
-    [TRANSCRIPTION_PLUGIN_ID]: {
-      config: sanitizeTranscriptionPluginConfig(undefined) as unknown as Record<string, unknown>
-    },
-    [WORD_LOOKUP_PLUGIN_ID]: {
-      config: sanitizeWordLookupPluginConfig(undefined) as unknown as Record<string, unknown>
-    }
-  };
-  if (!input || typeof input !== "object") return result;
-  for (const [pluginId, record] of Object.entries(input as Record<string, unknown>)) {
-    if (!isBuiltinPluginId(pluginId)) {
-      continue;
-    }
-    if (!record || typeof record !== "object") continue;
-    const config = (record as { config?: unknown }).config;
-    result[pluginId] = {
-      config: sanitizePluginConfig(pluginId, config)
-    };
-  }
-  return result;
 }
 
 function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown): void {
@@ -93,29 +62,55 @@ function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown
 }
 
 export function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSettings {
-  if (!input || typeof input !== "object") {
-    return DEFAULT_SETTINGS_FACTORY();
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("settings file must use the current object setting");
   }
 
-  const raw = input as Partial<AppSettings>;
-  const defaults = DEFAULT_SETTINGS_FACTORY();
-  const global = sanitizeGlobalSettings(raw.global ?? defaults.global);
-  const network = sanitizeNetworkSettings(raw.network ?? defaults.network);
-  const sanitizedProfiles = sanitizeProfiles(raw.profiles ?? defaults.profiles);
-  const defaultProfileId = DEFAULT_PROFILE_ID;
-  const profiles = ensureFallbackProfileLast(sanitizedProfiles, defaultProfileId);
-  const rules = sanitizeRules(raw.rules ?? defaults.rules, profiles, defaultProfileId);
-  const plugins = sanitizePluginSettings(raw.plugins ?? defaults.plugins);
-  const cache = sanitizeCacheSettings(raw.cache ?? defaults.cache);
-  return {
-    global,
-    network,
-    profiles,
-    defaultProfileId,
-    rules,
-    plugins,
-    cache
-  };
+  const raw = input as Record<string, unknown>;
+  assertNoUnknownKeys(raw, APP_SETTINGS_KEYS, "settings");
+  assertRequiredKeys(raw, APP_SETTINGS_KEYS, "settings");
+
+  if (raw.defaultProfileId !== DEFAULT_PROFILE_ID) {
+    throw new Error("settings.defaultProfileId must use the fixed current fallback profile");
+  }
+
+  validateGlobalSettingsForLoad(raw.global);
+  validateNetworkSettingsForUpdate(raw.network);
+  const profiles = validateProfilesForUpdate(raw.profiles, DEFAULT_PROFILE_ID);
+  validateRulesForUpdate(raw.rules, profiles, DEFAULT_PROFILE_ID);
+  validatePluginSettingsForLoad(raw.plugins);
+  validateCacheSettingsForLoad(raw.cache);
+
+  return input as AppSettings;
+}
+
+function validateGlobalSettingsForLoad(input: unknown): void {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("global settings must use the current object setting");
+  }
+  const source = input as Record<string, unknown>;
+  assertRequiredKeys(source, GLOBAL_SETTINGS_KEYS, "global");
+  validateGlobalSettingsForUpdate(input);
+}
+
+function validatePluginSettingsForLoad(input: unknown): void {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("plugins settings must use the current object setting");
+  }
+  const source = input as Record<string, unknown>;
+  assertNoUnknownKeys(source, BUILTIN_PLUGIN_IDS, "plugins");
+  assertRequiredKeys(source, BUILTIN_PLUGIN_IDS, "plugins");
+  for (const pluginId of BUILTIN_PLUGIN_IDS) {
+    validatePluginSettingsRecordForUpdate(pluginId, source[pluginId]);
+  }
+}
+
+function validateCacheSettingsForLoad(input: unknown): void {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("cache settings must use the current object setting");
+  }
+  assertRequiredKeys(input as Record<string, unknown>, CACHE_SETTINGS_KEYS, "cache");
+  validateCacheSettingsForUpdate(input);
 }
 
 export function validateSettingsForUpdate(

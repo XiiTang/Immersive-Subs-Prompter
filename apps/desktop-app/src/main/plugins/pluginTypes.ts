@@ -1,6 +1,6 @@
-import type { PluginManifest, PluginSettingsContribution } from "@immersive-subs/plugin-sdk";
+import type { PluginManifest, PluginSettingsContribution } from "./pluginManifest.js";
 
-export type LocalPluginStatus = "disabled" | "enabled" | "broken";
+type LocalPluginStatus = "disabled" | "enabled" | "broken";
 
 export interface InstalledPluginRecord {
   id: PluginManifest["id"];

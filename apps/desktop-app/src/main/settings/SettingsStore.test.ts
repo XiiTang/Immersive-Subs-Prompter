@@ -535,13 +535,12 @@ describe("SettingsStore", () => {
     expect(store.get().global.language).toBe(previous.global.language);
   });
 
-  it("recovers to defaults if settings file is corrupted", async () => {
+  it("throws when the settings file is corrupted", async () => {
     const filePath = path.join(userDataDir, "settings.json");
     await fsp.mkdir(userDataDir, { recursive: true });
     await fsp.writeFile(filePath, "{not valid json", "utf-8");
 
-    const store = await loadStore();
-    expect(store.get().profiles.length).toBeGreaterThan(0);
+    await expect(loadStore()).rejects.toThrow();
   });
 
   it("rejects defaultProfileId updates", async () => {

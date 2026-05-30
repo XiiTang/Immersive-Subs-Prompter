@@ -16,7 +16,7 @@ export function setDomCallbacks({
   videoRemovedHandler = typeof onVideoRemoved === "function" ? onVideoRemoved : null;
 }
 
-export function ensureDocListeners(target: Document | ShadowRoot | null) {
+function ensureDocListeners(target: Document | ShadowRoot | null) {
   if (!target || typeof target.addEventListener !== "function" || state.observedDocs.has(target)) return;
   if (!mediaEventHandler) return;
   state.observedDocs.add(target);
@@ -37,7 +37,7 @@ function getShadowRoot(element: Element | null): ShadowRoot | null {
   return element.shadowRoot;
 }
 
-export function scanForShadowRoots(root: ParentNode | null = document.body) {
+function scanForShadowRoots(root: ParentNode | null = document.body) {
   if (!root || typeof root.querySelectorAll !== "function") return;
   const elements = root.querySelectorAll("*");
   elements.forEach((element) => {
@@ -48,6 +48,11 @@ export function scanForShadowRoots(root: ParentNode | null = document.body) {
       scanForShadowRoots(shadowRoot);
     }
   });
+}
+
+export function observeShadowRoot(shadowRoot: ShadowRoot) {
+  ensureDocListeners(shadowRoot);
+  scanForShadowRoots(shadowRoot);
 }
 
 function findVideosInNode(node: Node | null): HTMLVideoElement[] {
@@ -103,8 +108,7 @@ export function startDOMObserver() {
           const shadowRoot = getShadowRoot(element);
           if (shadowRoot && !state.observedDocs.has(shadowRoot)) {
             log.info("shadow", "New Shadow DOM detected via mutation", { host: element.tagName });
-            ensureDocListeners(shadowRoot);
-            scanForShadowRoots(shadowRoot);
+            observeShadowRoot(shadowRoot);
           }
           scanForShadowRoots(element);
         }

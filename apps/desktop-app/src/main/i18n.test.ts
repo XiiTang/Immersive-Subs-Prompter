@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LANGUAGE,
   SUPPORTED_LANGUAGES,
-  formatTranslation,
   normalizeLanguage,
   translate
 } from "./i18n.js";
@@ -42,26 +41,4 @@ describe("main i18n", () => {
     });
   });
 
-  describe("formatTranslation", () => {
-    it("interpolates named placeholders", () => {
-      expect(
-        formatTranslation("unknown", "Hello {name}, you are {count}", "en", {
-          name: "Ada",
-          count: "42"
-        })
-      ).toBe("Hello Ada, you are 42");
-    });
-
-    it("replaces repeated placeholders", () => {
-      expect(
-        formatTranslation("unknown", "{x}+{x}={y}", "en", { x: "1", y: "2" })
-      ).toBe("1+1=2");
-    });
-
-    it("leaves unknown placeholders intact", () => {
-      expect(
-        formatTranslation("unknown", "{a}/{b}", "en", { a: "1" })
-      ).toBe("1/{b}");
-    });
-  });
 });

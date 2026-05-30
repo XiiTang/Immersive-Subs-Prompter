@@ -1,4 +1,4 @@
-import type { PluginMainContribution } from "@immersive-subs/plugin-sdk";
+import type { PluginMainContribution } from "../../pluginManifest.js";
 import type { WordLookupPluginConfig } from "./wordLookupTypes.js";
 import { WordLookupService } from "./WordLookupService.js";
 

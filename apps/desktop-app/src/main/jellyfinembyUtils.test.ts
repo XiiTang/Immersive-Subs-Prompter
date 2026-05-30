@@ -20,7 +20,6 @@ function makeConfig(overrides: Partial<MediaServerConfig> = {}): MediaServerConf
   return {
     id: "cfg-1",
     name: "Test",
-    type: "jellyfinemby",
     serverUrl: "http://server.local:8096",
     apiKey: "key-abc",
     webSocketPath: "/socket",
@@ -46,8 +45,8 @@ describe("jellyfinembyUtils", () => {
       );
     });
 
-    it("returns trimmed fallback for unparsable urls", () => {
-      expect(normalizeServerUrl("not a url/")).toBe("not a url");
+    it("throws for unparsable urls", () => {
+      expect(() => normalizeServerUrl("not a url/")).toThrow("Invalid jellyfinemby server URL");
     });
   });
 

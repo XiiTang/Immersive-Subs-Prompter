@@ -44,42 +44,6 @@ function createTranscriptionConfigId() {
   return `transcription-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
-function validateExtraParams(
-  parsed: unknown,
-  t: (key: string, fallback: string) => string
-): { ok: true; value: Record<string, string> } | { ok: false; error: string } {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return {
-      ok: false,
-      error: t("transcription-extra-params-invalid", "Please enter a valid JSON object.")
-    };
-  }
-
-  const value = parsed as Record<string, unknown>;
-  for (const [key, entry] of Object.entries(value)) {
-    if (!key.trim() || key !== key.trim()) {
-      return {
-        ok: false,
-        error: t(
-          "transcription-extra-params-invalid-key",
-          "Extra parameter keys must be non-empty trimmed strings."
-        )
-      };
-    }
-    if (typeof entry !== "string") {
-      return {
-        ok: false,
-        error: t(
-          "transcription-extra-params-invalid-value",
-          "Extra parameter values must be strings."
-        )
-      };
-    }
-  }
-
-  return { ok: true, value: value as Record<string, string> };
-}
-
 export function useTranscriptionConfig(
   t: (key: string, fallback: string) => string
 ): UseTranscriptionConfigReturn {
@@ -221,12 +185,18 @@ export function useTranscriptionConfig(
       }
       try {
         const parsed = JSON.parse(trimmed);
-        const validation = validateExtraParams(parsed, t);
-        if (!validation.ok) {
-          extraParamsError.value = validation.error;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          extraParamsError.value = t("transcription-extra-params-invalid", "Please enter a valid JSON object.");
           return;
         }
-        updateConfig({ extraParams: validation.value });
+        if (Object.values(parsed as Record<string, unknown>).some((entry) => typeof entry !== "string")) {
+          extraParamsError.value = t(
+            "transcription-extra-params-string-values",
+            "Extra parameter values must be strings."
+          );
+          return;
+        }
+        updateConfig({ extraParams: parsed as Record<string, unknown> });
         extraParamsError.value = null;
       } catch (error) {
         extraParamsError.value =
@@ -265,9 +235,7 @@ export function useTranscriptionConfig(
   const fasterWhisperVadThreshold = computed<number>({
     get: () => selectedConfig.value?.fasterWhisperVadThreshold ?? 0.5,
     set: (value: number) => {
-      const current = selectedConfig.value?.fasterWhisperVadThreshold ?? 0.5;
-      const normalized = Number.isFinite(value) ? value : current;
-      updateConfig({ fasterWhisperVadThreshold: normalized });
+      updateConfig({ fasterWhisperVadThreshold: value });
     }
   });
 

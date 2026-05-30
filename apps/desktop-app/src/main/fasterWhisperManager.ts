@@ -5,6 +5,7 @@ import { Readable } from "stream";
 import { createLogger } from "./logger.js";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { normalizeFasterWhisperModelName } from "../common/fasterWhisperModels.js";
 
 const execAsync = promisify(exec);
 
@@ -65,11 +66,6 @@ export class FasterWhisperManager {
   private readonly baseDir = path.join(app.getPath("userData"), "faster-whisper");
   private readonly binDir = path.join(this.baseDir, "bin");
   private readonly modelsDir = path.join(this.baseDir, "models");
-  private readonly normalizeModelName = (name: string) => {
-    const trimmed = name.trim();
-    return trimmed.startsWith("faster-whisper-") ? trimmed.replace(/^faster-whisper-/, "") : trimmed;
-  };
-
   async getPaths() {
     await this.ensureDirs();
     return {
@@ -120,15 +116,10 @@ export class FasterWhisperManager {
     await this.ensureDirs();
     const normalized = this.normalizeModel(model);
     const repoName = `faster-whisper-${normalized}`;
-    const repoId = `Systran/${repoName}`;
     const targetDir = path.join(this.modelsDir, repoName);
     await fs.mkdir(targetDir, { recursive: true });
 
-    const files = await this.listModelFiles(repoId);
-    if (!files.length) {
-      throw new Error(`Unable to list model files for ${repoId}`);
-    }
-
+    const files = this.listModelFiles();
     const totalFiles = files.length;
     for (const [index, file] of files.entries()) {
       const outPath = path.join(targetDir, file.name);
@@ -184,7 +175,7 @@ export class FasterWhisperManager {
     return lower;
   }
 
-  private async listModelFiles(repoId: string): Promise<ModelFile[]> {
+  private listModelFiles(): ModelFile[] {
     return REQUIRED_MODEL_FILES.map((name) => ({ name, size: null }));
   }
 
@@ -261,7 +252,7 @@ export class FasterWhisperManager {
       const hasAllFiles = await this.hasRequiredModelFiles(modelPath);
       if (!hasAllFiles) continue;
       models.push({
-        name: this.normalizeModelName(folder),
+        name: normalizeFasterWhisperModelName(folder),
         path: modelPath,
         folder
       });

@@ -29,7 +29,7 @@ export function normalizeServerUrl(input: string | null | undefined): string {
     url.pathname = url.pathname.replace(/\/+$/, "");
     return url.toString().replace(/\/+$/, "");
   } catch {
-    return input.trim().replace(/\/+$/, "");
+    throw new Error("Invalid jellyfinemby server URL");
   }
 }
 

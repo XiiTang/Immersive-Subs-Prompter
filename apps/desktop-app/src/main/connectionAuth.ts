@@ -20,21 +20,11 @@ export function createConnectionAuthToken(): string {
   return randomBytes(TOKEN_BYTES).toString("base64url");
 }
 
-export function sanitizeConnectionAuthToken(value: unknown): string {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (isConnectionAuthToken(trimmed)) {
-      return trimmed;
-    }
-  }
-  return createConnectionAuthToken();
-}
-
 export function isConnectionAuthToken(value: unknown): value is string {
   return typeof value === "string" && TOKEN_PATTERN.test(value);
 }
 
-export function isTrustedExtensionOrigin(origin: string | string[] | undefined): boolean {
+function isTrustedExtensionOrigin(origin: string | string[] | undefined): boolean {
   const value = Array.isArray(origin) ? origin[0] : origin;
   return typeof value === "string" && EXTENSION_ORIGIN_PATTERN.test(value.trim());
 }

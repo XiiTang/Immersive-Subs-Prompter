@@ -325,7 +325,7 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).not.toContain("字幕行间距");
   });
 
-  it("edits profile names inline in the profile list instead of a separate editor field", async () => {
+  it("edits profile names inline in the profile list", async () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -1027,7 +1027,7 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).toContain("youtu.be");
   });
 
-  it("renders the fallback profile as a fixed bottom row without set-default controls", () => {
+  it("renders the fallback profile as a fixed bottom row", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -1056,7 +1056,7 @@ describe("SettingsProfiles", () => {
     expect(wrapper.text()).not.toContain("Set as Default");
   });
 
-  it("renders URL rules as sortable pill chips without enable switches or row actions", () => {
+  it("renders URL rules as sortable pill chips", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),

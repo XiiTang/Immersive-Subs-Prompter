@@ -12,6 +12,6 @@ export interface PluginManifest {
 }
 
 export interface PluginMainContribution {
-  commands: Record<string, (...args: unknown[]) => Promise<unknown>>;
+  commands?: Record<string, (...args: unknown[]) => Promise<unknown>>;
   dispose?: () => void;
 }

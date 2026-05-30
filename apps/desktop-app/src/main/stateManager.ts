@@ -314,7 +314,7 @@ export class StateManager {
     return this.applyProfileSelection(selection.profile, selection.rule);
   }
 
-  handleSettingsUpdated(previous: AppSettings, next: AppSettings) {
+  handleSettingsUpdated(previous: AppSettings) {
     const previousProfileSettings = getProfileSettingsFrom(previous, this.activeProfileId);
     const hadTracks = this.state.subtitleTracks.length > 0;
 

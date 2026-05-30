@@ -21,21 +21,13 @@ export class SettingsStore {
   }
 
   private load() {
-    try {
-      if (!fs.existsSync(this.filePath)) {
-        this.data = DEFAULT_SETTINGS_FACTORY();
-        return;
-      }
-      const raw = fs.readFileSync(this.filePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      this.data = sanitizeSettings(parsed);
-    } catch (error) {
-      reportError(error, "settings.load", {
-        scope: "settings",
-        extra: { filePath: this.filePath }
-      });
+    if (!fs.existsSync(this.filePath)) {
       this.data = DEFAULT_SETTINGS_FACTORY();
+      return;
     }
+    const raw = fs.readFileSync(this.filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    this.data = sanitizeSettings(parsed);
   }
 
   private save(data: AppSettings) {

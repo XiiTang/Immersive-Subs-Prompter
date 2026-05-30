@@ -91,8 +91,6 @@ export interface GlobalSettings {
   appearance: AppearanceSettings;
 }
 
-export type MediaServerType = "jellyfinemby";
-
 export interface JellyfinembyServerConfig {
   id: string;
   name: string;
@@ -106,14 +104,7 @@ export interface JellyfinembyPluginConfig {
   servers: JellyfinembyServerConfig[];
 }
 
-export interface MediaServerConfig extends JellyfinembyServerConfig {
-  type: MediaServerType;
-}
-
-export interface MediaServerSettings {
-  enabled: boolean;
-  configs: MediaServerConfig[];
-}
+export type MediaServerConfig = JellyfinembyServerConfig;
 
 export interface TranscriptionConfig {
   id: string;
@@ -230,7 +221,7 @@ export interface MediaServerSessionSummary {
   id: string;
   serverConfigId: string;
   serverName: string;
-  serverType: MediaServerType;
+  serverType: "jellyfinemby";
   deviceName: string | null;
   client: string | null;
   userName: string | null;
@@ -253,14 +244,14 @@ export interface MediaServerPanelState {
 
 export interface MediaServerStatusPayload {
   connected: boolean;
-  serverType: MediaServerType;
+  serverType: "jellyfinemby";
 }
 
 export interface MediaServerSubtitlesPayload {
   sessionId: string | null;
   itemName: string | null;
   tracks: SubtitleTrack[];
-  serverType: MediaServerType;
+  serverType: "jellyfinemby";
 }
 
 export interface MediaServerPlaybackPayload {
@@ -270,7 +261,7 @@ export interface MediaServerPlaybackPayload {
   runTimeMs: number | null;
   playbackRate: number;
   isPaused: boolean;
-  serverType: MediaServerType;
+  serverType: "jellyfinemby";
 }
 
 export type TranscriptionStatus = "idle" | "running" | "success" | "error";

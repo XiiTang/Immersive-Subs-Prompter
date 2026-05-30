@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseWordListJsonl } from "./wordListParser.js";
-import { normalizeWordListToJsonl, validateWordListJsonl } from "./wordListValidator.js";
 import { normalizeLookupKey } from "./wordLookupNormalizer.js";
 import { WordLookupService } from "./WordLookupService.js";
 
@@ -49,56 +48,6 @@ describe("word lookup normalization", () => {
   });
 });
 
-describe("word list validation and conversion", () => {
-  it("converts JSON arrays to canonical JSONL and revalidates the output", () => {
-    const result = normalizeWordListToJsonl(JSON.stringify([
-      { word: "run", content: "run content", aliases: ["runs", "", "runs"] },
-      { word: "walk", content: "walk content" }
-    ]));
-
-    expect(result.entryCount).toBe(2);
-    expect(result.jsonl).toBe([
-      JSON.stringify({ word: "run", content: "run content", aliases: ["runs"] }),
-      JSON.stringify({ word: "walk", content: "walk content" })
-    ].join("\n") + "\n");
-    expect(validateWordListJsonl(result.jsonl)).toEqual({ ok: true, entryCount: 2, errors: [] });
-  });
-
-  it("converts wrapped entry objects to canonical JSONL", () => {
-    const result = normalizeWordListToJsonl(JSON.stringify({
-      entries: [
-        { word: "A.M.", content: "morning" }
-      ]
-    }));
-
-    expect(result.jsonl).toBe(`${JSON.stringify({ word: "A.M.", content: "morning" })}\n`);
-  });
-
-  it("returns validation errors without throwing for invalid JSONL", () => {
-    expect(validateWordListJsonl("{\"word\":\"ok\",\"content\":\"ok\"}\n{\"word\":\"bad\"}")).toEqual({
-      ok: false,
-      entryCount: 0,
-      errors: ["Invalid word list row at line 2: word and content must be non-empty strings"]
-    });
-  });
-
-  it("can skip invalid JSONL rows while producing a parseable output", () => {
-    const result = normalizeWordListToJsonl([
-      JSON.stringify({ word: "ok", content: "ok content" }),
-      JSON.stringify({ word: "bad", content: "" })
-    ].join("\n"), { skipInvalid: true });
-
-    expect(result.entryCount).toBe(1);
-    expect(result.skippedRows).toEqual([
-      {
-        label: "line 2",
-        error: "line 2: content must be a non-empty string"
-      }
-    ]);
-    expect(validateWordListJsonl(result.jsonl)).toEqual({ ok: true, entryCount: 1, errors: [] });
-  });
-});
-
 describe("WordLookupService", () => {
   it("sorts duplicate hits by match quality before falling back to file order", async () => {
     const filePath = tempWordList([
@@ -124,7 +73,7 @@ describe("WordLookupService", () => {
     ]);
   });
 
-  it("keeps the previous loaded index when a later refresh fails", async () => {
+  it("clears the loaded index when a later refresh fails", async () => {
     const validPath = tempWordList(JSON.stringify({ word: "stable", content: "cached" }));
     let path = validPath;
     const service = new WordLookupService(() => ({ wordListPath: path, modifierKey: "alt", panelSize: { width: 360, height: 300 } }));
@@ -135,7 +84,7 @@ describe("WordLookupService", () => {
     const result = await service.lookup("stable");
 
     expect(status.ok).toBe(false);
-    expect(result.matches.map((match) => match.content)).toEqual(["cached"]);
+    expect(result.matches).toEqual([]);
   });
 
   it("deduplicates same-entry alias hits while keeping the best match quality", async () => {

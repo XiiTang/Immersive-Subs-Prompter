@@ -1,4 +1,4 @@
-import type { PluginMainContribution } from "@immersive-subs/plugin-sdk";
+import type { PluginMainContribution } from "../../pluginManifest.js";
 import type { TranscriptionConfig, TranscriptionPluginConfig, SubtitleTrack } from "../../../types.js";
 import type { StateManager } from "../../../stateManager.js";
 import type { TranscriptionService } from "../../../transcriptionService.js";
