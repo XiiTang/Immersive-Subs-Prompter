@@ -72,6 +72,18 @@ describe("TranscriptBlock", () => {
     expect(wrapper.get('[data-testid="cue-action-loop"]').attributes("aria-label")).toBe("Loop cue 00:00 - 00:01");
   });
 
+  it("emits play only from the cue play button, not transcript line clicks", async () => {
+    const wrapper = mount(TranscriptBlock, {
+      props: { ...defaultProps, isActive: true }
+    });
+
+    await wrapper.get(".transcript-block__line").trigger("click");
+    expect(wrapper.emitted("play")).toBeUndefined();
+
+    await wrapper.get('[data-testid="cue-action-play"]').trigger("click");
+    expect(wrapper.emitted("play")).toEqual([[]]);
+  });
+
   it("localizes cue action aria labels through the provided translator", () => {
     const labels: Record<string, string> = {
       "cue-play-label": "从 {time} 播放",

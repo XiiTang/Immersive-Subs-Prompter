@@ -8,7 +8,6 @@
     @mouseleave="hovered = false"
     @focusin="focusedWithin = true"
     @focusout="focusedWithin = false"
-    @click="$emit('play')"
   >
     <div class="transcript-block__body" data-testid="transcript-block-body">
       <div

@@ -2334,7 +2334,6 @@ body.main-window-body,
   transition: opacity 0.18s ease;
   opacity: 0.58;
   color: inherit;
-  cursor: pointer;
 }
 
 .transcript-block:hover {

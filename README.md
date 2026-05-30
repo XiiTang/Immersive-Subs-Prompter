@@ -19,7 +19,7 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
 - **Language learning (ideal for focused listening) 🎓:**
   - **Bilingual subtitles:** Automatically fetches all available subtitle tracks (including auto-generated ones) and displays two languages side-by-side in the desktop panel (for example, primary English with secondary Chinese) for immersive bilingual comparison.
   - **A–B repeat (single-sentence loop) 🔁:** Spot a tricky sentence? Click the "loop" button beside a subtitle line and the corresponding segment will replay continuously — perfect for listening drills and shadowing.
-  - **Precise seeking 🎯:** Click any line in the subtitle panel to jump the video to that exact timestamp for quick review.
+  - **Precise seeking 🎯:** Click the play button above a subtitle line to jump the video to that exact timestamp for quick review.
 
 - **Jellyfinemby media-library enhancements 🏠:**
   - **Unified experience:** Not limited to web players — deep Jellyfinemby integration brings the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
@@ -121,7 +121,7 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 
 - **Real-time Playback Info**: content script monitors video timeline / playback rate / URL, pushing every 300ms to desktop app.
 - **Subtitle Aggregation**: Electron side downloads all available subtitle tracks (including auto-generated) via `yt-dlp`, pairs selected tracks by cue timing, and keeps cue actions attached to reading blocks.
-- **Track Switching**: UI provides dropdown to select different languages/tracks, clicking subtitle lines jumps to corresponding timestamp.
+- **Track Switching**: UI provides dropdown to select different languages/tracks, and the play button above each subtitle line jumps to the corresponding timestamp.
 - **Bidirectional Control**: Desktop app can initiate play / pause / seek commands, extension receives and directly controls video elements.
 
 ### Desktop Subtitle Reader
