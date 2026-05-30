@@ -369,6 +369,44 @@ describe("JellyfinembyConnection", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("does not refetch Jellyfinemby metadata when unchanged session summaries omit media source id", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          Name: "Movie",
+          MediaSources: [
+            {
+              Id: "media-source-1",
+              MediaStreams: [subtitleStream()]
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => subtitleSrt
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const serverConfig = configuredServer();
+    const loader = new JellyfinembySubtitleLoader(
+      serverConfig,
+      identity,
+      new JellyfinembySessionManager(serverConfig),
+      logger
+    );
+    const summary = sessionSummary({ mediaSourceId: null });
+
+    const first = await loader.loadSubtitlesForSession(summary);
+    const second = await loader.loadSubtitlesForSession(summary);
+
+    expect(first?.tracks).toHaveLength(1);
+    expect(second).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("retries unchanged media after a subtitle stream resolves with no cues", async () => {
     const metadataResponse = () => ({
       ok: true,

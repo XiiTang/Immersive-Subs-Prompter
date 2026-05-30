@@ -214,4 +214,23 @@ describe("SettingsTranscription", () => {
       "checked"
     ]);
   });
+
+  it("rejects non-string extra parameter values before persisting settings", async () => {
+    const store = useDesktopStore();
+    const wrapper = mount(SettingsTranscription, {
+      global: {
+        stubs: {
+          IconAdd: true,
+          IconDelete: true
+        }
+      }
+    });
+
+    await wrapper
+      .get<HTMLTextAreaElement>('textarea[aria-labelledby="transcription-extra-params-label"]')
+      .setValue('{"temperature":0}');
+
+    expect(store.getTranscriptionPluginConfig().configs[0]?.extraParams).toEqual({});
+    expect(wrapper.text()).toContain("Extra parameter values must be strings.");
+  });
 });

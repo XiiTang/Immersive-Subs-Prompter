@@ -23,6 +23,7 @@ type Logger = ReturnType<typeof createLogger>;
 export class JellyfinembySubtitleLoader {
   private subtitleRequestToken = 0;
   private lastSubtitleItemKey: string | null = null;
+  private lastSubtitleRequestKey: string | null = null;
   private inFlightSubtitleItemKey: string | null = null;
 
   constructor(
@@ -40,12 +41,14 @@ export class JellyfinembySubtitleLoader {
   resetState() {
     this.subtitleRequestToken += 1;
     this.lastSubtitleItemKey = null;
+    this.lastSubtitleRequestKey = null;
     this.inFlightSubtitleItemKey = null;
   }
 
   clearSubtitleState() {
     this.subtitleRequestToken += 1;
     this.lastSubtitleItemKey = null;
+    this.lastSubtitleRequestKey = null;
     this.inFlightSubtitleItemKey = null;
   }
 
@@ -94,8 +97,15 @@ export class JellyfinembySubtitleLoader {
       );
       return null;
     }
-    if (requestKey && this.lastSubtitleItemKey !== requestKey) {
+    if (!force && requestKey && this.lastSubtitleRequestKey === requestKey) {
+      this.log.debug(
+        `[${this.config.name}] Skipping subtitle refresh for session ${summary.id}, media unchanged (${summary.nowPlayingItemId})`
+      );
+      return null;
+    }
+    if (requestKey && this.lastSubtitleRequestKey !== requestKey && this.lastSubtitleItemKey !== requestKey) {
       this.lastSubtitleItemKey = null;
+      this.lastSubtitleRequestKey = null;
     }
 
     const currentToken = ++this.subtitleRequestToken;
@@ -158,6 +168,7 @@ export class JellyfinembySubtitleLoader {
         };
       }
       if (!force && this.lastSubtitleItemKey === subtitleKey) {
+        this.lastSubtitleRequestKey = requestKey;
         this.log.debug(
           `[${this.config.name}] Skipping subtitle refresh for session ${workingSummary.id}, media unchanged (${workingSummary.nowPlayingItemId})`
         );
@@ -240,6 +251,7 @@ export class JellyfinembySubtitleLoader {
       }
 
       this.lastSubtitleItemKey = tracks.length ? subtitleKey : null;
+      this.lastSubtitleRequestKey = tracks.length ? requestKey : null;
       return {
         serverType: "jellyfinemby",
         sessionId: workingSummary.id,

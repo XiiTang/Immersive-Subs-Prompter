@@ -44,6 +44,42 @@ function createTranscriptionConfigId() {
   return `transcription-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
+function validateExtraParams(
+  parsed: unknown,
+  t: (key: string, fallback: string) => string
+): { ok: true; value: Record<string, string> } | { ok: false; error: string } {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {
+      ok: false,
+      error: t("transcription-extra-params-invalid", "Please enter a valid JSON object.")
+    };
+  }
+
+  const value = parsed as Record<string, unknown>;
+  for (const [key, entry] of Object.entries(value)) {
+    if (!key.trim() || key !== key.trim()) {
+      return {
+        ok: false,
+        error: t(
+          "transcription-extra-params-invalid-key",
+          "Extra parameter keys must be non-empty trimmed strings."
+        )
+      };
+    }
+    if (typeof entry !== "string") {
+      return {
+        ok: false,
+        error: t(
+          "transcription-extra-params-invalid-value",
+          "Extra parameter values must be strings."
+        )
+      };
+    }
+  }
+
+  return { ok: true, value: value as Record<string, string> };
+}
+
 export function useTranscriptionConfig(
   t: (key: string, fallback: string) => string
 ): UseTranscriptionConfigReturn {
@@ -185,12 +221,13 @@ export function useTranscriptionConfig(
       }
       try {
         const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          updateConfig({ extraParams: parsed as Record<string, string> });
-          extraParamsError.value = null;
-        } else {
-          extraParamsError.value = t("transcription-extra-params-invalid", "Please enter a valid JSON object.");
+        const validation = validateExtraParams(parsed, t);
+        if (!validation.ok) {
+          extraParamsError.value = validation.error;
+          return;
         }
+        updateConfig({ extraParams: validation.value });
+        extraParamsError.value = null;
       } catch (error) {
         extraParamsError.value =
           error instanceof Error
