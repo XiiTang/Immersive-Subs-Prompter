@@ -64,6 +64,13 @@ function defaultProps(overrides: Record<string, unknown> = {}) {
     activeSecondaryColor: "#ee0",
     autoScrollDelayMs: 500,
     scrollPositionRatio: 0.4,
+    t: (key: string, params: Record<string, any> = {}) => {
+      let text = key;
+      for (const [name, value] of Object.entries(params)) {
+        text = text.split(`{${name}}`).join(String(value));
+      }
+      return text;
+    },
     ...overrides
   };
 }

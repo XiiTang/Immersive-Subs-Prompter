@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
+import type { SubtitleTranslate } from "./transcript/translate";
 import { formatTime } from "../../utils/formatters";
 
 const {
@@ -52,7 +52,7 @@ const {
   abLabel,
   isLooping,
   isAbPendingSelection,
-  t: translateProp
+  t: translate
 } = defineProps<{
   state: "quiet" | "hover" | "active" | "selection" | "looping" | "ab-pending" | "focus-within";
   start: number;
@@ -60,10 +60,8 @@ const {
   abLabel: "AB" | "A" | "B";
   isLooping: boolean;
   isAbPendingSelection: boolean;
-  t?: SubtitleTranslate;
+  t: SubtitleTranslate;
 }>();
-
-const translate = resolveSubtitleTranslate(translateProp);
 
 defineEmits<{
   (e: "play"): void;

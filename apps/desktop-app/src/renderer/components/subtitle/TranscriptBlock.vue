@@ -57,7 +57,7 @@
 import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
-import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
+import type { SubtitleTranslate } from "./transcript/translate";
 import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
@@ -70,7 +70,7 @@ const {
   metaRowHeight,
   timestampFontSize,
   actionFontSize,
-  t: translateProp
+  t: translate
 } = defineProps<{
   blockId: string;
   start: number;
@@ -85,10 +85,8 @@ const {
   abLabel: "AB" | "A" | "B";
   isAbPendingSelection: boolean;
   showSelectionActions: boolean;
-  t?: SubtitleTranslate;
+  t: SubtitleTranslate;
 }>();
-
-const translate = resolveSubtitleTranslate(translateProp);
 
 const emit = defineEmits<{
   (e: "play"): void;

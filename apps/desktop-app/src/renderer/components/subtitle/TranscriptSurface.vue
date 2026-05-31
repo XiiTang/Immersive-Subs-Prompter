@@ -61,7 +61,7 @@ import type {
   TranscriptSeekRequest,
   TranscriptViewportAnchor
 } from "./transcript/types";
-import { resolveSubtitleTranslate, type SubtitleTranslate } from "./transcript/translate";
+import type { SubtitleTranslate } from "./transcript/translate";
 import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
 
 const {
@@ -87,7 +87,7 @@ const {
   autoScrollDelayMs,
   scrollPositionRatio,
   autoFollowScrollBehavior = "smooth",
-  t: translateProp
+  t: translate
 } = defineProps<{
   blocks: TranscriptBlockModel[];
   currentTime: number | null;
@@ -111,10 +111,8 @@ const {
   autoScrollDelayMs: number;
   scrollPositionRatio: number;
   autoFollowScrollBehavior?: ScrollBehavior;
-  t?: SubtitleTranslate;
+  t: SubtitleTranslate;
 }>();
-
-const translate = resolveSubtitleTranslate(translateProp);
 
 const emit = defineEmits<{
   (e: "play-cue", cueIndex: number): void;
