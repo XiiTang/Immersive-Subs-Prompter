@@ -1,22 +1,6 @@
 # 项目清理待办
 
-## 1. 移除或收敛内置插件注册/启用层
-
-- 证据：
-  - `apps/desktop-app/src/main/window/windowController.ts` 在启动时注册所有“插件”，但 `PluginHost.loadEnabledPlugins()` 只加载 `plugins/registry.json` 里已有的记录。
-  - `apps/desktop-app/src/main/plugins/pluginRegistryStore.ts` 为仅内置的功能单独持久化启用、禁用和错误状态。
-  - `apps/desktop-app/src/main/ipc/handlers/transcriptionHandlers.ts` 和 `apps/desktop-app/src/main/ipc/handlers/pluginHandlers.ts` 会在对应内置插件未启用时拒绝核心功能命令。
-  - `apps/desktop-app/src/renderer/components/settings/SettingsWindowShell.vue` 会根据插件目录的启用状态隐藏功能设置页。
-  - `apps/desktop-app/src/renderer/plugins/pluginSettingsRegistry.ts` 是一个从内置 section id 到内置 Vue 组件的静态 Map，没有外部注册路径。
-  - `AppSettings.plugins` 把每个内置插件配置存成 `Record<string, unknown>`，导致当前代码在 `windowController.ts`、`mediaServerController.ts` 和 renderer plugin actions 中反复转换回具体配置类型。
-- 为什么值得清理：
-  - 项目还未上线，也没有外部插件加载路径；当前所有插件都是应用内置功能。
-  - 注册表提前引入了兼容/扩展层，并可能让已有完整默认配置的内置功能默认处于禁用状态。
-- 建议清理：
-  - 现阶段将转录、查词、Jellyfin/Emby 作为直接应用模块接线，或让内置模块默认启用且不再依赖单独持久化注册表。
-  - 如果选择直接模块方案，删除 `pluginRegistryStore`、插件启停 IPC、插件目录状态传递，以及只覆盖该过渡层的测试。
-
-## 2. 合并重复的字幕字号 fallback/归一化逻辑
+## 1. 合并重复的字幕字号 fallback/归一化逻辑
 
 - 证据：
   - `apps/desktop-app/src/renderer/components/subtitle/SubtitleView.vue` 定义了 `MIN_SUBTITLE_FONT_SIZE`、`MAX_SUBTITLE_FONT_SIZE`、`MIN_TIMESTAMP_FONT_SIZE`、`MAX_TIMESTAMP_FONT_SIZE`、`normalizeSubtitleFontSize()` 和 `normalizeTimestampFontSize()`。
@@ -29,22 +13,7 @@
 - 建议清理：
   - 将共享边界和归一化 helper 放到一个 renderer/common 模块；或者删除设置清洗后不可达的 renderer fallback。
 
-## 3. 简化手写的设置“当前 schema”拒绝层
-
-- 证据：
-  - `apps/desktop-app/src/main/settings/appSettingsSanitizer.ts` 维护了顶层 key 列表、完整加载校验、局部更新校验、内置插件校验、必填 key 检查，以及显式的 `"current ... setting"` 拒绝消息。
-  - 每个设置域都在 `apps/desktop-app/src/main/settings/sanitizers/*.ts` 中重复维护自己的 key 列表和形状校验。
-  - `apps/desktop-app/src/main/settings/appSettingsSanitizer.test.ts` 专门测试拒绝“只有旧磁盘加载 sanitizer 会归一化”的值。
-  - `apps/desktop-app/src/main/settings/SettingsStore.test.ts` 有大量按字段测试“拒绝本来会被归一化/默认化的值”和不完整历史形状。
-- 为什么值得清理：
-  - 项目还未上线，没有旧持久化设置 schema 需要专门的拒绝/迁移契约。
-  - 该层重复了 TypeScript 类型、默认工厂，并让每个设置字段出现在多处。
-  - 测试体量更多覆盖 legacy shape 拒绝，而不是当前用户流程。
-- 建议清理：
-  - 保留一个针对 renderer/IPC 设置更新的聚焦校验边界，但删除唯一目的只是拒绝旧归一化/默认化磁盘形状的代码和测试。
-  - 考虑使用 defaults 加类型化 update helper 来表达当前设置，而不是为每个对象维护并行 key 数组。
-
-## 4. 移除 yt-dlp 进程日志中不可达的 GBK 解码 try/fallback
+## 2. 移除 yt-dlp 进程日志中不可达的 GBK 解码 try/fallback
 
 - 证据：
   - `apps/desktop-app/src/main/subtitleService.ts` 将 `iconv.decode(chunk, "gbk")` 包在 `try/catch` 中，并调用 `swallow(..., "falling back to UTF-8")`。
@@ -56,7 +25,7 @@
 - 建议清理：
   - Windows 进程输出直接按 GBK 解码，或选择一种明确的编码策略，不保留不可达的 `try/catch`。
 
-## 5. 合并重复且已漂移的 yt-dlp 默认参数来源
+## 3. 合并重复且已漂移的 yt-dlp 默认参数来源
 
 - 证据：
   - `apps/desktop-app/src/common/ytdlpDefaults.ts` 定义了 `DEFAULT_YTDLP_ARGS`。
@@ -69,20 +38,7 @@
 - 建议清理：
   - 让 `DEFAULT_PROFILE_SETTINGS.ytDlpArgs` 复用 canonical 常量，或明确命名 profile 专属默认值，并停止把通用常量作为 UI fallback placeholder。
 
-## 6. 在只有 Jellyfin/Emby 时收敛通用 media-server 抽象
-
-- 证据：
-  - `apps/desktop-app/src/main/mediaServerController.ts` 暴露了通用 `MediaServerController`，但只接线 `JellyfinembySubtitleService`、`JellyfinembyTabContextRegistry`、`JellyfinembyUrlResolver` 和 Jellyfin/Emby handlers。
-  - `apps/desktop-app/src/main/types.ts` 使用了 `activeSource: "mediaserver"` 和 media-server status payload 等通用状态名，但 `serverType` 是字面量 `"jellyfinemby"`。
-  - `apps/desktop-app/src/main/jellyfinemby/` 为一个 provider family 放了很多 provider 专属编排层：service、connection、transport、subscription、session manager、session tracker、tab registry、URL resolver、status handler、session handler、message handler 和 subtitle loader。
-- 为什么值得清理：
-  - 这是在第二个 provider 出现前提前引入的未来 provider/过渡抽象。
-  - 通用层增加了命名间接性和状态转换，但各处仍然需要特判 Jellyfin/Emby。
-- 建议清理：
-  - 现阶段将 controller/state 路径改成 Jellyfin/Emby 专属命名，或把通用 controller/handlers 收敛成更少的 provider 专属模块。
-  - 等真正加入另一个后端时再重新引入通用 media-server interface。
-
-## 7. 精简保留历史补丁意图的 UI/layout 测试
+## 5. 精简保留历史补丁意图的 UI/layout 测试
 
 - 证据：
   - `apps/desktop-app/src/renderer/components/settings/SettingsProfiles.browser.test.ts` 约 1,483 行，包含大量具体布局决策测试，例如没有单独行距控件、fallback 行位置、空 draft pill、紧凑无标签 URL rule pill、固定预览顺序等。
@@ -95,22 +51,7 @@
 - 建议清理：
   - 保留代表性的交互和可访问性覆盖，删除或合并只断言旧布局实验不存在、或精确内部组成的测试。
 
-## 8. 移除重复 i18n fallback 字符串和分裂的翻译来源
-
-- 证据：
-  - `apps/desktop-app/src/renderer/i18n.ts` 保留了调用点 fallback 支持，预加载默认语言，但每个 UI 调用方仍传入英文 fallback 字符串。
-  - 扫描发现 desktop 和 extension 中有数百处 `t("key", "English fallback")` / `translate("key", "English fallback")` 调用。
-  - `apps/desktop-app/src/renderer/locales/en.json` 和 `zh.json` 已经包含 renderer 字典，并由 `apps/desktop-app/src/renderer/i18nCoverage.test.ts` 检查。
-  - `apps/desktop-app/src/main/i18n.ts` 为 tray labels 维护了另一份小型翻译表，而不是复用同一份 desktop locale source。
-  - `apps/extension/_locales/*/messages.json` 又维护了另一份翻译来源，并且 popup 也有调用点 fallback。
-- 为什么值得清理：
-  - 英文 UI 文案在组件、locale JSON、extension locale JSON 和 main-process 字典中重复。
-  - fallback 机制会掩盖缺失 key，而 locale coverage tests 的目的正是发现缺失 key。
-- 建议清理：
-  - 将字典查找作为主契约，仅为真正动态/插件提供的 label 保留调用点 fallback。
-  - 将 main-process tray 字符串与 desktop locale source 统一，或生成 typed keys/shared constants，避免手写重复文案。
-
-## 9. 删除旧的 string/null 字幕轨道 IPC payload 分支
+## 6. 删除旧的 string/null 字幕轨道 IPC payload 分支
 
 - 证据：
   - `apps/desktop-app/src/preload.cts` 暴露 `selectSubtitleTrack(trackId, role)`，并始终用对象 payload `{ trackId, role }` 调用 `usp:select-track`。
@@ -123,31 +64,7 @@
 - 建议清理：
   - main handler 只接受当前 `{ trackId, role }` payload 形状；如有需要在 IPC 边界校验；删除 `isTrackSelectionPayload()` 以及只覆盖旧 scalar payload 的测试。
 
-## 10. 从单一来源生成浏览器专属 extension manifest
-
-- 证据：
-  - `apps/extension/manifest.json` 和 `apps/extension/manifest.firefox.json` 重复了相同的 name、locale、description、author、permissions、host permissions、content script、action 和共享 asset 字段。
-  - 真正的浏览器差异很小：Chrome 使用 service worker background，Firefox 使用 background scripts 加 Gecko metadata、不同 icon 覆盖和额外 content security policy。
-  - `apps/extension/esbuild.config.ts` 已经有 target map，并会注入 package version 写出最终 manifest。
-- 为什么值得清理：
-  - 两个手工维护的完整 manifest 是重复 build source split，共享字段可能静默漂移。
-  - 既然 build script 已经按 target 产出结果，就不需要保留两份完整 manifest 文件。
-- 建议清理：
-  - 保留一个 base manifest，再在 build script 中维护小型 Chrome/Firefox override 对象；或存放最小 JSON fragment，在 `copyManifest()` 中合并。
-
-## 11. 收紧 preload bridge 的类型，而不是继续携带宽泛 `any` payload
-
-- 证据：
-  - `apps/desktop-app/src/renderer/global.d.ts` 将 `window.usp` 暴露为 `RendererApi`，该类型从 `apps/desktop-app/src/preload.cts` 推断。
-  - `apps/desktop-app/src/preload.cts` 仍在 state、playback、plugin catalog、word lookup、word lookup window payload 和 video controls 上使用 `Promise<any>`、`Listener<any>`、`any[]`、`command: any`、`payload: any`。
-  - 代码库里已经有匹配类型：`apps/desktop-app/src/main/types.ts` 中的 `DesktopState`、`PlaybackState`、`VideoControlCommand`；`apps/desktop-app/src/main/plugins/pluginTypes.ts` 中的 `PluginCatalogRow`；`apps/desktop-app/src/main/window/wordLookupWindowManager.ts` 中的 `WordLookupWindowOpenPayload`；以及 `apps/desktop-app/src/main/plugins/official/wordLookup/wordLookupTypes.ts` 中的查词结果/状态类型。
-- 为什么值得清理：
-  - 这个 bridge 像兼容/逃逸层，但当前只有一个 renderer，也没有已发布 preload API 需要保留。
-  - 它允许过时 payload 形状继续存在于 renderer 代码/测试中，并削弱了最容易清理的 IPC 契约。
-- 建议清理：
-  - 用已有具体类型或小型导出的 IPC payload/result 类型替换 `preload.cts` 中剩余的 `any` 签名，让 `RendererApi` 把更窄的契约传播到 renderer tests 和 stores。
-
-## 12. 删除未引用的旧图标资源
+## 8. 删除未引用的旧图标资源
 
 - 证据：
   - `assets/icons/add.svg` 和 `assets/icons/delete.svg` 已被跟踪，但搜索 `add.svg`、`delete.svg` 和 `assets/icons` 没有发现 runtime、build 或文档引用。
@@ -159,7 +76,7 @@
 - 建议清理：
   - 如果没有外部 release packaging 仍引用它们，删除 `assets/icons/add.svg`、`assets/icons/delete.svg`、`apps/desktop-app/resources/tray-icon.png` 和 `apps/desktop-app/resources/tray-icon@2x.png`。
 
-## 13. 移除未使用的 bundled `yt-dlp` resource fallback 路径
+## 9. 移除未使用的 bundled `yt-dlp` resource fallback 路径
 
 - 证据：
   - `apps/desktop-app/resources/yt-dlp/` 只通过空 `.gitkeep` 被跟踪。
@@ -172,7 +89,7 @@
 - 建议清理：
   - 要么在下载前实现真实的 bundled-binary lookup，要么删除空 resource 目录、`extraResource` 条目、packaging 断言，以及宣传手动预打包的文档。
 
-## 14. 重命名或删除过时的 `test:renderer` desktop 测试包装脚本
+## 10. 重命名或删除过时的 `test:renderer` desktop 测试包装脚本
 
 - 证据：
   - `apps/desktop-app/scripts/run-renderer-tests.mjs` 调用 Vitest 时使用 `--project browser --project jsdom --project main`。
@@ -185,7 +102,7 @@
 - 建议清理：
   - 将 wrapper/script 重命名为 `test:desktop` 或 `test:all`；保留显式 `test:renderer:browser` / `test:renderer:jsdom` 用于 renderer-only 运行；同步更新 README 和 root scripts。
 
-## 15. 移除重复的“default profile 缺失”运行时 fallback
+## 11. 移除重复的“default profile 缺失”运行时 fallback
 
 - 证据：
   - `apps/desktop-app/src/main/settings/appSettingsSanitizer.ts` 拒绝任何不是固定 `DEFAULT_PROFILE_ID` 的 saved `defaultProfileId`。
@@ -199,7 +116,7 @@
 - 建议清理：
   - 在 settings 边界将缺失 fallback profile 当作 invariant violation，然后简化 state/profile 代码，直接使用固定 fallback profile。
 
-## 16. 合并重复的 `swallow` / error-report helper 表面
+## 12. 合并重复的 `swallow` / error-report helper 表面
 
 - 证据：
   - `apps/desktop-app/src/main/errors.ts` 定义了带结构化 main-process logging 的 `reportError()` 和 `swallow()`。
@@ -213,7 +130,7 @@
 - 建议清理：
   - 如有必要保留进程专属 reporting adapters，但把共同的 `swallow` 形状/格式化契约移到共享 utility；或让 lint script 明确指向各进程专属 helper。
 
-## 17. 删除过时的未使用 sanitizer imports，并考虑启用 unused 检查
+## 13. 删除过时的未使用 sanitizer imports，并考虑启用 unused 检查
 
 - 证据：
   - 临时 `tsc --noUnusedLocals --noUnusedParameters` 扫描 desktop main project 报告 `apps/desktop-app/src/main/settings/sanitizers/cacheSanitizer.ts` 中的 `SubtitleCacheSettings` 未使用。
@@ -226,19 +143,7 @@
   - 删除这两个未使用 import。
   - 在评估当前误报压力后，考虑为非测试 TS configs 启用 `noUnusedLocals`。
 
-## 18. 删除未使用的 renderer `connectionLabel` store getter
-
-- 证据：
-  - `apps/desktop-app/src/renderer/stores/desktop.ts` 定义了 `connectionLabel` getter，直接用英文格式化 extension 和 media-server 计数。
-  - `apps/desktop-app/src/renderer/components/top-panel/TopControlPanel.vue` 从 store 和 plugin catalog 重新计算同一段连接文案，并使用 renderer i18n keys。
-  - 搜索 `connectionLabel` 只找到 getter、`apps/desktop-app/src/renderer/stores/desktop/types.ts` 中的类型声明，以及 `apps/desktop-app/src/renderer/stores/desktop.test.ts` 中两条专门断言。
-- 为什么值得清理：
-  - 该 getter 是死的生产表面，并重复了现在属于本地化 top panel 的 UI 格式化。
-  - 它的测试保留了一条未使用的英文路径，可能掩盖 store 和真实显示 label 之间的漂移。
-- 建议清理：
-  - 删除 getter 和 `DesktopStoreGetters.connectionLabel`，再删除只断言该未使用格式化 label 的 store 测试。
-
-## 19. 移除 extension blacklist rules 中旧的缺失 id 归一化
+## 14. 移除 extension blacklist rules 中旧的缺失 id 归一化
 
 - 证据：
   - `apps/extension/src/popup.ts` 使用 `crypto.randomUUID()` 创建新 blacklist rules，并持久化当前 `{ id, value }` 形状。
@@ -251,7 +156,7 @@
   - 要求 blacklist storage entries 必须有非空 string `id` 和非空 string `value`，畸形条目直接丢弃，不再修复。
   - 删除保留旧形状 generated ids 的测试断言。
 
-## 20. 从 `AppEventMap` 中移除未使用的 `mediaserver:*` 事件通道
+## 15. 从 `AppEventMap` 中移除未使用的 `mediaserver:*` 事件通道
 
 - 证据：
   - `apps/desktop-app/src/main/appEventBus.ts` 在全局 event map 中声明了 `mediaserver:status`、`mediaserver:sessions`、`mediaserver:subtitles` 和 `mediaserver:playback`。
@@ -263,7 +168,7 @@
 - 建议清理：
   - 删除 `appEventBus.ts` 中四个未使用的 `mediaserver:*` entries，以及相关 type aliases/imports。
 
-## 21. 移除未使用的 connection client bus events
+## 16. 移除未使用的 connection client bus events
 
 - 证据：
   - `apps/desktop-app/src/main/appEventBus.ts` 声明了带 raw `WebSocket` payload 的 `connection:client-connected` 和 `connection:client-disconnected`。
@@ -275,7 +180,7 @@
 - 建议清理：
   - 删除这两个 event declarations 和 emits，并移除 `appEventBus.ts` 中随之无用的 `WebSocket` import。
 
-## 22. 避免在 workspace scripts 中多次重建 `@immersive-subs/contracts`
+## 17. 避免在 workspace scripts 中多次重建 `@immersive-subs/contracts`
 
 - 证据：
   - 根 `package.json` 运行 `pnpm -r build` 和 `pnpm -r typecheck`，这已经包含 `packages/contracts`。
@@ -287,7 +192,7 @@
 - 建议清理：
   - 明确一个 contract-build owner：要么让 root recursive scripts 处理 workspace 顺序，要么保留 package-local prebuild 供单包命令使用，并让 root scripts 避免重复构建 contracts。
 
-## 23. 移除未使用的 renderer error-bus 订阅层
+## 18. 移除未使用的 renderer error-bus 订阅层
 
 - 证据：
   - `apps/desktop-app/src/renderer/utils/errorBus.ts` 维护了 `listeners` set，并导出 `onError(listener)`。
@@ -299,7 +204,7 @@
 - 建议清理：
   - 现阶段删除 `onError`、`listeners` 和 `ErrorListener`；如果确实需要用户可见错误报告，则实现真正的 error UI。
 
-## 24. 修复或 type-check renderer tests 中过时的 type-only imports
+## 19. 修复或 type-check renderer tests 中过时的 type-only imports
 
 - 证据：
   - `apps/desktop-app/src/renderer/stores/desktop.test.ts` 从 `../preload.cts` 导入 `AppSettings`、`DesktopState` 和 `RendererApi`。
@@ -312,7 +217,7 @@
 - 建议清理：
   - 从 `main/types` 导入 `AppSettings` / `DesktopState`，从正确 preload 路径导入 `RendererApi`；或增加 test typecheck target 来捕获这类问题。
 
-## 25. 从生产 TypeScript 输出中排除 desktop main tests
+## 20. 从生产 TypeScript 输出中排除 desktop main tests
 
 - 证据：
   - `apps/desktop-app/tsconfig.json` 包含 `src/main/**/*`，但没有排除 `src/main/**/*.test.ts`。
@@ -326,7 +231,7 @@
   - 增加一个 production main tsconfig，排除 `src/main/**/*.test.ts` 和 `src/main/test/**`；或直接调整现有 main tsconfig 的 exclude 列表。
   - 如果 main tests 需要 TypeScript 校验，保留单独的 test typecheck/build 路径。
 
-## 26. 去重网络设置相等性检查
+## 21. 去重网络设置相等性检查
 
 - 证据：
   - `apps/desktop-app/src/main/window/windowController.ts` 定义了 `areNetworkSettingsEqual()`，比较 auth token、endpoint 数量、endpoint id 和 `networkEndpointKey()`。
@@ -338,7 +243,7 @@
 - 建议清理：
   - 将 equality helper 移到 network endpoint utilities 附近，或放入一个小的 main/common network 模块，然后两个调用点共同使用。
 
-## 27. 合并 clone scan 发现的重复测试 setup 块
+## 22. 合并 clone scan 发现的重复测试 setup 块
 
 - 证据：
   - 使用 `jscpd --min-lines 12 --min-tokens 80` 扫描发现 11 个 TypeScript clones，全部位于测试中。
