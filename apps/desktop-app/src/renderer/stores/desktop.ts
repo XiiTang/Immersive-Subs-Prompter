@@ -12,7 +12,7 @@ import type { PluginCatalogRow } from "../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../components/subtitle/transcript/types";
 import { createTranscriptBlocksCache } from "./desktop/transcriptBlocksCache";
 import { DEFAULT_PANEL_OPACITY, DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
-import type { CacheStats } from "./desktop/defaults";
+import type { RendererApi } from "../../preload.cts";
 import { settingsActions } from "./desktop/actions/settingsActions";
 import { profileActions } from "./desktop/actions/profileActions";
 import { mediaServerActions } from "./desktop/actions/mediaServerActions";
@@ -25,6 +25,8 @@ import { initActions } from "./desktop/actions/initActions";
 import { JELLYFINEMBY_PLUGIN_ID } from "../../common/pluginIds.js";
 
 export { DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
+
+type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 
 const transcriptBlocksCache = createTranscriptBlocksCache();
 

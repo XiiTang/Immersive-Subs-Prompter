@@ -9,7 +9,7 @@ import {
   guessSubtitleFormatFromStream
 } from "../jellyfinembyUtils.js";
 import {
-  MediaServerConfig,
+  JellyfinembyServerConfig,
   MediaServerSessionSummary,
   MediaServerSubtitleStream,
   MediaServerSubtitlesPayload,
@@ -27,14 +27,14 @@ export class JellyfinembySubtitleLoader {
   private inFlightSubtitleItemKey: string | null = null;
 
   constructor(
-    private config: MediaServerConfig,
+    private config: JellyfinembyServerConfig,
     private readonly identity: JellyfinembyIdentity,
     private readonly sessionManager: JellyfinembySessionManager,
     private readonly log: Logger,
     private readonly cacheManager?: SubtitleCacheManager
   ) {}
 
-  updateConfig(next: MediaServerConfig) {
+  updateConfig(next: JellyfinembyServerConfig) {
     this.config = next;
   }
 
@@ -267,7 +267,7 @@ export class JellyfinembySubtitleLoader {
 
   private async resolveSubtitleStreams(
     summary: MediaServerSessionSummary,
-    config: MediaServerConfig,
+    config: JellyfinembyServerConfig,
     allowRefresh: boolean
   ): Promise<{ streams: MediaServerSubtitleStream[]; mediaSourceId: string | null }> {
     if (summary.subtitleStreams.length > 0 && summary.mediaSourceId) {
@@ -316,7 +316,7 @@ export class JellyfinembySubtitleLoader {
     };
   }
 
-  private async fetchNowPlayingMetadata(summary: MediaServerSessionSummary, config?: MediaServerConfig) {
+  private async fetchNowPlayingMetadata(summary: MediaServerSessionSummary, config?: JellyfinembyServerConfig) {
     const activeConfig = config ?? this.config;
     if (!activeConfig.serverUrl || !activeConfig.apiKey || !summary.nowPlayingItemId) {
       return null;

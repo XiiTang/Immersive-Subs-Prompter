@@ -1,10 +1,6 @@
-/**
- * Internationalization support for main process (tray, native menus, etc.)
- */
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../common/languages.js";
 
-export const SUPPORTED_LANGUAGES = ["en", "zh"] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
+export { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguage };
 
 const ENGLISH_TRANSLATIONS: Record<string, string> = {
     "tray-show-window": "Show Window",

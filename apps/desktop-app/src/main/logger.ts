@@ -308,9 +308,7 @@ class LogDispatcher {
   }
 }
 
-// Create singleton instances
 const dispatcher = new LogDispatcher();
 const rootLogger = new ScopedLogger("USP", dispatcher);
 
-export type { LogLevel };
 export const createLogger = (scope: string): ScopedLogger => rootLogger.child(scope);

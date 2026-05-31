@@ -4,4 +4,3 @@ export const RECONNECT_DELAY_MS = 5_000;
 export const KEEP_ALIVE_INTERVAL_MS = 30_000;
 export const CLIENT_NAME = "Immersive Subs Prompter";
 export const DEFAULT_DEVICE_NAME = "Immersive Subs Prompter Desktop";
-export const FALLBACK_VERSION = "0.1.0";

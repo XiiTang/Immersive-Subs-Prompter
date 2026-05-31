@@ -11,7 +11,7 @@ const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
 
 type CacheSource = "ytdlp" | "mediaserver" | "transcription";
 
-export interface CacheEntry {
+interface CacheEntry {
   url: string;
   data: SubtitleLoadResult;
   timestamp: number;
@@ -47,8 +47,7 @@ export class SubtitleCacheManager {
 
     const key = this.getCacheKey(url, source, variant);
     const redactedUrl = redactUrlSecrets(url);
-    const cacheDir = settings.path || DEFAULT_CACHE_DIR;
-    const cacheFile = path.join(cacheDir, `${key}.json`);
+    const cacheFile = path.join(this.getCachePath(), `${key}.json`);
 
     const refreshTimestamp = async (entry: CacheEntry): Promise<SubtitleLoadResult> => {
       const refreshed: CacheEntry = { ...entry, url: redactUrlSecrets(entry.url), timestamp: Date.now() };
@@ -114,7 +113,7 @@ export class SubtitleCacheManager {
 
     // Save to disk cache
     try {
-      const cacheDir = settings.path || DEFAULT_CACHE_DIR;
+      const cacheDir = this.getCachePath();
       await fs.mkdir(cacheDir, { recursive: true });
       const cacheFile = path.join(cacheDir, `${key}.json`);
       await fs.writeFile(cacheFile, JSON.stringify(entry, null, 2), "utf-8");
@@ -128,8 +127,7 @@ export class SubtitleCacheManager {
    * Clear all cache entries
    */
   async clear(): Promise<void> {
-    const settings = this.settingsProvider();
-    const cacheDir = settings.path || DEFAULT_CACHE_DIR;
+    const cacheDir = this.getCachePath();
 
     this.log.info("Clearing all subtitle cache");
     this.memoryCache.clear();
@@ -157,7 +155,7 @@ export class SubtitleCacheManager {
       return 0;
     }
 
-    const cacheDir = settings.path || DEFAULT_CACHE_DIR;
+    const cacheDir = this.getCachePath();
     let removedCount = 0;
 
     this.log.info("Running cache cleanup");
@@ -210,8 +208,7 @@ export class SubtitleCacheManager {
    * Get cache statistics
    */
   async getStats(): Promise<CacheStats> {
-    const settings = this.settingsProvider();
-    const cacheDir = settings.path || DEFAULT_CACHE_DIR;
+    const cacheDir = this.getCachePath();
 
     const stats: CacheStats = {
       totalEntries: 0,

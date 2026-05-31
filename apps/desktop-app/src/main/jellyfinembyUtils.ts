@@ -1,4 +1,4 @@
-import { MediaServerSessionSummary, MediaServerConfig, MediaServerSubtitleStream } from "./types.js";
+import { MediaServerSessionSummary, JellyfinembyServerConfig, MediaServerSubtitleStream } from "./types.js";
 
 const TICKS_PER_MILLISECOND = 10_000;
 const CODEC_EXTENSION_MAP: Record<string, string> = {
@@ -33,7 +33,7 @@ export function normalizeServerUrl(input: string | null | undefined): string {
   }
 }
 
-export function buildWebSocketUrl(config: MediaServerConfig): string {
+export function buildWebSocketUrl(config: JellyfinembyServerConfig): string {
   if (!config.serverUrl) {
     throw new Error("Missing jellyfinemby server URL");
   }
@@ -90,7 +90,7 @@ export function guessSubtitleFormatFromStream(stream: MediaServerSubtitleStream)
 }
 
 export function buildSubtitleUrl(
-  config: MediaServerConfig,
+  config: JellyfinembyServerConfig,
   session: MediaServerSessionSummary,
   stream: MediaServerSubtitleStream,
   extensionOverride?: string

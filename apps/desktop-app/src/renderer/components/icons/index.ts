@@ -1,20 +1,69 @@
-export { default as IconAdd } from "./IconAdd.vue";
-export { default as IconBookOpen } from "./IconBookOpen.vue";
-export { default as IconChevronDown } from "./IconChevronDown.vue";
-export { default as IconChevronUp } from "./IconChevronUp.vue";
-export { default as IconCheck } from "./IconCheck.vue";
-export { default as IconClose } from "./IconClose.vue";
-export { default as IconCopy } from "./IconCopy.vue";
-export { default as IconDelete } from "./IconDelete.vue";
-export { default as IconFolder } from "./IconFolder.vue";
-export { default as IconFullscreen } from "./IconFullscreen.vue";
-export { default as IconLock } from "./IconLock.vue";
-export { default as IconMic } from "./IconMic.vue";
-export { default as IconPause } from "./IconPause.vue";
-export { default as IconPin } from "./IconPin.vue";
-export { default as IconPlay } from "./IconPlay.vue";
-export { default as IconPlug } from "./IconPlug.vue";
-export { default as IconRefresh } from "./IconRefresh.vue";
-export { default as IconServer } from "./IconServer.vue";
-export { default as IconSettings } from "./IconSettings.vue";
-export { default as IconUser } from "./IconUser.vue";
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Folder,
+  Lock,
+  Maximize,
+  Mic,
+  Pause,
+  Pin,
+  Play,
+  Plug,
+  Plus,
+  RefreshCw,
+  Server,
+  Settings,
+  Trash2,
+  User,
+  X,
+  type LucideIcon
+} from "@lucide/vue";
+import { defineComponent, h, type PropType } from "vue";
+import { iconClass, iconSizePx, type IconSize } from "./iconSizing";
+
+function icon(component: LucideIcon) {
+  return defineComponent({
+    props: {
+      size: {
+        type: String as PropType<IconSize>,
+        default: "md"
+      }
+    },
+    setup(props, { attrs }) {
+      return () => {
+        const { class: className, ...rest } = attrs;
+        return h(component, {
+          ...rest,
+          class: [iconClass(props.size), className],
+          size: iconSizePx[props.size],
+          strokeWidth: 2,
+          "aria-hidden": "true"
+        });
+      };
+    }
+  });
+}
+
+export const IconAdd = icon(Plus);
+export const IconBookOpen = icon(BookOpen);
+export const IconChevronDown = icon(ChevronDown);
+export const IconChevronUp = icon(ChevronUp);
+export const IconCheck = icon(Check);
+export const IconClose = icon(X);
+export const IconCopy = icon(Copy);
+export const IconDelete = icon(Trash2);
+export const IconFolder = icon(Folder);
+export const IconFullscreen = icon(Maximize);
+export const IconLock = icon(Lock);
+export const IconMic = icon(Mic);
+export const IconPause = icon(Pause);
+export const IconPin = icon(Pin);
+export const IconPlay = icon(Play);
+export const IconPlug = icon(Plug);
+export const IconRefresh = icon(RefreshCw);
+export const IconServer = icon(Server);
+export const IconSettings = icon(Settings);
+export const IconUser = icon(User);

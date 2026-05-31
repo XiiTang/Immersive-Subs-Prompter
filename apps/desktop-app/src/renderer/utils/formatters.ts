@@ -1,11 +1,10 @@
-export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
+const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
 
 export function clamp(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
   return Math.min(max, Math.max(min, value));
-}
-
-export function formatCueText(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br />");
 }
 
 export function formatTime(milliseconds: number): string {
@@ -19,15 +18,15 @@ export function formatTime(milliseconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function isUuidLike(value: string): boolean {
+function isUuidLike(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-export function isAudioExtension(value: string): boolean {
+function isAudioExtension(value: string): boolean {
   return AUDIO_EXTENSIONS.includes(value.toLowerCase());
 }
 
-export function extractTranscriptionLabel(sourceFile: string, transcriptionNames: string[] = []): string | null {
+function extractTranscriptionLabel(sourceFile: string, transcriptionNames: string[] = []): string | null {
   const lower = sourceFile.toLowerCase();
   for (const name of transcriptionNames) {
     const normalized = name.toLowerCase();

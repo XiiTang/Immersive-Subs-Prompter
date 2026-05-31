@@ -4,7 +4,11 @@ import {
   sanitizeSettings
 } from "./appSettingsSanitizer.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
-import { DEFAULT_GLOBAL_SETTINGS, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "./constants.js";
+import {
+  DEFAULT_GLOBAL_SETTINGS,
+  DEFAULT_PROFILE_ID,
+  DEFAULT_PROFILE_SETTINGS
+} from "../../common/defaultSettings.js";
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {

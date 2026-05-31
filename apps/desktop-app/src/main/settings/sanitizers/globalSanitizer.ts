@@ -1,5 +1,5 @@
 import { AppearanceTheme, GlobalSettings } from "../../types.js";
-import { SUPPORTED_LANGUAGES } from "../constants.js";
+import { SUPPORTED_LANGUAGES } from "../../../common/languages.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
 const GLOBAL_SETTINGS_KEYS = [
@@ -54,7 +54,7 @@ export function validateGlobalSettingsForUpdate(input: unknown): void {
     }
   }
   if (Object.prototype.hasOwnProperty.call(source, "language")) {
-    if (typeof source.language !== "string" || !SUPPORTED_LANGUAGES.includes(source.language)) {
+    if (typeof source.language !== "string" || !(SUPPORTED_LANGUAGES as readonly string[]).includes(source.language)) {
       throw new Error("global.language must use the current supported language setting");
     }
   }

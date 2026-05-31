@@ -1,4 +1,4 @@
-import type { JellyfinembySubtitleService } from "../jellyfinemby/JellyfinembySubtitlesService.js";
+import type { JellyfinembySubtitleService } from "./JellyfinembySubtitlesService.js";
 import { createLogger } from "../logger.js";
 import type { StateManager } from "../stateManager.js";
 import type {
@@ -6,17 +6,17 @@ import type {
   MediaServerStatusPayload,
   MediaServerSubtitlesPayload
 } from "../types.js";
-import { TabContextRegistry } from "./TabContextRegistry.js";
+import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
 type StatusHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession" | "requestSessionsBurst">;
 
-export class MediaServerStatusHandler {
-  private readonly log = createLogger("mediaserver-status-handler");
+export class JellyfinembyStatusHandler {
+  private readonly log = createLogger("jellyfinemby-status-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: StatusHandlerService,
-    private readonly tabRegistry: TabContextRegistry
+    private readonly jellyfinembyService: StatusHandlerService,
+    private readonly tabRegistry: JellyfinembyTabContextRegistry
   ) {}
 
   handleMediaServerStatusUpdate(payload: MediaServerStatusPayload) {
@@ -46,11 +46,11 @@ export class MediaServerStatusHandler {
       if (this.stateManager.getState().activeSource !== "mediaserver") {
         this.stateManager.resetSubtitleState();
       }
-      this.mediaServerService.setActiveSession(null);
+      this.jellyfinembyService.setActiveSession(null);
       return;
     }
 
-    this.mediaServerService.requestSessionsBurst("ws-status-connected");
+    this.jellyfinembyService.requestSessionsBurst("ws-status-connected");
   }
 
   handleMediaServerSubtitlesUpdate(payload: MediaServerSubtitlesPayload) {

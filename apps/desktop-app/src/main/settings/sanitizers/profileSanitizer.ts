@@ -82,7 +82,7 @@ function validatePriorityList(source: Record<string, unknown>, field: keyof Prof
   }
 }
 
-export function validateProfileSettingsForUpdate(input: unknown): void {
+function validateProfileSettingsForUpdate(input: unknown): void {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new Error("profile.settings must use the current object setting");
   }

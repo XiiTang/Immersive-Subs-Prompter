@@ -2,7 +2,7 @@ import type { TranscriptionConfig, TranscriptionPluginConfig } from "../main/typ
 
 export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
   '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000" --cookies-from-browser firefox';
-export const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
+const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 
 const BASE_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
   name: "Whisper API",

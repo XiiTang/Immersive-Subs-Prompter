@@ -1,6 +1,6 @@
 import { ticksToMilliseconds } from "../jellyfinembyUtils.js";
 import {
-  MediaServerConfig,
+  JellyfinembyServerConfig,
   MediaServerPlaybackPayload,
   MediaServerSessionSummary,
   MediaServerSubtitleStream
@@ -10,11 +10,11 @@ import { RawSessionRecord } from "./types.js";
 export class JellyfinembySessionManager {
   private sessionIdPrefix: string;
 
-  constructor(private config: MediaServerConfig) {
+  constructor(private config: JellyfinembyServerConfig) {
     this.sessionIdPrefix = `${config.id}:`;
   }
 
-  updateConfig(nextConfig: MediaServerConfig) {
+  updateConfig(nextConfig: JellyfinembyServerConfig) {
     this.config = nextConfig;
     this.sessionIdPrefix = `${nextConfig.id}:`;
   }

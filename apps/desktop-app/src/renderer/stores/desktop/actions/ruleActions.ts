@@ -1,5 +1,5 @@
 import type { ProfileRule } from "../../../../main/types";
-import { createId, mergePartial } from "../helpers";
+import { createId } from "../helpers";
 import type { DesktopStoreThis } from "../types";
 
 export function addRule(this: DesktopStoreThis, payload: Omit<ProfileRule, "id">) {
@@ -17,7 +17,7 @@ export function updateRule(this: DesktopStoreThis, ruleId: string, patch: Partia
     return;
   }
   const nextRules = this.settings.rules.map((rule) =>
-    rule.id === ruleId ? mergePartial(rule, patch) : rule
+    rule.id === ruleId ? { ...rule, ...patch } : rule
   );
   this.updateSettings({ rules: nextRules });
 }

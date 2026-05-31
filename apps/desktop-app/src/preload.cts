@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 import type { AppSettings } from "./main/types.js" with { "resolution-mode": "import" };
+import type { CacheStats } from "./main/subtitleCacheManager.js" with { "resolution-mode": "import" };
 
 type Listener<T> = (payload: T) => void;
 type FasterWhisperPaths = {
@@ -65,7 +66,7 @@ const api = {
   openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
   selectWordListFile: (): Promise<{ canceled: boolean; path: string | null }> =>
     ipcRenderer.invoke("usp:select-word-list-file"),
-  getCacheStats: (): Promise<{ totalEntries: number; totalSize: number; oldestEntry: number | null; newestEntry: number | null }> =>
+  getCacheStats: (): Promise<CacheStats> =>
     ipcRenderer.invoke("usp:cache-stats"),
   clearCache: (): Promise<{ success: boolean }> => ipcRenderer.invoke("usp:cache-clear"),
   cleanupCache: (): Promise<{ success: boolean; removedCount: number }> => ipcRenderer.invoke("usp:cache-cleanup"),

@@ -1,4 +1,4 @@
-export type TranscriptCueRefs = {
+type TranscriptCueRefs = {
   primaryCueIndex: number;
   secondaryCueIndex: number | null;
 };
@@ -82,9 +82,4 @@ export type TranscriptViewportProjection = {
 export type TranscriptSeekRequest = {
   token: number;
   time: number;
-};
-
-export type ActiveAbLoopRange = {
-  startCueIndex: number;
-  endCueIndex: number;
 };

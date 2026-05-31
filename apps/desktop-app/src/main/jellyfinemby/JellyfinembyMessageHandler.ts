@@ -1,21 +1,21 @@
 import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
 import type { ConnectionMessageEvent } from "../appEventBus.js";
-import type { JellyfinembySubtitleService } from "../jellyfinemby/JellyfinembySubtitlesService.js";
+import type { JellyfinembySubtitleService } from "./JellyfinembySubtitlesService.js";
 import type { StateManager } from "../stateManager.js";
-import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
-import { TabContextRegistry } from "./TabContextRegistry.js";
+import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
+import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
 type MessageHandlerService = Pick<
   JellyfinembySubtitleService,
   "setActiveSession" | "requestSessionsBurst"
 >;
 
-export class MediaServerMessageHandler {
+export class JellyfinembyMessageHandler {
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: MessageHandlerService,
-    private readonly tabRegistry: TabContextRegistry,
-    private readonly urlResolver: MediaServerUrlResolver,
+    private readonly jellyfinembyService: MessageHandlerService,
+    private readonly tabRegistry: JellyfinembyTabContextRegistry,
+    private readonly urlResolver: JellyfinembyUrlResolver,
     private readonly isActive: () => boolean
   ) {}
 
@@ -80,7 +80,7 @@ export class MediaServerMessageHandler {
             draft.status = "loading-subtitles";
           }
         });
-        this.mediaServerService.setActiveSession(null);
+        this.jellyfinembyService.setActiveSession(null);
       }
     }
 
@@ -102,7 +102,7 @@ export class MediaServerMessageHandler {
           draft.mediaServer.selectedSessionId = null;
         }
       });
-      this.mediaServerService.setActiveSession(null);
+      this.jellyfinembyService.setActiveSession(null);
     }
   }
 
@@ -149,7 +149,7 @@ export class MediaServerMessageHandler {
 
       const trackedItemId = latestState.pendingMediaServerItemId ?? currentItemId ?? null;
       if (trackedItemId !== itemId) {
-        this.mediaServerService.requestSessionsBurst(`mediaserver-video-change:${itemId}`);
+        this.jellyfinembyService.requestSessionsBurst(`mediaserver-video-change:${itemId}`);
       }
 
       const targetServerConfigId = currentServerConfigId;
@@ -174,7 +174,7 @@ export class MediaServerMessageHandler {
           draft.pendingMediaServerItemId = itemId;
         });
         this.stateManager.resetSubtitleState();
-        this.mediaServerService.setActiveSession(matchingSession.id);
+        this.jellyfinembyService.setActiveSession(matchingSession.id);
         this.tabRegistry.update(message.tabId, {
           sessionId: matchingSession.id,
           serverConfigId: matchingSession.serverConfigId,
@@ -214,7 +214,7 @@ export class MediaServerMessageHandler {
           draft.mediaServer.selectedSessionId = storedSession.id;
           draft.pendingMediaServerItemId = storedSession.nowPlayingItemId ?? draft.pendingMediaServerItemId;
         });
-        this.mediaServerService.setActiveSession(storedSession.id);
+        this.jellyfinembyService.setActiveSession(storedSession.id);
       }
       this.tabRegistry.update(message.tabId, {
         sessionId: storedSession.id,
@@ -226,6 +226,6 @@ export class MediaServerMessageHandler {
       }
     }
 
-    this.mediaServerService.requestSessionsBurst("mediaserver-video-context-no-itemid");
+    this.jellyfinembyService.requestSessionsBurst("mediaserver-video-context-no-itemid");
   }
 }

@@ -38,6 +38,7 @@ import {
   MAIN_WINDOW_DEFAULT_WIDTH
 } from "../../../../common/windowDimensions.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
+import { clamp } from "../../../utils/formatters";
 import { createAbLoopSelectionState } from "../../subtitle/abLoopSelection";
 import TranscriptSurface from "../../subtitle/TranscriptSurface.vue";
 import type { TranscriptBlock } from "../../subtitle/transcript/types";
@@ -398,10 +399,4 @@ function normalizeTimestampFontSize(value: number | null | undefined, fallback: 
   return Math.min(24, Math.max(6, Math.round(finiteSize)));
 }
 
-function clamp(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) {
-    return min;
-  }
-  return Math.min(max, Math.max(min, value));
-}
 </script>

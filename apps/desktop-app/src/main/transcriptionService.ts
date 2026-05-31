@@ -4,7 +4,6 @@ import path from "path";
 import { tmpdir } from "os";
 import {
   CommandExecutionError,
-  CommandResult,
   formatCommandError,
   formatCommandLine,
   runCommand,
@@ -29,13 +28,12 @@ export class TranscriptionService {
     const baseOutput = path.join(workingDir, randomUUID());
     const args = this.buildArgs(config, videoUrl, baseOutput);
     let commandLine = "";
-    let commandResult: CommandResult | null = null;
 
     try {
       const binaryPath = await this.binaryResolver();
       commandLine = formatCommandLine(binaryPath, args);
       this.log.info(`Starting yt-dlp audio download for: ${videoUrl}`);
-      commandResult = await runCommand(binaryPath, args, workingDir, "yt-dlp");
+      await runCommand(binaryPath, args, workingDir, "yt-dlp");
       this.log.info("Audio download completed");
 
       const audioFile = await this.pickAudioFile(workingDir);
@@ -54,7 +52,7 @@ export class TranscriptionService {
       return track;
     } catch (error) {
       if (error instanceof CommandExecutionError) {
-        const detailed = formatCommandError(error, commandLine, commandResult);
+        const detailed = formatCommandError(error, commandLine);
         this.log.error("yt-dlp command failed", detailed);
         throw new Error(detailed);
       }
@@ -174,14 +172,13 @@ export class TranscriptionService {
 
     const args = this.buildFasterWhisperArgs(audioPath, config, model);
     const commandLine = formatCommandLine(binary, args);
-    let commandResult: CommandResult | null = null;
 
     this.log.info(`Faster-Whisper command: ${commandLine}`);
     try {
-      commandResult = await runCommand(binary, args, path.dirname(audioPath), path.basename(binary));
+      await runCommand(binary, args, path.dirname(audioPath), path.basename(binary));
     } catch (error) {
       if (error instanceof CommandExecutionError) {
-        const detailed = formatCommandError(error, commandLine, commandResult);
+        const detailed = formatCommandError(error, commandLine);
         throw new Error(detailed);
       }
       throw error;

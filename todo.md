@@ -1,22 +1,12 @@
-* 移除 apps/desktop-app/src/main/jellyfinemby/identity.ts:48 和 apps/desktop-app/src/main/jellyfinemby/constants.ts:7 中过时的 Jellyfin/Emby 客户端版本回退逻辑。getClientVersion() 可以在主进程中依赖 Electron 的 app.getVersion()；当前回退会发送硬编码的 0.1.0，而 package 版本是 1.0.0，并且 identity.test.ts:32 通过接受任一值保留了这个过时分支。
-* 简化媒体服务器 item-id 提取逻辑，位置在 apps/desktop-app/src/main/mediaServer/MediaServerUrlResolver.ts:59。该方法保留了两个补丁式回退：从 MediaSourceId 派生 item id（:77）以及重新解析单独的 fallbackUrl（:91）。MediaSourceId 并不等同于 nowPlayingItemId 的契约，而 MediaServerUrlResolver.test.ts:146 / :156 主要是在保留这些回退分支，而不是单一的当前 payload 路径。
-* 移除 apps/desktop-app/src/main/stateManager.ts:19 中 structuredClone 之前的兼容分支。项目目标是 Node 24+ 和 Electron 41，因此 globalThis.structuredClone 在受支持运行时中始终可用；JSON stringify/parse 回退以及 globalThis as any 类型转换已经是过时的兼容代码。
-* 移除或收窄 apps/desktop-app/src/main/stateManager.ts:28-34 和 :356-394 中的全局状态回退/拒绝层。STATUS_TRANSITIONS 基本上允许所有状态转换，同时非法转换和无效 activeSource 值会被静默回滚到前一个状态；类型化调用方应该失败或在调用点修复，而不是在 commit() 中掩盖错误更新。
-* 停止导出没有外部消费者的文件本地默认值和校验器：DEFAULT_PROFILE_NAME、DEFAULT_NETWORK_ENDPOINTS、apps/desktop-app/src/common/defaultSettings.ts:21-47 中的字幕颜色常量、apps/desktop-app/src/common/transcriptionDefaults.ts:5 中的 DEFAULT_TRANSCRIPTION_CONFIG_ID、apps/desktop-app/src/main/settings/sanitizers/profileSanitizer.ts:85 中的 validateProfileSettingsForUpdate，以及 apps/desktop-app/src/renderer/components/top-panel/topPanelTestData.ts:11 中的 createTopPanelProfile。它们只在各自定义模块内部使用，导出它们会制造不必要的公共 API 面。
-* 移除 apps/desktop-app/src/main/settings/constants.ts 这一桥接层，并集中管理支持语言常量。该文件只从 common/defaultSettings.ts 重新导出默认值并定义 SUPPORTED_LANGUAGES，而同一语言列表也在 apps/desktop-app/src/main/i18n.ts:5 和 apps/desktop-app/src/renderer/i18n.ts:3 中定义；globalSanitizer.ts:2 可以使用单一来源，而不是这个 settings 专用副本。
-* 移除 apps/desktop-app/src/main/settings/appSettingsSanitizer.ts:207、apps/desktop-app/src/main/settings/index.ts:1 和 apps/desktop-app/src/main/index.ts:11-29 中急切创建的 DEFAULT_SETTINGS 单例启动占位。主进程会基于生成的默认设置创建 managers（包括一个临时的网络认证 token），随后 WindowController.initialize() 又在 windowController.ts:157-160 用 SettingsStore.get() 替换它们；应该先加载设置，再从实际当前设置构造运行时状态。
-* 精简 apps/desktop-app/src/renderer/utils/formatters.ts。formatCueText() 在 renderer 中没有调用点，而 AUDIO_EXTENSIONS、isUuidLike()、isAudioExtension() 和 extractTranscriptionLabel() 只是 formatSourceFile() 的实现细节，不需要导出。
-* 移除 renderer/extension 代码中过时的 crypto.randomUUID 回退分支：apps/desktop-app/src/renderer/stores/desktop/helpers.ts:3、apps/desktop-app/src/renderer/components/settings/NetworkEndpointEditor.vue:111、apps/desktop-app/src/renderer/components/settings/transcription/composables/useTranscriptionConfig.ts:40、apps/desktop-app/src/renderer/components/settings/transcription/composables/useFasterWhisper.ts:59，以及 apps/extension/src/popup.ts:464。项目目标是 Electron 41 / Chromium 146，以及 Chrome/Edge 110+ 或 Firefox 109+ 的浏览器扩展，因此 Date.now() + Math.random() 的 id 分支是不必要的兼容代码。
-* 移除 apps/extension/src/monitoring/DOMObserver.ts:83 和 apps/extension/src/monitoring/URLWatcher.ts:29 中过时的扩展环境防护。内容脚本运行在受支持的现代浏览器页面中，因此可以把 requestAnimationFrame、history.pushState 和 history.replaceState 视为存在，而不是保留 setTimeout 和“不是函数”的回退路径。
-* 去重 renderer 中的 clamp() 辅助函数。apps/desktop-app/src/renderer/utils/formatters.ts:3 已经导出 clamp，但 apps/desktop-app/src/renderer/components/settings/profiles/SubtitleStylePreview.vue:401 和 apps/desktop-app/src/renderer/components/subtitle/WordLookupWindow.vue:143 仍保留了本地副本，而且有限数字处理行为略有不同。
-* 折叠 apps/desktop-app/src/renderer/components/icons/ 下“一文件一个图标”的包装层。像 IconAdd.vue:1-16 和 IconRefresh.vue:1-17 这样的文件除了导入的 lucide 组件不同外几乎完全相同，而 iconSizing.ts 已经集中处理尺寸/class 行为；应改用通用包装器或直接导入 lucide，而不是维护 20 个近似重复组件以及仅测试包装层的测试。
-* 收紧 knip 报告的 internal-only 类型导出：apps/desktop-app/src/main/logger.ts:315 中的 LogLevel，apps/desktop-app/src/main/types.ts:72-238 中的 AlwaysOnTopLevel、AppearanceSettings、TranscriptionProvider、FasterWhisperDevice 和 MediaServerPanelState，以及 apps/desktop-app/src/renderer/components/subtitle/transcript/types.ts:1-87 中的 TranscriptCueRefs / ActiveAbLoopRange。rg 显示这些名称只在其定义模块中被引用，因此导出它们会扩大 API 面，却没有消费者。
-* 移除 apps/desktop-app/src/preload.cts:5-20 / :45-54 与 apps/desktop-app/src/renderer/components/settings/transcription/composables/useFasterWhisper.ts:6-26 之间重复声明的 FasterWhisper IPC payload 类型形状。renderer 已经通过 RendererApi 看到 window.usp，因此 composable 可以派生或导入单一事实来源，而不是重新声明 FasterWhisperPaths 和下载进度 payload。
-* 在第二个后端出现之前，折叠通用媒体服务器抽象。apps/desktop-app/src/main/mediaServerController.ts:26 把 JellyfinembySubtitleService 包装成 MediaServerRuntimeService 的 Pick，apps/desktop-app/src/main/types.ts:107 将 MediaServerConfig alias 到 JellyfinembyServerConfig，而 apps/desktop-app/src/main/mediaServer/* handlers 虽然命名通用，但仍依赖 Jellyfin/Emby 特定的 session、URL 和 config id。这个过渡层增加了间接性，却没有当前多后端行为。
-* 移除 apps/desktop-app/src/main/jellyfinemby/identity.ts:42-44 中随机 device id 的回退逻辑。deriveDeviceId() 在 identity.test.ts:24 中被测试为确定性的，但外层 catch 会在确定性派生失败时返回一个新的 UUID；如果受支持的 Node/Electron 运行时无法构建 hash，直接失败比静默改变面向服务器的设备身份更干净。
-* 移除 apps/desktop-app/src/main/jellyfinemby/identity.test.ts:54-58 中空洞的 hostname 回退测试。它没有 mock os.hostname()，也没有测试 deriveDeviceName() 的回退行为；它只是断言 DEFAULT_DEVICE_NAME.length > 0，因此只是在保留回退术语，而没有测试有意义的分支。
-* 移除 apps/extension/src/background/endpoints/EndpointManager.ts:45 中不可达的回退分支。stored 是由 result?.[this.storageKey] 计算出的；当 hasKey 为 false 时，normalizeEndpointList(undefined) 始终为空，因此 stored.length ? stored : defaultEndpoints 可以简化为 defaultEndpoints。
-* 用更窄的当前形状更新替换 apps/desktop-app/src/renderer/stores/desktop/helpers.ts:10-23 中过于泛化的 mergePartial() 辅助函数。其 :17 处的嵌套 Array.isArray(value) ? [] : {} 分支在前一个 array 分支之后不可达，而 apps/desktop-app/src/renderer/stores/desktop/actions/profileActions.ts:81 中的 duplicateProfile() 使用 mergePartial(existing.settings, {}) 来克隆，尽管空 patch 只会浅拷贝 settings 对象。
-* 移除 apps/desktop-app/src/main/transcriptionService.ts:32-58 和 :177-185 中冗余的 CommandResult 回退管道。在两处 runCommand() 调用中，commandResult 只会在成功后赋值，但它只会在 CommandExecutionError 分支中传给 formatCommandError()，而这些分支里 error.info 已经包含 stdout/stderr；因此回退参数实际上始终为 null。
-* 去重 apps/desktop-app/src/main/subtitleCacheManager.ts 中的缓存路径和 stats 形状。settings.path || DEFAULT_CACHE_DIR 在 :50、:117、:132、:160 和 :214 被重复使用，尽管 getCachePath() 已经在 :261 存在；CacheEntry 被导出但只在本文件使用，且 CacheStats 形状又在 apps/desktop-app/src/preload.cts:68 和 apps/desktop-app/src/renderer/stores/desktop/defaults.ts:6 中重复声明。
-* 移除 README.md:175 中过时的迁移措辞。故障排查说明仍然把当前 endpoint manager 与“硬编码的旧版 extension/background.js 文件”作对比；既然项目尚未发布，这种历史性对比是不必要的文档噪音。
+# TODO
+
+当前无待办。
+
+2026-05-31 已完成本轮清理：
+
+- 移除过时的 Jellyfin/Emby client version、device id、URL item id、`structuredClone`、`crypto.randomUUID`、DOM/URL watcher fallback。
+- 收窄默认值、校验器、格式化工具、logger、settings、transcript 类型的导出面。
+- 删除 settings 常量桥接层和启动期 `DEFAULT_SETTINGS` 占位，主进程先加载设置再构造运行时 managers。
+- 集中支持语言常量，去重 renderer clamp、Faster-Whisper IPC payload 类型、cache stats 类型形状和图标包装层。
+- 折叠主进程 Jellyfin/Emby 专用 handler/resolver 命名，移除 `MediaServerConfig` alias 与 runtime service Pick 过渡层。
+- 精简 endpoint manager、transcription command error、subtitle cache 路径和 README 故障排查措辞。

@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
-import type { MediaServerConfig } from "../types.js";
+import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
+import type { JellyfinembyServerConfig } from "../types.js";
 
 type TestJellyfinembyPluginConfig = {
-  servers: MediaServerConfig[];
+  servers: JellyfinembyServerConfig[];
 };
 
-function makeConfigProvider(configs: MediaServerConfig[]): () => TestJellyfinembyPluginConfig {
+function makeConfigProvider(configs: JellyfinembyServerConfig[]): () => TestJellyfinembyPluginConfig {
   return () => ({
     servers: configs
   });
 }
 
-function makeConfig(overrides: Partial<MediaServerConfig>): MediaServerConfig {
+function makeConfig(overrides: Partial<JellyfinembyServerConfig>): JellyfinembyServerConfig {
   return {
     id: "cfg-1",
     name: "srv",
@@ -24,9 +24,9 @@ function makeConfig(overrides: Partial<MediaServerConfig>): MediaServerConfig {
   };
 }
 
-describe("MediaServerUrlResolver", () => {
+describe("JellyfinembyUrlResolver", () => {
   describe("extractOrigin", () => {
-    const resolver = new MediaServerUrlResolver(makeConfigProvider([]) as never);
+    const resolver = new JellyfinembyUrlResolver(makeConfigProvider([]) as never);
 
     it("returns null for missing or blank input", () => {
       expect(resolver.extractOrigin(null)).toBeNull();
@@ -52,14 +52,14 @@ describe("MediaServerUrlResolver", () => {
 
   describe("resolveMediaServerConfigIdFromUrls", () => {
     it("matches configured origins without depending on plugin enabled state", () => {
-      const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({})]) as never);
+      const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({})]) as never);
       expect(
         resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096/web/index.html"])
       ).toBe("cfg-1");
     });
 
     it("returns null when no configs match", () => {
-      const resolver = new MediaServerUrlResolver(
+      const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([makeConfig({ serverUrl: "http://other:8096" })]) as never
       );
       expect(
@@ -68,7 +68,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("matches by origin when url and config share protocol+host+port", () => {
-      const resolver = new MediaServerUrlResolver(
+      const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([
           makeConfig({ id: "match", serverUrl: "http://server.local:8096" })
         ]) as never
@@ -81,7 +81,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("ignores null entries and continues searching", () => {
-      const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({ id: "match" })]) as never);
+      const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({ id: "match" })]) as never);
       expect(
         resolver.resolveMediaServerConfigIdFromUrls([
           null,
@@ -94,7 +94,7 @@ describe("MediaServerUrlResolver", () => {
 
   describe("resolveMediaServerConfig", () => {
     it("returns specific config by id", () => {
-      const resolver = new MediaServerUrlResolver(
+      const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: true })
@@ -104,7 +104,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("prefers enabled config when no id supplied", () => {
-      const resolver = new MediaServerUrlResolver(
+      const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: true })
@@ -114,7 +114,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("returns null if no config is enabled and no id is supplied", () => {
-      const resolver = new MediaServerUrlResolver(
+      const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([
           makeConfig({ id: "a", enabled: false }),
           makeConfig({ id: "b", enabled: false })
@@ -125,7 +125,7 @@ describe("MediaServerUrlResolver", () => {
   });
 
   describe("extractItemId", () => {
-    const resolver = new MediaServerUrlResolver(makeConfigProvider([]) as never);
+    const resolver = new JellyfinembyUrlResolver(makeConfigProvider([]) as never);
 
     it("extracts item id from /videos/:id path", () => {
       const itemId = resolver.extractItemId(
@@ -143,22 +143,22 @@ describe("MediaServerUrlResolver", () => {
       expect(itemId).toBe("ABC");
     });
 
-    it("strips the mediasource_ prefix from MediaSourceId query", () => {
+    it("does not treat MediaSourceId as an item id", () => {
       const itemId = resolver.extractItemId(
         {
           videoSrc: "http://srv/stream?MediaSourceId=mediasource_XYZ"
         } as any,
         ""
       );
-      expect(itemId).toBe("XYZ");
+      expect(itemId).toBeNull();
     });
 
-    it("falls back to fallbackUrl when videoSrc yields nothing", () => {
+    it("does not infer item id from a separate fallback url", () => {
       const itemId = resolver.extractItemId(
         { videoSrc: "" } as any,
         "http://srv/items/FALL"
       );
-      expect(itemId).toBe("FALL");
+      expect(itemId).toBeNull();
     });
 
     it("returns null when nothing matches", () => {
@@ -169,7 +169,7 @@ describe("MediaServerUrlResolver", () => {
   });
 
   describe("buildMediaServerItemUrl / buildMediaServerPageUrl", () => {
-    const resolver = new MediaServerUrlResolver(makeConfigProvider([makeConfig({ id: "cfg-1" })]) as never);
+    const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({ id: "cfg-1" })]) as never);
 
     it("returns null when session has no item id", () => {
       expect(
@@ -187,7 +187,7 @@ describe("MediaServerUrlResolver", () => {
     });
 
     it("returns null when no base url is found", () => {
-      const empty = new MediaServerUrlResolver(makeConfigProvider([]) as never);
+      const empty = new JellyfinembyUrlResolver(makeConfigProvider([]) as never);
       expect(
         empty.buildMediaServerItemUrl({
           nowPlayingItemId: "9",

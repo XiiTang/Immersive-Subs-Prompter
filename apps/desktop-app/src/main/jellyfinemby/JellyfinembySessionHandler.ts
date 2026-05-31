@@ -1,20 +1,20 @@
-import type { JellyfinembySubtitleService } from "../jellyfinemby/JellyfinembySubtitlesService.js";
+import type { JellyfinembySubtitleService } from "./JellyfinembySubtitlesService.js";
 import { createLogger } from "../logger.js";
 import type { StateManager } from "../stateManager.js";
 import type { MediaServerSessionSummary } from "../types.js";
-import { MediaServerUrlResolver } from "./MediaServerUrlResolver.js";
-import { TabContextRegistry, type TabMediaServerContext } from "./TabContextRegistry.js";
+import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
+import { JellyfinembyTabContextRegistry, type JellyfinembyTabContext } from "./JellyfinembyTabContextRegistry.js";
 
 type SessionHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession">;
 
-export class MediaServerSessionHandler {
-  private readonly log = createLogger("mediaserver-session-handler");
+export class JellyfinembySessionHandler {
+  private readonly log = createLogger("jellyfinemby-session-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly mediaServerService: SessionHandlerService,
-    private readonly tabRegistry: TabContextRegistry,
-    private readonly urlResolver: MediaServerUrlResolver
+    private readonly jellyfinembyService: SessionHandlerService,
+    private readonly tabRegistry: JellyfinembyTabContextRegistry,
+    private readonly urlResolver: JellyfinembyUrlResolver
   ) {}
 
   handleMediaServerSessionsUpdate(sessions: MediaServerSessionSummary[]) {
@@ -50,7 +50,7 @@ export class MediaServerSessionHandler {
         this.stateManager.updateState((draft) => {
           draft.mediaServer.selectedSessionId = matchingSession.id;
         });
-        this.mediaServerService.setActiveSession(matchingSession.id);
+        this.jellyfinembyService.setActiveSession(matchingSession.id);
         if (currentState.activeTabId !== null) {
           this.tabRegistry.update(currentState.activeTabId, {
             sessionId: matchingSession.id,
@@ -87,9 +87,9 @@ export class MediaServerSessionHandler {
           );
           if (replacement) {
             this.stateManager.setMediaServerSelectedSession(replacement.id);
-            this.mediaServerService.setActiveSession(replacement.id);
+            this.jellyfinembyService.setActiveSession(replacement.id);
           } else {
-            this.mediaServerService.setActiveSession(null);
+            this.jellyfinembyService.setActiveSession(null);
             this.stateManager.updateState((draft) => {
               draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
               draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
@@ -150,7 +150,7 @@ export class MediaServerSessionHandler {
         activeTabItemId: activeTabContext?.itemId ?? null
       });
       this.stateManager.setMediaServerSelectedSession(sessionToSelect.id);
-      this.mediaServerService.setActiveSession(sessionToSelect.id);
+      this.jellyfinembyService.setActiveSession(sessionToSelect.id);
     }
 
     this.stateManager.emitCurrentState();
@@ -158,7 +158,7 @@ export class MediaServerSessionHandler {
 
   private findSessionForContext(
     sessions: MediaServerSessionSummary[],
-    context: TabMediaServerContext | null
+    context: JellyfinembyTabContext | null
   ): MediaServerSessionSummary | null {
     if (!context) {
       return null;

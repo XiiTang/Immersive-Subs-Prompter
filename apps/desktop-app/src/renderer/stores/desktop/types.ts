@@ -18,9 +18,11 @@ import type {
 } from "../../../main/types";
 import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
-import type { CacheStats } from "./defaults";
+import type { RendererApi } from "../../../preload.cts";
 import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
 import type { UpdateSettingsOptions } from "./actions/settingsActions";
+
+type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 
 interface DesktopStoreState {
   desktopState: DesktopState | null;

@@ -11,12 +11,12 @@ import {
   ticksToSeconds
 } from "./jellyfinembyUtils.js";
 import type {
-  MediaServerConfig,
+  JellyfinembyServerConfig,
   MediaServerSessionSummary,
   MediaServerSubtitleStream
 } from "./types.js";
 
-function makeConfig(overrides: Partial<MediaServerConfig> = {}): MediaServerConfig {
+function makeConfig(overrides: Partial<JellyfinembyServerConfig> = {}): JellyfinembyServerConfig {
   return {
     id: "cfg-1",
     name: "Test",
@@ -25,7 +25,7 @@ function makeConfig(overrides: Partial<MediaServerConfig> = {}): MediaServerConf
     webSocketPath: "/socket",
     enabled: true,
     ...overrides
-  } as MediaServerConfig;
+  } as JellyfinembyServerConfig;
 }
 
 describe("jellyfinembyUtils", () => {

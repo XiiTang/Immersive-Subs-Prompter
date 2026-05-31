@@ -8,53 +8,53 @@ import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
 import { YtDlpManager } from "./ytDlpManager.js";
 import { TranscriptionService } from "./transcriptionService.js";
-import { SettingsStore, DEFAULT_SETTINGS } from "./settings/index.js";
+import { SettingsStore } from "./settings/SettingsStore.js";
 import { AppSettings } from "./types.js";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
 import { resolveBundledResource } from "./resourcePaths.js";
 
-let appSettings: AppSettings = DEFAULT_SETTINGS;
+let appSettings: AppSettings;
 
 const getSettings = () => appSettings;
 const setSettings = (settings: AppSettings) => {
   appSettings = settings;
 };
 
-const bus = new AppEventBus();
-const cacheManager = new SubtitleCacheManager(() => getSettings().cache);
-const ytDlpManager = new YtDlpManager();
-const transcriptionService = new TranscriptionService(() => ytDlpManager.getBinaryPath());
-const fasterWhisperManager = new FasterWhisperManager();
-
-const stateManager = new StateManager(bus, getSettings);
-const subtitleService = new SubtitleService(
-  () => ytDlpManager.getBinaryPath(),
-  () => stateManager.getActiveProfileSettings(),
-  cacheManager
-);
-const connectionManager = new ConnectionManager({
-  getNetworkSettings: () => getSettings().network,
-  getSettings,
-  subtitleService,
-  stateManager,
-  bus
-});
-const mediaServerController = new MediaServerController({
-  bus,
-  stateManager,
-  getSettings,
-  cacheManager
-});
-
 let windowController: WindowController | null = null;
-let settingsStore: SettingsStore | null = null;
 
 app.whenReady().then(() => {
   if (process.platform === "darwin") {
     app.dock?.setIcon(resolveBundledResource("icon.png"));
   }
 
-  settingsStore = new SettingsStore();
+  const settingsStore = new SettingsStore();
+  setSettings(settingsStore.get());
+
+  const bus = new AppEventBus();
+  const cacheManager = new SubtitleCacheManager(() => getSettings().cache);
+  const ytDlpManager = new YtDlpManager();
+  const transcriptionService = new TranscriptionService(() => ytDlpManager.getBinaryPath());
+  const fasterWhisperManager = new FasterWhisperManager();
+  const stateManager = new StateManager(bus, getSettings);
+  const subtitleService = new SubtitleService(
+    () => ytDlpManager.getBinaryPath(),
+    () => stateManager.getActiveProfileSettings(),
+    cacheManager
+  );
+  const connectionManager = new ConnectionManager({
+    getNetworkSettings: () => getSettings().network,
+    getSettings,
+    subtitleService,
+    stateManager,
+    bus
+  });
+  const mediaServerController = new MediaServerController({
+    bus,
+    stateManager,
+    getSettings,
+    cacheManager
+  });
+
   windowController = new WindowController({
     bus,
     stateManager,

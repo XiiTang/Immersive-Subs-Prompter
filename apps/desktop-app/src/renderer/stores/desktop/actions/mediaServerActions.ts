@@ -1,6 +1,6 @@
 import type { JellyfinembyPluginConfig, JellyfinembyServerConfig } from "../../../../main/types";
 import { JELLYFINEMBY_PLUGIN_ID } from "../../../../common/pluginIds.js";
-import { createId, mergePartial } from "../helpers";
+import { createId } from "../helpers";
 import type { DesktopStoreThis } from "../types";
 
 function writeJellyfinembyConfig(store: DesktopStoreThis, config: JellyfinembyPluginConfig) {
@@ -37,7 +37,7 @@ export function updateMediaServerConfig(
   const config = this.getJellyfinembyPluginConfig();
   writeJellyfinembyConfig(this, {
     servers: config.servers.map((server) =>
-      server.id === configId ? mergePartial(server, patch) : server
+      server.id === configId ? { ...server, ...patch } : server
     )
   });
 }

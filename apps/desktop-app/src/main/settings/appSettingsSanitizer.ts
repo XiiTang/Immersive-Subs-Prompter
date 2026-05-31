@@ -14,7 +14,7 @@ import {
 } from "./sanitizers/jellyfinembySanitizer.js";
 import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
 import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
-import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "./constants.js";
+import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
 import { assertNoUnknownKeys, assertRequiredKeys } from "./utils.js";
@@ -204,5 +204,4 @@ const DEFAULT_SETTINGS_FACTORY = (): AppSettings => {
   });
 };
 
-export const DEFAULT_SETTINGS: AppSettings = DEFAULT_SETTINGS_FACTORY();
 export { DEFAULT_SETTINGS_FACTORY };

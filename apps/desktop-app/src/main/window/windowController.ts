@@ -1,7 +1,7 @@
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
-import { SettingsStore } from "../settings/index.js";
+import { SettingsStore } from "../settings/SettingsStore.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
 import { AppSettings, DesktopState, PlaybackState, TranscriptionPluginConfig } from "../types.js";

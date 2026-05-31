@@ -4,11 +4,11 @@ import { JellyfinembySubtitleService } from "./jellyfinemby/JellyfinembySubtitle
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import type { AppSettings, JellyfinembyPluginConfig } from "./types.js";
-import { TabContextRegistry } from "./mediaServer/TabContextRegistry.js";
-import { MediaServerUrlResolver } from "./mediaServer/MediaServerUrlResolver.js";
-import { MediaServerSessionHandler } from "./mediaServer/MediaServerSessionHandler.js";
-import { MediaServerMessageHandler } from "./mediaServer/MediaServerMessageHandler.js";
-import { MediaServerStatusHandler } from "./mediaServer/MediaServerStatusHandler.js";
+import { JellyfinembyTabContextRegistry } from "./jellyfinemby/JellyfinembyTabContextRegistry.js";
+import { JellyfinembyUrlResolver } from "./jellyfinemby/JellyfinembyUrlResolver.js";
+import { JellyfinembySessionHandler } from "./jellyfinemby/JellyfinembySessionHandler.js";
+import { JellyfinembyMessageHandler } from "./jellyfinemby/JellyfinembyMessageHandler.js";
+import { JellyfinembyStatusHandler } from "./jellyfinemby/JellyfinembyStatusHandler.js";
 import { JELLYFINEMBY_PLUGIN_ID } from "../common/pluginIds.js";
 import type { JellyfinembyRuntimeSettings } from "./jellyfinemby/types.js";
 
@@ -20,28 +20,17 @@ type MediaServerControllerOptions = {
   createService?: (
     settingsProvider: () => JellyfinembyRuntimeSettings,
     cacheManager: SubtitleCacheManager
-  ) => MediaServerRuntimeService;
+  ) => JellyfinembySubtitleService;
 };
 
-type MediaServerRuntimeService = Pick<
-  JellyfinembySubtitleService,
-  | "start"
-  | "stop"
-  | "refresh"
-  | "on"
-  | "setContinuousSessionPolling"
-  | "setActiveSession"
-  | "requestSessionsBurst"
->;
-
 export class MediaServerController {
-  private readonly log = createLogger("mediaserver-controller");
-  private readonly mediaServerService: MediaServerRuntimeService;
-  private readonly tabRegistry: TabContextRegistry;
-  private readonly urlResolver: MediaServerUrlResolver;
-  private readonly sessionHandler: MediaServerSessionHandler;
-  private readonly messageHandler: MediaServerMessageHandler;
-  private readonly statusHandler: MediaServerStatusHandler;
+  private readonly log = createLogger("jellyfinemby-controller");
+  private readonly jellyfinembyService: JellyfinembySubtitleService;
+  private readonly tabRegistry: JellyfinembyTabContextRegistry;
+  private readonly urlResolver: JellyfinembyUrlResolver;
+  private readonly sessionHandler: JellyfinembySessionHandler;
+  private readonly messageHandler: JellyfinembyMessageHandler;
+  private readonly statusHandler: JellyfinembyStatusHandler;
   private active = false;
   private listenersRegistered = false;
 
@@ -50,28 +39,28 @@ export class MediaServerController {
       enabled: this.active,
       servers: this.getJellyfinembyConfig().servers
     });
-    this.mediaServerService = (
+    this.jellyfinembyService = (
       this.options.createService ??
       ((provider, cacheManager) => new JellyfinembySubtitleService(provider, cacheManager))
     )(settingsProvider, this.options.cacheManager);
-    this.tabRegistry = new TabContextRegistry();
-    this.urlResolver = new MediaServerUrlResolver(() => this.getJellyfinembyConfig());
-    this.sessionHandler = new MediaServerSessionHandler(
+    this.tabRegistry = new JellyfinembyTabContextRegistry();
+    this.urlResolver = new JellyfinembyUrlResolver(() => this.getJellyfinembyConfig());
+    this.sessionHandler = new JellyfinembySessionHandler(
       this.options.stateManager,
-      this.mediaServerService,
+      this.jellyfinembyService,
       this.tabRegistry,
       this.urlResolver
     );
-    this.messageHandler = new MediaServerMessageHandler(
+    this.messageHandler = new JellyfinembyMessageHandler(
       this.options.stateManager,
-      this.mediaServerService,
+      this.jellyfinembyService,
       this.tabRegistry,
       this.urlResolver,
       () => this.active
     );
-    this.statusHandler = new MediaServerStatusHandler(
+    this.statusHandler = new JellyfinembyStatusHandler(
       this.options.stateManager,
-      this.mediaServerService,
+      this.jellyfinembyService,
       this.tabRegistry
     );
   }
@@ -91,7 +80,7 @@ export class MediaServerController {
       return;
     }
     this.active = true;
-    this.mediaServerService.start();
+    this.jellyfinembyService.start();
   }
 
   deactivate() {
@@ -99,8 +88,8 @@ export class MediaServerController {
       return;
     }
     this.active = false;
-    this.mediaServerService.stop();
-    this.mediaServerService.setActiveSession(null);
+    this.jellyfinembyService.stop();
+    this.jellyfinembyService.setActiveSession(null);
     this.clearRuntimeState();
   }
 
@@ -112,7 +101,7 @@ export class MediaServerController {
     if (!this.active) {
       return;
     }
-    this.mediaServerService.refresh();
+    this.jellyfinembyService.refresh();
   }
 
   private registerBusListeners() {
@@ -123,16 +112,16 @@ export class MediaServerController {
         return;
       }
       const continuous = count === 0;
-      this.mediaServerService.setContinuousSessionPolling(continuous);
+      this.jellyfinembyService.setContinuousSessionPolling(continuous);
     });
   }
 
   private registerServiceListeners() {
-    this.mediaServerService.on("status", (payload) => this.statusHandler.handleMediaServerStatusUpdate(payload));
-    this.mediaServerService.on("sessions", (sessions) => this.sessionHandler.handleMediaServerSessionsUpdate(sessions));
-    this.mediaServerService.on("subtitles", (payload) => this.statusHandler.handleMediaServerSubtitlesUpdate(payload));
-    this.mediaServerService.on("playback", (payload) => this.statusHandler.handleMediaServerPlaybackUpdate(payload));
-    this.mediaServerService.on("error", (error) => {
+    this.jellyfinembyService.on("status", (payload) => this.statusHandler.handleMediaServerStatusUpdate(payload));
+    this.jellyfinembyService.on("sessions", (sessions) => this.sessionHandler.handleMediaServerSessionsUpdate(sessions));
+    this.jellyfinembyService.on("subtitles", (payload) => this.statusHandler.handleMediaServerSubtitlesUpdate(payload));
+    this.jellyfinembyService.on("playback", (payload) => this.statusHandler.handleMediaServerPlaybackUpdate(payload));
+    this.jellyfinembyService.on("error", (error) => {
       this.log.error("Media server service error", error);
     });
   }

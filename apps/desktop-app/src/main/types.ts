@@ -69,16 +69,16 @@ export type VideoControlCommand =
     }
   | { type: "stopLoop" };
 
-export type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
+type AlwaysOnTopLevel = "off" | "floating" | "screen-saver";
 
 export type AppearanceTheme = "system" | "light" | "dark";
 
-export interface AppearanceSettings {
+interface AppearanceSettings {
   theme: AppearanceTheme;
 }
 
-export type TranscriptionProvider = "whisper-api" | "faster-whisper";
-export type FasterWhisperDevice = "cpu" | "cuda";
+type TranscriptionProvider = "whisper-api" | "faster-whisper";
+type FasterWhisperDevice = "cpu" | "cuda";
 
 export interface GlobalSettings {
   autoLaunch: boolean;
@@ -103,8 +103,6 @@ export interface JellyfinembyServerConfig {
 export interface JellyfinembyPluginConfig {
   servers: JellyfinembyServerConfig[];
 }
-
-export type MediaServerConfig = JellyfinembyServerConfig;
 
 export interface TranscriptionConfig {
   id: string;
@@ -235,7 +233,7 @@ export interface MediaServerSessionSummary {
   subtitleStreams: MediaServerSubtitleStream[];
 }
 
-export interface MediaServerPanelState {
+interface MediaServerPanelState {
   connected: boolean;
   sessions: MediaServerSessionSummary[];
   selectedSessionId: string | null;

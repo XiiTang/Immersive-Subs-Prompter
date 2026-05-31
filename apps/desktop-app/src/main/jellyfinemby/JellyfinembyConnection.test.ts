@@ -4,9 +4,9 @@ import { JellyfinembySessionManager } from "./JellyfinembySessionManager.js";
 import { JellyfinembySubtitleLoader } from "./JellyfinembySubtitleLoader.js";
 import type { ConnectionHooks } from "./types.js";
 import type { JellyfinembyIdentity } from "../jellyfinembyUtils.js";
-import type { MediaServerConfig, MediaServerSessionSummary } from "../types.js";
+import type { JellyfinembyServerConfig, MediaServerSessionSummary } from "../types.js";
 
-const config: MediaServerConfig = {
+const config: JellyfinembyServerConfig = {
   id: "server-1",
   name: "Home",
   serverUrl: "",
@@ -51,7 +51,7 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-function configuredServer(overrides: Partial<MediaServerConfig> = {}): MediaServerConfig {
+function configuredServer(overrides: Partial<JellyfinembyServerConfig> = {}): JellyfinembyServerConfig {
   return {
     ...config,
     serverUrl: "http://server.local",

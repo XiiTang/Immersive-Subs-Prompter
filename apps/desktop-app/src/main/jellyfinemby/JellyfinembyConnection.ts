@@ -1,7 +1,7 @@
 import { createLogger } from "../logger.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { JellyfinembyIdentity } from "../jellyfinembyUtils.js";
-import { MediaServerConfig, MediaServerSessionSummary } from "../types.js";
+import { JellyfinembyServerConfig, MediaServerSessionSummary } from "../types.js";
 import { SESSION_BURST_DURATION_MS } from "./constants.js";
 import { JellyfinembySessionManager } from "./JellyfinembySessionManager.js";
 import { JellyfinembySessionSubscription } from "./JellyfinembySessionSubscription.js";
@@ -20,7 +20,7 @@ export class JellyfinembyConnection {
   private readonly tracker: JellyfinembySessionTracker;
 
   constructor(
-    private config: MediaServerConfig,
+    private config: JellyfinembyServerConfig,
     private readonly identity: JellyfinembyIdentity,
     private readonly hooks: ConnectionHooks,
     cacheManager?: SubtitleCacheManager
@@ -69,14 +69,14 @@ export class JellyfinembyConnection {
     this.transport.dispose();
   }
 
-  updateConfig(nextConfig: MediaServerConfig) {
+  updateConfig(nextConfig: JellyfinembyServerConfig) {
     this.config = nextConfig;
     this.sessionManager.updateConfig(nextConfig);
     this.subtitleLoader.updateConfig(nextConfig);
     this.transport.updateConfig(nextConfig);
   }
 
-  getConfigSnapshot(): MediaServerConfig {
+  getConfigSnapshot(): JellyfinembyServerConfig {
     return this.config;
   }
 

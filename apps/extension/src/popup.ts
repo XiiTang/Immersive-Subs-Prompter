@@ -461,9 +461,7 @@ function addBlacklistDraft() {
     renderBlacklistRules();
     return;
   }
-  const id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `rule-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const id = crypto.randomUUID();
   const nextRules: BlacklistRule[] = [...blacklistRules, { id, value }];
   blacklistDraftValue = "";
   saveBlacklistRules(nextRules);

@@ -1,9 +1,9 @@
 import { app } from "electron";
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 import os from "os";
 import { JellyfinembyIdentity } from "../jellyfinembyUtils.js";
 import { swallow } from "../errors.js";
-import { CLIENT_NAME, DEFAULT_DEVICE_NAME, FALLBACK_VERSION } from "./constants.js";
+import { CLIENT_NAME, DEFAULT_DEVICE_NAME } from "./constants.js";
 
 export function createJellyfinembyIdentity(): JellyfinembyIdentity {
   return {
@@ -27,29 +27,12 @@ export function deriveDeviceName(): string {
 }
 
 export function deriveDeviceId(): string {
-  try {
-    const hostname = os.hostname();
-    const username = (() => {
-      try {
-        return os.userInfo().username;
-      } catch (error) {
-        swallow(error, "jellyfinemby.identity.userInfo", "userInfo unavailable; fall back to literal 'user'");
-        return "user";
-      }
-    })();
-    const seed = `${hostname ?? DEFAULT_DEVICE_NAME}:${username}`;
-    return createHash("sha1").update(seed).digest("hex");
-  } catch (error) {
-    swallow(error, "jellyfinemby.identity.deviceId", "deterministic derivation failed; fall back to random UUID");
-    return randomUUID().replace(/-/g, "");
-  }
+  const hostname = os.hostname().trim() || DEFAULT_DEVICE_NAME;
+  const username = os.userInfo().username;
+  const seed = `${hostname}:${username}`;
+  return createHash("sha1").update(seed).digest("hex");
 }
 
 export function getClientVersion(): string {
-  try {
-    return app?.getVersion?.() ?? FALLBACK_VERSION;
-  } catch (error) {
-    swallow(error, "jellyfinemby.identity.version", "electron app.getVersion() unavailable in this context");
-    return FALLBACK_VERSION;
-  }
+  return app.getVersion();
 }

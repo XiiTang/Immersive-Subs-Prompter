@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 import { buildWebSocketUrl, createAuthHeaders, JellyfinembyIdentity } from "../jellyfinembyUtils.js";
-import { MediaServerConfig } from "../types.js";
+import { JellyfinembyServerConfig } from "../types.js";
 import { swallow } from "../errors.js";
 import { redactUrlSecrets } from "../urlRedaction.js";
 import { KEEP_ALIVE_INTERVAL_MS, RECONNECT_DELAY_MS } from "./constants.js";
@@ -26,13 +26,13 @@ export class JellyfinembyWebSocketTransport {
   private disposed = false;
 
   constructor(
-    private config: MediaServerConfig,
+    private config: JellyfinembyServerConfig,
     private readonly identity: JellyfinembyIdentity,
     private readonly log: Logger,
     private readonly hooks: TransportHooks
   ) {}
 
-  updateConfig(nextConfig: MediaServerConfig) {
+  updateConfig(nextConfig: JellyfinembyServerConfig) {
     this.config = nextConfig;
   }
 

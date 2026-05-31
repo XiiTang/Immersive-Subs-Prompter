@@ -1,5 +1,5 @@
 import type { ProfileDefinition, ProfileSettings } from "../../../../main/types";
-import { createId, mergePartial } from "../helpers";
+import { createId, toPlain } from "../helpers";
 import { DEFAULT_PROFILE_TEMPLATE } from "../defaults";
 import type { DesktopStoreThis } from "../types";
 import type { UpdateSettingsOptions } from "./settingsActions";
@@ -53,7 +53,7 @@ export function addProfile(this: DesktopStoreThis) {
     id: createId("profile"),
     name: `Profile ${this.settings.profiles.length + 1}`,
     description: null,
-    settings: { ...DEFAULT_PROFILE_TEMPLATE }
+    settings: toPlain(DEFAULT_PROFILE_TEMPLATE)
   };
   this.editingProfileId = newProfile.id;
   const insertIndex = Math.max(0, this.settings.profiles.length - 1);
@@ -78,7 +78,7 @@ export function duplicateProfile(this: DesktopStoreThis) {
     ...existing,
     id: createId("profile"),
     name: `${existing.name} Copy`,
-    settings: mergePartial(existing.settings, {})
+    settings: toPlain(existing.settings)
   };
   this.editingProfileId = copy.id;
   const insertIndex = Math.max(0, this.settings.profiles.length - 1);

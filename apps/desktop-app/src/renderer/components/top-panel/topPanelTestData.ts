@@ -8,7 +8,7 @@ function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
   };
 }
 
-export function createTopPanelProfile(): ProfileDefinition {
+function createTopPanelProfile(): ProfileDefinition {
   return {
     id: "profile-1",
     name: "Default",

@@ -42,7 +42,7 @@ export class EndpointManager {
           }
           const stored = normalizeEndpointList(result?.[this.storageKey]);
           const hasKey = result && Object.prototype.hasOwnProperty.call(result, this.storageKey);
-          resolve(hasKey ? stored : stored.length ? stored : [...this.defaultEndpoints]);
+          resolve(hasKey ? stored : [...this.defaultEndpoints]);
         });
       } catch (error) {
         this.logger.error("storage", "Failed to load server endpoints", error);

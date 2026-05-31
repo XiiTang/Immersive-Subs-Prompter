@@ -27,10 +27,6 @@ function addListener(target: Window, eventName: string, handler: EventListener) 
 
 function patchHistoryMethod(methodName: "pushState" | "replaceState", onUrlChanged?: (url: string, title: string) => void) {
   const original = history[methodName];
-  if (typeof original !== "function") {
-    log.warn("page", `Cannot patch history.${methodName}: not a function`);
-    return;
-  }
   const patched = function (this: History, ...args: Parameters<History["pushState"]>) {
     const result = original.apply(this, args);
     notifyUrlChange(onUrlChanged, methodName);

@@ -1,6 +1,6 @@
 import type { AppSettings, GlobalSettings, NetworkSettings } from "../../../../main/types";
 import { reportError } from "../../../utils/errorBus";
-import { mergePartial, toPlain } from "../helpers";
+import { toPlain } from "../helpers";
 import type { DesktopStoreThis } from "../types";
 
 export type SettingsPersistenceMode = "immediate" | "deferred";
@@ -47,11 +47,30 @@ function resetDeferredPersistence(deferred: DeferredSettingsPersistence) {
   deferred.rollback = null;
 }
 
+function mergeSettingsPatch<T>(current: T, patch: Partial<T>): T {
+  const base = { ...(current as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(patch as Record<string, unknown>)) {
+    const currentValue = base[key];
+    if (Array.isArray(value)) {
+      base[key] = [...value];
+    } else if (value && typeof value === "object") {
+      const currentObject =
+        currentValue && typeof currentValue === "object" && !Array.isArray(currentValue)
+          ? currentValue
+          : {};
+      base[key] = mergeSettingsPatch(currentObject, value as Record<string, unknown>);
+    } else if (value !== undefined) {
+      base[key] = value;
+    }
+  }
+  return base as T;
+}
+
 function mergeSettingsPayload(
   current: Partial<AppSettings> | null,
   patch: Partial<AppSettings>
 ): Partial<AppSettings> {
-  return mergePartial(current ?? {}, patch);
+  return mergeSettingsPatch(current ?? {}, patch);
 }
 
 function bumpSettingsRevision(store: DesktopStoreThis) {
@@ -85,7 +104,7 @@ export function applySettingsPatch(this: DesktopStoreThis, partial: Partial<AppS
   if (!this.settings) {
     return;
   }
-  this.settings = mergePartial(this.settings, partial);
+  this.settings = mergeSettingsPatch(this.settings, partial);
   bumpSettingsRevision(this);
 }
 

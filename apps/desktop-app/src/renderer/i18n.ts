@@ -1,8 +1,7 @@
 import { ref, type ComputedRef } from "vue";
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../common/languages";
 
-const SUPPORTED_LANGUAGES = ["en", "zh"] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
+export { DEFAULT_LANGUAGE, type SupportedLanguage };
 
 type Dictionary = Record<string, string>;
 type TranslationReplacements = Record<string, string | number | boolean | null | undefined>;

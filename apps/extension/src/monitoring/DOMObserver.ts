@@ -80,10 +80,7 @@ function handleRemovedNode(node: Node) {
 
   const videos = findVideosInNode(node);
   videos.forEach((video) => {
-    const schedule = typeof requestAnimationFrame === "function"
-      ? (fn: FrameRequestCallback) => requestAnimationFrame(fn)
-      : (fn: FrameRequestCallback) => setTimeout(() => fn(0), 0);
-    schedule(() => {
+    requestAnimationFrame(() => {
       if (videoRemovedHandler && video === state.activeVideo && !video.isConnected) {
         videoRemovedHandler();
       }

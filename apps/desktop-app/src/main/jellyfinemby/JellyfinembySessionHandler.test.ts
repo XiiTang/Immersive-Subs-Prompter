@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MediaServerSessionSummary } from "../types.js";
-import { MediaServerSessionHandler } from "./MediaServerSessionHandler.js";
-import { TabContextRegistry } from "./TabContextRegistry.js";
+import { JellyfinembySessionHandler } from "./JellyfinembySessionHandler.js";
+import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
 function session(
   id: string,
@@ -66,11 +66,11 @@ function createStateManager(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createHandler(stateManager: ReturnType<typeof createStateManager>, tabRegistry = new TabContextRegistry()) {
+function createHandler(stateManager: ReturnType<typeof createStateManager>, tabRegistry = new JellyfinembyTabContextRegistry()) {
   const service = {
     setActiveSession: vi.fn()
   };
-  const handler = new MediaServerSessionHandler(
+  const handler = new JellyfinembySessionHandler(
     stateManager as never,
     service as never,
     tabRegistry,
@@ -82,10 +82,10 @@ function createHandler(stateManager: ReturnType<typeof createStateManager>, tabR
   return { handler, service, tabRegistry };
 }
 
-describe("MediaServerSessionHandler", () => {
+describe("JellyfinembySessionHandler", () => {
   it("does not bind a tab to a same-item session from another server", () => {
     const stateManager = createStateManager();
-    const tabRegistry = new TabContextRegistry();
+    const tabRegistry = new JellyfinembyTabContextRegistry();
     tabRegistry.update(7, {
       itemId: "item-1",
       serverConfigId: "server-a",
@@ -109,7 +109,7 @@ describe("MediaServerSessionHandler", () => {
       activeSource: "mediaserver",
       activeTabId: 7
     });
-    const tabRegistry = new TabContextRegistry();
+    const tabRegistry = new JellyfinembyTabContextRegistry();
     tabRegistry.update(7, {
       itemId: "item-1",
       serverConfigId: null,

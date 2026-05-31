@@ -109,9 +109,6 @@ function parseEditableEndpoint(value: string): NetworkEndpoint | null {
 }
 
 function createEndpointId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `endpoint-${crypto.randomUUID()}`;
-  }
-  return `endpoint-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `endpoint-${crypto.randomUUID()}`;
 }
 </script>

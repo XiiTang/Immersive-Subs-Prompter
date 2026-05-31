@@ -18,7 +18,7 @@ import { createDefaultJellyfinembyPluginConfig } from "./jellyfinembyDefaults.js
 import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "./wordLookupDefaults.js";
 
 export const DEFAULT_PROFILE_ID = "default-profile";
-export const DEFAULT_PROFILE_NAME = "Default Profile";
+const DEFAULT_PROFILE_NAME = "Default Profile";
 
 export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   autoLaunch: true,
@@ -33,7 +33,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   }
 };
 
-export const DEFAULT_NETWORK_ENDPOINTS: NetworkEndpoint[] = [
+const DEFAULT_NETWORK_ENDPOINTS: NetworkEndpoint[] = [
   {
     id: "default",
     host: "127.0.0.1",
@@ -41,10 +41,10 @@ export const DEFAULT_NETWORK_ENDPOINTS: NetworkEndpoint[] = [
   }
 ];
 
-export const DEFAULT_SUBTITLE_PRIMARY_COLOR = "#f5f5f5";
-export const DEFAULT_SUBTITLE_SECONDARY_COLOR = "#c7d2fe";
-export const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR = "#ff0000";
-export const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR = "#ff1f1f";
+const DEFAULT_SUBTITLE_PRIMARY_COLOR = "#f5f5f5";
+const DEFAULT_SUBTITLE_SECONDARY_COLOR = "#c7d2fe";
+const DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR = "#ff0000";
+const DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR = "#ff1f1f";
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   primarySubtitleFontFamily: DEFAULT_SUBTITLE_FONT_FAMILY,

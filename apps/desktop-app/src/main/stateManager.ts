@@ -17,21 +17,10 @@ import { normalizeRegexPattern } from "../common/regex.js";
 import { getUrlRuleMatchType, matchesUrlRule } from "@immersive-subs/contracts";
 
 const clone = <T>(value: T): T => {
-  if (typeof (globalThis as any).structuredClone === "function") {
-    return (globalThis as any).structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 };
 
 type Status = DesktopState["status"];
-
-const STATUS_TRANSITIONS: Record<Status, Status[]> = {
-  idle: ["awaiting-video", "loading-subtitles", "idle", "error"],
-  "awaiting-video": ["loading-subtitles", "error", "idle", "awaiting-video"],
-  "loading-subtitles": ["ready", "error", "awaiting-video", "idle", "loading-subtitles"],
-  ready: ["loading-subtitles", "error", "awaiting-video", "idle", "ready"],
-  error: ["awaiting-video", "loading-subtitles", "idle", "error", "ready"]
-};
 
 function createInitialState(settings: AppSettings): {
   state: DesktopState;
@@ -356,8 +345,6 @@ export class StateManager {
   private commit(next: DesktopState, options?: { emitState?: boolean }): DesktopState {
     const emitState = options?.emitState ?? true;
     const previous = this.state;
-    next.status = this.enforceStatusTransition(previous.status, next.status);
-    next.activeSource = this.normalizeActiveSource(next.activeSource, previous.activeSource);
     this.state = next;
 
     if (previous.connectionCount !== next.connectionCount) {
@@ -368,29 +355,6 @@ export class StateManager {
       this.bus.emit("state:changed", this.state);
     }
     return this.state;
-  }
-
-  private enforceStatusTransition(current: Status, next: Status): Status {
-    if (current === next) {
-      return next;
-    }
-    const allowed = STATUS_TRANSITIONS[current] ?? [];
-    if (allowed.includes(next)) {
-      return next;
-    }
-    this.log.warn(`Illegal status transition ${current} -> ${next}, keeping ${current}`);
-    return current;
-  }
-
-  private normalizeActiveSource(
-    next: SubtitleSource | null,
-    fallback: SubtitleSource | null
-  ): SubtitleSource | null {
-    if (next === null || next === "extension" || next === "mediaserver") {
-      return next;
-    }
-    this.log.warn(`Invalid activeSource "${next}", reverting to previous`);
-    return fallback;
   }
 
   private pickTrackByPriority(

@@ -62,6 +62,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { renderWordLookupMarkdown } from "../../plugins/wordLookupMarkdown";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
+import { clamp } from "../../utils/formatters";
 import { UiIconButton } from "../ui";
 
 type WordLookupWindowPayload = {
@@ -138,10 +139,6 @@ function handleContentClick(event: MouseEvent) {
   if (href) {
     void window.usp.openExternal(href);
   }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }
 
 function updateScrollbarMetrics() {

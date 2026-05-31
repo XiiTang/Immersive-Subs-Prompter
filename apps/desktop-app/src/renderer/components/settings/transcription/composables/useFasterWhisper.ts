@@ -1,29 +1,14 @@
 import { computed, onWatcherCleanup, ref, watch, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import type { TranscriptionConfig } from "../../../../../main/types";
+import type { RendererApi } from "../../../../../preload.cts";
 import { reportError } from "../../../../utils/errorBus";
 import { normalizeFasterWhisperModelName } from "../../../../../common/fasterWhisperModels";
 
-export interface FasterWhisperPaths {
-  binaryDir: string;
-  modelsDir: string;
-  cpuBinaryPath: string;
-  gpuBinaryPath: string;
-}
+type FasterWhisperPaths = Awaited<ReturnType<RendererApi["getFasterWhisperPaths"]>>;
+type FasterWhisperStatusResult = Awaited<ReturnType<RendererApi["getFasterWhisperStatus"]>>;
+type DownloadProgress = Parameters<Parameters<RendererApi["onFasterWhisperDownloadProgress"]>[0]>[0];
 
-export interface AvailableModel {
-  name: string;
-  path: string;
-  folder: string;
-}
-
-export interface DownloadProgress {
-  id: string;
-  type: "binary" | "model";
-  variant?: "cpu" | "gpu";
-  model?: string;
-  percent: number;
-  status: string;
-}
+export type AvailableModel = Extract<FasterWhisperStatusResult, { ok: true }>["models"][number];
 
 export interface UseFasterWhisperOptions {
   t: (key: string, fallback: string) => string;
@@ -57,10 +42,7 @@ export interface UseFasterWhisperReturn {
 }
 
 function createJobId(prefix: string) {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${(crypto as Crypto).randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
 export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhisperReturn {

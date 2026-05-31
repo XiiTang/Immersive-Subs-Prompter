@@ -38,10 +38,7 @@ export interface UseTranscriptionConfigReturn {
 }
 
 function createTranscriptionConfigId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `transcription-${(crypto as Crypto).randomUUID()}`;
-  }
-  return `transcription-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  return `transcription-${crypto.randomUUID()}`;
 }
 
 export function useTranscriptionConfig(

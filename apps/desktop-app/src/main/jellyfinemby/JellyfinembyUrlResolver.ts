@@ -3,11 +3,11 @@ import { normalizeServerUrl } from "../jellyfinembyUtils.js";
 import { createLogger } from "../logger.js";
 import type {
   JellyfinembyPluginConfig,
-  MediaServerConfig,
+  JellyfinembyServerConfig,
   MediaServerSessionSummary
 } from "../types.js";
 
-export class MediaServerUrlResolver {
+export class JellyfinembyUrlResolver {
   private readonly log = createLogger("mediaserver-url-resolver");
 
   constructor(private readonly getConfig: () => JellyfinembyPluginConfig) {}
@@ -58,7 +58,7 @@ export class MediaServerUrlResolver {
 
   extractItemId(
     payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
-    fallbackUrl: string
+    _fallbackUrl: string
   ): string | null {
     const extractFromUrl = (candidate: string | null | undefined): string | null => {
       if (!candidate || typeof candidate !== "string") {
@@ -66,21 +66,9 @@ export class MediaServerUrlResolver {
       }
       try {
         const urlObj = new URL(candidate);
-
-        // First, try to extract from URL path (e.g., /videos/302/... or /items/302/...)
-        // This matches what Emby/Jellyfin report as nowPlayingItemId
         const pathMatch = urlObj.pathname.match(/\/(?:videos|items)\/([^/]+)/i);
         if (pathMatch?.[1]) {
           return pathMatch[1];
-        }
-
-        // Fallback: try MediaSourceId parameter (but strip 'mediasource_' prefix if present)
-        for (const [key, value] of urlObj.searchParams.entries()) {
-          if (key.toLowerCase() === "mediasourceid") {
-            // Strip 'mediasource_' prefix if present to match server-reported ID
-            const cleanedValue = value.replace(/^mediasource_/i, "");
-            return cleanedValue;
-          }
         }
       } catch (error) {
         this.log.error(`Failed to parse media server URL for itemId`, error);
@@ -88,10 +76,10 @@ export class MediaServerUrlResolver {
       return null;
     };
 
-    return extractFromUrl(payload.videoSrc) ?? extractFromUrl(fallbackUrl);
+    return extractFromUrl(payload.videoSrc);
   }
 
-  resolveMediaServerConfig(configId?: string | null): MediaServerConfig | null {
+  resolveMediaServerConfig(configId?: string | null): JellyfinembyServerConfig | null {
     const configs = this.getMediaServerConfigs();
     if (configId) {
       return configs.find((config) => config.id === configId) ?? null;
@@ -137,7 +125,7 @@ export class MediaServerUrlResolver {
     return `${base}/web/index.html#!/details?id=${session.nowPlayingItemId}`;
   }
 
-  private getMediaServerConfigs(): MediaServerConfig[] {
+  private getMediaServerConfigs(): JellyfinembyServerConfig[] {
     return this.getConfig().servers;
   }
 }

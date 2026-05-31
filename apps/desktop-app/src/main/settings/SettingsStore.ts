@@ -12,22 +12,20 @@ import {
 
 export class SettingsStore {
   private readonly filePath: string;
-  private data: AppSettings = DEFAULT_SETTINGS_FACTORY();
+  private data: AppSettings;
 
   constructor() {
     this.filePath = path.join(app.getPath("userData"), "settings.json");
-    this.data = DEFAULT_SETTINGS_FACTORY();
-    this.load();
+    this.data = this.load();
   }
 
-  private load() {
+  private load(): AppSettings {
     if (!fs.existsSync(this.filePath)) {
-      this.data = DEFAULT_SETTINGS_FACTORY();
-      return;
+      return DEFAULT_SETTINGS_FACTORY();
     }
     const raw = fs.readFileSync(this.filePath, "utf-8");
     const parsed = JSON.parse(raw);
-    this.data = sanitizeSettings(parsed);
+    return sanitizeSettings(parsed);
   }
 
   private save(data: AppSettings) {
