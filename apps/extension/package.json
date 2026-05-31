@@ -13,7 +13,7 @@
     "build:firefox": "pnpm --filter @immersive-subs/contracts build && pnpm run build:firefox:app",
     "build:firefox:app": "tsx ./esbuild.config.ts firefox",
     "build:all": "pnpm --filter @immersive-subs/contracts build && pnpm run build:chrome:app && pnpm run build:firefox:app",
-    "test": "pnpm --filter @immersive-subs/contracts build && pnpm run test:app",
+    "test": "pnpm run test:app",
     "test:app": "vitest run",
     "test:watch": "vitest"
   },

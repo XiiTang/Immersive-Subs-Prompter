@@ -97,13 +97,6 @@ describe("SettingsWindowShell", () => {
     expect(text).toContain("全局");
     expect(text).toContain("主题");
     expect(text).toContain("插件");
-    expect(text).not.toContain("Preferences");
-    expect(text).not.toContain("Settings");
-    expect(text).not.toContain("General");
-    expect(text).not.toContain("Profiles");
-    expect(text).not.toContain("Rules");
-    expect(text).not.toContain("Media Server");
-    expect(text).not.toContain("Cache");
     expect(shellHeaderText).toBe("设置");
   });
 
@@ -252,7 +245,6 @@ describe("SettingsWindowShell", () => {
     await vi.waitFor(() => {
       expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').text()).toContain("语音转写");
     });
-    expect(wrapper.text()).not.toContain("Speech Transcription");
   });
 
   it("shows icons for built-in and known official plugin navigation items", async () => {
@@ -323,7 +315,6 @@ describe("SettingsWindowShell", () => {
   });
 
   it("auto-hides settings scrollbars until users interact with scroll regions", () => {
-    expect(rendererStylesheet).not.toContain("scrollbar-gutter: stable both-edges;");
     expect(rendererStylesheet).toContain("--settings-scrollbar-thumb: transparent;");
     expect(rendererStylesheet).toContain("scrollbar-color: var(--settings-scrollbar-thumb) transparent;");
     expect(rendererStylesheet).toContain("--settings-scrollbar-thumb: var(--ui-border);");

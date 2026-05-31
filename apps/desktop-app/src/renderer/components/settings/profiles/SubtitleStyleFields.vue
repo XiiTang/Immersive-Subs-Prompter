@@ -20,30 +20,30 @@
           id="primary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
           :label="t('primary-subtitle-font-size-label')"
-          :value="`${primarySubtitleFontSize}px`"
+          :value="`${draft.primarySubtitleFontSize}px`"
         >
           <UiSlider
-            v-model="primarySubtitleFontSize"
+            v-model="draft.primarySubtitleFontSize"
             :min="3"
             :max="96"
             :step="1"
             :label="t('primary-subtitle-font-size-label')"
-            @change="flushDeferredProfileSettings"
+            @change="commitDraftProfileSetting('primarySubtitleFontSize')"
           />
         </UiField>
         <UiField
           id="subtitle-timestamp-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
           :label="t('subtitle-timestamp-font-size-label')"
-          :value="`${subtitleTimestampFontSize}px`"
+          :value="`${draft.subtitleTimestampFontSize}px`"
         >
           <UiSlider
-            v-model="subtitleTimestampFontSize"
+            v-model="draft.subtitleTimestampFontSize"
             :min="6"
             :max="24"
             :step="1"
             :label="t('subtitle-timestamp-font-size-label')"
-            @change="flushDeferredProfileSettings"
+            @change="commitDraftProfileSetting('subtitleTimestampFontSize')"
           />
         </UiField>
       </div>
@@ -64,15 +64,15 @@
           id="secondary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
           :label="t('secondary-subtitle-font-size-label')"
-          :value="`${secondarySubtitleFontSize}px`"
+          :value="`${draft.secondarySubtitleFontSize}px`"
         >
           <UiSlider
-            v-model="secondarySubtitleFontSize"
+            v-model="draft.secondarySubtitleFontSize"
             :min="3"
             :max="96"
             :step="1"
             :label="t('secondary-subtitle-font-size-label')"
-            @change="flushDeferredProfileSettings"
+            @change="commitDraftProfileSetting('secondarySubtitleFontSize')"
           />
         </UiField>
       </div>
@@ -87,60 +87,60 @@
         id="subtitle-scroll-position"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
         :label="t('subtitle-scroll-position-label')"
-        :value="`${subtitleScrollPosition}%`"
+        :value="`${draft.subtitleScrollPosition}%`"
       >
         <UiSlider
-          v-model="subtitleScrollPosition"
+          v-model="draft.subtitleScrollPosition"
           :min="0"
           :max="100"
           :step="1"
           :label="t('subtitle-scroll-position-label')"
-          @change="flushDeferredProfileSettings"
+          @change="commitDraftProfileSetting('subtitleScrollPosition')"
         />
       </UiField>
       <UiField
         id="subtitle-primary-secondary-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
         :label="t('subtitle-primary-secondary-gap-label')"
-        :value="`${subtitlePrimarySecondaryGap}px`"
+        :value="`${draft.subtitlePrimarySecondaryGap}px`"
       >
         <UiSlider
-          v-model="subtitlePrimarySecondaryGap"
+          v-model="draft.subtitlePrimarySecondaryGap"
           :min="0"
           :max="60"
           :step="1"
           :label="t('subtitle-primary-secondary-gap-label')"
-          @change="flushDeferredProfileSettings"
+          @change="commitDraftProfileSetting('subtitlePrimarySecondaryGap')"
         />
       </UiField>
       <UiField
         id="subtitle-line-height"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
         :label="t('subtitle-line-height-label')"
-        :value="String(subtitleLineHeight)"
+        :value="String(draft.subtitleLineHeight)"
       >
         <UiSlider
-          v-model="subtitleLineHeight"
+          v-model="draft.subtitleLineHeight"
           :min="1"
           :max="3"
           :step="0.05"
           :label="t('subtitle-line-height-label')"
-          @change="flushDeferredProfileSettings"
+          @change="commitDraftProfileSetting('subtitleLineHeight')"
         />
       </UiField>
       <UiField
         id="subtitle-block-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
         :label="t('subtitle-block-gap-label')"
-        :value="`${subtitleBlockGap}px`"
+        :value="`${draft.subtitleBlockGap}px`"
       >
         <UiSlider
-          v-model="subtitleBlockGap"
+          v-model="draft.subtitleBlockGap"
           :min="0"
           :max="60"
           :step="1"
           :label="t('subtitle-block-gap-label')"
-          @change="flushDeferredProfileSettings"
+          @change="commitDraftProfileSetting('subtitleBlockGap')"
         />
       </UiField>
     </div>
@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, reactive, watch } from "vue";
 import type { ProfileSettings } from "../../../../main/types";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
@@ -196,40 +196,55 @@ const subtitleFontOptions = SUBTITLE_FONT_OPTIONS.map((option) => ({
   fontFamilyPreview: option.value
 }));
 
-function updateDeferredProfileSetting<Key extends keyof ProfileSettings>(
-  key: Key,
-  value: ProfileSettings[Key]
-) {
-  store.updateProfileSetting(key, value, { persist: "deferred" });
+type DraftProfileSettingKey =
+  | "primarySubtitleFontSize"
+  | "secondarySubtitleFontSize"
+  | "subtitleTimestampFontSize"
+  | "subtitleScrollPosition"
+  | "subtitlePrimarySecondaryGap"
+  | "subtitleLineHeight"
+  | "subtitleBlockGap";
+
+const draft = reactive<Record<DraftProfileSettingKey, number>>({
+  primarySubtitleFontSize: 0,
+  secondarySubtitleFontSize: 0,
+  subtitleTimestampFontSize: 0,
+  subtitleScrollPosition: 0,
+  subtitlePrimarySecondaryGap: 0,
+  subtitleLineHeight: 0,
+  subtitleBlockGap: 0
+});
+
+function syncDraftFromStore() {
+  const settings = store.editingProfileSettings;
+  draft.primarySubtitleFontSize = settings.primarySubtitleFontSize;
+  draft.secondarySubtitleFontSize = settings.secondarySubtitleFontSize;
+  draft.subtitleTimestampFontSize =
+    settings.subtitleTimestampFontSize ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimestampFontSize;
+  draft.subtitleScrollPosition = settings.subtitleScrollPosition;
+  draft.subtitlePrimarySecondaryGap = settings.subtitlePrimarySecondaryGap;
+  draft.subtitleLineHeight = settings.subtitleLineHeight;
+  draft.subtitleBlockGap = settings.subtitleBlockGap;
 }
 
-function flushDeferredProfileSettings() {
-  void store.flushDeferredSettingsPersistence();
+function commitDraftProfileSetting<Key extends DraftProfileSettingKey>(key: Key) {
+  store.updateProfileSetting(key, draft[key] as ProfileSettings[Key]);
 }
+
+watch(
+  () => [store.editingProfileId, store.editingProfileSettings],
+  syncDraftFromStore,
+  { immediate: true, deep: true }
+);
 
 const primarySubtitleFontFamily = computed({
   get: () => store.editingProfileSettings.primarySubtitleFontFamily,
   set: (value: string) => store.updateProfileSetting("primarySubtitleFontFamily", value)
 });
 
-const primarySubtitleFontSize = computed({
-  get: () => store.editingProfileSettings.primarySubtitleFontSize,
-  set: (value: number) => updateDeferredProfileSetting("primarySubtitleFontSize", value)
-});
-
 const secondarySubtitleFontFamily = computed({
   get: () => store.editingProfileSettings.secondarySubtitleFontFamily,
   set: (value: string) => store.updateProfileSetting("secondarySubtitleFontFamily", value)
-});
-
-const secondarySubtitleFontSize = computed({
-  get: () => store.editingProfileSettings.secondarySubtitleFontSize,
-  set: (value: number) => updateDeferredProfileSetting("secondarySubtitleFontSize", value)
-});
-
-const subtitleTimestampFontSize = computed({
-  get: () => store.editingProfileSettings.subtitleTimestampFontSize ?? DEFAULT_PROFILE_TEMPLATE.subtitleTimestampFontSize,
-  set: (value: number) => updateDeferredProfileSetting("subtitleTimestampFontSize", value)
 });
 
 const subtitleAutoHideMetaRow = computed({
@@ -240,25 +255,5 @@ const subtitleAutoHideMetaRow = computed({
 const subtitleAutoScrollTimeout = computed({
   get: () => store.editingProfileSettings.subtitleAutoScrollTimeout,
   set: (value: number) => store.updateProfileSetting("subtitleAutoScrollTimeout", value)
-});
-
-const subtitleScrollPosition = computed({
-  get: () => store.editingProfileSettings.subtitleScrollPosition,
-  set: (value: number) => updateDeferredProfileSetting("subtitleScrollPosition", value)
-});
-
-const subtitlePrimarySecondaryGap = computed({
-  get: () => store.editingProfileSettings.subtitlePrimarySecondaryGap,
-  set: (value: number) => updateDeferredProfileSetting("subtitlePrimarySecondaryGap", value)
-});
-
-const subtitleLineHeight = computed({
-  get: () => store.editingProfileSettings.subtitleLineHeight,
-  set: (value: number) => updateDeferredProfileSetting("subtitleLineHeight", value)
-});
-
-const subtitleBlockGap = computed({
-  get: () => store.editingProfileSettings.subtitleBlockGap,
-  set: (value: number) => updateDeferredProfileSetting("subtitleBlockGap", value)
 });
 </script>

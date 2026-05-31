@@ -24,7 +24,12 @@ export class SettingsStore {
       return DEFAULT_SETTINGS_FACTORY();
     }
     const raw = fs.readFileSync(this.filePath, "utf-8");
-    const parsed = JSON.parse(raw);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return DEFAULT_SETTINGS_FACTORY();
+    }
     return sanitizeSettings(parsed);
   }
 

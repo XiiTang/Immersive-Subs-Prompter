@@ -20,7 +20,6 @@ import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { RendererApi } from "../../../preload.cts";
 import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
-import type { UpdateSettingsOptions } from "./actions/settingsActions";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 
@@ -52,9 +51,7 @@ interface DesktopStoreActions {
   attachIpcListeners(): void;
 
   // settings
-  applySettingsPatch(partial: Partial<AppSettings>): void;
-  flushDeferredSettingsPersistence(): Promise<void>;
-  updateSettings(partial: Partial<AppSettings>, options?: UpdateSettingsOptions): Promise<void>;
+  updateSettings(partial: Partial<AppSettings>): Promise<void>;
   updateGlobalSetting<Key extends keyof GlobalSettings>(key: Key, value: GlobalSettings[Key]): void;
   updateNetworkSetting<Key extends keyof NetworkSettings>(key: Key, value: NetworkSettings[Key]): void;
 
@@ -62,8 +59,7 @@ interface DesktopStoreActions {
   setEditingProfile(profileId: string): void;
   updateProfileSetting<Key extends keyof ProfileSettings>(
     key: Key,
-    value: ProfileSettings[Key],
-    options?: UpdateSettingsOptions
+    value: ProfileSettings[Key]
   ): void;
   addProfile(): void;
   duplicateProfile(): void;

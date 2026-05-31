@@ -10,15 +10,3 @@ export function assertNoUnknownKeys(
     }
   }
 }
-
-export function assertRequiredKeys(
-  source: Record<string, unknown>,
-  requiredKeys: readonly string[],
-  context: string
-): void {
-  for (const key of requiredKeys) {
-    if (!Object.prototype.hasOwnProperty.call(source, key)) {
-      throw new Error(`${context} is missing current setting: ${key}`);
-    }
-  }
-}

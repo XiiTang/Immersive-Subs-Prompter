@@ -2,7 +2,6 @@ import type { ProfileDefinition, ProfileSettings } from "../../../../main/types"
 import { createId, toPlain } from "../helpers";
 import { DEFAULT_PROFILE_TEMPLATE } from "../defaults";
 import type { DesktopStoreThis } from "../types";
-import type { UpdateSettingsOptions } from "./settingsActions";
 
 export function setEditingProfile(this: DesktopStoreThis, profileId: string) {
   if (!this.settings) {
@@ -15,8 +14,7 @@ export function setEditingProfile(this: DesktopStoreThis, profileId: string) {
 export function updateProfileSetting<Key extends keyof ProfileSettings>(
   this: DesktopStoreThis,
   key: Key,
-  value: ProfileSettings[Key],
-  options: UpdateSettingsOptions = {}
+  value: ProfileSettings[Key]
 ) {
   if (!this.settings || !this.editingProfileId) {
     return;
@@ -32,7 +30,7 @@ export function updateProfileSetting<Key extends keyof ProfileSettings>(
       }
       : profile
   );
-  this.updateSettings({ profiles: nextProfiles }, options);
+  this.updateSettings({ profiles: nextProfiles });
 }
 
 export function addProfile(this: DesktopStoreThis) {

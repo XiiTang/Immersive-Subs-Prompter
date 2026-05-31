@@ -17,7 +17,7 @@ import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID 
 import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
-import { assertNoUnknownKeys, assertRequiredKeys } from "./utils.js";
+import { assertNoUnknownKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "plugins", "cache"] as const;
 const PLUGIN_SETTINGS_RECORD_KEYS = ["config"] as const;
@@ -61,56 +61,74 @@ function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown
   }
 }
 
-export function sanitizeSettings(input: Partial<AppSettings> | null | undefined): AppSettings {
+export function sanitizeSettings(input: unknown): AppSettings {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    throw new Error("settings file must use the current object setting");
+    return DEFAULT_SETTINGS_FACTORY();
   }
 
-  const raw = input as Record<string, unknown>;
-  assertNoUnknownKeys(raw, APP_SETTINGS_KEYS, "settings");
-  assertRequiredKeys(raw, APP_SETTINGS_KEYS, "settings");
-
-  if (raw.defaultProfileId !== DEFAULT_PROFILE_ID) {
-    throw new Error("settings.defaultProfileId must use the fixed current fallback profile");
+  const snapshot = createSettingsSnapshot(input as Record<string, unknown>);
+  try {
+    validateSettingsSnapshot(snapshot);
+    return snapshot;
+  } catch {
+    return DEFAULT_SETTINGS_FACTORY();
   }
-
-  validateGlobalSettingsForLoad(raw.global);
-  validateNetworkSettingsForUpdate(raw.network);
-  const profiles = validateProfilesForUpdate(raw.profiles, DEFAULT_PROFILE_ID);
-  validateRulesForUpdate(raw.rules, profiles, DEFAULT_PROFILE_ID);
-  validatePluginSettingsForLoad(raw.plugins);
-  validateCacheSettingsForLoad(raw.cache);
-
-  return input as AppSettings;
 }
 
-function validateGlobalSettingsForLoad(input: unknown): void {
+function createSettingsSnapshot(raw: Record<string, unknown>): AppSettings {
+  return {
+    global: raw.global,
+    network: raw.network,
+    profiles: raw.profiles,
+    defaultProfileId: raw.defaultProfileId,
+    rules: raw.rules,
+    plugins: pickBuiltinPlugins(raw.plugins),
+    cache: raw.cache
+  } as AppSettings;
+}
+
+function pickBuiltinPlugins(input: unknown): unknown {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    throw new Error("global settings must use the current object setting");
+    return input;
   }
   const source = input as Record<string, unknown>;
-  assertRequiredKeys(source, GLOBAL_SETTINGS_KEYS, "global");
-  validateGlobalSettingsForUpdate(input);
+  return Object.fromEntries(BUILTIN_PLUGIN_IDS.map((pluginId) => [pluginId, source[pluginId]]));
 }
 
-function validatePluginSettingsForLoad(input: unknown): void {
+function validateSettingsSnapshot(input: AppSettings): void {
+  if (input.defaultProfileId !== DEFAULT_PROFILE_ID) {
+    throw new Error("settings.defaultProfileId must use the fixed current fallback profile");
+  }
+  if (!hasRequiredKeys(input.global, GLOBAL_SETTINGS_KEYS)) {
+    throw new Error("global settings must include current settings");
+  }
+  if (!hasRequiredKeys(input.cache, CACHE_SETTINGS_KEYS)) {
+    throw new Error("cache settings must include current settings");
+  }
+  validateGlobalSettingsForUpdate(input.global);
+  validateNetworkSettingsForUpdate(input.network);
+  const profiles = validateProfilesForUpdate(input.profiles, input.defaultProfileId);
+  validateRulesForUpdate(input.rules, profiles, input.defaultProfileId);
+  validatePluginSettingsSnapshot(input.plugins);
+  validateCacheSettingsForUpdate(input.cache);
+}
+
+function hasRequiredKeys(input: unknown, keys: readonly string[]): boolean {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return false;
+  }
+  const source = input as Record<string, unknown>;
+  return keys.every((key) => Object.prototype.hasOwnProperty.call(source, key));
+}
+
+function validatePluginSettingsSnapshot(input: unknown): void {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new Error("plugins settings must use the current object setting");
   }
   const source = input as Record<string, unknown>;
-  assertNoUnknownKeys(source, BUILTIN_PLUGIN_IDS, "plugins");
-  assertRequiredKeys(source, BUILTIN_PLUGIN_IDS, "plugins");
   for (const pluginId of BUILTIN_PLUGIN_IDS) {
     validatePluginSettingsRecordForUpdate(pluginId, source[pluginId]);
   }
-}
-
-function validateCacheSettingsForLoad(input: unknown): void {
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    throw new Error("cache settings must use the current object setting");
-  }
-  assertRequiredKeys(input as Record<string, unknown>, CACHE_SETTINGS_KEYS, "cache");
-  validateCacheSettingsForUpdate(input);
 }
 
 export function validateSettingsForUpdate(

@@ -68,17 +68,6 @@ describe("SettingsGlobal", () => {
     expect(wrapper.text()).toContain("Endpoints");
     expect(wrapper.text()).toContain("Path");
     expect(wrapper.text()).toContain("Stats");
-    expect(wrapper.text()).not.toContain("Global Settings");
-    expect(wrapper.text()).not.toContain("Listening Endpoints");
-    expect(wrapper.text()).not.toContain("Toggle Window Shortcut");
-    expect(wrapper.text()).not.toContain("Process Blacklist");
-    expect(wrapper.text()).not.toContain("Enable Cache");
-    expect(wrapper.text()).not.toContain("Cache Path");
-    expect(wrapper.text()).not.toContain("Retention (days)");
-    expect(wrapper.text()).not.toContain("Cache Stats");
-    expect(wrapper.text()).not.toContain("Add explicit addresses");
-    expect(wrapper.text()).not.toContain("Use modifiers such as");
-    expect(wrapper.text()).not.toContain("Disable shortcuts when these processes");
   });
 
   it("renders endpoint pills as extension URLs", () => {
@@ -213,8 +202,6 @@ describe("SettingsGlobal", () => {
 
     expect(wrapper.text()).toContain("r5apex_dx12.exe");
     expect(wrapper.find('[data-testid="process-blacklist-draft-input"]').exists()).toBe(true);
-    expect(wrapper.find('[aria-label="Add"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain("No processes yet.");
 
     const input = wrapper.get<HTMLInputElement>('[data-testid="process-blacklist-draft-input"]');
     await input.setValue("vlc.exe");

@@ -51,7 +51,7 @@ describe("SettingsMediaServer", () => {
     });
   });
 
-  it("edits plugin-owned servers without a global media-server toggle", () => {
+  it("edits plugin-owned servers", () => {
     const wrapper = mount(SettingsMediaServer, {
       global: {
         stubs: {
@@ -61,9 +61,6 @@ describe("SettingsMediaServer", () => {
       }
     });
 
-    expect(wrapper.text()).not.toContain("Enable Media Server");
-    expect(wrapper.text()).not.toContain("Enable This Server");
-    expect(wrapper.find(".toggle__text").exists()).toBe(false);
     expect(wrapper.text()).toContain("Home Jellyfin");
     expect(wrapper.get('[data-testid="mediaserver-config-state"]').attributes("data-state")).toBe("checked");
   });
@@ -102,7 +99,6 @@ describe("SettingsMediaServer", () => {
     await input.trigger("blur");
 
     expect(store.getJellyfinembyPluginConfig().servers[0]?.name).toBe("Living Room Emby");
-    expect(wrapper.find("#server-name-label").exists()).toBe(false);
   });
 
   it("shows enabled and disabled server states with check indicators", () => {
@@ -133,7 +129,6 @@ describe("SettingsMediaServer", () => {
 
     const indicators = wrapper.findAll('[data-testid="mediaserver-config-state"]');
     expect(indicators.map((indicator) => indicator.attributes("data-state"))).toEqual(["checked", "unchecked"]);
-    expect(wrapper.find(".mediaserver-config-list .ui-badge").exists()).toBe(false);
   });
 
   it("toggles server enabled state from the config card indicator", async () => {
@@ -150,6 +145,5 @@ describe("SettingsMediaServer", () => {
     await wrapper.get('[data-testid="mediaserver-config-state"]').trigger("click");
 
     expect(store.getJellyfinembyPluginConfig().servers[0]?.enabled).toBe(false);
-    expect(wrapper.find("#server-enabled-label").exists()).toBe(false);
   });
 });

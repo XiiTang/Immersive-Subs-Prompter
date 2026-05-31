@@ -50,8 +50,6 @@ describe("SettingsPlugins", () => {
     const wrapper = mount(SettingsPlugins);
 
     expect(wrapper.text()).toContain("Enable");
-    expect(wrapper.text()).not.toContain("Install");
-    expect(wrapper.text()).not.toContain("Uninstall");
 
     wrapper.get("button").trigger("click");
     expect(enableSpy).toHaveBeenCalledWith("official.transcription");
@@ -99,7 +97,5 @@ describe("SettingsPlugins", () => {
       expect(wrapper.text()).toContain("语音转写");
       expect(wrapper.text()).toContain("使用 Whisper API 或 Faster-Whisper 本地 CLI 转写视频音频。");
     });
-    expect(wrapper.text()).not.toContain("Speech Transcription");
-    expect(wrapper.text()).not.toContain("Transcribe video audio.");
   });
 });

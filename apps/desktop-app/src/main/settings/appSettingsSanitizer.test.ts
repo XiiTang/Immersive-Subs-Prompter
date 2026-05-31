@@ -16,46 +16,21 @@ describe("appSettingsSanitizer", () => {
     it("accepts the current complete settings shape", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
 
-      expect(sanitizeSettings(settings)).toBe(settings);
+      expect(sanitizeSettings(settings)).toEqual(settings);
     });
 
-    it("rejects missing settings instead of creating defaults", () => {
-      expect(() => sanitizeSettings(null)).toThrow("settings file must use the current object setting");
-      expect(() => sanitizeSettings(undefined)).toThrow("settings file must use the current object setting");
-    });
-
-    it("rejects unknown top-level fields", () => {
-      const settings = {
+    it("returns defaults for missing or obsolete saved settings", () => {
+      const result = sanitizeSettings(null);
+      const obsolete = sanitizeSettings({
         ...DEFAULT_SETTINGS_FACTORY(),
+        defaultProfileId: "profile-youtube",
         mediaServer: {}
-      };
+      } as never);
 
-      expect(() => sanitizeSettings(settings as never)).toThrow("settings contains unknown setting: mediaServer");
-    });
-
-    it("rejects saved defaultProfileId values that are not the fixed fallback profile", () => {
-      const settings = {
-        ...DEFAULT_SETTINGS_FACTORY(),
-        defaultProfileId: "profile-youtube"
-      };
-
-      expect(() => sanitizeSettings(settings)).toThrow(
-        "settings.defaultProfileId must use the fixed current fallback profile"
-      );
-    });
-
-    it("rejects missing or reordered fallback profiles", () => {
-      const withoutFallback = {
-        ...DEFAULT_SETTINGS_FACTORY(),
-        profiles: DEFAULT_SETTINGS_FACTORY().profiles.filter((profile) => profile.id !== DEFAULT_PROFILE_ID)
-      };
-      const reordered = {
-        ...DEFAULT_SETTINGS_FACTORY(),
-        profiles: [...DEFAULT_SETTINGS_FACTORY().profiles].reverse()
-      };
-
-      expect(() => sanitizeSettings(withoutFallback)).toThrow("profiles must include the current fallback profile");
-      expect(() => sanitizeSettings(reordered)).toThrow("profiles must keep the current fallback profile last");
+      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
+      expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
+      expect(obsolete.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
+      expect(obsolete.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
     });
 
     it("uses explicit product defaults from the factory", () => {
