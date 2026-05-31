@@ -138,11 +138,10 @@ let scrollRafId: number | null = null;
 
 const surfaceStyle = computed(() => subtitlePanelStyle);
 const metadataSizing = computed(() => {
-  const safeTimestampFontSize = normalizeTimestampFontSize(timestampFontSize);
   return {
-    timestampFontSize: safeTimestampFontSize,
-    metaRowHeight: Math.max(META_ROW_HEIGHT_PX, safeTimestampFontSize + 7),
-    actionFontSize: Math.max(12, Math.round(safeTimestampFontSize * 1.1))
+    timestampFontSize,
+    metaRowHeight: Math.max(META_ROW_HEIGHT_PX, timestampFontSize + 7),
+    actionFontSize: Math.max(12, Math.round(timestampFontSize * 1.1))
   };
 });
 const contentStyle = computed(() => ({
@@ -283,14 +282,6 @@ function resolveAbLoopLabel(cueIndex: number) {
 
 function isAbPendingSelection(cueIndex: number) {
   return abLoopSelectionState.kind === "selecting-second" && abLoopSelectionState.anchorCueIndex === cueIndex;
-}
-
-function normalizeTimestampFontSize(value: number): number {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return 11;
-  }
-  return Math.min(24, Math.max(6, Math.round(numeric)));
 }
 
 function handleViewportScroll() {

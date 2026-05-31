@@ -4,12 +4,17 @@
   "private": true,
   "author": "sheixunixitang3@gmail.com",
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "pnpm run typecheck && pnpm run build:chrome && pnpm run build:firefox",
-    "build:chrome": "tsx ./esbuild.config.ts chrome",
-    "build:firefox": "tsx ./esbuild.config.ts firefox",
-    "build:all": "pnpm run build:chrome && pnpm run build:firefox",
-    "test": "vitest run",
+    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm run typecheck:app",
+    "typecheck:app": "tsc -p tsconfig.json --noEmit",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm run build:app",
+    "build:app": "pnpm run typecheck:app && pnpm run build:chrome:app && pnpm run build:firefox:app",
+    "build:chrome": "pnpm --filter @immersive-subs/contracts build && pnpm run build:chrome:app",
+    "build:chrome:app": "tsx ./esbuild.config.ts chrome",
+    "build:firefox": "pnpm --filter @immersive-subs/contracts build && pnpm run build:firefox:app",
+    "build:firefox:app": "tsx ./esbuild.config.ts firefox",
+    "build:all": "pnpm --filter @immersive-subs/contracts build && pnpm run build:chrome:app && pnpm run build:firefox:app",
+    "test": "pnpm --filter @immersive-subs/contracts build && pnpm run test:app",
+    "test:app": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

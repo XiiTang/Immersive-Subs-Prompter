@@ -127,6 +127,7 @@ describe("appSettingsSanitizer", () => {
       expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
       expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
       expect(DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize).toBe(11);
+      expect(DEFAULT_YTDLP_ARGS.split(/\s+/)).toContain("--write-auto-subs");
       expect(DEFAULT_PROFILE_SETTINGS.ytDlpArgs).toBe(DEFAULT_YTDLP_ARGS);
       expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
