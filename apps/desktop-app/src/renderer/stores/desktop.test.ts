@@ -369,48 +369,6 @@ describe("desktop store profile selection", () => {
     expect(updateSettings).toHaveBeenCalledTimes(1);
   });
 
-  it("includes media server counts in the connection label only when Jellyfin / Emby is enabled", () => {
-    const store = useDesktopStore();
-    store.settings = {
-      ...createSettings(),
-      plugins: {
-        "official.jellyfinemby": {
-          config: {
-            servers: [
-              {
-                id: "server-1",
-                name: "Home",
-                serverUrl: "http://server.local:8096",
-                apiKey: "key",
-                webSocketPath: "/socket",
-                enabled: true
-              }
-            ]
-          }
-        }
-      }
-    } as never;
-    store.desktopState = createDesktopState();
-    store.pluginCatalog = [
-      {
-        id: "official.jellyfinemby",
-        version: "1.0.0",
-        displayName: "Jellyfin / Emby",
-        description: "Sync playback and subtitles from Jellyfin or Emby media servers.",
-        enabled: false,
-        status: "disabled",
-        error: null,
-        settings: []
-      }
-    ];
-
-    expect(store.connectionLabel).toBe("Extension: 1");
-
-    store.pluginCatalog = [{ ...store.pluginCatalog[0]!, enabled: true, status: "enabled" }];
-
-    expect(store.connectionLabel).toBe("Extension: 1 · Media Server: 1");
-  });
-
   it("reorders profiles and removes a deleted profile's URL rules", () => {
     const store = useDesktopStore();
     store.settings = createSettings();

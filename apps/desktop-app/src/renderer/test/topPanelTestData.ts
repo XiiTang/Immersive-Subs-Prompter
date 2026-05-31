@@ -1,4 +1,4 @@
-import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../../main/types.js";
+import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../main/types.js";
 
 function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
   return {
@@ -152,8 +152,8 @@ export function createTopControlPanelProps(overrides: Record<string, unknown> = 
     },
     autoHideEnabled: true,
     formatSourceFile: (sourceFile: string) => sourceFile,
-    t: (_key: string, fallback?: string, params: Record<string, any> = {}) => {
-      let text = fallback ?? _key;
+    t: (_key: string, params: Record<string, any> = {}) => {
+      let text = _key;
       for (const [name, value] of Object.entries(params)) {
         text = text.split(`{${name}}`).join(String(value));
       }

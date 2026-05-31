@@ -1,19 +1,19 @@
 <template>
-  <UiField id="transcription-base-url" :label="t('transcription-base-url-label', 'API Base URL')">
+  <UiField id="transcription-base-url" :label="t('transcription-base-url-label')">
     <UiInput v-model="baseUrl" placeholder="https://api.openai.com/v1" />
   </UiField>
-  <UiField id="transcription-api-key" :label="t('transcription-api-key-label', 'API Key')">
+  <UiField id="transcription-api-key" :label="t('transcription-api-key-label')">
     <UiInput v-model="apiKey" placeholder="sk-..." />
   </UiField>
   <div class="settings-fields-grid settings-fields-grid--two-col">
-    <UiField id="transcription-model" :label="t('transcription-model-label', 'Model')">
+    <UiField id="transcription-model" :label="t('transcription-model-label')">
       <UiInput v-model="model" placeholder="whisper-1" />
     </UiField>
-    <UiField id="transcription-language" :label="t('transcription-language-label', 'Language')">
+    <UiField id="transcription-language" :label="t('transcription-language-label')">
       <UiInput v-model="languageField" placeholder="auto" />
     </UiField>
   </div>
-  <UiField id="transcription-prompt" :label="t('transcription-prompt-label', 'Prompt')">
+  <UiField id="transcription-prompt" :label="t('transcription-prompt-label')">
     <UiInput v-model="prompt" />
   </UiField>
 </template>
@@ -22,7 +22,7 @@
 import { UiField, UiInput } from "../../ui";
 
 defineProps<{
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
 }>();
 
 const baseUrl = defineModel<string>("baseUrl", { required: true });

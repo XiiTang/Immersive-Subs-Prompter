@@ -2,16 +2,16 @@
   <div class="settings-split__sidebar">
     <div class="settings-split__sidebar-header">
       <div class="settings-split__sidebar-buttons">
-        <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
+        <UiIconButton :label="t('button-add')" @click="$emit('add')">
           <IconAdd size="md" />
         </UiIconButton>
-        <UiIconButton :label="t('button-duplicate', 'Duplicate')" @click="$emit('duplicate')">
+        <UiIconButton :label="t('button-duplicate')" @click="$emit('duplicate')">
           <IconCopy size="md" />
         </UiIconButton>
         <UiIconButton
           :disabled="!canDelete"
           variant="danger"
-          :label="t('button-delete', 'Delete')"
+          :label="t('button-delete')"
           @click="$emit('delete')"
         >
           <IconDelete size="md" />
@@ -42,7 +42,7 @@
               data-testid="profile-list-name-input"
               :data-profile-id="profile.id"
               v-model="draftProfileName"
-              :aria-label="t('profile-name-label', 'Profile Name')"
+              :aria-label="t('profile-name-label')"
               @click.stop
               @mousedown.stop
               @dragstart.stop
@@ -66,7 +66,7 @@
           </span>
         </UiListItem>
       </template>
-      <UiEmptyState v-else :message="t('profile-empty', 'No profiles')" />
+      <UiEmptyState v-else :message="t('profile-empty')" />
     </div>
   </div>
 </template>
@@ -112,13 +112,13 @@ function isFallbackProfile(profileId: string): boolean {
 
 function profileRuleSummary(profileId: string): string {
   if (profileId === props.defaultProfileId) {
-    return t("profile-url-default-summary", "Fallback");
+    return t("profile-url-default-summary");
   }
   const patterns = props.rules
     .filter((rule) => rule.profileId === profileId)
     .map((rule) => rule.pattern);
   if (!patterns.length) {
-    return t("profile-url-empty-summary", "No URL rules");
+    return t("profile-url-empty-summary");
   }
   const visible = patterns.slice(0, 2).join(", ");
   const remaining = patterns.length - 2;

@@ -17,6 +17,19 @@ function lineStyle(top: number, height: number, extra?: Record<string, string>):
 }
 
 describe("TranscriptBlock", () => {
+  const defaultLabels: Record<string, string> = {
+    "cue-play-label": "Play from cue {time}",
+    "cue-ab-set-label": "Set A-B endpoint at cue {time}",
+    "cue-ab-pending-label": "A point selected at cue {time}, choose B",
+    "cue-loop-label": "Loop cue {time}"
+  };
+  const defaultT = (key: string, params: Record<string, any> = {}) => {
+    let text = defaultLabels[key] ?? key;
+    for (const [name, value] of Object.entries(params)) {
+      text = text.split(`{${name}}`).join(String(value));
+    }
+    return text;
+  };
   const defaultProps = {
     blockId: "block-0",
     start: 0,
@@ -33,7 +46,8 @@ describe("TranscriptBlock", () => {
     metaRowHeight: 18,
     timestampFontSize: 11,
     actionFontSize: 12,
-    autoHideMetaRow: false
+    autoHideMetaRow: false,
+    t: defaultT
   };
 
   it("keeps cue controls and transcript text inside the same left-aligned body", () => {
@@ -90,8 +104,8 @@ describe("TranscriptBlock", () => {
       "cue-ab-set-label": "在 {time} 设置 A-B 端点",
       "cue-loop-label": "循环 {time}"
     };
-    const t = (key: string, fallback = "", params: Record<string, any> = {}) => {
-      let text = labels[key] ?? fallback;
+    const t = (key: string, params: Record<string, any> = {}) => {
+      let text = labels[key] ?? key;
       for (const [name, value] of Object.entries(params)) {
         text = text.split(`{${name}}`).join(String(value));
       }

@@ -5,7 +5,7 @@ export function addGameProcess(this: DesktopStoreThis, processName: string) {
   if (!this.settings || !normalized) {
     return;
   }
-  const current = this.settings.global.gameProcessBlacklist ?? [];
+  const current = this.settings.global.gameProcessBlacklist;
   if (current.some((entry) => entry.toLowerCase() === normalized.toLowerCase())) {
     return;
   }
@@ -17,7 +17,7 @@ export function removeGameProcess(this: DesktopStoreThis, processName: string) {
   if (!this.settings) {
     return;
   }
-  const nextList = (this.settings.global.gameProcessBlacklist ?? []).filter(
+  const nextList = this.settings.global.gameProcessBlacklist.filter(
     (entry) => entry.toLowerCase() !== processName.toLowerCase()
   );
   this.updateGlobalSetting("gameProcessBlacklist", nextList);

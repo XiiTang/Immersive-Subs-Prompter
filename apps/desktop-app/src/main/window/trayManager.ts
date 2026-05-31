@@ -54,16 +54,16 @@ export class TrayManager {
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: translate("tray-show-window", "Show Window", lang),
+          label: translate("tray-show-window", lang),
           click: () => this.options.onShow()
         },
         {
-          label: translate("tray-quick-show", "Quick Show", lang),
+          label: translate("tray-quick-show", lang),
           click: () => this.options.onQuickShow()
         },
         { type: "separator" },
         {
-          label: translate("tray-quit", "Quit", lang),
+          label: translate("tray-quit", lang),
           click: () => {
             this.destroy();
             app.quit();

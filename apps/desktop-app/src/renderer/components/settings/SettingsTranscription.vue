@@ -1,5 +1,5 @@
 <template>
-  <UiSection class="transcription-settings" :title="t('section-transcription', 'Speech Transcription')">
+  <UiSection class="transcription-settings" :title="t('section-transcription')">
     <div class="settings-split transcription-settings__split">
       <TranscriptionConfigList
         :transcription-configs="transcriptionConfigs"
@@ -13,7 +13,7 @@
         @select="(id) => (selectedConfigId = id)"
       />
       <div class="settings-split__editor transcription-settings__editor" v-if="selectedConfig">
-        <UiField id="transcription-provider" :label="t('transcription-provider-label', 'Provider')">
+        <UiField id="transcription-provider" :label="t('transcription-provider-label')">
           <UiSelect :model-value="provider" :options="providerOptions" @update:model-value="handleProviderInput" />
         </UiField>
         <template v-if="isWhisperApi">
@@ -33,7 +33,7 @@
                 <span>{{ downloadProgress.status }}</span>
                 <span>{{ downloadProgress.percent }}%</span>
               </div>
-              <UiProgress :value="downloadProgress.percent" :label="t('transcription-download-progress', 'Download progress')" />
+              <UiProgress :value="downloadProgress.percent" :label="t('transcription-download-progress')" />
             </div>
 
             <div class="settings-grid settings-grid--two transcription-settings__resource-grid">
@@ -81,13 +81,13 @@
         <UiField
           v-if="isWhisperApi"
           id="transcription-extra-params"
-          :label="t('transcription-extra-params-label', 'Extra Parameters (JSON)')"
-          :hint="t('transcription-extra-params-hint', 'Optional Whisper API payload overrides')"
+          :label="t('transcription-extra-params-label')"
+          :hint="t('transcription-extra-params-hint')"
           :error="extraParamsError"
         >
           <UiTextarea v-model="extraParamsText" :rows="4" />
         </UiField>
-        <UiField id="transcription-ytdlp" :label="t('transcription-ytdlp-label', 'yt-dlp Audio Args')" :hint="t('transcription-ytdlp-hint', 'Command line options for downloading audio. Leave empty to use defaults.')">
+        <UiField id="transcription-ytdlp" :label="t('transcription-ytdlp-label')" :hint="t('transcription-ytdlp-hint')">
           <UiInput v-model="ytDlpArgs" placeholder="--extract-audio --audio-format wav --cookies-from-browser firefox ..." />
         </UiField>
       </div>
@@ -112,8 +112,8 @@ const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 const providerOptions = computed(() => [
-  { value: "whisper-api", label: t("transcription-provider-whisper", "Whisper API (OpenAI-compatible)") },
-  { value: "faster-whisper", label: t("transcription-provider-faster", "Faster-Whisper (local CLI)") }
+  { value: "whisper-api", label: t("transcription-provider-whisper") },
+  { value: "faster-whisper", label: t("transcription-provider-faster") }
 ]);
 
 const {

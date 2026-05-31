@@ -10,7 +10,7 @@ import {
   createTopControlPanelProps,
   createTopPanelDesktopState,
   createTopPanelSettings
-} from "./topPanelTestData";
+} from "../../test/topPanelTestData";
 import { useDesktopStore } from "../../stores/desktop";
 
 const rendererStylesheet = readFileSync(path.resolve(process.cwd(), "src/renderer/style.css"), "utf8");
@@ -52,7 +52,7 @@ function triggerResizeObservers(...targets: Element[]) {
 
 function mountTopControlPanel(options: {
   autoHidePanels?: boolean;
-  t?: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t?: (key: string, params?: Record<string, any>) => string;
 } = {}) {
   const autoHidePanels = options.autoHidePanels ?? true;
   let pointerState = { insideWindow: false, x: null as number | null, y: null as number | null };
@@ -361,8 +361,8 @@ describe("TopControlPanel", () => {
       "panel-enter-fullscreen": "进入全屏",
       "connection-extension": "扩展：{browser}"
     };
-    const t = (key: string, fallback = "", params: Record<string, any> = {}) => {
-      let text = zh[key] ?? fallback;
+    const t = (key: string, params: Record<string, any> = {}) => {
+      let text = zh[key] ?? key;
       for (const [name, value] of Object.entries(params)) {
         text = text.split(`{${name}}`).join(String(value));
       }

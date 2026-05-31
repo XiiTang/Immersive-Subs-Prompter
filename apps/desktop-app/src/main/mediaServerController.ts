@@ -4,13 +4,12 @@ import { JellyfinembySubtitleService } from "./jellyfinemby/JellyfinembySubtitle
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { createLogger } from "./logger.js";
 import type { AppSettings, JellyfinembyPluginConfig } from "./types.js";
-import { JellyfinembyTabContextRegistry } from "./jellyfinemby/JellyfinembyTabContextRegistry.js";
 import { JellyfinembyUrlResolver } from "./jellyfinemby/JellyfinembyUrlResolver.js";
 import { JellyfinembySessionHandler } from "./jellyfinemby/JellyfinembySessionHandler.js";
 import { JellyfinembyMessageHandler } from "./jellyfinemby/JellyfinembyMessageHandler.js";
 import { JellyfinembyStatusHandler } from "./jellyfinemby/JellyfinembyStatusHandler.js";
 import { JELLYFINEMBY_PLUGIN_ID } from "../common/pluginIds.js";
-import type { JellyfinembyRuntimeSettings } from "./jellyfinemby/types.js";
+import type { JellyfinembyRuntimeSettings, JellyfinembyTabContext } from "./jellyfinemby/types.js";
 
 type MediaServerControllerOptions = {
   bus: AppEventBus;
@@ -26,7 +25,7 @@ type MediaServerControllerOptions = {
 export class MediaServerController {
   private readonly log = createLogger("jellyfinemby-controller");
   private readonly jellyfinembyService: JellyfinembySubtitleService;
-  private readonly tabRegistry: JellyfinembyTabContextRegistry;
+  private readonly tabContexts = new Map<number, JellyfinembyTabContext>();
   private readonly urlResolver: JellyfinembyUrlResolver;
   private readonly sessionHandler: JellyfinembySessionHandler;
   private readonly messageHandler: JellyfinembyMessageHandler;
@@ -43,25 +42,24 @@ export class MediaServerController {
       this.options.createService ??
       ((provider, cacheManager) => new JellyfinembySubtitleService(provider, cacheManager))
     )(settingsProvider, this.options.cacheManager);
-    this.tabRegistry = new JellyfinembyTabContextRegistry();
     this.urlResolver = new JellyfinembyUrlResolver(() => this.getJellyfinembyConfig());
     this.sessionHandler = new JellyfinembySessionHandler(
       this.options.stateManager,
       this.jellyfinembyService,
-      this.tabRegistry,
+      this.tabContexts,
       this.urlResolver
     );
     this.messageHandler = new JellyfinembyMessageHandler(
       this.options.stateManager,
       this.jellyfinembyService,
-      this.tabRegistry,
+      this.tabContexts,
       this.urlResolver,
       () => this.active
     );
     this.statusHandler = new JellyfinembyStatusHandler(
       this.options.stateManager,
       this.jellyfinembyService,
-      this.tabRegistry
+      this.tabContexts
     );
   }
 
@@ -106,7 +104,7 @@ export class MediaServerController {
 
   private registerBusListeners() {
     this.options.bus.on("connection:message", (event) => this.messageHandler.handleConnectionMessage(event));
-    this.options.bus.on("connection:tab-removed", ({ tabId }) => this.tabRegistry.clear(tabId));
+    this.options.bus.on("connection:tab-removed", ({ tabId }) => this.tabContexts.delete(tabId));
     this.options.bus.on("state:connection-count", ({ count }) => {
       if (!this.active) {
         return;
@@ -135,7 +133,7 @@ export class MediaServerController {
   }
 
   private clearRuntimeState() {
-    this.tabRegistry.clearAll();
+    this.tabContexts.clear();
     this.options.stateManager.resetSubtitleState();
     this.options.stateManager.updateState((draft) => {
       draft.mediaServer = {

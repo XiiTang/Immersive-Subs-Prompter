@@ -26,9 +26,6 @@
   "popupNoMediaDescription": {
     "message": "Start playing a video to see the live breakdown here."
   },
-  "popupNoMediaInitialDescription": {
-    "message": "Start playback on YouTube, Bilibili, Douyin, or another supported site."
-  },
   "settingsBack": {
     "message": "Back"
   },
@@ -94,9 +91,6 @@
   },
   "statusDisconnected": {
     "message": "Disconnected"
-  },
-  "statusError": {
-    "message": "Error"
   },
   "statusWithError": {
     "message": "$1 · Error"

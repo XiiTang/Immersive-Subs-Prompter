@@ -33,8 +33,8 @@ import { resolvePluginSettingsComponent } from "../../plugins/pluginSettingsRegi
 const store = useDesktopStore();
 const language = computed(() => normalizeLanguage(store.settings?.global.language ?? DEFAULT_LANGUAGE));
 const { t } = useI18n(language);
-const settingsTitle = computed(() => t("settings-title", "Settings"));
-const settingsNavAriaLabel = computed(() => t("settings-nav-aria-label", "Settings sections"));
+const settingsTitle = computed(() => t("settings-title"));
+const settingsNavAriaLabel = computed(() => t("settings-nav-aria-label"));
 
 const hostSections = computed(() => buildSettingsSections(language.value));
 

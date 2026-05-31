@@ -14,7 +14,7 @@ export function createJellyfinembyIdentity(): JellyfinembyIdentity {
   };
 }
 
-export function deriveDeviceName(): string {
+function deriveDeviceName(): string {
   try {
     const hostname = os.hostname();
     if (hostname && hostname.trim().length) {
@@ -26,13 +26,13 @@ export function deriveDeviceName(): string {
   return DEFAULT_DEVICE_NAME;
 }
 
-export function deriveDeviceId(): string {
+function deriveDeviceId(): string {
   const hostname = os.hostname().trim() || DEFAULT_DEVICE_NAME;
   const username = os.userInfo().username;
   const seed = `${hostname}:${username}`;
   return createHash("sha1").update(seed).digest("hex");
 }
 
-export function getClientVersion(): string {
+function getClientVersion(): string {
   return app.getVersion();
 }

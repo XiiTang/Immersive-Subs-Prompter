@@ -24,6 +24,35 @@ export type JellyfinembyRuntimeSettings = {
   servers: JellyfinembyServerConfig[];
 };
 
+export type JellyfinembyTabContext = {
+  itemId: string | null;
+  sessionId: string | null;
+  serverConfigId: string | null;
+};
+
+export function getJellyfinembyTabContext(
+  tabContexts: ReadonlyMap<number, JellyfinembyTabContext>,
+  tabId: number | null
+): JellyfinembyTabContext | null {
+  return tabId === null ? null : tabContexts.get(tabId) ?? null;
+}
+
+export function updateJellyfinembyTabContext(
+  tabContexts: Map<number, JellyfinembyTabContext>,
+  tabId: number,
+  updates: Partial<JellyfinembyTabContext>
+): JellyfinembyTabContext {
+  const next = {
+    itemId: null,
+    sessionId: null,
+    serverConfigId: null,
+    ...tabContexts.get(tabId),
+    ...updates
+  };
+  tabContexts.set(tabId, next);
+  return next;
+}
+
 export type SettingsProvider = () => JellyfinembyRuntimeSettings;
 
 export type SessionSubscriptionMode = "idle" | "burst" | "continuous";

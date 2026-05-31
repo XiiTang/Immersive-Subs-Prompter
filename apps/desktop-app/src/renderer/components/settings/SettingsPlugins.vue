@@ -1,5 +1,5 @@
 <template>
-  <UiSection :title="t('plugin-section-title', 'Plugin Management')">
+  <UiSection :title="t('plugin-section-title')">
     <div v-if="catalog.length" class="ui-list plugin-list">
       <UiListItem v-for="plugin in catalog" :key="plugin.id" as="article">
         <div class="ui-list-item__main">
@@ -13,11 +13,11 @@
         </div>
 
         <UiButton :variant="plugin.enabled ? 'secondary' : 'primary'" @click="plugin.enabled ? store.disablePlugin(plugin.id) : store.enablePlugin(plugin.id)">
-          {{ plugin.enabled ? t("plugin-disable", "Disable") : t("plugin-enable", "Enable") }}
+          {{ plugin.enabled ? t("plugin-disable") : t("plugin-enable") }}
         </UiButton>
       </UiListItem>
     </div>
-    <UiEmptyState v-else :message="t('plugin-empty', 'No plugins available.')" />
+    <UiEmptyState v-else :message="t('plugin-empty')" />
   </UiSection>
 </template>
 
@@ -37,11 +37,11 @@ const catalog = computed(() => store.pluginCatalog);
 function statusLabel(status: string): string {
   switch (status) {
     case "disabled":
-      return t("plugin-status-disabled", "Disabled");
+      return t("plugin-status-disabled");
     case "enabled":
-      return t("plugin-status-enabled", "Enabled");
+      return t("plugin-status-enabled");
     case "broken":
-      return t("plugin-status-broken", "Error");
+      return t("plugin-status-broken");
     default:
       return status;
   }

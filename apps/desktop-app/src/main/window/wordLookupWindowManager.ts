@@ -35,7 +35,7 @@ export type WordLookupWindowOpenPayload = {
   matches: WordLookupMatch[];
 };
 
-export type WordLookupWindowBounds = {
+type WordLookupWindowBounds = {
   x: number;
   y: number;
   width: number;
@@ -80,7 +80,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export function computeWordLookupWindowBounds(input: {
+function computeWordLookupWindowBounds(input: {
   anchorRect: Rect;
   panelSize: Size;
   workArea: WorkArea;

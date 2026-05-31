@@ -116,22 +116,6 @@ describe("SettingsStore", () => {
     expect(store.get()).toBe(previous);
   });
 
-  it("rejects global values that would otherwise be normalized", async () => {
-    const store = await loadStore();
-    const previous = store.get();
-
-    expect(() =>
-      store.update({
-        global: {
-          ...previous.global,
-          language: " en "
-        }
-      } as never)
-    ).toThrow("global.language must use the current supported language setting");
-
-    expect(store.get()).toBe(previous);
-  });
-
   it("rejects unknown global fields instead of writing stray settings", async () => {
     const store = await loadStore();
     const previous = store.get();
@@ -144,25 +128,6 @@ describe("SettingsStore", () => {
         }
       } as never)
     ).toThrow("global contains unknown setting: straySetting");
-
-    expect(store.get()).toBe(previous);
-  });
-
-  it("rejects network payloads that would otherwise be ignored or normalized", async () => {
-    const store = await loadStore();
-    const previous = store.get();
-
-    expect(() => store.update({ network: null } as never)).toThrow(
-      "network settings must use the current object setting"
-    );
-    expect(() =>
-      store.update({
-        network: {
-          ...previous.network,
-          authToken: "bad-token"
-        }
-      })
-    ).toThrow("network.authToken must use the current token setting");
 
     expect(store.get()).toBe(previous);
   });
@@ -338,34 +303,6 @@ describe("SettingsStore", () => {
     expect(store.get()).toBe(previous);
   });
 
-  it("rejects Jellyfin / Emby server values that would otherwise be normalized", async () => {
-    const store = await loadStore();
-    const previous = store.get();
-
-    expect(() =>
-      store.update({
-        plugins: {
-          "official.jellyfinemby": {
-            config: {
-              servers: [
-                {
-                  id: "server-1",
-                  name: "Home",
-                  serverUrl: "http://server.local",
-                  apiKey: "key",
-                  webSocketPath: "socket",
-                  enabled: true
-                }
-              ]
-            }
-          }
-        }
-      })
-    ).toThrow("jellyfinemby.server.webSocketPath must start with /");
-
-    expect(store.get()).toBe(previous);
-  });
-
   it("rejects invalid profile updates instead of sanitizing them", async () => {
     const store = await loadStore();
     const previous = store.get();
@@ -383,29 +320,6 @@ describe("SettingsStore", () => {
         ]
       } as never)
     ).toThrow("profile.primarySubtitleFontSize must use the current finite number setting");
-
-    expect(store.get()).toBe(previous);
-  });
-
-  it("rejects profile values that would otherwise be defaulted by the read sanitizer", async () => {
-    const store = await loadStore();
-    const previous = store.get();
-
-    expect(() =>
-      store.update({
-        profiles: previous.profiles.map((profile, index) =>
-          index === 0
-            ? {
-                ...profile,
-                settings: {
-                  ...profile.settings,
-                  subtitlePrimaryColor: ""
-                }
-              }
-            : profile
-        )
-      })
-    ).toThrow("profile.subtitlePrimaryColor must use the current non-empty string setting");
 
     expect(store.get()).toBe(previous);
   });

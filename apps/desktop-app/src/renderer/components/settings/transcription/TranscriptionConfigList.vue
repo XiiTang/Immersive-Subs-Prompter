@@ -1,15 +1,15 @@
 <template>
   <div class="settings-split__sidebar">
     <div class="settings-split__sidebar-header">
-      <span class="settings-field__label">{{ t("transcription-active-config", "Active Config") }}</span>
+      <span class="settings-field__label">{{ t("transcription-active-config") }}</span>
       <div class="settings-split__sidebar-buttons">
-        <UiIconButton :label="t('button-add', 'Add')" @click="$emit('add')">
+        <UiIconButton :label="t('button-add')" @click="$emit('add')">
           <IconAdd size="md" />
         </UiIconButton>
         <UiIconButton
           :disabled="transcriptionConfigs.length <= 1"
           variant="danger"
-          :label="t('button-delete', 'Delete')"
+          :label="t('button-delete')"
           @click="$emit('delete')"
         >
           <IconDelete size="md" />
@@ -34,7 +34,7 @@
                 data-testid="transcription-config-name-input"
                 :data-config-id="config.id"
                 v-model="draftConfigName"
-                :aria-label="t('transcription-name-label', 'Config Name')"
+                :aria-label="t('transcription-name-label')"
                 @click.stop
                 @mousedown.stop
                 @dragstart.stop
@@ -75,7 +75,7 @@
           />
         </UiListItem>
       </template>
-      <UiEmptyState v-else :message="t('transcription-config-empty', 'No transcription configs yet')" />
+      <UiEmptyState v-else :message="t('transcription-config-empty')" />
     </div>
   </div>
 </template>
@@ -90,7 +90,7 @@ const props = defineProps<{
   transcriptionConfigs: TranscriptionConfig[];
   activeConfigId: string;
   selectedConfigId: string;
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
 }>();
 
 const emit = defineEmits<{
@@ -106,25 +106,25 @@ const draftConfigName = ref("");
 
 function getProviderLabel(provider: TranscriptionConfig["provider"] | undefined) {
   if (provider === "faster-whisper") {
-    return props.t("transcription-provider-faster-short", "Faster-Whisper");
+    return props.t("transcription-provider-faster-short");
   }
-  return props.t("transcription-provider-whisper-short", "Whisper API");
+  return props.t("transcription-provider-whisper-short");
 }
 
 function getModelLabel(config: TranscriptionConfig) {
   const languageLabel = (config.language || "auto").trim() || "auto";
   if (config.provider === "faster-whisper") {
-    const modelName = (config.fasterWhisperModel || props.t("transcription-faster-model", "Model")).trim();
+    const modelName = (config.fasterWhisperModel || props.t("transcription-faster-model")).trim();
     return `${modelName} · ${languageLabel}`;
   }
-  const modelName = (config.model || props.t("transcription-model-label", "Model")).trim();
+  const modelName = (config.model || props.t("transcription-model-label")).trim();
   return `${modelName} · ${languageLabel}`;
 }
 
 function getConfigStateLabel(configId: string) {
   return configId === props.activeConfigId
-    ? props.t("transcription-config-active-badge", "Active")
-    : props.t("transcription-config-inactive-label", "Inactive");
+    ? props.t("transcription-config-active-badge")
+    : props.t("transcription-config-inactive-label");
 }
 
 function handleConfigStateInput(configId: string, checked: boolean) {

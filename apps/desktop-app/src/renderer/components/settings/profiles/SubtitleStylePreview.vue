@@ -25,6 +25,7 @@
         :auto-scroll-delay-ms="0"
         :scroll-position-ratio="scrollPositionRatio"
         auto-follow-scroll-behavior="auto"
+        :t="t"
       />
     </div>
   </section>
@@ -42,6 +43,7 @@ import {
   MAIN_WINDOW_DEFAULT_WIDTH
 } from "../../../../common/windowDimensions.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
+import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { clamp } from "../../../utils/formatters";
 import { createAbLoopSelectionState } from "../../subtitle/abLoopSelection";
 import TranscriptSurface from "../../subtitle/TranscriptSurface.vue";
@@ -324,6 +326,8 @@ const AFTER_BLOCKS: PreviewBlock[] = [
 ];
 
 const store = useDesktopStore();
+const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
+const { t } = useI18n(language);
 
 const PREVIEW_TIME_SCALE = 1000;
 const activePreviewTime = ACTIVE_BLOCK.start * PREVIEW_TIME_SCALE + 500;

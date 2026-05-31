@@ -1,5 +1,5 @@
 import type { VideoStateSnapshot } from "@immersive-subs/contracts";
-import { send } from "./MessageSender";
+import { send } from "../../connection/MessageSender";
 
 declare const snapshot: VideoStateSnapshot;
 

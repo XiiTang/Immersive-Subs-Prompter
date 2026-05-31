@@ -1,20 +1,20 @@
 <template>
-  <UiSection :title="t('section-global-settings', 'Global')">
+  <UiSection :title="t('section-global-settings')">
     <div class="global-settings">
       <section class="global-settings__group">
-        <h3 class="global-settings__group-title">{{ t("global-general", "General") }}</h3>
+        <h3 class="global-settings__group-title">{{ t("global-general") }}</h3>
 
         <div class="global-settings__row global-settings__row--ui-field">
-          <UiField id="language" class="global-settings__field" :label="t('language-label', 'Language')" inline>
+          <UiField id="language" class="global-settings__field" :label="t('language-label')" inline>
             <UiSelect v-model="languageSetting" :options="languageOptions" />
           </UiField>
         </div>
 
         <div class="global-settings__row global-settings__row--ui-field">
-          <UiField id="appearance-theme" class="global-settings__field" :label="t('appearance-theme-label', 'Theme')" inline>
+          <UiField id="appearance-theme" class="global-settings__field" :label="t('appearance-theme-label')" inline>
             <UiSegmentedControl
               v-model="appearanceTheme"
-              :label="t('appearance-theme-label', 'Theme')"
+              :label="t('appearance-theme-label')"
               :options="themeOptions"
             />
           </UiField>
@@ -22,21 +22,21 @@
 
         <div class="global-settings__row">
           <div class="global-settings__row-meta">
-            <span id="auto-start-label" class="ui-field__label">{{ t("auto-start-label", "Auto Start") }}</span>
+            <span id="auto-start-label" class="ui-field__label">{{ t("auto-start-label") }}</span>
           </div>
           <div class="global-settings__control global-settings__control--compact">
-            <UiSwitch v-model="autoLaunch" :label="autoLaunch ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+            <UiSwitch v-model="autoLaunch" :label="autoLaunch ? t('toggle-on') : t('toggle-off')" />
           </div>
         </div>
       </section>
 
       <section class="global-settings__group">
-        <h3 class="global-settings__group-title">{{ t("global-connectivity", "Network") }}</h3>
+        <h3 class="global-settings__group-title">{{ t("global-connectivity") }}</h3>
 
         <div class="global-settings__row global-settings__row--editor">
           <div class="global-settings__row-meta">
-            <span class="ui-field__label">{{ t("network-endpoints-label", "Endpoints") }}</span>
-            <span class="ui-field__hint">{{ t("network-endpoints-hint", "Add host:port addresses.") }}</span>
+            <span class="ui-field__label">{{ t("network-endpoints-label") }}</span>
+            <span class="ui-field__hint">{{ t("network-endpoints-hint") }}</span>
           </div>
           <div class="global-settings__control global-settings__control--editor">
             <NetworkEndpointEditor
@@ -44,10 +44,10 @@
               :endpoints="networkEndpoints"
               :auth-token="networkAuthToken"
               :listener-statuses="networkListenerStatuses"
-              :label="t('network-endpoints-label', 'Endpoints')"
-              :hint="t('network-endpoints-hint', 'Add host:port addresses.')"
-              :placeholder="t('network-endpoints-placeholder', '127.0.0.1:44501')"
-              :remove-label="t('network-endpoint-remove', 'Remove endpoint')"
+              :label="t('network-endpoints-label')"
+              :hint="t('network-endpoints-hint')"
+              :placeholder="t('network-endpoints-placeholder')"
+              :remove-label="t('network-endpoint-remove')"
               @update:endpoints="updateNetworkEndpoints"
             />
           </div>
@@ -55,12 +55,12 @@
       </section>
 
       <section class="global-settings__group">
-        <h3 class="global-settings__group-title">{{ t("global-shortcuts-section", "Shortcuts") }}</h3>
+        <h3 class="global-settings__group-title">{{ t("global-shortcuts-section") }}</h3>
 
         <div class="global-settings__row">
           <div class="global-settings__row-meta">
-            <span id="toggle-shortcut-label" class="ui-field__label">{{ t("toggle-shortcut-label", "Toggle Shortcut") }}</span>
-            <span id="toggle-shortcut-hint" class="ui-field__hint">{{ t("toggle-shortcut-hint", "Blank disables it.") }}</span>
+            <span id="toggle-shortcut-label" class="ui-field__label">{{ t("toggle-shortcut-label") }}</span>
+            <span id="toggle-shortcut-hint" class="ui-field__hint">{{ t("toggle-shortcut-hint") }}</span>
           </div>
           <div class="global-settings__control global-settings__control--field">
             <ShortcutInput
@@ -75,18 +75,18 @@
 
         <div class="global-settings__row global-settings__row--editor">
           <div class="global-settings__row-meta">
-            <span class="ui-field__label">{{ t("process-blacklist-label", "Blocked Processes") }}</span>
-            <span class="ui-field__hint">{{ t("process-blacklist-hint", "Foreground apps disable shortcuts.") }}</span>
+            <span class="ui-field__label">{{ t("process-blacklist-label") }}</span>
+            <span class="ui-field__hint">{{ t("process-blacklist-hint") }}</span>
           </div>
           <div class="global-settings__control global-settings__control--editor">
             <PillListEditor
               hide-header
-              :label="t('process-blacklist-label', 'Blocked Processes')"
-              :hint="t('process-blacklist-hint', 'Foreground apps disable shortcuts.')"
+              :label="t('process-blacklist-label')"
+              :hint="t('process-blacklist-hint')"
               :items="gameProcessItems"
               :draft-value="gameProcessInput"
-              :placeholder="t('process-blacklist-placeholder', 'r5apex_dx12.exe')"
-              :remove-label="t('game-blacklist-remove', 'Remove')"
+              :placeholder="t('process-blacklist-placeholder')"
+              :remove-label="t('game-blacklist-remove')"
               draft-test-id="process-blacklist-draft-input"
               display-test-id-prefix="process-blacklist-display"
               remove-test-id-prefix="process-blacklist-remove"
@@ -99,22 +99,22 @@
       </section>
 
       <section class="global-settings__group">
-        <h3 class="global-settings__group-title">{{ t("global-cache", "Cache") }}</h3>
+        <h3 class="global-settings__group-title">{{ t("global-cache") }}</h3>
 
         <div class="global-settings__row">
           <div class="global-settings__row-meta">
-            <span id="cache-enabled-label" class="ui-field__label">{{ t("enable-cache-label", "Enabled") }}</span>
+            <span id="cache-enabled-label" class="ui-field__label">{{ t("enable-cache-label") }}</span>
           </div>
           <div class="global-settings__control global-settings__control--compact">
-            <UiSwitch v-model="cacheEnabled" :label="cacheEnabled ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+            <UiSwitch v-model="cacheEnabled" :label="cacheEnabled ? t('toggle-on') : t('toggle-off')" />
           </div>
         </div>
 
         <template v-if="cacheEnabled">
           <div class="global-settings__row">
             <div class="global-settings__row-meta">
-              <span id="cache-path-label" class="ui-field__label">{{ t("cache-path-label", "Path") }}</span>
-              <span id="cache-path-hint" class="ui-field__hint">{{ t("cache-path-hint", "Blank = default.") }}</span>
+              <span id="cache-path-label" class="ui-field__label">{{ t("cache-path-label") }}</span>
+              <span id="cache-path-hint" class="ui-field__hint">{{ t("cache-path-hint") }}</span>
             </div>
             <div class="global-settings__control global-settings__control--wide">
               <div class="ui-inline-control">
@@ -123,7 +123,7 @@
                   aria-labelledby="cache-path-label"
                   aria-describedby="cache-path-hint"
                 />
-                <UiIconButton :label="t('button-open-cache', 'Open Folder')" @click="openCacheFolder">
+                <UiIconButton :label="t('button-open-cache')" @click="openCacheFolder">
                   <IconFolder size="md" />
                 </UiIconButton>
               </div>
@@ -132,7 +132,7 @@
 
           <div class="global-settings__row">
             <div class="global-settings__row-meta">
-              <span id="cache-retention-label" class="ui-field__label">{{ t("cache-retention-label", "Days") }}</span>
+              <span id="cache-retention-label" class="ui-field__label">{{ t("cache-retention-label") }}</span>
             </div>
             <div class="global-settings__control global-settings__control--compact">
               <UiInput
@@ -148,26 +148,26 @@
 
           <div class="global-settings__row global-settings__row--stats">
             <div class="global-settings__row-meta">
-              <span class="ui-field__label">{{ t("cache-stats-label", "Stats") }}</span>
+              <span class="ui-field__label">{{ t("cache-stats-label") }}</span>
             </div>
             <div class="global-settings__control global-settings__control--stats">
               <div class="ui-stat-grid">
                 <div class="ui-stat">
-                  <span class="ui-stat__label">{{ statLabel("cache-stats-entries", "Entries") }}</span>
+                  <span class="ui-stat__label">{{ statLabel("cache-stats-entries") }}</span>
                   <UiBadge>{{ cacheStatsDisplay.entries }}</UiBadge>
                 </div>
                 <div class="ui-stat">
-                  <span class="ui-stat__label">{{ statLabel("cache-stats-size", "Size") }}</span>
+                  <span class="ui-stat__label">{{ statLabel("cache-stats-size") }}</span>
                   <UiBadge>{{ cacheStatsDisplay.size }}</UiBadge>
                 </div>
                 <div class="ui-stat">
-                  <span class="ui-stat__label">{{ statLabel("cache-stats-oldest", "Oldest") }}</span>
+                  <span class="ui-stat__label">{{ statLabel("cache-stats-oldest") }}</span>
                   <UiBadge>{{ cacheStatsDisplay.oldest }}</UiBadge>
                   <UiIconButton
                     data-testid="cache-stats-refresh"
                     size="sm"
                     :disabled="cacheBusy"
-                    :label="t('button-refresh-stats', 'Refresh')"
+                    :label="t('button-refresh-stats')"
                     @click="refreshCacheStats"
                   >
                     <IconRefresh size="sm" :class="{ 'icon--spinning': cacheBusy }" />
@@ -200,14 +200,14 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 
 const languageOptions = computed(() => [
-  { value: "en", label: t("language-option-en", "English") },
-  { value: "zh", label: t("language-option-zh", "中文") }
+  { value: "en", label: t("language-option-en") },
+  { value: "zh", label: t("language-option-zh") }
 ]);
 
 const themeOptions = computed<Array<{ value: AppearanceTheme; label: string }>>(() => [
-  { value: "system", label: t("appearance-theme-system", "System") },
-  { value: "light", label: t("appearance-theme-light", "Light") },
-  { value: "dark", label: t("appearance-theme-dark", "Dark") }
+  { value: "system", label: t("appearance-theme-system") },
+  { value: "light", label: t("appearance-theme-light") },
+  { value: "dark", label: t("appearance-theme-dark") }
 ]);
 
 const autoLaunch = computed({
@@ -304,7 +304,7 @@ function openCacheFolder() {
   store.openCacheFolder();
 }
 
-function statLabel(key: string, fallback: string): string {
-  return t(key, fallback).replace(/[：:]\s*$/, "");
+function statLabel(key: string): string {
+  return t(key).replace(/[：:]\s*$/, "");
 }
 </script>

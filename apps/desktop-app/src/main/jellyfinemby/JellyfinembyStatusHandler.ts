@@ -6,7 +6,7 @@ import type {
   MediaServerStatusPayload,
   MediaServerSubtitlesPayload
 } from "../types.js";
-import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
+import { getJellyfinembyTabContext, type JellyfinembyTabContext } from "./types.js";
 
 export class JellyfinembyStatusHandler {
   private readonly log = createLogger("jellyfinemby-status-handler");
@@ -14,7 +14,7 @@ export class JellyfinembyStatusHandler {
   constructor(
     private readonly stateManager: StateManager,
     private readonly jellyfinembyService: JellyfinembySubtitleService,
-    private readonly tabRegistry: JellyfinembyTabContextRegistry
+    private readonly tabContexts: Map<number, JellyfinembyTabContext>
   ) {}
 
   handleMediaServerStatusUpdate(payload: MediaServerStatusPayload) {
@@ -88,7 +88,7 @@ export class JellyfinembyStatusHandler {
       return;
     }
 
-    const activeTabContext = this.tabRegistry.get(state.activeTabId);
+    const activeTabContext = getJellyfinembyTabContext(this.tabContexts, state.activeTabId);
     const activeTabItemId = activeTabContext?.itemId ?? null;
     const selectedSession = state.mediaServer.sessions.find((session) => session.id === payload.sessionId) ?? null;
     const sessionItemId = selectedSession?.nowPlayingItemId ?? null;

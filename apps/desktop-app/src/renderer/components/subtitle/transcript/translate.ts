@@ -1,9 +1,8 @@
 export type SubtitleTranslateParams = Record<string, any>;
 
-export type SubtitleTranslate = (key: string, fallback?: string, params?: SubtitleTranslateParams) => string;
+export type SubtitleTranslate = (key: string, params?: SubtitleTranslateParams) => string;
 
-export function fallbackSubtitleTranslate(_key: string, fallback = "", params: SubtitleTranslateParams = {}) {
-  let text = fallback;
+function formatTranslation(text: string, params: SubtitleTranslateParams = {}) {
   for (const [name, value] of Object.entries(params)) {
     text = text.split(`{${name}}`).join(String(value));
   }
@@ -11,6 +10,5 @@ export function fallbackSubtitleTranslate(_key: string, fallback = "", params: S
 }
 
 export function resolveSubtitleTranslate(translate?: SubtitleTranslate): SubtitleTranslate {
-  return (key, fallback = "", params = {}) =>
-    translate?.(key, fallback, params) ?? fallbackSubtitleTranslate(key, fallback, params);
+  return (key, params = {}) => translate?.(key, params) ?? formatTranslation(key, params);
 }

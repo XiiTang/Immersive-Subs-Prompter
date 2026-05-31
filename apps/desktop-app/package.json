@@ -9,6 +9,8 @@
     "build:app": "pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
+    "typecheck:main": "tsc --project tsconfig.json --noEmit",
+    "typecheck:preload": "tsc --project tsconfig.preload.json --noEmit",
     "typecheck:renderer": "vue-tsc --noEmit -p tsconfig.renderer.json",
     "build:renderer": "pnpm run typecheck:renderer && vite build",
     "dev:renderer": "vite dev",
@@ -26,7 +28,7 @@
     "dist:mac": "pnpm run build && electron-forge make . --app-path . --platform=darwin",
     "dist:linux": "pnpm run build && electron-forge make . --app-path . --platform=linux",
     "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm run typecheck:app",
-    "typecheck:app": "pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
+    "typecheck:app": "pnpm run typecheck:main && pnpm run typecheck:preload && pnpm run typecheck:renderer"
   },
   "keywords": [
     "electron",

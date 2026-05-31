@@ -15,7 +15,15 @@ function mountPlaybackControls(autoHideEnabled: boolean) {
       sliderEnabled: true,
       sliderFillStyle: {},
       autoHideEnabled,
-      t: (_key: string, fallback?: string) => fallback ?? _key
+      t: (key: string) => {
+        const labels: Record<string, string> = {
+          "play-button": "Play",
+          "playback-position-label": "Playback Position",
+          "auto-hide-toggle-on": "Auto-hide on",
+          "auto-hide-toggle-off": "Auto-hide off"
+        };
+        return labels[key] ?? key;
+      }
     }
   });
 }

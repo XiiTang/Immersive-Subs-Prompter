@@ -65,7 +65,7 @@ export class JellyfinembyConnection {
   dispose() {
     this.subscription.dispose();
     this.tracker.reset();
-    this.subtitleLoader.resetState();
+    this.subtitleLoader.clearSubtitleState();
     this.transport.dispose();
   }
 

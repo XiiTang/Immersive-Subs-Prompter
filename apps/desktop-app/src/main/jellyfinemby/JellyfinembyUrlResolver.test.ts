@@ -160,13 +160,6 @@ describe("JellyfinembyUrlResolver", () => {
       expect(itemId).toBeNull();
     });
 
-    it("does not infer item id from a separate fallback url", () => {
-      const itemId = resolver.extractItemId(
-        { videoSrc: "" } as any
-      );
-      expect(itemId).toBeNull();
-    });
-
     it("returns null when nothing matches", () => {
       expect(
         resolver.extractItemId({ videoSrc: "http://srv/other" } as any)

@@ -63,7 +63,7 @@ export class WindowController {
     this.shortcutManager = new ShortcutManager();
     this.trayManager = new TrayManager({
       getTrayIconPath: () => this.getTrayIconPath(),
-      getLanguage: () => this.options.getSettings().global.language ?? "en",
+      getLanguage: () => this.options.getSettings().global.language,
       onShow: () => this.showMainWindow(),
       onQuickShow: () => this.quickShowMainWindow()
     });
@@ -94,7 +94,7 @@ export class WindowController {
       logger: this.log
     });
     this.gameProcessMonitor = new GameProcessMonitor({
-      getBlacklist: () => this.options.getSettings().global.gameProcessBlacklist ?? [],
+      getBlacklist: () => this.options.getSettings().global.gameProcessBlacklist,
       onBlocked: () => this.shortcutManager.blockForGame(),
       onUnblocked: () => this.shortcutManager.unblockAfterGame()
     });
@@ -246,7 +246,7 @@ export class WindowController {
   }
 
   private applyGlobalShortcut() {
-    const shortcut = (this.options.getSettings().global.toggleWindowShortcut ?? "").trim();
+    const shortcut = this.options.getSettings().global.toggleWindowShortcut.trim();
     this.shortcutManager.applyShortcut(shortcut, () => this.toggleMainWindow());
   }
 

@@ -72,18 +72,18 @@ defineEmits<{
 }>();
 
 const timeLabel = computed(() => `${formatTime(start)} - ${formatTime(end)}`);
-const playLabel = computed(() => translate("cue-play-label", "Play from cue {time}", { time: timeLabel.value }));
-const loopLabel = computed(() => translate("cue-loop-label", "Loop cue {time}", { time: timeLabel.value }));
+const playLabel = computed(() => translate("cue-play-label", { time: timeLabel.value }));
+const loopLabel = computed(() => translate("cue-loop-label", { time: timeLabel.value }));
 const abLoopLabel = computed(() => {
   if (isAbPendingSelection) {
-    return translate("cue-ab-pending-label", "A point selected at cue {time}, choose B", { time: timeLabel.value });
+    return translate("cue-ab-pending-label", { time: timeLabel.value });
   }
   if (abLabel === "A") {
-    return translate("cue-ab-a-label", "A point at cue {time}", { time: timeLabel.value });
+    return translate("cue-ab-a-label", { time: timeLabel.value });
   }
   if (abLabel === "B") {
-    return translate("cue-ab-b-label", "B point at cue {time}", { time: timeLabel.value });
+    return translate("cue-ab-b-label", { time: timeLabel.value });
   }
-  return translate("cue-ab-set-label", "Set A-B endpoint at cue {time}", { time: timeLabel.value });
+  return translate("cue-ab-set-label", { time: timeLabel.value });
 });
 </script>

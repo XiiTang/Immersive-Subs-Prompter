@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildAuthorizationHeader,
   buildSubtitleUrl,
   buildWebSocketUrl,
   createAuthHeaders,
   guessSubtitleFormatFromStream,
   normalizeServerUrl,
-  pickSubtitleExtension,
-  ticksToMilliseconds,
-  ticksToSeconds
+  ticksToMilliseconds
 } from "./jellyfinembyUtils.js";
 import type {
   JellyfinembyServerConfig,
@@ -76,7 +73,7 @@ describe("jellyfinembyUtils", () => {
     });
   });
 
-  describe("ticksToMilliseconds / ticksToSeconds", () => {
+  describe("ticksToMilliseconds", () => {
     it("converts ticks to milliseconds", () => {
       expect(ticksToMilliseconds(10_000)).toBe(1);
       expect(ticksToMilliseconds(25_000_000)).toBe(2500);
@@ -88,28 +85,6 @@ describe("jellyfinembyUtils", () => {
       expect(ticksToMilliseconds(Number.NaN)).toBeNull();
     });
 
-    it("converts ticks to seconds", () => {
-      expect(ticksToSeconds(10_000_000)).toBe(1);
-      expect(ticksToSeconds(null)).toBeNull();
-    });
-  });
-
-  describe("pickSubtitleExtension", () => {
-    it("defaults to vtt when codec is missing", () => {
-      expect(pickSubtitleExtension({ codec: "" } as MediaServerSubtitleStream)).toBe("vtt");
-    });
-
-    it("maps known codecs", () => {
-      expect(pickSubtitleExtension({ codec: "subrip" } as MediaServerSubtitleStream)).toBe("srt");
-      expect(pickSubtitleExtension({ codec: "WEBVTT" } as MediaServerSubtitleStream)).toBe("vtt");
-      expect(pickSubtitleExtension({ codec: "ass" } as MediaServerSubtitleStream)).toBe("ass");
-    });
-
-    it("falls back to last alnum segment for unknown codecs", () => {
-      expect(pickSubtitleExtension({ codec: "foo/bar-baz" } as MediaServerSubtitleStream)).toBe(
-        "baz"
-      );
-    });
   });
 
   describe("guessSubtitleFormatFromStream", () => {
@@ -199,36 +174,6 @@ describe("jellyfinembyUtils", () => {
     });
   });
 
-  describe("buildAuthorizationHeader", () => {
-    it("formats MediaBrowser header segments", () => {
-      const header = buildAuthorizationHeader(
-        {
-          clientName: "ISP",
-          deviceName: "mac",
-          deviceId: "did",
-          version: "1.0"
-        },
-        "tok"
-      );
-      expect(header).toBe(
-        'MediaBrowser Client="ISP", Device="mac", DeviceId="did", Version="1.0", Token="tok"'
-      );
-    });
-
-    it("escapes embedded double quotes", () => {
-      const header = buildAuthorizationHeader(
-        {
-          clientName: 'has"quote',
-          deviceName: "d",
-          deviceId: "i",
-          version: "v"
-        },
-        "t"
-      );
-      expect(header).toContain('Client="has\\"quote"');
-    });
-  });
-
   describe("createAuthHeaders", () => {
     it("returns empty object when api key is absent", () => {
       expect(createAuthHeaders(null)).toEqual({});
@@ -241,13 +186,13 @@ describe("jellyfinembyUtils", () => {
 
     it("adds X-Emby-Authorization when identity provided", () => {
       const headers = createAuthHeaders("key", {
-        clientName: "c",
+        clientName: 'has"quote',
         deviceName: "d",
         deviceId: "i",
         version: "v"
       });
       expect(headers["X-Emby-Token"]).toBe("key");
-      expect(headers["X-Emby-Authorization"]).toContain('Client="c"');
+      expect(headers["X-Emby-Authorization"]).toContain('Client="has\\"quote"');
     });
   });
 });

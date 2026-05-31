@@ -54,17 +54,14 @@ let blacklistDraftInputEl: HTMLInputElement | null = null;
 let blacklistDraftValue = "";
 let appearanceTheme: AppearanceTheme = "system";
 let lastSnapshot: DashboardSnapshot | null = null;
-let staticStatus: { key: string; fallback: string } | null = {
-  key: "popupStatusConnecting",
-  fallback: "Connecting..."
-};
+let staticStatus: { key: string } | null = { key: "popupStatusConnecting" };
 
 function blacklistRulePlaceholder() {
-  return t("blacklistRulePlaceholder", "youtube.com, *.site.com/path/*, =full URL, re:pattern");
+  return t("blacklistRulePlaceholder");
 }
 
 function serverEndpointPlaceholder() {
-  return t("serverEndpointPlaceholder", "ws://192.168.1.10:44501/?token=...");
+  return t("serverEndpointPlaceholder");
 }
 
 function setStatus(text: string) {
@@ -73,9 +70,9 @@ function setStatus(text: string) {
   }
 }
 
-function setLocalizedStatus(key: string, fallback: string) {
-  staticStatus = { key, fallback };
-  setStatus(t(key, fallback));
+function setLocalizedStatus(key: string) {
+  staticStatus = { key };
+  setStatus(t(key));
 }
 
 function mountStaticIcons() {
@@ -116,7 +113,7 @@ function applyLanguagePreference(preference: LanguagePreference) {
     return;
   }
   if (staticStatus) {
-    setStatus(t(staticStatus.key, staticStatus.fallback));
+    setStatus(t(staticStatus.key));
   }
   renderEmptyState();
 }
@@ -156,13 +153,13 @@ function getConnectionInfo(endpoint: string): PopupConnection | null {
 function connectionStatusLabel(state: PopupConnection["state"], hasError: boolean) {
   const base =
     state === "connected"
-      ? t("statusConnected", "Connected")
+      ? t("statusConnected")
       : state === "connecting"
-        ? t("statusConnecting", "Connecting")
+        ? t("statusConnecting")
         : state === "idle"
-          ? t("statusIdle", "Idle")
-          : t("statusDisconnected", "Disconnected");
-  return hasError ? formatMessage("statusWithError", "{status} · Error", { status: base }) : base;
+          ? t("statusIdle")
+          : t("statusDisconnected");
+  return hasError ? formatMessage("statusWithError", { status: base }) : base;
 }
 
 function connectionPillClass(state: PopupConnection["state"], hasError: boolean) {
@@ -180,7 +177,7 @@ function setServerError(message = "") {
 function addServerEndpoint(rawValue: string) {
   const normalized = normalizeEndpoint(rawValue);
   if (!normalized) {
-    setServerError(t("validationInvalidServerAddress", "Enter a valid ws:// host:port address"));
+    setServerError(t("validationInvalidServerAddress"));
     return;
   }
   serverError = "";
@@ -216,8 +213,8 @@ function renderServers() {
   const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
   if (serverSummaryEl) {
     serverSummaryEl.textContent = total
-      ? formatMessage("settingsServerSummaryConnected", "{connected}/{total} connected", { connected, total })
-      : t("settingsServerSummaryEmpty", "Add a server address to start syncing.");
+      ? formatMessage("settingsServerSummaryConnected", { connected, total })
+      : t("settingsServerSummaryEmpty");
   }
 
   const editor = document.createElement("div");
@@ -257,8 +254,8 @@ function renderServers() {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove server-remove";
-    removeBtn.title = t("actionRemove", "Remove");
-    removeBtn.setAttribute("aria-label", t("actionRemove", "Remove"));
+    removeBtn.title = t("actionRemove");
+    removeBtn.setAttribute("aria-label", t("actionRemove"));
     removeBtn.dataset.testid = `server-endpoint-remove-${endpoint}`;
     removeBtn.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
     removeBtn.addEventListener("click", () => removeServerEndpoint(endpoint));
@@ -339,7 +336,7 @@ function formatTime(value: number | null | undefined) {
 }
 
 function formatVolume(volume: number | null | undefined, muted: boolean | null | undefined) {
-  if (muted) return t("mediaMuted", "Muted");
+  if (muted) return t("mediaMuted");
   if (typeof volume !== "number" || volume < 0) return "--";
   return `${Math.round(volume * 100)}%`;
 }
@@ -355,14 +352,14 @@ function formatResolution(width: number | null | undefined, height: number | nul
 }
 
 function formatRelative(delta: number | null | undefined) {
-  if (delta == null) return t("relativeJustNow", "just now");
+  if (delta == null) return t("relativeJustNow");
   const seconds = Math.floor(delta / 1000);
-  if (seconds <= 1) return t("relativeJustNow", "just now");
-  if (seconds < 60) return formatMessage("relativeSecondsAgo", "{seconds}s ago", { seconds });
+  if (seconds <= 1) return t("relativeJustNow");
+  if (seconds < 60) return formatMessage("relativeSecondsAgo", { seconds });
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return formatMessage("relativeMinutesAgo", "{minutes}m ago", { minutes });
+  if (minutes < 60) return formatMessage("relativeMinutesAgo", { minutes });
   const hours = Math.floor(minutes / 60);
-  return formatMessage("relativeHoursAgo", "{hours}h ago", { hours });
+  return formatMessage("relativeHoursAgo", { hours });
 }
 
 function renderEmptyState() {
@@ -370,9 +367,9 @@ function renderEmptyState() {
   const empty = document.createElement("div");
   empty.className = "ui-empty-state empty-state";
   const title = document.createElement("strong");
-  title.textContent = t("popupNoMediaTitle", "No media detected");
+  title.textContent = t("popupNoMediaTitle");
   const description = document.createElement("p");
-  description.textContent = t("popupNoMediaDescription", "Start playing a video to see the live breakdown here.");
+  description.textContent = t("popupNoMediaDescription");
   empty.append(title, description);
   mediaRoot.replaceChildren(empty);
 }
@@ -430,8 +427,8 @@ function renderBlacklistRules() {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove";
-    removeButton.title = t("actionRemove", "Remove");
-    removeButton.setAttribute("aria-label", t("actionRemove", "Remove"));
+    removeButton.title = t("actionRemove");
+    removeButton.setAttribute("aria-label", t("actionRemove"));
     removeButton.dataset.testid = `blacklist-rule-remove-${rule.id}`;
     removeButton.appendChild(createCloseIcon({ size: 14, className: "icon icon--close" }));
     removeButton.addEventListener("click", () => removeBlacklistRule(rule.id));
@@ -512,18 +509,18 @@ function updateBlacklistDraftError() {
 function patternErrorMessage(pattern: string) {
   const parsed = parseUrlRulePattern(pattern);
   if (parsed.error === "invalid-regex") {
-    return t("validationInvalidRegex", "Invalid regular expression");
+    return t("validationInvalidRegex");
   }
   return null;
 }
 
 function ruleTypeLabel(pattern: string) {
   const labels: Record<UrlRuleMatchType, string> = {
-    domain: t("ruleTypeDomain", "Domain"),
-    glob: t("ruleTypeGlob", "Glob"),
-    exact: t("ruleTypeExact", "Exact"),
-    regex: t("ruleTypeRegex", "Regex"),
-    contains: t("ruleTypeContains", "Contains")
+    domain: t("ruleTypeDomain"),
+    glob: t("ruleTypeGlob"),
+    exact: t("ruleTypeExact"),
+    regex: t("ruleTypeRegex"),
+    contains: t("ruleTypeContains")
   };
   return labels[getUrlRuleMatchType(pattern)];
 }
@@ -565,10 +562,10 @@ function renderCards(items: MediaInfo[]) {
 
     if (!titleEl || !statusEl || !subtitleEl || !metaEl || !timeEl || !progressBar) return;
 
-    titleEl.textContent = item.title || item.pageUrl || t("mediaUnknownTitle", "Unknown media");
+    titleEl.textContent = item.title || item.pageUrl || t("mediaUnknownTitle");
     statusEl.textContent = item.isPlaying
-      ? t("mediaStatusPlaying", "Playing")
-      : t("mediaStatusPaused", "Paused");
+      ? t("mediaStatusPlaying")
+      : t("mediaStatusPaused");
 
     let url = null;
     if (item.pageUrl) {
@@ -589,14 +586,14 @@ function renderCards(items: MediaInfo[]) {
 
     const metaBits = [];
     const resolution = formatResolution(item.videoWidth, item.videoHeight);
-    metaBits.push(formatMessage("mediaMetaSpeed", "Speed {rate}x", { rate: formatRate(item.playbackRate) }));
-    metaBits.push(formatMessage("mediaMetaVolume", "Volume {volume}", { volume: formatVolume(item.volume, item.muted) }));
+    metaBits.push(formatMessage("mediaMetaSpeed", { rate: formatRate(item.playbackRate) }));
+    metaBits.push(formatMessage("mediaMetaVolume", { volume: formatVolume(item.volume, item.muted) }));
     if (resolution) metaBits.push(resolution);
-    if (item.pictureInPicture) metaBits.push(t("mediaPictureInPicture", "PiP"));
+    if (item.pictureInPicture) metaBits.push(t("mediaPictureInPicture"));
     metaEl.textContent = metaBits.filter(Boolean).join(" · ");
 
     const current = formatTime(item.currentTime);
-    const total = item.duration ? formatTime(item.duration) : t("mediaTotalLive", "Live");
+    const total = item.duration ? formatTime(item.duration) : t("mediaTotalLive");
     timeEl.textContent = `${current} / ${total}`;
 
     if (typeof item.progress === "number") {
@@ -607,7 +604,7 @@ function renderCards(items: MediaInfo[]) {
 
     if (item.pageUrl && linkEl) {
       linkEl.href = item.pageUrl;
-      linkEl.textContent = t("mediaOpenTab", "Open tab");
+      linkEl.textContent = t("mediaOpenTab");
     } else if (linkEl) {
       linkEl.remove();
     }
@@ -642,12 +639,12 @@ function handleSnapshot(payload: DashboardSnapshot) {
   const connectedServers = connectionStatuses.filter((entry) => entry.state === "connected").length;
   const parts = [];
   parts.push(totalServers
-    ? formatMessage("dashboardServers", "{connected}/{total} servers", { connected: connectedServers, total: totalServers })
-    : t("dashboardNoServers", "No servers"));
+    ? formatMessage("dashboardServers", { connected: connectedServers, total: totalServers })
+    : t("dashboardNoServers"));
   parts.push(playing
-    ? formatMessage("dashboardPlaying", "{count} playing", { count: playing })
-    : formatMessage("dashboardTracked", "{count} tracked", { count: items.length || 0 }));
-  parts.push(formatMessage("dashboardUpdated", "updated {relative}", { relative: formatRelative(delta) }));
+    ? formatMessage("dashboardPlaying", { count: playing })
+    : formatMessage("dashboardTracked", { count: items.length || 0 }));
+  parts.push(formatMessage("dashboardUpdated", { relative: formatRelative(delta) }));
   setStatus(parts.filter(Boolean).join(" · "));
 }
 
@@ -671,11 +668,11 @@ chrome.storage.local.get([APPEARANCE_STORAGE_KEY, LANGUAGE_STORAGE_KEY], (result
 
 try {
   port = chrome.runtime.connect({ name: DASHBOARD_PORT });
-  setLocalizedStatus("popupStatusConnecting", "Connecting...");
+  setLocalizedStatus("popupStatusConnecting");
   port.onMessage.addListener(handleMessage);
   port.onDisconnect.addListener(() => {
     lastSnapshot = null;
-    setLocalizedStatus("popupStatusDisconnected", "Disconnected");
+    setLocalizedStatus("popupStatusDisconnected");
     connectionStatuses = [];
     renderServers();
     renderEmptyState();
@@ -684,7 +681,7 @@ try {
 } catch (err) {
   console.error("[USP] Failed to connect to dashboard port", err);
   lastSnapshot = null;
-  setLocalizedStatus("popupStatusUnavailable", "Unavailable");
+  setLocalizedStatus("popupStatusUnavailable");
   renderEmptyState();
 }
 

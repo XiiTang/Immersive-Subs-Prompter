@@ -24,10 +24,6 @@ export function formatHostForUrl(host: string): string {
   return normalized.includes(":") ? `[${normalized}]` : normalized;
 }
 
-export function formatNetworkEndpointInput(endpoint: NetworkEndpointValue): string {
-  return `${formatHostForUrl(endpoint.host)}:${endpoint.port}`;
-}
-
 export function networkEndpointKey(endpoint: Pick<NetworkEndpointValue, "host" | "port">): string {
   return `${stripIpv6Brackets(endpoint.host).trim().toLowerCase()}:${endpoint.port}`;
 }

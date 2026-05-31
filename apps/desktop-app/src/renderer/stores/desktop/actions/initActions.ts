@@ -8,7 +8,7 @@ export async function initialize(this: DesktopStoreThis) {
     this.desktopState = state;
     this.playback = state.playback;
     this.settings = settings;
-    this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId ?? settings.profiles[0]?.id ?? null;
+    this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId;
     this.attachIpcListeners();
     await this.refreshCacheStats();
     await this.refreshPluginCatalog();
@@ -32,8 +32,8 @@ export function attachIpcListeners(this: DesktopStoreThis) {
   });
   window.usp.onSettingsChange((settings) => {
     this.settings = settings;
-    if (!this.editingProfileId && settings.profiles.length) {
-      this.editingProfileId = this.desktopState?.appliedProfileId ?? settings.defaultProfileId ?? settings.profiles[0].id;
+    if (!this.editingProfileId) {
+      this.editingProfileId = this.desktopState?.appliedProfileId ?? settings.defaultProfileId;
     }
     this.refreshCacheStats();
   });

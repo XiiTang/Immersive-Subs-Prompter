@@ -7,18 +7,6 @@ export async function refreshCacheStats(this: DesktopStoreThis) {
   return stats;
 }
 
-export async function clearCache(this: DesktopStoreThis) {
-  const result = await window.usp.clearCache();
-  await this.refreshCacheStats();
-  return result;
-}
-
-export async function cleanupCache(this: DesktopStoreThis) {
-  const result = await window.usp.cleanupCache();
-  await this.refreshCacheStats();
-  return result;
-}
-
 export async function openCacheFolder(this: DesktopStoreThis) {
   return window.usp.openCacheFolder();
 }
@@ -37,8 +25,6 @@ export function updateCacheSetting<Key extends keyof SubtitleCacheSettings>(
 
 export const cacheActions = {
   refreshCacheStats,
-  clearCache,
-  cleanupCache,
   openCacheFolder,
   updateCacheSetting
 };

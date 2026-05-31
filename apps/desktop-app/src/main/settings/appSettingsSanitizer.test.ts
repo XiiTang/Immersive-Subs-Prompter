@@ -58,53 +58,6 @@ describe("appSettingsSanitizer", () => {
       expect(() => sanitizeSettings(reordered)).toThrow("profiles must keep the current fallback profile last");
     });
 
-    it("rejects values that only old disk-load sanitizers normalized", () => {
-      const unsupportedAppearance = DEFAULT_SETTINGS_FACTORY();
-      unsupportedAppearance.global = {
-        ...unsupportedAppearance.global,
-        appearance: { theme: "blue" as never }
-      };
-
-      const unsupportedFont = DEFAULT_SETTINGS_FACTORY();
-      unsupportedFont.profiles = unsupportedFont.profiles.map((profile) =>
-        profile.id === DEFAULT_PROFILE_ID
-          ? {
-            ...profile,
-            settings: {
-              ...profile.settings,
-              primarySubtitleFontFamily: "Papyrus"
-            }
-          }
-          : profile
-      );
-
-      const websocketPathWithoutSlash = DEFAULT_SETTINGS_FACTORY();
-      websocketPathWithoutSlash.plugins["official.jellyfinemby"] = {
-        config: {
-          servers: [
-            {
-              id: "srv-1",
-              name: "Home",
-              serverUrl: "http://server.local:8096",
-              apiKey: "key",
-              webSocketPath: "socket",
-              enabled: true
-            }
-          ]
-        }
-      };
-
-      expect(() => sanitizeSettings(unsupportedAppearance)).toThrow(
-        "global.appearance.theme must use the current string setting"
-      );
-      expect(() => sanitizeSettings(unsupportedFont)).toThrow(
-        "profile.primarySubtitleFontFamily must use a supported current font setting"
-      );
-      expect(() => sanitizeSettings(websocketPathWithoutSlash)).toThrow(
-        "jellyfinemby.server.webSocketPath must start with /"
-      );
-    });
-
     it("uses explicit product defaults from the factory", () => {
       const result = DEFAULT_SETTINGS_FACTORY();
       const settings = result.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!.settings;

@@ -42,7 +42,7 @@ function createTranscriptionConfigId() {
 }
 
 export function useTranscriptionConfig(
-  t: (key: string, fallback: string) => string
+  t: (key: string) => string
 ): UseTranscriptionConfigReturn {
   const store = useDesktopStore();
 
@@ -183,14 +183,11 @@ export function useTranscriptionConfig(
       try {
         const parsed = JSON.parse(trimmed);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          extraParamsError.value = t("transcription-extra-params-invalid", "Please enter a valid JSON object.");
+          extraParamsError.value = t("transcription-extra-params-invalid");
           return;
         }
         if (Object.values(parsed as Record<string, unknown>).some((entry) => typeof entry !== "string")) {
-          extraParamsError.value = t(
-            "transcription-extra-params-string-values",
-            "Extra parameter values must be strings."
-          );
+          extraParamsError.value = t("transcription-extra-params-string-values");
           return;
         }
         updateConfig({ extraParams: parsed as Record<string, unknown> });
@@ -199,7 +196,7 @@ export function useTranscriptionConfig(
         extraParamsError.value =
           error instanceof Error
             ? error.message
-            : t("transcription-extra-params-invalid", "Please enter a valid JSON object.");
+            : t("transcription-extra-params-invalid");
       }
     }
   });

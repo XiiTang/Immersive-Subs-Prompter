@@ -1,12 +1,12 @@
 <template>
   <section class="ui-group">
     <header class="ui-group__header">
-      <h3 class="ui-group__title">{{ t("transcription-runtime-config", "Runtime Configuration") }}</h3>
+      <h3 class="ui-group__title">{{ t("transcription-runtime-config") }}</h3>
     </header>
 
     <div class="ui-group__body">
       <div class="settings-row settings-row--two">
-        <UiField id="fw-active-model" :label="t('transcription-faster-model', 'Active Model')">
+        <UiField id="fw-active-model" :label="t('transcription-faster-model')">
           <div class="settings-inline">
             <UiSelect v-model="selectedDownloadedModel" :options="downloadedModelOptions" />
             <UiInput
@@ -17,38 +17,38 @@
           </div>
         </UiField>
 
-        <UiField id="fw-device" :label="t('transcription-faster-device', 'Device')">
+        <UiField id="fw-device" :label="t('transcription-faster-device')">
           <UiSelect v-model="fasterWhisperDevice" :options="deviceOptions" />
         </UiField>
       </div>
 
       <div class="settings-row settings-row--three">
-        <UiField id="fw-vad-filter" :label="t('transcription-faster-vad-filter', 'VAD Filter')" inline>
-          <UiSwitch v-model="fasterWhisperVadFilter" :label="fasterWhisperVadFilter ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+        <UiField id="fw-vad-filter" :label="t('transcription-faster-vad-filter')" inline>
+          <UiSwitch v-model="fasterWhisperVadFilter" :label="fasterWhisperVadFilter ? t('toggle-on') : t('toggle-off')" />
         </UiField>
 
-        <UiField id="fw-vad-threshold" :label="t('transcription-faster-vad-threshold', 'Threshold')">
+        <UiField id="fw-vad-threshold" :label="t('transcription-faster-vad-threshold')">
           <UiInput v-model="fasterWhisperVadThreshold" type="number" min="0" max="1" step="0.05" />
         </UiField>
 
-        <UiField id="fw-vad-method" :label="t('transcription-faster-vad-method', 'VAD Method')">
+        <UiField id="fw-vad-method" :label="t('transcription-faster-vad-method')">
           <UiInput v-model="fasterWhisperVadMethod" placeholder="silero" />
         </UiField>
       </div>
 
       <div class="settings-row settings-row--two">
-        <UiField id="fw-language" :label="t('transcription-language-label', 'Language')">
+        <UiField id="fw-language" :label="t('transcription-language-label')">
           <UiInput v-model="languageField" placeholder="auto" />
         </UiField>
 
-        <UiField id="fw-prompt" :label="t('transcription-prompt-label', 'Prompt')">
+        <UiField id="fw-prompt" :label="t('transcription-prompt-label')">
           <UiInput v-model="prompt" />
         </UiField>
       </div>
 
       <div class="settings-row">
-        <UiField id="fw-kim2" :label="t('transcription-faster-kim2', 'Voice Separation (Kim2)')" inline>
-          <UiSwitch v-model="fasterWhisperUseKim2" :label="fasterWhisperUseKim2 ? t('toggle-on', 'On') : t('toggle-off', 'Off')" />
+        <UiField id="fw-kim2" :label="t('transcription-faster-kim2')" inline>
+          <UiSwitch v-model="fasterWhisperUseKim2" :label="fasterWhisperUseKim2 ? t('toggle-on') : t('toggle-off')" />
         </UiField>
       </div>
     </div>
@@ -61,7 +61,7 @@ import type { AvailableModel } from "./composables/useFasterWhisper";
 import { UiField, UiInput, UiSelect, UiSwitch } from "../../ui";
 
 const { t, availableModels } = defineProps<{
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
   availableModels: AvailableModel[];
 }>();
 
@@ -77,10 +77,10 @@ const prompt = defineModel<string>("prompt", { required: true });
 
 const downloadedModelOptions = computed(() => [
   ...(!availableModels.length
-    ? [{ value: "custom", label: t("transcription-faster-model-missing", "No downloaded models detected") }]
+    ? [{ value: "custom", label: t("transcription-faster-model-missing") }]
     : []),
   ...availableModels.map((model) => ({ value: model.name, label: model.name })),
-  { value: "custom", label: t("transcription-faster-model-custom", "Custom value") }
+  { value: "custom", label: t("transcription-faster-model-custom") }
 ]);
 
 const deviceOptions = [

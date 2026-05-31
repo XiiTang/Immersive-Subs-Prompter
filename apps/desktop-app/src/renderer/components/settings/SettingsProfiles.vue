@@ -1,5 +1,5 @@
 <template>
-  <UiSection :title="t('section-profiles', 'Profiles')">
+  <UiSection :title="t('section-profiles')">
     <div class="settings-split">
       <ProfileList
         :profiles="profiles"
@@ -27,17 +27,14 @@
           role="primary"
           :items="primaryPriority"
           v-model="primaryPriorityInput"
-          :label="t('primary-priority-label', 'Primary Priority')"
+          :label="t('primary-priority-label')"
           :hint="
-            t(
-              'primary-priority-hint',
-              'Use regular expressions; drag to reorder.'
-            )
+            t('primary-priority-hint')
           "
-          :placeholder="t('primary-priority-placeholder', 'e.g.: en or zh-Hans')"
+          :placeholder="t('primary-priority-placeholder')"
           :error="primaryPriorityError"
           :doc-url="regexDocUrl"
-          :remove-label="t('priority-remove', 'Remove priority')"
+          :remove-label="t('priority-remove')"
           @add="addPriority('primary')"
           @remove="(value) => store.removePriority('primary', value)"
           @reorder="(fromIndex, toIndex) => store.reorderPriority('primary', fromIndex, toIndex)"
@@ -48,22 +45,19 @@
           role="secondary"
           :items="secondaryPriority"
           v-model="secondaryPriorityInput"
-          :label="t('secondary-priority-label', 'Secondary Priority')"
+          :label="t('secondary-priority-label')"
           :hint="
-            t(
-              'secondary-priority-hint',
-              'Match filenames; drag to reorder.'
-            )
+            t('secondary-priority-hint')
           "
-          :placeholder="t('secondary-priority-placeholder', 'e.g.: en or zh-Hans')"
+          :placeholder="t('secondary-priority-placeholder')"
           :error="secondaryPriorityError"
-          :remove-label="t('priority-remove', 'Remove priority')"
+          :remove-label="t('priority-remove')"
           @add="addPriority('secondary')"
           @remove="(value) => store.removePriority('secondary', value)"
           @reorder="(fromIndex, toIndex) => store.reorderPriority('secondary', fromIndex, toIndex)"
         />
 
-        <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label', 'yt-dlp Arguments')">
+        <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label')">
           <UiTextarea v-model="ytDlpArgs" :rows="3" :placeholder="defaultYtDlpArgs" />
         </UiField>
       </div>
@@ -158,6 +152,6 @@ function getPriorityRegexError(value: string): string | null {
   if (!normalized) {
     return null;
   }
-  return isValidRegex(normalized) ? null : t("priority-regex-invalid", "无效的正则表达式");
+  return isValidRegex(normalized) ? null : t("priority-regex-invalid");
 }
 </script>

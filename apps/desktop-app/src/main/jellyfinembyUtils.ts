@@ -54,15 +54,7 @@ export function ticksToMilliseconds(ticks: number | null | undefined): number | 
   return Math.floor(ticks / TICKS_PER_MILLISECOND);
 }
 
-export function ticksToSeconds(ticks: number | null | undefined): number | null {
-  const ms = ticksToMilliseconds(ticks);
-  if (ms === null) {
-    return null;
-  }
-  return ms / 1000;
-}
-
-export function pickSubtitleExtension(stream: MediaServerSubtitleStream): string {
+function pickSubtitleExtension(stream: MediaServerSubtitleStream): string {
   if (!stream.codec) {
     return "vtt";
   }
@@ -113,7 +105,7 @@ export function buildSubtitleUrl(
   return url.toString();
 }
 
-export function buildAuthorizationHeader(identity: JellyfinembyIdentity, apiKey: string): string {
+function buildAuthorizationHeader(identity: JellyfinembyIdentity, apiKey: string): string {
   const escapeValue = (value: string): string => value.replace(/"/g, '\\"');
   const segments = [
     `MediaBrowser Client="${escapeValue(identity.clientName)}"`,

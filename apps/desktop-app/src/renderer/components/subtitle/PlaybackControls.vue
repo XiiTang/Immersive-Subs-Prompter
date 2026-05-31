@@ -1,11 +1,11 @@
 <template>
   <div class="playback-row">
-    <UiTooltip :text="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')">
+    <UiTooltip :text="isPlaying ? t('pause-button') : t('play-button')">
       <UiIconButton
         class="playback-toggle-btn"
         variant="secondary"
         :disabled="!hasActiveVideo"
-        :label="isPlaying ? t('pause-button', 'Pause') : t('play-button', 'Play')"
+        :label="isPlaying ? t('pause-button') : t('play-button')"
         @click="$emit('toggle-playback')"
       >
         <IconPause v-if="isPlaying" size="md" />
@@ -22,7 +22,7 @@
         :step="sliderStep"
         :disabled="!sliderEnabled"
         :fill-style="sliderFillStyle"
-        :label="t('playback-position-label', 'Playback Position')"
+        :label="t('playback-position-label')"
         @pointerdown="$emit('scrub-start')"
         @pointercancel="$emit('scrub-cancel')"
         @input="$emit('scrub-input', $event)"
@@ -75,7 +75,7 @@ const {
   sliderEnabled: boolean;
   sliderFillStyle: Record<string, string>;
   autoHideEnabled: boolean;
-  t: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t: (key: string, params?: Record<string, any>) => string;
 }>();
 
 defineEmits<{
@@ -89,7 +89,7 @@ defineEmits<{
 
 const autoHideLabel = computed(() =>
   autoHideEnabled
-    ? t("auto-hide-toggle-on", "Auto-hide on")
-    : t("auto-hide-toggle-off", "Auto-hide off")
+    ? t("auto-hide-toggle-on")
+    : t("auto-hide-toggle-off")
 );
 </script>

@@ -36,15 +36,28 @@ function walk(dir) {
 
 function scan(file) {
   const src = readFileSync(file, "utf8");
-  if (src.includes("usp-allow-empty-catch")) return;
   for (const pattern of [EMPTY_CATCH, EMPTY_PROMISE_CATCH]) {
     pattern.lastIndex = 0;
     let match;
     while ((match = pattern.exec(src)) !== null) {
+      if (hasAdjacentAllowComment(src, match.index)) {
+        continue;
+      }
       const line = src.slice(0, match.index).split("\n").length;
       findings.push({ file: path.relative(ROOT, file), line, snippet: match[0].replace(/\s+/g, " ") });
     }
   }
+}
+
+function hasAdjacentAllowComment(src, index) {
+  const lineStart = src.lastIndexOf("\n", index - 1) + 1;
+  if (lineStart === 0) {
+    return false;
+  }
+  const previousLineEnd = lineStart - 1;
+  const previousLineStart = src.lastIndexOf("\n", previousLineEnd - 1) + 1;
+  const previousLine = src.slice(previousLineStart, previousLineEnd).trim();
+  return previousLine.includes("usp-allow-empty-catch");
 }
 
 for (const rel of SCAN_DIRS) {
@@ -63,7 +76,7 @@ if (findings.length > 0) {
   }
   console.error(
     `\nReplace each with the process-local swallow(err, "scope.name", "why this is safe to ignore") helper,\n` +
-      `or add a trailing comment containing "usp-allow-empty-catch" after the block to whitelist the file.\n`
+      `or add a comment containing "usp-allow-empty-catch" on the line above the catch block.\n`
   );
   process.exit(1);
 }

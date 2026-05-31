@@ -1,17 +1,17 @@
 <template>
-  <UiSection :title="t('section-mediaserver', 'Jellyfin / Emby')">
+  <UiSection :title="t('section-mediaserver')">
     <div class="settings-split">
       <div class="settings-split__sidebar">
         <div class="settings-split__sidebar-header">
-          <span class="ui-field__label">{{ t("server-list-label", "Server List") }}</span>
+          <span class="ui-field__label">{{ t("server-list-label") }}</span>
           <div class="settings-split__sidebar-buttons">
-            <UiIconButton :label="t('button-add', 'Add')" @click="addMediaServerConfig">
+            <UiIconButton :label="t('button-add')" @click="addMediaServerConfig">
               <IconAdd size="md" />
             </UiIconButton>
             <UiIconButton
               :disabled="!selectedMediaServerConfigId"
               variant="danger"
-              :label="t('button-delete', 'Delete')"
+              :label="t('button-delete')"
               @click="deleteSelectedMediaServerConfig"
             >
               <IconDelete size="md" />
@@ -36,7 +36,7 @@
                   data-testid="mediaserver-config-name-input"
                   :data-config-id="config.id"
                   v-model="draftMediaServerName"
-                  :aria-label="t('server-name-label', 'Server Name')"
+                  :aria-label="t('server-name-label')"
                   @click.stop
                   @mousedown.stop
                   @dragstart.stop
@@ -68,17 +68,17 @@
               />
             </UiListItem>
           </template>
-          <UiEmptyState v-else :message="t('mediaserver-no-servers', 'No servers configured')" />
+          <UiEmptyState v-else :message="t('mediaserver-no-servers')" />
         </div>
       </div>
       <div class="settings-split__editor" v-if="selectedMediaServerConfig">
-        <UiField id="server-url" :label="t('server-url-label', 'Server URL')">
+        <UiField id="server-url" :label="t('server-url-label')">
           <UiInput v-model="mediaServerServerUrl" />
         </UiField>
-        <UiField id="server-api-key" :label="t('api-key-label', 'API Key')">
+        <UiField id="server-api-key" :label="t('api-key-label')">
           <UiInput v-model="mediaServerApiKey" />
         </UiField>
-        <UiField id="server-ws-path" :label="t('ws-path-label', 'WebSocket Path')">
+        <UiField id="server-ws-path" :label="t('ws-path-label')">
           <UiInput v-model="mediaServerWsPath" />
         </UiField>
       </div>
@@ -149,13 +149,13 @@ function deleteSelectedMediaServerConfig() {
 }
 
 function getMediaServerName(config: JellyfinembyServerConfig) {
-  return config.name || config.serverUrl || t("mediaserver-untitled", "Untitled");
+  return config.name || config.serverUrl || t("mediaserver-untitled");
 }
 
 function getMediaServerStateLabel(config: JellyfinembyServerConfig) {
   return config.enabled
-    ? t("mediaserver-config-enabled", "Enabled")
-    : t("mediaserver-config-disabled", "Disabled");
+    ? t("mediaserver-config-enabled")
+    : t("mediaserver-config-disabled");
 }
 
 function setMediaServerEnabled(configId: string, enabled: boolean) {

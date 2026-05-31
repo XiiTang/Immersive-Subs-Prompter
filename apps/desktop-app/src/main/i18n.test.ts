@@ -31,13 +31,13 @@ describe("main i18n", () => {
 
   describe("translate", () => {
     it("returns dictionary value for known key", () => {
-      expect(translate("tray-quit", "Quit", "en")).toBe("Quit");
-      expect(translate("tray-quit", "Quit", "zh")).toBe("退出");
+      expect(translate("tray-quit", "en")).toBe("Quit");
+      expect(translate("tray-quit", "zh")).toBe("退出");
     });
 
-    it("falls back to provided default when key is missing", () => {
-      expect(translate("nonexistent-key", "fallback", "en")).toBe("fallback");
-      expect(translate("nonexistent-key", "fallback", "zh")).toBe("fallback");
+    it("exposes missing keys", () => {
+      expect(translate("nonexistent-key", "en")).toBe("missing:nonexistent-key");
+      expect(translate("nonexistent-key", "zh")).toBe("missing:nonexistent-key");
     });
   });
 

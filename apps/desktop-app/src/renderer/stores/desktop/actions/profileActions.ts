@@ -35,16 +35,6 @@ export function updateProfileSetting<Key extends keyof ProfileSettings>(
   this.updateSettings({ profiles: nextProfiles }, options);
 }
 
-export function updateProfileMeta(this: DesktopStoreThis, partial: Partial<ProfileDefinition>) {
-  if (!this.settings || !this.editingProfileId) {
-    return;
-  }
-  const nextProfiles = this.settings.profiles.map((profile) =>
-    profile.id === this.editingProfileId ? { ...profile, ...partial } : profile
-  );
-  this.updateSettings({ profiles: nextProfiles });
-}
-
 export function addProfile(this: DesktopStoreThis) {
   if (!this.settings) {
     return;
@@ -188,7 +178,6 @@ export function reorderPriority(
 export const profileActions = {
   setEditingProfile,
   updateProfileSetting,
-  updateProfileMeta,
   addProfile,
   duplicateProfile,
   deleteProfile,

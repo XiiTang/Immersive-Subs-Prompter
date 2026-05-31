@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MediaServerSessionSummary } from "../types.js";
 import { JellyfinembySessionHandler } from "./JellyfinembySessionHandler.js";
-import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
+import type { JellyfinembyTabContext } from "./types.js";
 
 function session(
   id: string,
@@ -66,38 +66,42 @@ function createStateManager(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createHandler(stateManager: ReturnType<typeof createStateManager>, tabRegistry = new JellyfinembyTabContextRegistry()) {
+function createTabContexts() {
+  return new Map<number, JellyfinembyTabContext>();
+}
+
+function createHandler(stateManager: ReturnType<typeof createStateManager>, tabContexts = createTabContexts()) {
   const service = {
     setActiveSession: vi.fn()
   };
   const handler = new JellyfinembySessionHandler(
     stateManager as never,
     service as never,
-    tabRegistry,
+    tabContexts,
     {
       buildPageUrl: vi.fn(() => null),
       buildItemUrl: vi.fn(() => null)
     } as never
   );
-  return { handler, service, tabRegistry };
+  return { handler, service, tabContexts };
 }
 
 describe("JellyfinembySessionHandler", () => {
   it("does not bind a tab to a same-item session from another server", () => {
     const stateManager = createStateManager();
-    const tabRegistry = new JellyfinembyTabContextRegistry();
-    tabRegistry.update(7, {
+    const tabContexts = createTabContexts();
+    tabContexts.set(7, {
       itemId: "item-1",
       serverConfigId: "server-a",
       sessionId: null
     });
-    const { handler } = createHandler(stateManager, tabRegistry);
+    const { handler } = createHandler(stateManager, tabContexts);
 
     handler.handleMediaServerSessionsUpdate([
       session("server-b:s1", "server-b", "item-1")
     ]);
 
-    expect(tabRegistry.get(7)).toEqual({
+    expect(tabContexts.get(7)).toEqual({
       itemId: "item-1",
       serverConfigId: "server-a",
       sessionId: null
@@ -109,13 +113,13 @@ describe("JellyfinembySessionHandler", () => {
       activeSource: "mediaserver",
       activeTabId: 7
     });
-    const tabRegistry = new JellyfinembyTabContextRegistry();
-    tabRegistry.update(7, {
+    const tabContexts = createTabContexts();
+    tabContexts.set(7, {
       itemId: "item-1",
       serverConfigId: null,
       sessionId: null
     });
-    const { handler, service } = createHandler(stateManager, tabRegistry);
+    const { handler, service } = createHandler(stateManager, tabContexts);
 
     handler.handleMediaServerSessionsUpdate([
       session("server-b:s1", "server-b", "item-1")

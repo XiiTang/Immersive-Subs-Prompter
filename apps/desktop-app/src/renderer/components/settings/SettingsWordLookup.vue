@@ -1,41 +1,41 @@
 <template>
-  <UiSection :title="t('word-lookup-section-title', 'Word Lookup')">
-    <UiField id="word-list-path" :label="t('word-lookup-path-label', 'Word List Path')" :hint="t('word-lookup-path-hint', 'JSONL rows with word, content, and optional aliases.')">
+  <UiSection :title="t('word-lookup-section-title')">
+    <UiField id="word-list-path" :label="t('word-lookup-path-label')" :hint="t('word-lookup-path-hint')">
       <div class="ui-inline-control">
         <UiInput :model-value="config.wordListPath" @change="handlePathChange" />
         <UiButton variant="secondary" @click="selectFile">
-          {{ t("word-lookup-select-file", "Select File") }}
+          {{ t("word-lookup-select-file") }}
         </UiButton>
       </div>
     </UiField>
 
-    <UiField id="word-lookup-modifier" :label="t('word-lookup-modifier-label', 'Trigger Key')">
+    <UiField id="word-lookup-modifier" :label="t('word-lookup-modifier-label')">
       <UiSelect :model-value="config.modifierKey" :options="modifierOptions" @update:model-value="handleModifierInput" />
     </UiField>
 
     <div class="word-lookup-settings__actions">
       <UiButton variant="primary" :disabled="isRefreshing" @click="refresh">
-        {{ isRefreshing ? t("word-lookup-refreshing", "Refreshing...") : t("word-lookup-refresh", "Refresh") }}
+        {{ isRefreshing ? t("word-lookup-refreshing") : t("word-lookup-refresh") }}
       </UiButton>
     </div>
 
     <dl class="ui-stat-grid word-lookup-status">
       <div class="ui-stat">
-        <dt class="ui-stat__label">{{ t("word-lookup-status-state", "Status") }}</dt>
+        <dt class="ui-stat__label">{{ t("word-lookup-status-state") }}</dt>
         <dd>
           <UiBadge :tone="status && !status.ok ? 'danger' : 'success'">{{ statusLabel }}</UiBadge>
         </dd>
       </div>
       <div class="ui-stat">
-        <dt class="ui-stat__label">{{ t("word-lookup-status-entries", "Entries") }}</dt>
+        <dt class="ui-stat__label">{{ t("word-lookup-status-entries") }}</dt>
         <dd><UiBadge>{{ status?.entryCount ?? 0 }}</UiBadge></dd>
       </div>
       <div class="ui-stat">
-        <dt class="ui-stat__label">{{ t("word-lookup-status-mtime", "File Modified") }}</dt>
+        <dt class="ui-stat__label">{{ t("word-lookup-status-mtime") }}</dt>
         <dd><UiBadge>{{ formatTimestamp(status?.fileMtimeMs) }}</UiBadge></dd>
       </div>
       <div class="ui-stat">
-        <dt class="ui-stat__label">{{ t("word-lookup-status-loaded", "Loaded") }}</dt>
+        <dt class="ui-stat__label">{{ t("word-lookup-status-loaded") }}</dt>
         <dd><UiBadge>{{ formatTimestamp(status?.loadedAt) }}</UiBadge></dd>
       </div>
     </dl>
@@ -58,18 +58,18 @@ const isRefreshing = ref(false);
 
 const config = computed(() => store.getWordLookupPluginConfig());
 const modifierOptions = computed(() => [
-  { value: "alt", label: t("word-lookup-modifier-alt", "Alt / Option") },
-  { value: "ctrl", label: t("word-lookup-modifier-ctrl", "Ctrl / Command") },
-  { value: "shift", label: t("word-lookup-modifier-shift", "Shift") }
+  { value: "alt", label: t("word-lookup-modifier-alt") },
+  { value: "ctrl", label: t("word-lookup-modifier-ctrl") },
+  { value: "shift", label: t("word-lookup-modifier-shift") }
 ]);
 const statusLabel = computed(() => {
   if (!status.value) {
-    return t("word-lookup-status-unknown", "Not loaded");
+    return t("word-lookup-status-unknown");
   }
   if (status.value.ok) {
-    return t("word-lookup-status-ready", "Ready");
+    return t("word-lookup-status-ready");
   }
-  return status.value.error ?? t("word-lookup-status-error", "Error");
+  return status.value.error ?? t("word-lookup-status-error");
 });
 
 async function updateConfig(patch: Partial<WordLookupPluginConfig>) {

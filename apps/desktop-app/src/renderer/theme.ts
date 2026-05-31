@@ -12,18 +12,18 @@ function getSystemPrefersDark(): boolean {
     : false;
 }
 
-export function resolveTheme(theme: AppearanceTheme, systemPrefersDark = getSystemPrefersDark()): ResolvedTheme {
+function resolveTheme(theme: AppearanceTheme, systemPrefersDark = getSystemPrefersDark()): ResolvedTheme {
   if (theme === "dark") return "dark";
   if (theme === "light") return "light";
   return systemPrefersDark ? "dark" : "light";
 }
 
-export function applyThemeToDocument(resolvedTheme: ResolvedTheme, mode: AppearanceTheme) {
+function applyThemeToDocument(resolvedTheme: ResolvedTheme, mode: AppearanceTheme) {
   document.documentElement.dataset.theme = resolvedTheme;
   document.documentElement.dataset.themeMode = mode;
 }
 
-export function watchSystemTheme(onChange: (prefersDark: boolean) => void): () => void {
+function watchSystemTheme(onChange: (prefersDark: boolean) => void): () => void {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
     return () => undefined;
   }

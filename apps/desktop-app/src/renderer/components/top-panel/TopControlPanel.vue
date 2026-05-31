@@ -90,16 +90,16 @@
             <TrackSelector
               v-model="localPrimaryTrackId"
               :tracks="subtitleTracks"
-              :lead-label="t('primary-track-label', 'Primary Subtitle')"
-              :aria-label="t('primary-track-label', 'Primary Subtitle')"
+              :lead-label="t('primary-track-label')"
+              :aria-label="t('primary-track-label')"
               :grow="!transcriptionEnabled"
               :format-source-file="formatSourceFile"
             />
             <TrackSelector
               v-model="localSecondaryTrackId"
               :tracks="subtitleTracks"
-              :aria-label="t('secondary-track-none', 'None')"
-              :none-label="t('secondary-track-none', 'None')"
+              :aria-label="t('secondary-track-none')"
+              :none-label="t('secondary-track-none')"
               :grow="!transcriptionEnabled"
               :format-source-file="formatSourceFile"
             />
@@ -214,7 +214,7 @@ const {
   sliderFillStyle: Record<string, string>;
   autoHideEnabled: boolean;
   formatSourceFile: (sourceFile: string) => string;
-  t: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t: (key: string, params?: Record<string, any>) => string;
 }>();
 
 const emit = defineEmits<{
@@ -256,7 +256,7 @@ const panelGeometryStyle = computed(() => ({
 
 const connectionText = computed(() => {
   if (!store.desktopState) {
-    return t("connection-connecting", "Connecting...");
+    return t("connection-connecting");
   }
   const browser = store.desktopState.connectionCount;
   const jellyfinembyEnabled = store.pluginCatalog.some(
@@ -267,26 +267,26 @@ const connectionText = computed(() => {
       | { servers?: Array<{ enabled?: boolean }> }
       | undefined;
     const mediaServer = pluginConfig?.servers?.filter((server) => server.enabled).length ?? 0;
-    return t("connection-extension-mediaserver", "Extension: {browser} · Media Server: {mediaServer}", {
+    return t("connection-extension-mediaserver", {
       browser,
       mediaServer
     });
   }
-  return t("connection-extension", "Extension: {browser}", { browser });
+  return t("connection-extension", { browser });
 });
 const alwaysOnTop = computed(() => store.settings?.global.alwaysOnTop ?? "off");
-const backgroundOpacityLabel = computed(() => t("panel-background-opacity", "Background opacity"));
-const openSettingsLabel = computed(() => t("panel-open-settings", "Open settings"));
+const backgroundOpacityLabel = computed(() => t("panel-background-opacity"));
+const openSettingsLabel = computed(() => t("panel-open-settings"));
 const pinLabel = computed(() => {
-  if (alwaysOnTop.value === "off") return t("panel-pin-off", "Not pinned");
-  if (alwaysOnTop.value === "floating") return t("panel-pin-floating", "Pinned");
-  return t("panel-pin-screen-saver", "Pinned (screen saver)");
+  if (alwaysOnTop.value === "off") return t("panel-pin-off");
+  if (alwaysOnTop.value === "floating") return t("panel-pin-floating");
+  return t("panel-pin-screen-saver");
 });
 const isPinned = computed(() => alwaysOnTop.value !== "off");
 const fullscreenLabel = computed(() =>
   store.desktopState?.isFullscreen
-    ? t("panel-exit-fullscreen", "Exit fullscreen")
-    : t("panel-enter-fullscreen", "Enter fullscreen")
+    ? t("panel-exit-fullscreen")
+    : t("panel-enter-fullscreen")
 );
 const panelOpacityValue = computed({
   get: () => store.panelOpacity,

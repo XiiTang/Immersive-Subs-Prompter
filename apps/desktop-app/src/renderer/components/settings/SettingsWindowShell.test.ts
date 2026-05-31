@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
 import { useDesktopStore } from "../../stores/desktop";
-import { loadLocale } from "../../i18n";
 import type { AppSettings } from "../../../main/types";
 
 const rendererStylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
@@ -76,11 +75,8 @@ function createSettings(language: "en" | "zh" = "en"): AppSettings {
 }
 
 describe("SettingsWindowShell", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setActivePinia(createPinia());
-    // i18n loads locale dictionaries via dynamic import; preload them so
-    // synchronous mount() calls render real translations instead of fallbacks.
-    await Promise.all([loadLocale("en"), loadLocale("zh")]);
   });
 
   afterEach(() => {

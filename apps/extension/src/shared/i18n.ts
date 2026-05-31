@@ -61,7 +61,7 @@ function formatSubstitutions(message: string, substitutions?: string | string[])
   return values.reduce((text, value, index) => text.split(`$${index + 1}`).join(value), message);
 }
 
-export function t(key: string, fallback = "", substitutions?: string | string[]): string {
+export function t(key: string, substitutions?: string | string[]): string {
   if (languagePreference === "system") {
     const message = getI18nApi()?.getMessage?.(key, substitutions);
     if (message && message.trim()) {
@@ -70,16 +70,15 @@ export function t(key: string, fallback = "", substitutions?: string | string[])
   }
 
   const message = MESSAGE_CATALOGS[getEffectiveLanguage()][key]?.message;
-  return message && message.trim() ? formatSubstitutions(message, substitutions) : fallback;
+  return message && message.trim() ? formatSubstitutions(message, substitutions) : `missing:${key}`;
 }
 
 export function formatMessage(
   key: string,
-  fallback = "",
   replacements: Record<string, ReplacementValue> = {}
 ): string {
   const substitutions = Object.values(replacements).map((value) => String(value ?? ""));
-  const text = t(key, fallback, substitutions.length ? substitutions : undefined);
+  const text = t(key, substitutions.length ? substitutions : undefined);
   return replaceNamedPlaceholders(text, replacements);
 }
 
@@ -89,7 +88,7 @@ export function applyDocumentI18n(root: Document = document): void {
   root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
     const key = element.dataset.i18n;
     if (!key) return;
-    element.textContent = t(key, element.textContent ?? "");
+    element.textContent = t(key);
   });
 
   const attributeMap: Array<[string, string]> = [
@@ -101,7 +100,7 @@ export function applyDocumentI18n(root: Document = document): void {
     root.querySelectorAll<HTMLElement>(`[${dataAttribute}]`).forEach((element) => {
       const key = element.getAttribute(dataAttribute);
       if (!key) return;
-      element.setAttribute(targetAttribute, t(key, element.getAttribute(targetAttribute) ?? ""));
+      element.setAttribute(targetAttribute, t(key));
     });
   }
 }

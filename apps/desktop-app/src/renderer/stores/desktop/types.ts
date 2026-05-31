@@ -38,7 +38,6 @@ interface DesktopStoreState {
 interface DesktopStoreGetters {
   subtitleTracks: SubtitleTrack[];
   transcriptBlocks: TranscriptBlock[];
-  connectionLabel: string;
   activeProfileId: string | null;
   activeProfile: ProfileDefinition | null;
   editingProfile: ProfileDefinition | null;
@@ -66,7 +65,6 @@ interface DesktopStoreActions {
     value: ProfileSettings[Key],
     options?: UpdateSettingsOptions
   ): void;
-  updateProfileMeta(partial: Partial<ProfileDefinition>): void;
   addProfile(): void;
   duplicateProfile(): void;
   deleteProfile(profileId: string): void;
@@ -82,7 +80,6 @@ interface DesktopStoreActions {
 
   // rules
   addRule(payload: Omit<ProfileRule, "id">): void;
-  updateRule(ruleId: string, patch: Partial<ProfileRule>): void;
   deleteRule(ruleId: string): void;
   reorderProfileRule(profileId: string, fromIndex: number, toIndex: number): void;
 
@@ -98,8 +95,6 @@ interface DesktopStoreActions {
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;
-  clearCache(): Promise<unknown>;
-  cleanupCache(): Promise<unknown>;
   openCacheFolder(): Promise<unknown>;
   updateCacheSetting<Key extends keyof SubtitleCacheSettings>(key: Key, value: SubtitleCacheSettings[Key]): void;
 

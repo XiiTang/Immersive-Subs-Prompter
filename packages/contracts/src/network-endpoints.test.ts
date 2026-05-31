@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildNetworkEndpointUrl,
-  formatNetworkEndpointInput,
   isLoopbackHost,
   networkEndpointKey,
   normalizeEndpoint,
@@ -71,10 +70,8 @@ describe("network endpoint utilities", () => {
     ]);
   });
 
-  it("normalizes keys, editing values, and authenticated URLs", () => {
+  it("normalizes keys and authenticated URLs", () => {
     expect(networkEndpointKey({ host: " [::1] ", port: 44501 })).toBe("::1:44501");
-    expect(formatNetworkEndpointInput({ id: "a", host: "::1", port: 44501 })).toBe("[::1]:44501");
-    expect(formatNetworkEndpointInput({ id: "b", host: "127.0.0.1", port: 44501 })).toBe("127.0.0.1:44501");
 
     expect(isLoopbackHost("127.0.0.1")).toBe(true);
     expect(isLoopbackHost("::1")).toBe(true);

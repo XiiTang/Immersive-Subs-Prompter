@@ -415,6 +415,9 @@ describe("SettingsProfiles", () => {
 
     expect(activeBlock.attributes("data-transcript-block-id")).toBe("preview-active");
     expect(activePrimaryLine.text()).toContain("Till this moment I never knew myself.");
+    expect(activeBlock.get('[data-testid="cue-action-play"]').attributes("aria-label")).toBe(
+      "Play from cue 00:47 - 00:51"
+    );
     expect(wrapper.find(".subtitle-style-preview__line").exists()).toBe(false);
   });
 

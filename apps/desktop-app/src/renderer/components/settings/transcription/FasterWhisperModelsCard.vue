@@ -1,7 +1,7 @@
 <template>
   <section class="ui-group">
     <header class="ui-group__header">
-      <h3 class="ui-group__title">{{ t("transcription-faster-models-available", "AI Models") }}</h3>
+      <h3 class="ui-group__title">{{ t("transcription-faster-models-available") }}</h3>
     </header>
 
     <div class="ui-group__body">
@@ -11,26 +11,26 @@
             {{ m.name }}
           </UiBadge>
         </template>
-        <UiEmptyState v-else :message="t('transcription-faster-model-missing', 'No downloaded models detected')" />
+        <UiEmptyState v-else :message="t('transcription-faster-model-missing')" />
         <div class="settings-inline settings-inline--end">
           <UiSelect
             v-model="selectedModel"
             :options="fasterWhisperModels"
-            :aria-label="t('transcription-faster-download-model-label', 'Model to download')"
+            :aria-label="t('transcription-faster-download-model-label')"
           />
           <UiButton variant="primary" :disabled="isBusy" @click="$emit('download-model')">
-            {{ t("transcription-faster-download-model", "Download") }}
+            {{ t("transcription-faster-download-model") }}
           </UiButton>
         </div>
       </div>
 
       <div class="settings-field-stack">
         <div class="settings-row settings-row--between">
-          <span class="ui-field__label">{{ t("transcription-faster-model-dir", "Model Path (Optional)") }}</span>
+          <span class="ui-field__label">{{ t("transcription-faster-model-dir") }}</span>
           <UiIconButton
             size="sm"
             @click="$emit('open-path', modelsDir)"
-            :label="t('transcription-faster-open-models', 'Open folder')"
+            :label="t('transcription-faster-open-models')"
           >
             <IconFolder size="sm" />
           </UiIconButton>
@@ -47,7 +47,7 @@ import type { AvailableModel } from "./composables/useFasterWhisper";
 import { UiBadge, UiButton, UiEmptyState, UiIconButton, UiInput, UiSelect } from "../../ui";
 
 defineProps<{
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
   availableModels: AvailableModel[];
   isBusy: boolean;
   modelsDir: string | undefined;

@@ -11,7 +11,7 @@ type DownloadProgress = Parameters<Parameters<RendererApi["onFasterWhisperDownlo
 export type AvailableModel = Extract<FasterWhisperStatusResult, { ok: true }>["models"][number];
 
 export interface UseFasterWhisperOptions {
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
   activeConfig: ComputedRef<TranscriptionConfig | null>;
   isFasterWhisper: ComputedRef<boolean>;
   updateConfig: (patch: Record<string, unknown>) => void;
@@ -146,7 +146,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
     if (!binaryDownloadsSupported.value) {
       downloadError.value =
         binaryDownloadUnsupportedReason.value ||
-        t("transcription-faster-binary-download-windows-only", "Managed binary downloads are only available on Windows.");
+        t("transcription-faster-binary-download-windows-only");
       return;
     }
     const jobId = createJobId(`fw-${variant}`);
@@ -156,7 +156,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       type: "binary",
       variant,
       percent: 0,
-      status: t("transcription-faster-download-start", "Preparing download...")
+      status: t("transcription-faster-download-start")
     };
     isBusy.value = true;
     try {
@@ -164,7 +164,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       if (!result?.ok || !result.path) {
         throw new Error(result?.error || "Download failed");
       }
-      downloadMessage.value = t("transcription-faster-download-success", "Download completed: ") + result.path;
+      downloadMessage.value = t("transcription-faster-download-success") + result.path;
       updateConfig({ fasterWhisperBinary: result.path });
       paths.value = await window.usp.getFasterWhisperPaths();
       await refreshStatus();
@@ -189,7 +189,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       type: "model",
       model,
       percent: 0,
-      status: t("transcription-faster-model-start", "Preparing model download...")
+      status: t("transcription-faster-model-start")
     };
     isBusy.value = true;
     try {
@@ -197,7 +197,7 @@ export function useFasterWhisper(options: UseFasterWhisperOptions): UseFasterWhi
       if (!result?.ok || !result.path) {
         throw new Error(result?.error || "Download failed");
       }
-      downloadMessage.value = t("transcription-faster-model-success", "Model downloaded to: ") + result.path;
+      downloadMessage.value = t("transcription-faster-model-success") + result.path;
       updateConfig({
         fasterWhisperModel: model,
         fasterWhisperModelDir: paths.value?.modelsDir || modelsBaseDir.value || "",

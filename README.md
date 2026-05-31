@@ -163,11 +163,11 @@ Imports:
 - Renderer: `import { reportError } from "../utils/errorBus"`
 - Extension: `import { swallow } from "../shared/reportError"`
 
-If you genuinely need an empty catch (e.g., defensive fallbacks in hot paths), add a comment ending in `usp-allow-empty-catch` on the line above the `catch` to opt out of the check.
+If you genuinely need an empty catch, add a comment ending in `usp-allow-empty-catch` on the line immediately above that specific `catch` block. The check does not allow file-level exemptions.
 
 ### Internationalization
 
-Locale dictionaries live in [apps/desktop-app/src/renderer/locales](apps/desktop-app/src/renderer/locales/). Each file is a flat `{ key: "translation" }` map and is loaded on demand via dynamic `import()`, so only the active language ships to the client. To add a new key, edit both `en.json` and `zh.json`; callers use `t("key", "English fallback")` inside Vue components.
+Locale dictionaries live in [apps/desktop-app/src/renderer/locales](apps/desktop-app/src/renderer/locales/). Each file is a flat `{ key: "translation" }` map and is imported synchronously by the renderer. To add a new key, edit both `en.json` and `zh.json`; callers use `t("key")` or `t("key", { value })`. Missing keys render as `missing:<key>` during pre-release development.
 
 ## Troubleshooting
 

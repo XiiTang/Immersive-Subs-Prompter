@@ -124,29 +124,6 @@ export class SubtitleCacheManager {
   }
 
   /**
-   * Clear all cache entries
-   */
-  async clear(): Promise<void> {
-    const cacheDir = this.getCachePath();
-
-    this.log.info("Clearing all subtitle cache");
-    this.memoryCache.clear();
-
-    try {
-      const files = await fs.readdir(cacheDir);
-      for (const file of files) {
-        if (file.endsWith(".json")) {
-          await fs.unlink(path.join(cacheDir, file));
-        }
-      }
-      this.log.info("Cache cleared successfully");
-    } catch (error) {
-      this.log.error("Failed to clear cache", error);
-      throw error;
-    }
-  }
-
-  /**
    * Clean up expired cache entries
    */
   async cleanup(): Promise<number> {

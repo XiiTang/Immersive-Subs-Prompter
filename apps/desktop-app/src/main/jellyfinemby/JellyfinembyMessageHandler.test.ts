@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConnectionMessageEvent } from "../appEventBus.js";
 import type { MediaServerSessionSummary } from "../types.js";
 import { JellyfinembyMessageHandler } from "./JellyfinembyMessageHandler.js";
-import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
+import type { JellyfinembyTabContext } from "./types.js";
 
 function createVideoContextMessage(): Extract<FromExtensionBroadcastMessage, { type: "video-context" }> {
   return {
@@ -109,6 +109,10 @@ function createUrlResolver(configId: string | null) {
   };
 }
 
+function createTabContexts() {
+  return new Map<number, JellyfinembyTabContext>();
+}
+
 describe("JellyfinembyMessageHandler", () => {
   it("marks configured Jellyfin / Emby messages handled and ignores them while inactive", () => {
     const stateManager = createStateManager();
@@ -119,7 +123,7 @@ describe("JellyfinembyMessageHandler", () => {
     const handler = new JellyfinembyMessageHandler(
       stateManager as never,
       service as never,
-      new JellyfinembyTabContextRegistry(),
+      createTabContexts(),
       createUrlResolver("server-1") as never,
       () => false
     );
@@ -143,7 +147,7 @@ describe("JellyfinembyMessageHandler", () => {
     const handler = new JellyfinembyMessageHandler(
       stateManager as never,
       service as never,
-      new JellyfinembyTabContextRegistry(),
+      createTabContexts(),
       createUrlResolver(null) as never,
       () => true
     );
@@ -170,8 +174,8 @@ describe("JellyfinembyMessageHandler", () => {
       setActiveSession: vi.fn(),
       requestSessionsBurst: vi.fn()
     };
-    const tabRegistry = new JellyfinembyTabContextRegistry();
-    tabRegistry.update(7, {
+    const tabContexts = createTabContexts();
+    tabContexts.set(7, {
       serverConfigId: "server-1",
       sessionId: "server-1:s1",
       itemId: "ITEM1"
@@ -179,7 +183,7 @@ describe("JellyfinembyMessageHandler", () => {
     const handler = new JellyfinembyMessageHandler(
       stateManager as never,
       service as never,
-      tabRegistry,
+      tabContexts,
       createUrlResolver(null) as never,
       () => true
     );
@@ -195,7 +199,7 @@ describe("JellyfinembyMessageHandler", () => {
     handler.handleConnectionMessage(event);
 
     expect(event.handled).toBe(false);
-    expect(tabRegistry.get(7)).toBeNull();
+    expect(tabContexts.get(7) ?? null).toBeNull();
     expect(stateManager.getState().activeSource).toBe("extension");
     expect(stateManager.getState().mediaServer.selectedSessionId).toBeNull();
     expect(service.setActiveSession).toHaveBeenCalledWith(null);
@@ -214,7 +218,7 @@ describe("JellyfinembyMessageHandler", () => {
     const handler = new JellyfinembyMessageHandler(
       stateManager as never,
       service as never,
-      new JellyfinembyTabContextRegistry(),
+      createTabContexts(),
       createUrlResolver(null) as never,
       () => true
     );
@@ -238,8 +242,8 @@ describe("JellyfinembyMessageHandler", () => {
       setActiveSession: vi.fn(),
       requestSessionsBurst: vi.fn()
     };
-    const tabRegistry = new JellyfinembyTabContextRegistry();
-    tabRegistry.update(7, {
+    const tabContexts = createTabContexts();
+    tabContexts.set(7, {
       serverConfigId: "server-b",
       sessionId: null,
       itemId: "ITEM1"
@@ -247,7 +251,7 @@ describe("JellyfinembyMessageHandler", () => {
     const handler = new JellyfinembyMessageHandler(
       stateManager as never,
       service as never,
-      tabRegistry,
+      tabContexts,
       createUrlResolver(null) as never,
       () => true
     );

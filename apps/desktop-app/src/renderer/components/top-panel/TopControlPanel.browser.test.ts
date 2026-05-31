@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopControlPanel from "./TopControlPanel.vue";
-import { createTopControlPanelProps, createTopPanelDesktopState, createTopPanelSettings } from "./topPanelTestData";
+import { createTopControlPanelProps, createTopPanelDesktopState, createTopPanelSettings } from "../../test/topPanelTestData";
 import { useDesktopStore } from "../../stores/desktop";
 import "../../style.css";
 

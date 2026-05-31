@@ -109,16 +109,6 @@ describe("SubtitleCacheManager", () => {
     expect(await manager.get("http://x", "ytdlp")).toBeNull();
   });
 
-  it("clears both disk and memory", async () => {
-    manager = new SubtitleCacheManager(() => makeSettings());
-    await manager.set("http://x", "ytdlp", makeData("live"));
-    await manager.clear();
-    expect(await manager.get("http://x", "ytdlp")).toBeNull();
-    const files = await fsp.readdir(cacheDir).catch(() => []);
-    const jsonFiles = files.filter((f) => f.endsWith(".json"));
-    expect(jsonFiles).toHaveLength(0);
-  });
-
   it("reports stats for written entries", async () => {
     manager = new SubtitleCacheManager(() => makeSettings());
     await manager.set("http://a", "ytdlp", makeData("a"));

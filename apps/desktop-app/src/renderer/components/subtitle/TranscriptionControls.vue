@@ -4,7 +4,7 @@
       <UiSelect
         :model-value="activeId"
         :options="configOptions"
-        :aria-label="t('transcription-config-select', 'Transcription Config')"
+        :aria-label="t('transcription-config-select')"
         @update:model-value="$emit('update:activeId', $event)"
       />
     </div>
@@ -13,8 +13,8 @@
       :disabled="!canTranscribe || isTranscribing"
       :label="
         isTranscribing
-          ? t('transcription-button-running', 'Transcribing...')
-          : t('transcription-button-start', 'Start Transcription')
+          ? t('transcription-button-running')
+          : t('transcription-button-start')
       "
       @click="$emit('start')"
     >
@@ -40,7 +40,7 @@ const {
   activeId: string;
   canTranscribe: boolean;
   isTranscribing: boolean;
-  t: (key: string, fallback?: string, params?: Record<string, any>) => string;
+  t: (key: string, params?: Record<string, any>) => string;
 }>();
 
 defineEmits<{

@@ -3,13 +3,17 @@ import type { ConnectionMessageEvent } from "../appEventBus.js";
 import type { JellyfinembySubtitleService } from "./JellyfinembySubtitlesService.js";
 import type { StateManager } from "../stateManager.js";
 import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
-import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
+import {
+  getJellyfinembyTabContext,
+  updateJellyfinembyTabContext,
+  type JellyfinembyTabContext
+} from "./types.js";
 
 export class JellyfinembyMessageHandler {
   constructor(
     private readonly stateManager: StateManager,
     private readonly jellyfinembyService: JellyfinembySubtitleService,
-    private readonly tabRegistry: JellyfinembyTabContextRegistry,
+    private readonly tabContexts: Map<number, JellyfinembyTabContext>,
     private readonly urlResolver: JellyfinembyUrlResolver,
     private readonly isActive: () => boolean
   ) {}
@@ -24,7 +28,7 @@ export class JellyfinembyMessageHandler {
       event.message.payload.pageUrl ?? null,
       event.message.payload.videoSrc ?? null
     ]);
-    const existingTabContext = this.tabRegistry.get(event.message.tabId);
+    const existingTabContext = getJellyfinembyTabContext(this.tabContexts, event.message.tabId);
     const mediaServerConfigId = configId;
     const isMediaServer = Boolean(mediaServerConfigId);
 
@@ -52,7 +56,7 @@ export class JellyfinembyMessageHandler {
     });
 
     if (mediaServerConfigId) {
-      this.tabRegistry.update(event.message.tabId, {
+      updateJellyfinembyTabContext(this.tabContexts, event.message.tabId, {
         serverConfigId: mediaServerConfigId,
         sessionId: serverChanged ? null : existingTabContext?.sessionId ?? null,
         itemId: serverChanged ? null : existingTabContext?.itemId ?? null
@@ -88,7 +92,7 @@ export class JellyfinembyMessageHandler {
 
   handleNonMediaServerSwitch(tabId: number) {
     const state = this.stateManager.getState();
-    this.tabRegistry.clear(tabId);
+    this.tabContexts.delete(tabId);
     if (state.activeSource !== "extension") {
       this.stateManager.updateState((draft) => {
         draft.activeSource = "extension";
@@ -114,10 +118,10 @@ export class JellyfinembyMessageHandler {
     ]);
 
     if (itemId) {
-      this.tabRegistry.update(message.tabId, { itemId });
+      updateJellyfinembyTabContext(this.tabContexts, message.tabId, { itemId });
     }
 
-    const tabContext = this.tabRegistry.get(message.tabId);
+    const tabContext = getJellyfinembyTabContext(this.tabContexts, message.tabId);
     const storedSession =
       tabContext?.sessionId
         ? state.mediaServer.sessions.find((session) => session.id === tabContext.sessionId) ?? null
@@ -170,7 +174,7 @@ export class JellyfinembyMessageHandler {
         });
         this.stateManager.resetSubtitleState();
         this.jellyfinembyService.setActiveSession(matchingSession.id);
-        this.tabRegistry.update(message.tabId, {
+        updateJellyfinembyTabContext(this.tabContexts, message.tabId, {
           sessionId: matchingSession.id,
           serverConfigId: matchingSession.serverConfigId,
           itemId: matchingSession.nowPlayingItemId ?? itemId
@@ -181,7 +185,7 @@ export class JellyfinembyMessageHandler {
           draft.status = "loading-subtitles";
         });
         this.stateManager.resetSubtitleState();
-        this.tabRegistry.update(message.tabId, {
+        updateJellyfinembyTabContext(this.tabContexts, message.tabId, {
           itemId
         });
       }
@@ -211,7 +215,7 @@ export class JellyfinembyMessageHandler {
         });
         this.jellyfinembyService.setActiveSession(storedSession.id);
       }
-      this.tabRegistry.update(message.tabId, {
+      updateJellyfinembyTabContext(this.tabContexts, message.tabId, {
         sessionId: storedSession.id,
         serverConfigId: storedSession.serverConfigId,
         ...(storedSession.nowPlayingItemId ? { itemId: storedSession.nowPlayingItemId } : {})

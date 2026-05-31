@@ -38,13 +38,6 @@ export class JellyfinembySubtitleLoader {
     this.config = next;
   }
 
-  resetState() {
-    this.subtitleRequestToken += 1;
-    this.lastSubtitleItemKey = null;
-    this.lastSubtitleRequestKey = null;
-    this.inFlightSubtitleItemKey = null;
-  }
-
   clearSubtitleState() {
     this.subtitleRequestToken += 1;
     this.lastSubtitleItemKey = null;

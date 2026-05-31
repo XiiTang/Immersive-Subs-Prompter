@@ -1,25 +1,17 @@
-import { ref, type ComputedRef } from "vue";
+import type { ComputedRef } from "vue";
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../common/languages";
+import enMessages from "./locales/en.json";
+import zhMessages from "./locales/zh.json";
 
 export { DEFAULT_LANGUAGE, type SupportedLanguage };
 
 type Dictionary = Record<string, string>;
 type TranslationReplacements = Record<string, string | number | boolean | null | undefined>;
 
-// Each locale is emitted as a separate chunk by Vite thanks to the dynamic
-// import; only the active locale is fetched at runtime.
-const LOCALE_LOADERS: Record<SupportedLanguage, () => Promise<Dictionary>> = {
-  en: () => import("./locales/en.json").then((m) => m.default as Dictionary),
-  zh: () => import("./locales/zh.json").then((m) => m.default as Dictionary)
+const dictionaries: Record<SupportedLanguage, Dictionary> = {
+  en: enMessages as Dictionary,
+  zh: zhMessages as Dictionary
 };
-
-const dictionaries: Partial<Record<SupportedLanguage, Dictionary>> = {};
-const inflight: Partial<Record<SupportedLanguage, Promise<Dictionary>>> = {};
-
-// Reactive counter read inside every translate() call. Bumping it forces any
-// Vue template/computed that called translate() to re-render after a locale
-// dictionary arrives asynchronously.
-const localeRevision = ref(0);
 
 export function normalizeLanguage(value: string | null | undefined): SupportedLanguage {
   const code = (value ?? "").trim().toLowerCase();
@@ -28,51 +20,16 @@ export function normalizeLanguage(value: string | null | undefined): SupportedLa
     : DEFAULT_LANGUAGE;
 }
 
-export function loadLocale(lang: SupportedLanguage): Promise<Dictionary> {
-  const cached = dictionaries[lang];
-  if (cached) {
-    return Promise.resolve(cached);
-  }
-  const pending = inflight[lang];
-  if (pending) {
-    return pending;
-  }
-  const promise = LOCALE_LOADERS[lang]()
-    .then((dict) => {
-      dictionaries[lang] = dict;
-      localeRevision.value += 1;
-      return dict;
-    })
-    .finally(() => {
-      delete inflight[lang];
-    });
-  inflight[lang] = promise;
-  return promise;
-}
-
-export function translate(key: string, fallback = "", language: SupportedLanguage): string {
-  // Subscribe to locale revision so callers inside Vue reactivity re-run when
-  // a newly loaded dictionary becomes available.
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  localeRevision.value;
-
-  const dict = dictionaries[language];
-  if (dict) {
-    return dict[key] ?? fallback;
-  }
-  // Kick off load lazily; return fallback until dictionary is ready.
-  void loadLocale(language);
-  const base = dictionaries[DEFAULT_LANGUAGE];
-  return base?.[key] ?? fallback;
+export function translate(key: string, language: SupportedLanguage): string {
+  return dictionaries[language][key] ?? `missing:${key}`;
 }
 
 function formatTranslation(
   key: string,
-  fallback = "",
   language: SupportedLanguage,
   replacements: TranslationReplacements = {}
 ): string {
-  let text = translate(key, fallback, language);
+  let text = translate(key, language);
   for (const [placeholder, replacement] of Object.entries(replacements)) {
     text = text.split(`{${placeholder}}`).join(String(replacement ?? ""));
   }
@@ -80,11 +37,7 @@ function formatTranslation(
 }
 
 export function useI18n(language: ComputedRef<string>) {
-  const t = (key: string, fallback = "", replacements: TranslationReplacements = {}) =>
-    formatTranslation(key, fallback, normalizeLanguage(language.value), replacements);
+  const t = (key: string, replacements: TranslationReplacements = {}) =>
+    formatTranslation(key, normalizeLanguage(language.value), replacements);
   return { t };
 }
-
-// Eagerly preload the default language so the first render has real strings
-// rather than fallbacks from the call site.
-void loadLocale(DEFAULT_LANGUAGE);

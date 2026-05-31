@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { JellyfinembyStatusHandler } from "./JellyfinembyStatusHandler.js";
-import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
 function createStateManager() {
   const state = {
@@ -47,7 +46,7 @@ describe("JellyfinembyStatusHandler", () => {
     const handler = new JellyfinembyStatusHandler(
       stateManager as never,
       service as never,
-      new JellyfinembyTabContextRegistry()
+      new Map()
     );
 
     handler.handleMediaServerStatusUpdate({ connected: false, serverType: "jellyfinemby" });

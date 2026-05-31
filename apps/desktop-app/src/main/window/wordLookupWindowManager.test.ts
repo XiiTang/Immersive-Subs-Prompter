@@ -1,52 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  computeWordLookupWindowBounds,
-  WordLookupWindowManager
-} from "./wordLookupWindowManager.js";
+import { WordLookupWindowManager } from "./wordLookupWindowManager.js";
 import type { AppSettings } from "../types.js";
 
 const workArea = { x: 0, y: 24, width: 1440, height: 876 };
-
-describe("computeWordLookupWindowBounds", () => {
-  it("places the panel at the token lower-right side by default", () => {
-    const bounds = computeWordLookupWindowBounds({
-      anchorRect: { left: 100, top: 120, right: 150, bottom: 140, width: 50, height: 20 },
-      panelSize: { width: 360, height: 300 },
-      workArea,
-      gap: 8,
-      margin: 12,
-      minSize: { width: 260, height: 180 }
-    });
-
-    expect(bounds).toEqual({ x: 158, y: 148, width: 360, height: 300, placement: "lower-right" });
-  });
-
-  it("uses lower-left placement when lower-right would overflow horizontally", () => {
-    const bounds = computeWordLookupWindowBounds({
-      anchorRect: { left: 1320, top: 120, right: 1370, bottom: 140, width: 50, height: 20 },
-      panelSize: { width: 360, height: 300 },
-      workArea,
-      gap: 8,
-      margin: 12,
-      minSize: { width: 260, height: 180 }
-    });
-
-    expect(bounds).toEqual({ x: 952, y: 148, width: 360, height: 300, placement: "lower-left" });
-  });
-
-  it("clamps vertical position and panel size to configured limits before opening", () => {
-    const bounds = computeWordLookupWindowBounds({
-      anchorRect: { left: 120, top: 820, right: 180, bottom: 850, width: 60, height: 30 },
-      panelSize: { width: 2000, height: 2000 },
-      workArea,
-      gap: 8,
-      margin: 12,
-      minSize: { width: 260, height: 180 }
-    });
-
-    expect(bounds).toEqual({ x: 188, y: 248, width: 720, height: 640, placement: "lower-right" });
-  });
-});
 
 describe("WordLookupWindowManager", () => {
   function createManager() {

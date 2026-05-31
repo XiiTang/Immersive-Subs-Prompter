@@ -8,7 +8,6 @@ import {
   ProfileDefinition,
   ProfileRule,
   ProfileSettings,
-  SubtitleSource,
   SubtitleTrack,
   TranscriptionState,
   TranscriptionStatus
@@ -118,18 +117,6 @@ export class StateManager {
   setStatus(status: Status) {
     return this.updateState((draft) => {
       draft.status = status;
-    });
-  }
-
-  setActiveSource(activeSource: SubtitleSource | null) {
-    return this.updateState((draft) => {
-      draft.activeSource = activeSource;
-    });
-  }
-
-  setActiveTab(tabId: number | null) {
-    return this.updateState((draft) => {
-      draft.activeTabId = tabId;
     });
   }
 

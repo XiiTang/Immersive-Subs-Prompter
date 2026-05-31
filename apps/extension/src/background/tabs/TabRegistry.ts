@@ -12,16 +12,13 @@ export class TabRegistry {
   }
 
   ensureTabInfo(tabId: number): TabInfo {
-    if (!this.tabMetadata.has(tabId)) {
-      this.tabMetadata.set(tabId, { lastVideoUrl: null, lastFrameId: null });
-    }
     const existing = this.tabMetadata.get(tabId);
-    if (!existing) {
-      const created = { lastVideoUrl: null, lastFrameId: null };
-      this.tabMetadata.set(tabId, created);
-      return created;
+    if (existing) {
+      return existing;
     }
-    return existing;
+    const created = { lastVideoUrl: null, lastFrameId: null };
+    this.tabMetadata.set(tabId, created);
+    return created;
   }
 
   rememberActiveFrame(tabId: number, frameId: number, pageUrl?: string) {
@@ -83,7 +80,7 @@ export class TabRegistry {
     }
 
     let tabRemoved = false;
-    if (frames && frames.size === 0) {
+    if (frames.size === 0) {
       this.tabPorts.delete(tabId);
       tabRemoved = true;
     }

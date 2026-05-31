@@ -9,7 +9,7 @@ import {
 } from "./i18n";
 
 describe("extension i18n helper", () => {
-  it("falls back when chrome.i18n does not return a message", () => {
+  it("uses the bundled catalog when chrome.i18n does not return a message", () => {
     vi.stubGlobal("chrome", {
       i18n: {
         getMessage: vi.fn(() => ""),
@@ -17,8 +17,9 @@ describe("extension i18n helper", () => {
       }
     });
 
-    expect(t("missingKey", "Fallback")).toBe("Fallback");
-    expect(formatMessage("missingKey", "Hello {name}", { name: "Ada" })).toBe("Hello Ada");
+    expect(t("settingsTitle")).toBe("Settings");
+    expect(formatMessage("relativeSecondsAgo", { seconds: "8" })).toBe("8s ago");
+    expect(t("missingKey")).toBe("missing:missingKey");
   });
 
   it("uses chrome.i18n messages and substitutions", () => {
@@ -35,8 +36,8 @@ describe("extension i18n helper", () => {
       }
     });
 
-    expect(t("settingsTitle", "Fallback")).toBe("Settings");
-    expect(formatMessage("relativeSecondsAgo", "{seconds}s ago", { seconds: "8" })).toBe("8s ago");
+    expect(t("settingsTitle")).toBe("Settings");
+    expect(formatMessage("relativeSecondsAgo", { seconds: "8" })).toBe("8s ago");
     expect(getUiLanguage()).toBe("zh");
   });
 
@@ -78,7 +79,7 @@ describe("extension i18n helper", () => {
 
     expect(getUiLanguage()).toBe("en");
     expect(getEffectiveLanguage()).toBe("zh");
-    expect(t("settingsLanguage", "Language")).toBe("语言");
+    expect(t("settingsLanguage")).toBe("语言");
 
     setLanguagePreference("system");
   });

@@ -3,7 +3,11 @@ import { createLogger } from "../logger.js";
 import type { StateManager } from "../stateManager.js";
 import type { MediaServerSessionSummary } from "../types.js";
 import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
-import { JellyfinembyTabContextRegistry, type JellyfinembyTabContext } from "./JellyfinembyTabContextRegistry.js";
+import {
+  getJellyfinembyTabContext,
+  updateJellyfinembyTabContext,
+  type JellyfinembyTabContext
+} from "./types.js";
 
 export class JellyfinembySessionHandler {
   private readonly log = createLogger("jellyfinemby-session-handler");
@@ -11,7 +15,7 @@ export class JellyfinembySessionHandler {
   constructor(
     private readonly stateManager: StateManager,
     private readonly jellyfinembyService: JellyfinembySubtitleService,
-    private readonly tabRegistry: JellyfinembyTabContextRegistry,
+    private readonly tabContexts: Map<number, JellyfinembyTabContext>,
     private readonly urlResolver: JellyfinembyUrlResolver
   ) {}
 
@@ -24,10 +28,10 @@ export class JellyfinembySessionHandler {
 
     this.stateManager.setMediaServerSessions(sessions);
 
-    for (const [tabId, context] of this.tabRegistry.entries()) {
+    for (const [tabId, context] of this.tabContexts.entries()) {
       const matchingSession = this.findSessionForContext(sessions, context);
       if (matchingSession) {
-        this.tabRegistry.update(tabId, {
+        updateJellyfinembyTabContext(this.tabContexts, tabId, {
           sessionId: matchingSession.id,
           serverConfigId: matchingSession.serverConfigId,
           itemId: matchingSession.nowPlayingItemId ?? context.itemId
@@ -37,7 +41,7 @@ export class JellyfinembySessionHandler {
 
     const currentState = this.stateManager.getState();
     if (currentState.pendingMediaServerItemId && currentState.activeSource === "mediaserver") {
-      const activeTabContext = this.tabRegistry.get(currentState.activeTabId);
+      const activeTabContext = getJellyfinembyTabContext(this.tabContexts, currentState.activeTabId);
       const matchingSession = this.findSessionForContext(sessions, {
         itemId: currentState.pendingMediaServerItemId,
         sessionId: null,
@@ -50,7 +54,7 @@ export class JellyfinembySessionHandler {
         });
         this.jellyfinembyService.setActiveSession(matchingSession.id);
         if (currentState.activeTabId !== null) {
-          this.tabRegistry.update(currentState.activeTabId, {
+          updateJellyfinembyTabContext(this.tabContexts, currentState.activeTabId, {
             sessionId: matchingSession.id,
             serverConfigId: matchingSession.serverConfigId,
             ...(matchingSession.nowPlayingItemId ? { itemId: matchingSession.nowPlayingItemId } : {})
@@ -81,7 +85,7 @@ export class JellyfinembySessionHandler {
         if (state.activeSource === "mediaserver") {
           const replacement = this.findSessionForContext(
             sessions,
-            this.tabRegistry.get(state.activeTabId)
+            getJellyfinembyTabContext(this.tabContexts, state.activeTabId)
           );
           if (replacement) {
             this.stateManager.setMediaServerSelectedSession(replacement.id);
@@ -101,12 +105,12 @@ export class JellyfinembySessionHandler {
           }
         }
       } else if (state.activeSource === "mediaserver") {
-        const activeTabContext = this.tabRegistry.get(state.activeTabId);
+        const activeTabContext = getJellyfinembyTabContext(this.tabContexts, state.activeTabId);
         const activeTabItemId = activeTabContext?.itemId ?? null;
         const sessionItemId = selected.nowPlayingItemId;
 
         if (state.activeTabId) {
-          this.tabRegistry.update(state.activeTabId, {
+          updateJellyfinembyTabContext(this.tabContexts, state.activeTabId, {
             sessionId: selected.id,
             serverConfigId: selected.serverConfigId,
             ...(sessionItemId ? { itemId: sessionItemId } : {})
@@ -125,7 +129,7 @@ export class JellyfinembySessionHandler {
         });
       }
     } else if (state.activeSource === "mediaserver" && sessions.length > 0) {
-      const activeTabContext = this.tabRegistry.get(state.activeTabId);
+      const activeTabContext = getJellyfinembyTabContext(this.tabContexts, state.activeTabId);
       const sessionToSelect = this.findSessionForContext(sessions, activeTabContext);
       if (!sessionToSelect) {
         this.stateManager.emitCurrentState();
@@ -133,7 +137,7 @@ export class JellyfinembySessionHandler {
       }
 
       if (state.activeTabId) {
-        this.tabRegistry.update(state.activeTabId, {
+        updateJellyfinembyTabContext(this.tabContexts, state.activeTabId, {
           sessionId: sessionToSelect.id,
           serverConfigId: sessionToSelect.serverConfigId,
           ...(sessionToSelect.nowPlayingItemId ? { itemId: sessionToSelect.nowPlayingItemId } : {})
@@ -153,7 +157,6 @@ export class JellyfinembySessionHandler {
 
     this.stateManager.emitCurrentState();
   }
-
   private findSessionForContext(
     sessions: MediaServerSessionSummary[],
     context: JellyfinembyTabContext | null

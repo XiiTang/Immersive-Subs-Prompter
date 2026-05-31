@@ -5,19 +5,16 @@ const SETTINGS_SECTION_DEFS = [
   {
     id: "general",
     labelKey: "section-global-settings",
-    fallback: "Global",
     icon: "settings"
   },
   {
     id: "profiles",
     labelKey: "section-profiles",
-    fallback: "Profiles",
     icon: "profiles"
   },
   {
     id: "plugins",
     labelKey: "section-plugins",
-    fallback: "Plugins",
     icon: "plugins"
   }
 ] as const;
@@ -25,7 +22,7 @@ const SETTINGS_SECTION_DEFS = [
 export function buildSettingsSections(language: SupportedLanguage) {
   return SETTINGS_SECTION_DEFS.map((section) => ({
     id: section.id,
-    label: translate(section.labelKey, section.fallback, language),
+    label: translate(section.labelKey, language),
     icon: section.icon
   }));
 }

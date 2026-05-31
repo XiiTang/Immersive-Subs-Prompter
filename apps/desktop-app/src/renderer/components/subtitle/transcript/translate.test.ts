@@ -1,22 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { fallbackSubtitleTranslate, resolveSubtitleTranslate } from "./translate";
+import { resolveSubtitleTranslate } from "./translate";
 
 describe("subtitle translate helper", () => {
-  it("formats fallback text when no translator is provided", () => {
+  it("returns the key when no translator is provided", () => {
     const translate = resolveSubtitleTranslate();
 
-    expect(translate("cue-play-label", "Play from cue {time}", { time: "00:00 - 00:01" })).toBe(
-      "Play from cue 00:00 - 00:01"
-    );
+    expect(translate("cue-play-label", { time: "00:00 - 00:01" })).toBe("cue-play-label");
   });
 
-  it("uses the provided translator before fallback formatting", () => {
-    const translate = resolveSubtitleTranslate((key, fallback = "", params = {}) => {
-      const text = key === "cue-loop-label" ? "循环 {time}" : fallback;
-      return fallbackSubtitleTranslate(key, text, params);
+  it("uses the provided translator", () => {
+    const translate = resolveSubtitleTranslate((key, params = {}) => {
+      const text = key === "cue-loop-label" ? "循环 {time}" : key;
+      return text.replace("{time}", String(params.time));
     });
 
-    expect(translate("cue-loop-label", "Loop cue {time}", { time: "00:00 - 00:01" })).toBe(
+    expect(translate("cue-loop-label", { time: "00:00 - 00:01" })).toBe(
       "循环 00:00 - 00:01"
     );
   });

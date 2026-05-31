@@ -26,9 +26,6 @@
   "popupNoMediaDescription": {
     "message": "开始播放视频后，这里会显示实时信息。"
   },
-  "popupNoMediaInitialDescription": {
-    "message": "在 YouTube、Bilibili、抖音或其他受支持站点开始播放视频。"
-  },
   "settingsBack": {
     "message": "返回"
   },
@@ -94,9 +91,6 @@
   },
   "statusDisconnected": {
     "message": "已断开"
-  },
-  "statusError": {
-    "message": "错误"
   },
   "statusWithError": {
     "message": "$1 · 错误"

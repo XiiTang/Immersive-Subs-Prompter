@@ -8,7 +8,7 @@
         <UiField
           id="primary-subtitle-font"
           class="subtitle-style-fields__field subtitle-style-fields__field--font"
-          :label="t('primary-subtitle-font-label', 'Primary Font')"
+          :label="t('primary-subtitle-font-label')"
         >
           <UiSelect
             v-model="primarySubtitleFontFamily"
@@ -19,7 +19,7 @@
         <UiField
           id="primary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-          :label="t('primary-subtitle-font-size-label', 'Primary Size')"
+          :label="t('primary-subtitle-font-size-label')"
           :value="`${primarySubtitleFontSize}px`"
         >
           <UiSlider
@@ -27,14 +27,14 @@
             :min="3"
             :max="96"
             :step="1"
-            :label="t('primary-subtitle-font-size-label', 'Primary Size')"
+            :label="t('primary-subtitle-font-size-label')"
             @change="flushDeferredProfileSettings"
           />
         </UiField>
         <UiField
           id="subtitle-timestamp-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-          :label="t('subtitle-timestamp-font-size-label', 'Timestamp Size')"
+          :label="t('subtitle-timestamp-font-size-label')"
           :value="`${subtitleTimestampFontSize}px`"
         >
           <UiSlider
@@ -42,7 +42,7 @@
             :min="6"
             :max="24"
             :step="1"
-            :label="t('subtitle-timestamp-font-size-label', 'Timestamp Size')"
+            :label="t('subtitle-timestamp-font-size-label')"
             @change="flushDeferredProfileSettings"
           />
         </UiField>
@@ -52,7 +52,7 @@
         <UiField
           id="secondary-subtitle-font"
           class="subtitle-style-fields__field subtitle-style-fields__field--font"
-          :label="t('secondary-subtitle-font-label', 'Secondary Font')"
+          :label="t('secondary-subtitle-font-label')"
         >
           <UiSelect
             v-model="secondarySubtitleFontFamily"
@@ -63,7 +63,7 @@
         <UiField
           id="secondary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-          :label="t('secondary-subtitle-font-size-label', 'Secondary Size')"
+          :label="t('secondary-subtitle-font-size-label')"
           :value="`${secondarySubtitleFontSize}px`"
         >
           <UiSlider
@@ -71,7 +71,7 @@
             :min="3"
             :max="96"
             :step="1"
-            :label="t('secondary-subtitle-font-size-label', 'Secondary Size')"
+            :label="t('secondary-subtitle-font-size-label')"
             @change="flushDeferredProfileSettings"
           />
         </UiField>
@@ -86,7 +86,7 @@
       <UiField
         id="subtitle-scroll-position"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-        :label="t('subtitle-scroll-position-label', 'Scroll Position')"
+        :label="t('subtitle-scroll-position-label')"
         :value="`${subtitleScrollPosition}%`"
       >
         <UiSlider
@@ -94,14 +94,14 @@
           :min="0"
           :max="100"
           :step="1"
-          :label="t('subtitle-scroll-position-label', 'Scroll Position')"
+          :label="t('subtitle-scroll-position-label')"
           @change="flushDeferredProfileSettings"
         />
       </UiField>
       <UiField
         id="subtitle-primary-secondary-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-        :label="t('subtitle-primary-secondary-gap-label', 'Subtitle Gap')"
+        :label="t('subtitle-primary-secondary-gap-label')"
         :value="`${subtitlePrimarySecondaryGap}px`"
       >
         <UiSlider
@@ -109,14 +109,14 @@
           :min="0"
           :max="60"
           :step="1"
-          :label="t('subtitle-primary-secondary-gap-label', 'Subtitle Gap')"
+          :label="t('subtitle-primary-secondary-gap-label')"
           @change="flushDeferredProfileSettings"
         />
       </UiField>
       <UiField
         id="subtitle-line-height"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-        :label="t('subtitle-line-height-label', 'Line Height')"
+        :label="t('subtitle-line-height-label')"
         :value="String(subtitleLineHeight)"
       >
         <UiSlider
@@ -124,14 +124,14 @@
           :min="1"
           :max="3"
           :step="0.05"
-          :label="t('subtitle-line-height-label', 'Line Height')"
+          :label="t('subtitle-line-height-label')"
           @change="flushDeferredProfileSettings"
         />
       </UiField>
       <UiField
         id="subtitle-block-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-        :label="t('subtitle-block-gap-label', 'Block Gap')"
+        :label="t('subtitle-block-gap-label')"
         :value="`${subtitleBlockGap}px`"
       >
         <UiSlider
@@ -139,7 +139,7 @@
           :min="0"
           :max="60"
           :step="1"
-          :label="t('subtitle-block-gap-label', 'Block Gap')"
+          :label="t('subtitle-block-gap-label')"
           @change="flushDeferredProfileSettings"
         />
       </UiField>
@@ -149,20 +149,20 @@
       <UiField
         id="subtitle-meta-auto-hide"
         class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
-        :label="t('subtitle-meta-auto-hide-label', 'Auto-hide Controls')"
+        :label="t('subtitle-meta-auto-hide-label')"
         inline
       >
         <UiSwitch
           v-model="subtitleAutoHideMetaRow"
           input-test-id="subtitle-meta-auto-hide-toggle"
-          :label="subtitleAutoHideMetaRow ? t('toggle-on', 'On') : t('toggle-off', 'Off')"
+          :label="subtitleAutoHideMetaRow ? t('toggle-on') : t('toggle-off')"
           :show-label="false"
         />
       </UiField>
       <UiField
         id="subtitle-autoscroll"
         class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
-        :label="t('subtitle-autoscroll-label', 'Restore Delay (s)')"
+        :label="t('subtitle-autoscroll-label')"
         inline
       >
         <UiInput

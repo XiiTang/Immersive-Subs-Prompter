@@ -29,7 +29,6 @@ const requiredMessageKeys = [
   "actionRemove",
   "statusConnected",
   "statusDisconnected",
-  "statusError",
   "mediaStatusPlaying",
   "mediaStatusPaused",
   "mediaMetaSpeed",

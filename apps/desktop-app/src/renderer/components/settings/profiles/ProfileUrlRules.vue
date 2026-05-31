@@ -2,21 +2,21 @@
   <section class="profile-url-rules" data-testid="profile-url-rules">
     <header v-if="isDefaultProfile" class="profile-url-rules__header">
       <div class="profile-url-rules__label-row">
-        <span class="settings-field__label">{{ t("profile-url-rules-label", "URL Rules") }}</span>
+        <span class="settings-field__label">{{ t("profile-url-rules-label") }}</span>
         <span class="profile-url-rules__hint">
-          {{ t("profile-url-default-hint", "Fallback when no URL rule matches.") }}
+          {{ t("profile-url-default-hint") }}
         </span>
       </div>
     </header>
     <PillListEditor
       v-else
       class="profile-url-rules__editor"
-      :label="t('profile-url-rules-label', 'URL Rules')"
+      :label="t('profile-url-rules-label')"
       :hint="urlRulesHint"
       :items="pillItems"
       :draft-value="draftPattern"
       :placeholder="rulePatternPlaceholder"
-      :remove-label="t('rule-action-delete', 'Delete')"
+      :remove-label="t('rule-action-delete')"
       :error="draftPatternError"
       :sortable="true"
       draft-test-id="profile-url-rule-draft"
@@ -51,17 +51,17 @@ const { t } = useI18n(language);
 const draftPattern = ref("");
 
 const rulePatternPlaceholder = computed(() =>
-  t("rule-pattern-smart-placeholder", "youtube.com, *.site.com/path/*, =full URL, re:pattern")
+  t("rule-pattern-smart-placeholder")
 );
 const urlRulesHint = computed(() =>
-  t("profile-url-rules-hint", "Match top to bottom; profile order breaks ties.")
+  t("profile-url-rules-hint")
 );
 const ruleTypeLabels = computed<Record<UrlRuleMatchType, string>>(() => ({
-  domain: t("rule-match-domain", "Domain"),
-  glob: t("rule-match-glob", "Glob"),
-  exact: t("rule-match-exact", "Exact"),
-  regex: t("rule-match-regex", "Regex"),
-  contains: t("rule-match-contains", "Contains")
+  domain: t("rule-match-domain"),
+  glob: t("rule-match-glob"),
+  exact: t("rule-match-exact"),
+  regex: t("rule-match-regex"),
+  contains: t("rule-match-contains")
 }));
 const draftPatternError = computed(() => patternErrorMessage(draftPattern.value));
 
@@ -111,7 +111,7 @@ function ruleTypeLabel(pattern: string) {
 function patternErrorMessage(pattern: string) {
   const parsed = parseUrlRulePattern(pattern);
   if (parsed.error === "invalid-regex") {
-    return t("rule-regex-invalid", "Invalid regular expression");
+    return t("rule-regex-invalid");
   }
   return null;
 }

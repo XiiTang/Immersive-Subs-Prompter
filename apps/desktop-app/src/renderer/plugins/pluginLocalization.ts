@@ -1,6 +1,6 @@
 import type { PluginCatalogRow } from "../../main/plugins/pluginTypes";
 
-type Translator = (key: string, fallback?: string, params?: Record<string, any>) => string;
+type Translator = (key: string, params?: Record<string, any>) => string;
 
 const OFFICIAL_PLUGIN_KEYS: Record<string, { name: string; description: string }> = {
   "official.transcription": {
@@ -25,15 +25,15 @@ const OFFICIAL_PLUGIN_SETTINGS_KEYS: Record<string, string> = {
 
 export function localizePluginName(plugin: Pick<PluginCatalogRow, "id" | "displayName">, t: Translator): string {
   const key = OFFICIAL_PLUGIN_KEYS[plugin.id]?.name;
-  return key ? t(key, plugin.displayName) : plugin.displayName;
+  return key ? t(key) : plugin.displayName;
 }
 
 export function localizePluginDescription(plugin: Pick<PluginCatalogRow, "id" | "description">, t: Translator): string {
   const key = OFFICIAL_PLUGIN_KEYS[plugin.id]?.description;
-  return key ? t(key, plugin.description) : plugin.description;
+  return key ? t(key) : plugin.description;
 }
 
 export function localizePluginSettingsTitle(sectionId: string, fallback: string, t: Translator): string {
   const key = OFFICIAL_PLUGIN_SETTINGS_KEYS[sectionId];
-  return key ? t(key, fallback) : fallback;
+  return key ? t(key) : fallback;
 }

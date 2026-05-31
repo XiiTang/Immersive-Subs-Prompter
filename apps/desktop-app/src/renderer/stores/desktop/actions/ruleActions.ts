@@ -12,16 +12,6 @@ export function addRule(this: DesktopStoreThis, payload: Omit<ProfileRule, "id">
   });
 }
 
-export function updateRule(this: DesktopStoreThis, ruleId: string, patch: Partial<ProfileRule>) {
-  if (!this.settings) {
-    return;
-  }
-  const nextRules = this.settings.rules.map((rule) =>
-    rule.id === ruleId ? { ...rule, ...patch } : rule
-  );
-  this.updateSettings({ rules: nextRules });
-}
-
 export function deleteRule(this: DesktopStoreThis, ruleId: string) {
   if (!this.settings) {
     return;
@@ -62,7 +52,6 @@ export function reorderProfileRule(
 
 export const ruleActions = {
   addRule,
-  updateRule,
   deleteRule,
   reorderProfileRule
 };

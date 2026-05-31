@@ -1,55 +1,55 @@
 <template>
   <section class="ui-group">
     <header class="ui-group__header">
-      <h3 class="ui-group__title">{{ t("transcription-faster-binary-status", "System Integration") }}</h3>
+      <h3 class="ui-group__title">{{ t("transcription-faster-binary-status") }}</h3>
     </header>
 
     <div class="ui-group__body">
       <div class="settings-row settings-row--two">
         <div class="settings-list-row">
           <div class="settings-list-row__main">
-            <span class="ui-field__label">{{ t("transcription-faster-cpu-support", "CPU") }}</span>
+            <span class="ui-field__label">{{ t("transcription-faster-cpu-support") }}</span>
             <UiBadge :tone="binaryStatus.cpu ? 'success' : 'danger'">
               {{
                 binaryStatus.cpu
-                  ? t("transcription-faster-binary-present", "Ready")
-                : t("transcription-faster-binary-missing", "Missing")
+                  ? t("transcription-faster-binary-present")
+                : t("transcription-faster-binary-missing")
               }}
             </UiBadge>
           </div>
           <UiButton variant="secondary" :disabled="isBusy || !binaryDownloadsSupported" @click="$emit('download-binary', 'cpu')">
-            {{ binaryStatus.cpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+            {{ binaryStatus.cpu ? t("button-redownload") : t("button-download") }}
           </UiButton>
         </div>
 
         <div class="settings-list-row">
           <div class="settings-list-row__main">
-            <span class="ui-field__label">{{ t("transcription-faster-gpu-cuda", "GPU") }}</span>
+            <span class="ui-field__label">{{ t("transcription-faster-gpu-cuda") }}</span>
             <UiBadge :tone="binaryStatus.gpu ? 'success' : 'danger'">
               {{
                 binaryStatus.gpu
-                  ? t("transcription-faster-binary-present", "Ready")
-                  : t("transcription-faster-binary-missing", "Missing")
+                  ? t("transcription-faster-binary-present")
+                  : t("transcription-faster-binary-missing")
               }}
             </UiBadge>
           </div>
           <UiButton variant="secondary" :disabled="isBusy || !binaryDownloadsSupported" @click="$emit('download-binary', 'gpu')">
-            {{ binaryStatus.gpu ? t("button-redownload", "Redownload") : t("button-download", "Download") }}
+            {{ binaryStatus.gpu ? t("button-redownload") : t("button-download") }}
           </UiButton>
         </div>
       </div>
 
       <p v-if="!binaryDownloadsSupported" class="ui-message ui-message--info">
-        {{ unsupportedReason || t("transcription-faster-binary-download-windows-only", "Managed binary downloads are only available on Windows.") }}
+        {{ unsupportedReason || t("transcription-faster-binary-download-windows-only") }}
       </p>
 
       <div class="settings-field-stack">
         <div class="settings-row settings-row--between">
-          <span class="ui-field__label">{{ t("transcription-faster-binary", "Binary Path") }}</span>
+          <span class="ui-field__label">{{ t("transcription-faster-binary") }}</span>
           <UiIconButton
             size="sm"
             @click="$emit('open-path', binaryDir)"
-            :label="t('transcription-faster-open-bin', 'Open folder')"
+            :label="t('transcription-faster-open-bin')"
           >
             <IconFolder size="sm" />
           </UiIconButton>
@@ -65,7 +65,7 @@ import { IconFolder } from "../../icons";
 import { UiBadge, UiButton, UiIconButton, UiInput } from "../../ui";
 
 defineProps<{
-  t: (key: string, fallback: string) => string;
+  t: (key: string) => string;
   binaryStatus: { cpu: boolean; gpu: boolean };
   binaryDownloadsSupported: boolean;
   unsupportedReason: string | null;
