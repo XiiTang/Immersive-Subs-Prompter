@@ -5,14 +5,12 @@ import type { MediaServerSessionSummary } from "../types.js";
 import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
 import { JellyfinembyTabContextRegistry, type JellyfinembyTabContext } from "./JellyfinembyTabContextRegistry.js";
 
-type SessionHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession">;
-
 export class JellyfinembySessionHandler {
   private readonly log = createLogger("jellyfinemby-session-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly jellyfinembyService: SessionHandlerService,
+    private readonly jellyfinembyService: JellyfinembySubtitleService,
     private readonly tabRegistry: JellyfinembyTabContextRegistry,
     private readonly urlResolver: JellyfinembyUrlResolver
   ) {}
@@ -122,8 +120,8 @@ export class JellyfinembySessionHandler {
 
         this.stateManager.updateState((draft) => {
           draft.title = selected.nowPlayingItemName ?? draft.title;
-          draft.pageUrl = this.urlResolver.buildMediaServerPageUrl(selected);
-          draft.videoUrl = this.urlResolver.buildMediaServerItemUrl(selected) ?? draft.videoUrl;
+          draft.pageUrl = this.urlResolver.buildPageUrl(selected);
+          draft.videoUrl = this.urlResolver.buildItemUrl(selected) ?? draft.videoUrl;
         });
       }
     } else if (state.activeSource === "mediaserver" && sessions.length > 0) {

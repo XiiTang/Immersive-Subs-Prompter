@@ -8,14 +8,12 @@ import type {
 } from "../types.js";
 import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
-type StatusHandlerService = Pick<JellyfinembySubtitleService, "setActiveSession" | "requestSessionsBurst">;
-
 export class JellyfinembyStatusHandler {
   private readonly log = createLogger("jellyfinemby-status-handler");
 
   constructor(
     private readonly stateManager: StateManager,
-    private readonly jellyfinembyService: StatusHandlerService,
+    private readonly jellyfinembyService: JellyfinembySubtitleService,
     private readonly tabRegistry: JellyfinembyTabContextRegistry
   ) {}
 
@@ -36,7 +34,7 @@ export class JellyfinembyStatusHandler {
         draft.pendingMediaServerItemId = null;
         if (draft.activeSource === "mediaserver") {
           draft.activeSource = draft.connectionCount > 0 ? "extension" : null;
-          draft.status = draft.connectionCount > 0 ? draft.status : "idle";
+          draft.status = draft.connectionCount > 0 ? "awaiting-video" : "idle";
           draft.title = null;
           draft.pageUrl = null;
           draft.videoUrl = null;

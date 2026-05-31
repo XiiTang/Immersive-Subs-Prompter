@@ -104,7 +104,7 @@ function createStateManager() {
 
 function createUrlResolver(configId: string | null) {
   return {
-    resolveMediaServerConfigIdFromUrls: vi.fn(() => configId),
+    resolveConfigIdFromUrls: vi.fn(() => configId),
     extractItemId: vi.fn(() => "ITEM1")
   };
 }

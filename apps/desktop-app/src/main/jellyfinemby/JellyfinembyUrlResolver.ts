@@ -8,7 +8,7 @@ import type {
 } from "../types.js";
 
 export class JellyfinembyUrlResolver {
-  private readonly log = createLogger("mediaserver-url-resolver");
+  private readonly log = createLogger("jellyfinemby-url-resolver");
 
   constructor(private readonly getConfig: () => JellyfinembyPluginConfig) {}
 
@@ -31,8 +31,8 @@ export class JellyfinembyUrlResolver {
     }
   }
 
-  resolveMediaServerConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
-    const configs = this.getMediaServerConfigs();
+  resolveConfigIdFromUrls(urls: Array<string | null | undefined>): string | null {
+    const configs = this.getConfigs().filter((config) => config.enabled);
     for (const candidate of urls) {
       const origin = this.extractOrigin(candidate);
       if (!origin) {
@@ -56,10 +56,7 @@ export class JellyfinembyUrlResolver {
     return null;
   }
 
-  extractItemId(
-    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
-    _fallbackUrl: string
-  ): string | null {
+  extractItemId(payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]): string | null {
     const extractFromUrl = (candidate: string | null | undefined): string | null => {
       if (!candidate || typeof candidate !== "string") {
         return null;
@@ -79,8 +76,8 @@ export class JellyfinembyUrlResolver {
     return extractFromUrl(payload.videoSrc);
   }
 
-  resolveMediaServerConfig(configId?: string | null): JellyfinembyServerConfig | null {
-    const configs = this.getMediaServerConfigs();
+  resolveConfig(configId?: string | null): JellyfinembyServerConfig | null {
+    const configs = this.getConfigs();
     if (configId) {
       return configs.find((config) => config.id === configId) ?? null;
     }
@@ -91,8 +88,8 @@ export class JellyfinembyUrlResolver {
     return null;
   }
 
-  getMediaServerBaseUrl(configId?: string | null): string | null {
-    const config = this.resolveMediaServerConfig(configId);
+  getBaseUrl(configId?: string | null): string | null {
+    const config = this.resolveConfig(configId);
     if (!config) {
       return null;
     }
@@ -100,32 +97,32 @@ export class JellyfinembyUrlResolver {
     return base.length ? base : null;
   }
 
-  buildMediaServerItemUrl(session: MediaServerSessionSummary | null): string | null {
+  buildItemUrl(session: MediaServerSessionSummary | null): string | null {
     if (!session?.nowPlayingItemId) {
       return null;
     }
-    const base = this.getMediaServerBaseUrl(session.serverConfigId);
+    const base = this.getBaseUrl(session.serverConfigId);
     if (!base) {
       return null;
     }
     return `${base}/Items/${session.nowPlayingItemId}`;
   }
 
-  buildMediaServerPageUrl(session: MediaServerSessionSummary | null): string | null {
+  buildPageUrl(session: MediaServerSessionSummary | null): string | null {
     if (!session) {
-      return this.getMediaServerBaseUrl();
+      return this.getBaseUrl();
     }
     if (!session.nowPlayingItemId) {
-      return this.getMediaServerBaseUrl(session.serverConfigId);
+      return this.getBaseUrl(session.serverConfigId);
     }
-    const base = this.getMediaServerBaseUrl(session.serverConfigId);
+    const base = this.getBaseUrl(session.serverConfigId);
     if (!base) {
       return null;
     }
     return `${base}/web/index.html#!/details?id=${session.nowPlayingItemId}`;
   }
 
-  private getMediaServerConfigs(): JellyfinembyServerConfig[] {
+  private getConfigs(): JellyfinembyServerConfig[] {
     return this.getConfig().servers;
   }
 }

@@ -75,8 +75,8 @@ function createHandler(stateManager: ReturnType<typeof createStateManager>, tabR
     service as never,
     tabRegistry,
     {
-      buildMediaServerPageUrl: vi.fn(() => null),
-      buildMediaServerItemUrl: vi.fn(() => null)
+      buildPageUrl: vi.fn(() => null),
+      buildItemUrl: vi.fn(() => null)
     } as never
   );
   return { handler, service, tabRegistry };

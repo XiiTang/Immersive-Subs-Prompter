@@ -50,12 +50,22 @@ describe("JellyfinembyUrlResolver", () => {
     });
   });
 
-  describe("resolveMediaServerConfigIdFromUrls", () => {
-    it("matches configured origins without depending on plugin enabled state", () => {
+  describe("resolveConfigIdFromUrls", () => {
+    it("matches enabled configured origins", () => {
       const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({})]) as never);
       expect(
-        resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096/web/index.html"])
+        resolver.resolveConfigIdFromUrls(["http://server.local:8096/web/index.html"])
       ).toBe("cfg-1");
+    });
+
+    it("does not claim video-context messages for disabled servers", () => {
+      const resolver = new JellyfinembyUrlResolver(
+        makeConfigProvider([makeConfig({ enabled: false })]) as never
+      );
+
+      expect(
+        resolver.resolveConfigIdFromUrls(["http://server.local:8096/web/index.html"])
+      ).toBeNull();
     });
 
     it("returns null when no configs match", () => {
@@ -63,7 +73,7 @@ describe("JellyfinembyUrlResolver", () => {
         makeConfigProvider([makeConfig({ serverUrl: "http://other:8096" })]) as never
       );
       expect(
-        resolver.resolveMediaServerConfigIdFromUrls(["http://server.local:8096/page"])
+        resolver.resolveConfigIdFromUrls(["http://server.local:8096/page"])
       ).toBeNull();
     });
 
@@ -74,7 +84,7 @@ describe("JellyfinembyUrlResolver", () => {
         ]) as never
       );
       expect(
-        resolver.resolveMediaServerConfigIdFromUrls([
+        resolver.resolveConfigIdFromUrls([
           "http://server.local:8096/web/index.html#!/details"
         ])
       ).toBe("match");
@@ -83,7 +93,7 @@ describe("JellyfinembyUrlResolver", () => {
     it("ignores null entries and continues searching", () => {
       const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({ id: "match" })]) as never);
       expect(
-        resolver.resolveMediaServerConfigIdFromUrls([
+        resolver.resolveConfigIdFromUrls([
           null,
           undefined,
           "http://server.local:8096/x"
@@ -92,7 +102,7 @@ describe("JellyfinembyUrlResolver", () => {
     });
   });
 
-  describe("resolveMediaServerConfig", () => {
+  describe("resolveConfig", () => {
     it("returns specific config by id", () => {
       const resolver = new JellyfinembyUrlResolver(
         makeConfigProvider([
@@ -100,7 +110,7 @@ describe("JellyfinembyUrlResolver", () => {
           makeConfig({ id: "b", enabled: true })
         ]) as never
       );
-      expect(resolver.resolveMediaServerConfig("a")?.id).toBe("a");
+      expect(resolver.resolveConfig("a")?.id).toBe("a");
     });
 
     it("prefers enabled config when no id supplied", () => {
@@ -110,7 +120,7 @@ describe("JellyfinembyUrlResolver", () => {
           makeConfig({ id: "b", enabled: true })
         ]) as never
       );
-      expect(resolver.resolveMediaServerConfig()?.id).toBe("b");
+      expect(resolver.resolveConfig()?.id).toBe("b");
     });
 
     it("returns null if no config is enabled and no id is supplied", () => {
@@ -120,7 +130,7 @@ describe("JellyfinembyUrlResolver", () => {
           makeConfig({ id: "b", enabled: false })
         ]) as never
       );
-      expect(resolver.resolveMediaServerConfig()).toBeNull();
+      expect(resolver.resolveConfig()).toBeNull();
     });
   });
 
@@ -129,16 +139,14 @@ describe("JellyfinembyUrlResolver", () => {
 
     it("extracts item id from /videos/:id path", () => {
       const itemId = resolver.extractItemId(
-        { videoSrc: "http://srv/videos/302/stream.mp4" } as any,
-        ""
+        { videoSrc: "http://srv/videos/302/stream.mp4" } as any
       );
       expect(itemId).toBe("302");
     });
 
     it("extracts from /items/:id path", () => {
       const itemId = resolver.extractItemId(
-        { videoSrc: "http://srv/items/ABC" } as any,
-        ""
+        { videoSrc: "http://srv/items/ABC" } as any
       );
       expect(itemId).toBe("ABC");
     });
@@ -147,39 +155,37 @@ describe("JellyfinembyUrlResolver", () => {
       const itemId = resolver.extractItemId(
         {
           videoSrc: "http://srv/stream?MediaSourceId=mediasource_XYZ"
-        } as any,
-        ""
+        } as any
       );
       expect(itemId).toBeNull();
     });
 
     it("does not infer item id from a separate fallback url", () => {
       const itemId = resolver.extractItemId(
-        { videoSrc: "" } as any,
-        "http://srv/items/FALL"
+        { videoSrc: "" } as any
       );
       expect(itemId).toBeNull();
     });
 
     it("returns null when nothing matches", () => {
       expect(
-        resolver.extractItemId({ videoSrc: "http://srv/other" } as any, "")
+        resolver.extractItemId({ videoSrc: "http://srv/other" } as any)
       ).toBeNull();
     });
   });
 
-  describe("buildMediaServerItemUrl / buildMediaServerPageUrl", () => {
+  describe("buildItemUrl / buildPageUrl", () => {
     const resolver = new JellyfinembyUrlResolver(makeConfigProvider([makeConfig({ id: "cfg-1" })]) as never);
 
     it("returns null when session has no item id", () => {
       expect(
-        resolver.buildMediaServerItemUrl({ nowPlayingItemId: null } as any)
+        resolver.buildItemUrl({ nowPlayingItemId: null } as any)
       ).toBeNull();
     });
 
     it("builds a REST item url when config resolves", () => {
       expect(
-        resolver.buildMediaServerItemUrl({
+        resolver.buildItemUrl({
           nowPlayingItemId: "42",
           serverConfigId: "cfg-1"
         } as any)
@@ -189,7 +195,7 @@ describe("JellyfinembyUrlResolver", () => {
     it("returns null when no base url is found", () => {
       const empty = new JellyfinembyUrlResolver(makeConfigProvider([]) as never);
       expect(
-        empty.buildMediaServerItemUrl({
+        empty.buildItemUrl({
           nowPlayingItemId: "9",
           serverConfigId: "x"
         } as any)
@@ -198,7 +204,7 @@ describe("JellyfinembyUrlResolver", () => {
 
     it("builds a details page url when session has an item id", () => {
       expect(
-        resolver.buildMediaServerPageUrl({
+        resolver.buildPageUrl({
           nowPlayingItemId: "42",
           serverConfigId: "cfg-1"
         } as any)

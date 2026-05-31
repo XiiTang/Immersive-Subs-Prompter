@@ -5,15 +5,10 @@ import type { StateManager } from "../stateManager.js";
 import { JellyfinembyUrlResolver } from "./JellyfinembyUrlResolver.js";
 import { JellyfinembyTabContextRegistry } from "./JellyfinembyTabContextRegistry.js";
 
-type MessageHandlerService = Pick<
-  JellyfinembySubtitleService,
-  "setActiveSession" | "requestSessionsBurst"
->;
-
 export class JellyfinembyMessageHandler {
   constructor(
     private readonly stateManager: StateManager,
-    private readonly jellyfinembyService: MessageHandlerService,
+    private readonly jellyfinembyService: JellyfinembySubtitleService,
     private readonly tabRegistry: JellyfinembyTabContextRegistry,
     private readonly urlResolver: JellyfinembyUrlResolver,
     private readonly isActive: () => boolean
@@ -24,7 +19,7 @@ export class JellyfinembyMessageHandler {
       return;
     }
     const url = event.resolvedUrl;
-    const configId = this.urlResolver.resolveMediaServerConfigIdFromUrls([
+    const configId = this.urlResolver.resolveConfigIdFromUrls([
       url,
       event.message.payload.pageUrl ?? null,
       event.message.payload.videoSrc ?? null
@@ -111,8 +106,8 @@ export class JellyfinembyMessageHandler {
     url: string
   ) {
     const state = this.stateManager.getState();
-    const itemId = this.urlResolver.extractItemId(message.payload, url);
-    const currentServerConfigId = this.urlResolver.resolveMediaServerConfigIdFromUrls([
+    const itemId = this.urlResolver.extractItemId(message.payload);
+    const currentServerConfigId = this.urlResolver.resolveConfigIdFromUrls([
       url,
       message.payload.pageUrl,
       message.payload.videoSrc
