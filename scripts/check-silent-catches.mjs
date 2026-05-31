@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Fails if a truly-empty catch handler is found. Empty catches hide failures in prod.
-// Use `swallow(err, context, reason)` from errors.ts if you really need to ignore an error.
+// Use the process-local `swallow(err, context, reason)` helper if you really need to ignore an error.
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -62,7 +62,7 @@ if (findings.length > 0) {
     console.error(`  ${f.file}:${f.line}   ${f.snippet}`);
   }
   console.error(
-    `\nReplace each with swallow(err, "scope.name", "why this is safe to ignore") from errors.ts,\n` +
+    `\nReplace each with the process-local swallow(err, "scope.name", "why this is safe to ignore") helper,\n` +
       `or add a trailing comment containing "usp-allow-empty-catch" after the block to whitelist the file.\n`
   );
   process.exit(1);

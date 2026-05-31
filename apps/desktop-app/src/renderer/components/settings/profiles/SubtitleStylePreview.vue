@@ -34,6 +34,10 @@
 import { computed } from "vue";
 import { normalizeSubtitleFontFamily } from "../../../../common/subtitleFonts.js";
 import {
+  normalizeSubtitleFontSize,
+  normalizeTimestampFontSize
+} from "../../../../common/subtitleSizing.js";
+import {
   MAIN_WINDOW_DEFAULT_HEIGHT,
   MAIN_WINDOW_DEFAULT_WIDTH
 } from "../../../../common/windowDimensions.js";
@@ -319,9 +323,6 @@ const AFTER_BLOCKS: PreviewBlock[] = [
   }
 ];
 
-const MIN_SUBTITLE_FONT_SIZE = 3;
-const MAX_SUBTITLE_FONT_SIZE = 96;
-
 const store = useDesktopStore();
 
 const PREVIEW_TIME_SCALE = 1000;
@@ -385,18 +386,6 @@ function createPreviewTranscriptBlocks(): TranscriptBlock[] {
         secondaryCueIndex: index
       }
     }));
-}
-
-function normalizeSubtitleFontSize(value: number | null | undefined, fallback: number): number {
-  const size = Number(value);
-  const finiteSize = Number.isFinite(size) ? size : fallback;
-  return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(finiteSize)));
-}
-
-function normalizeTimestampFontSize(value: number | null | undefined, fallback: number): number {
-  const size = Number(value);
-  const finiteSize = Number.isFinite(size) ? size : fallback;
-  return Math.min(24, Math.max(6, Math.round(finiteSize)));
 }
 
 </script>

@@ -5,15 +5,15 @@ export function normalizeBlacklistRules(input: unknown): BlacklistRule[] {
     return [];
   }
   return input
-    .map((entry, index) => {
+    .map((entry) => {
       if (!entry || typeof entry !== "object") {
         return null;
       }
+      const id = typeof entry.id === "string" ? entry.id.trim() : "";
       const value = typeof entry.value === "string" ? entry.value.trim() : "";
-      if (!value) {
+      if (!id || !value) {
         return null;
       }
-      const id = typeof entry.id === "string" && entry.id.length ? entry.id : `rule-${index}`;
       return { id, value };
     })
     .filter((rule): rule is BlacklistRule => rule !== null);

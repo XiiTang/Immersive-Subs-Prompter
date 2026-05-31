@@ -10,7 +10,7 @@
     "typecheck": "pnpm -r typecheck",
     "build:desktop": "pnpm --filter @immersive-subs/desktop-app build",
     "build:extension": "pnpm --filter @immersive-subs/extension build",
-    "test:desktop": "pnpm --filter @immersive-subs/desktop-app test:renderer",
+    "test:desktop": "pnpm --filter @immersive-subs/desktop-app test:desktop",
     "test:extension": "pnpm --filter @immersive-subs/extension test"
   }
 }

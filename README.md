@@ -65,7 +65,7 @@ packages/contracts # Shared desktop-extension transport contracts
 - Supported browsers:
   - **Chrome / Edge / Chromium-based browser**: Version 110+
   - **Firefox**: Version 109+ (Manifest V3 support required)
-- The desktop app will automatically download the corresponding platform's `yt-dlp` on first run, and automatically update it on subsequent launches by comparing with the latest Release. If unable to connect to the internet, you can pre-stage the binary according to the deployment guide.
+- The desktop app will automatically download the corresponding platform's `yt-dlp` into the user data directory on first use, and update it on subsequent launches by comparing with the latest Release.
 
 ### Start Desktop App
 
@@ -136,7 +136,7 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `root` | `pnpm test` | Run all workspace test suites |
 | `root` | `pnpm typecheck` | Run all workspace type checks |
 | `root` | `pnpm --filter @immersive-subs/desktop-app start` | Build + start Electron |
-| `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer` | Run the desktop renderer suite |
+| `root` | `pnpm --filter @immersive-subs/desktop-app test:desktop` | Run the desktop app test suite |
 | `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer:browser` | Run browser-mode renderer tests |
 | `root` | `pnpm --filter @immersive-subs/desktop-app test:renderer:jsdom` | Run jsdom-only desktop renderer tests |
 | `root` | `pnpm --filter @immersive-subs/extension typecheck` | Run the extension TypeScript compile check |
@@ -160,7 +160,7 @@ Empty catch blocks are banned. `pnpm test` (and the `lint:silent-catches` script
 
 Imports:
 - Main process: `import { reportError, swallow } from "./errors.js"` (or the correct relative path)
-- Renderer: `import { reportError, swallow } from "../utils/errorBus"`
+- Renderer: `import { reportError } from "../utils/errorBus"`
 - Extension: `import { swallow } from "../shared/reportError"`
 
 If you genuinely need an empty catch (e.g., defensive fallbacks in hot paths), add a comment ending in `usp-allow-empty-catch` on the line above the `catch` to opt out of the check.
@@ -171,7 +171,7 @@ Locale dictionaries live in [apps/desktop-app/src/renderer/locales](apps/desktop
 
 ## Troubleshooting
 
-- **Desktop app shows `yt-dlp not found`**: First launch unable to download due to no internet, or GitHub is blocked. You can manually place the binary in `apps/desktop-app/resources/yt-dlp/` and repackage, or place the executable in the `yt-dlp` subdirectory of the user data directory.
+- **Desktop app shows `yt-dlp not found`**: First use could not download due to no internet, or GitHub is blocked. Place the executable in the `yt-dlp` subdirectory of the user data directory.
 - **Extension shows disconnected**: Ensure Electron is running and the WebSocket listening port is not occupied. Check the extension popup's `Desktop Apps` endpoint list first; the default endpoint is configured in `apps/extension/src/background.ts` and persisted through the background endpoint manager.
 - **Missing subtitles**: Some videos don't provide subtitles or `yt-dlp` cannot fetch them. Check the desktop app console/terminal logs for `yt-dlp` output.
 - **Windows PowerShell log garbled text**:

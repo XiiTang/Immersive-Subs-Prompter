@@ -1,10 +1,12 @@
 import { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "node:http";
 import { SubtitleService } from "./subtitleService.js";
-import { AppEventBus, ConnectionMessageEvent } from "./appEventBus.js";
+import { AppEventBus } from "./appEventBus.js";
+import type { ConnectionMessageEvent } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
 import { isAuthorizedDesktopClient } from "./connectionAuth.js";
+import { areNetworkSettingsEqual } from "./networkSettings.js";
 import { networkEndpointKey } from "@immersive-subs/contracts";
 import type {
   ControlLoopCommandMessage,
@@ -44,7 +46,7 @@ type ListenerRecord = {
   error: string | null;
 };
 
-type TrackSelectionPayload = {
+export type TrackSelectionPayload = {
   trackId: string | null;
   role?: "primary" | "secondary";
 };
@@ -73,7 +75,7 @@ export class ConnectionManager {
 
   applyNetworkSettings(forceRestart = false) {
     const target = this.options.getNetworkSettings();
-    if (!forceRestart && this.currentNetwork && this.isSameNetwork(target, this.currentNetwork)) {
+    if (!forceRestart && this.currentNetwork && areNetworkSettingsEqual(target, this.currentNetwork)) {
       return;
     }
 
@@ -214,16 +216,6 @@ export class ConnectionManager {
     this.publishListenerStatuses();
   }
 
-  private isSameNetwork(a: NetworkSettings, b: NetworkSettings): boolean {
-    if (a.authToken !== b.authToken || a.endpoints.length !== b.endpoints.length) {
-      return false;
-    }
-    return a.endpoints.every((endpoint, index) => {
-      const other = b.endpoints[index];
-      return !!other && endpoint.id === other.id && networkEndpointKey(endpoint) === networkEndpointKey(other);
-    });
-  }
-
   private networkLogFields(network: NetworkSettings) {
     return {
       endpoints: network.endpoints.map((endpoint) => this.endpointLogFields(endpoint)),
@@ -288,7 +280,6 @@ export class ConnectionManager {
       this.log.info("Extension connected");
       this.options.stateManager.changeConnectionCount(+1);
       record.connectedClients.add(socket);
-      this.options.bus.emit("connection:client-connected", { socket });
 
       socket.on("message", (raw: Buffer) => {
         this.handleSocketMessage(socket, raw).catch((error) => {
@@ -301,7 +292,6 @@ export class ConnectionManager {
         record.connectedClients.delete(socket);
         this.forgetSocket(socket);
         this.options.stateManager.changeConnectionCount(-1);
-        this.options.bus.emit("connection:client-disconnected", { socket });
       });
 
       socket.on("error", (error: Error) => {
@@ -607,17 +597,9 @@ export class ConnectionManager {
     }
   }
 
-  setSubtitleTrack(payload: TrackSelectionPayload | string | null) {
-    if (this.isTrackSelectionPayload(payload)) {
-      const role = payload.role === "secondary" ? "secondary" : "primary";
-      this.options.stateManager.setSubtitleTrack(payload.trackId ?? null, role);
-    } else {
-      this.options.stateManager.setSubtitleTrack((payload as string | null) ?? null, "primary");
-    }
-  }
-
-  private isTrackSelectionPayload(value: unknown): value is TrackSelectionPayload {
-    return Boolean(value && typeof value === "object" && "trackId" in value);
+  setSubtitleTrack(payload: TrackSelectionPayload) {
+    const role = payload.role === "secondary" ? "secondary" : "primary";
+    this.options.stateManager.setSubtitleTrack(payload.trackId, role);
   }
 
   private normalizeUrl(url: string | null): string | null {

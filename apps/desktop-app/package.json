@@ -5,14 +5,14 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
+    "build": "pnpm run clean && pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:preload": "tsc --project tsconfig.preload.json",
     "typecheck:renderer": "vue-tsc --noEmit -p tsconfig.renderer.json",
     "build:renderer": "pnpm run typecheck:renderer && vite build",
     "dev:renderer": "vite dev",
-    "test": "node ./scripts/run-renderer-tests.mjs",
-    "test:renderer": "node ./scripts/run-renderer-tests.mjs",
+    "test": "node ./scripts/run-desktop-tests.mjs",
+    "test:desktop": "node ./scripts/run-desktop-tests.mjs",
     "test:renderer:browser": "vitest run --project browser",
     "test:renderer:jsdom": "vitest run --project jsdom",
     "test:renderer:watch": "vitest --project browser --project jsdom",
@@ -23,7 +23,7 @@
     "dist:win": "pnpm run build && electron-forge make . --app-path . --platform=win32",
     "dist:mac": "pnpm run build && electron-forge make . --app-path . --platform=darwin",
     "dist:linux": "pnpm run build && electron-forge make . --app-path . --platform=linux",
-    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
+    "typecheck": "pnpm run build:main && pnpm run build:preload && pnpm run typecheck:renderer"
   },
   "keywords": [
     "electron",

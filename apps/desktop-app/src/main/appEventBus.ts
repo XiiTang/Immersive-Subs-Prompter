@@ -1,16 +1,6 @@
 import { EventEmitter } from "events";
-import { WebSocket } from "ws";
 import type { FromExtensionBroadcastMessage } from "@immersive-subs/contracts";
-import type {
-  DesktopState,
-  MediaServerPlaybackPayload,
-  MediaServerSessionSummary,
-  MediaServerStatusPayload,
-  MediaServerSubtitlesPayload,
-  PlaybackState
-} from "./types.js";
-
-type MediaServerSessions = MediaServerSessionSummary[];
+import type { DesktopState, PlaybackState } from "./types.js";
 
 export interface ConnectionMessageEvent {
   message: FromExtensionBroadcastMessage;
@@ -24,14 +14,8 @@ export interface AppEventMap {
   "state:playback": PlaybackState;
   "state:connection-count": { count: number };
   "playback:loop-cleared": void;
-  "connection:client-connected": { socket: WebSocket };
-  "connection:client-disconnected": { socket: WebSocket };
   "connection:tab-removed": { tabId: number };
   "connection:message": ConnectionMessageEvent;
-  "mediaserver:status": MediaServerStatusPayload;
-  "mediaserver:sessions": MediaServerSessions;
-  "mediaserver:subtitles": MediaServerSubtitlesPayload;
-  "mediaserver:playback": MediaServerPlaybackPayload;
 }
 
 type AppEvent = keyof AppEventMap;

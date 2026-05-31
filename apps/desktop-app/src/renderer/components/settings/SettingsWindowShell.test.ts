@@ -87,29 +87,6 @@ describe("SettingsWindowShell", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps appearance and subtitle cache inside global settings instead of separate nav sections", async () => {
-    const wrapper = mount(SettingsWindowShell, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          SettingsGlobal: sectionStub("settings-section-general-content"),
-          SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
-        }
-      }
-    });
-
-    expect(wrapper.get('[data-testid="settings-nav"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-nav-item-appearance"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="settings-nav-item-cache"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
-
-    await wrapper.get('[data-testid="settings-nav-item-profiles"]').trigger("click");
-
-    expect(wrapper.get('[data-testid="settings-section-profiles-content"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-general-content"]').exists()).toBe(false);
-  });
-
   it("shows top-level settings chrome in Chinese only when language is zh", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("zh");

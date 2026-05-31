@@ -69,6 +69,10 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { normalizeSubtitleFontFamily } from "../../../common/subtitleFonts.js";
 import {
+  normalizeSubtitleFontSize,
+  normalizeTimestampFontSize
+} from "../../../common/subtitleSizing.js";
+import {
   createAbLoopSelectionState,
   deriveAbLoopSelectionState,
   selectAbLoopCue
@@ -117,26 +121,6 @@ const subtitlePanelStyle = computed(() => ({
 const playbackProfileSettings = computed(
   () => store.activeProfile?.settings ?? DEFAULT_PROFILE_TEMPLATE
 );
-const MIN_SUBTITLE_FONT_SIZE = 3;
-const MAX_SUBTITLE_FONT_SIZE = 96;
-const MIN_TIMESTAMP_FONT_SIZE = 6;
-const MAX_TIMESTAMP_FONT_SIZE = 24;
-
-function normalizeSubtitleFontSize(value: number | null | undefined, fallback: number): number {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.min(MAX_SUBTITLE_FONT_SIZE, Math.max(MIN_SUBTITLE_FONT_SIZE, Math.round(numeric)));
-}
-
-function normalizeTimestampFontSize(value: number | null | undefined, fallback: number): number {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.min(MAX_TIMESTAMP_FONT_SIZE, Math.max(MIN_TIMESTAMP_FONT_SIZE, Math.round(numeric)));
-}
 
 const transcriptPrimaryFontFamily = computed(() =>
   normalizeSubtitleFontFamily(playbackProfileSettings.value.primarySubtitleFontFamily)

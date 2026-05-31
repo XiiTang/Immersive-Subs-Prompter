@@ -12,8 +12,7 @@ describe("blacklist rule utilities", () => {
         null
       ])
     ).toEqual([
-      { id: "one", value: "youtube.com" },
-      { id: "rule-1", value: "=https://example.com/watch" }
+      { id: "one", value: "youtube.com" }
     ]);
   });
 

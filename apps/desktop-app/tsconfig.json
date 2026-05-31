@@ -24,6 +24,8 @@
   ],
   "exclude": [
     "src/preload.cts",
-    "src/renderer/**/*"
+    "src/renderer/**/*",
+    "src/main/**/*.test.ts",
+    "src/main/test/**/*"
   ]
 }

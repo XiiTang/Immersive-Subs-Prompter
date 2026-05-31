@@ -16,6 +16,7 @@ import {
 import { createDefaultTranscriptionPluginConfig } from "./transcriptionDefaults.js";
 import { createDefaultJellyfinembyPluginConfig } from "./jellyfinembyDefaults.js";
 import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "./wordLookupDefaults.js";
+import { DEFAULT_YTDLP_ARGS } from "./ytdlpDefaults.js";
 
 export const DEFAULT_PROFILE_ID = "default-profile";
 const DEFAULT_PROFILE_NAME = "Default Profile";
@@ -59,7 +60,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   subtitleSecondaryColor: DEFAULT_SUBTITLE_SECONDARY_COLOR,
   subtitleActivePrimaryColor: DEFAULT_SUBTITLE_ACTIVE_PRIMARY_COLOR,
   subtitleActiveSecondaryColor: DEFAULT_SUBTITLE_ACTIVE_SECONDARY_COLOR,
-  ytDlpArgs: "--skip-download --write-subs --write-auto-subs --all-subs --cookies-from-browser firefox",
+  ytDlpArgs: DEFAULT_YTDLP_ARGS,
   subtitleAutoScrollTimeout: 3,
   subtitleScrollPosition: 44,
   subtitleBlockGap: 12,

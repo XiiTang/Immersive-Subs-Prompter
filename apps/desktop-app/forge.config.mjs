@@ -21,7 +21,6 @@ export default {
     appBundleId: "com.sheixunixitang3.immersivesubsprompter",
     appCopyright: "Copyright (c) XiiTang",
     extraResource: [
-      path.join(__dirname, "resources", "yt-dlp"),
       path.join(__dirname, "resources", "icon.ico"),
       path.join(__dirname, "resources", "icon.icns"),
       path.join(__dirname, "resources", "icon.png"),

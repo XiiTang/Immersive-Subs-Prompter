@@ -1,11 +1,13 @@
 import type { ProfileDefinition, ProfileSettings } from "../../types.js";
 import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
+import {
+  MAX_SUBTITLE_FONT_SIZE,
+  MAX_TIMESTAMP_FONT_SIZE,
+  MIN_SUBTITLE_FONT_SIZE,
+  MIN_TIMESTAMP_FONT_SIZE
+} from "../../../common/subtitleSizing.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
-const MIN_SUBTITLE_FONT_SIZE = 3;
-const MAX_SUBTITLE_FONT_SIZE = 96;
-const MIN_TIMESTAMP_FONT_SIZE = 6;
-const MAX_TIMESTAMP_FONT_SIZE = 24;
 const PROFILE_KEYS = ["id", "name", "description", "settings"] as const;
 const PROFILE_SETTINGS_KEYS = [
   "primarySubtitleFontFamily",

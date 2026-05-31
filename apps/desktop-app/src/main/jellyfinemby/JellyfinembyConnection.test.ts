@@ -60,6 +60,15 @@ function configuredServer(overrides: Partial<JellyfinembyServerConfig> = {}): Je
   };
 }
 
+function createConnectionHarness(serverConfig: JellyfinembyServerConfig = configuredServer()) {
+  const hooks = createHooks();
+  const connection = new JellyfinembyConnection(serverConfig, identity, hooks);
+  const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
+    connection
+  );
+  return { hooks, connection, processSessions };
+}
+
 function subtitleStream(index = 2) {
   return {
     Index: index,
@@ -138,11 +147,7 @@ afterEach(() => {
 
 describe("JellyfinembyConnection", () => {
   it("emits playback for a paused newly reported active item", () => {
-    const hooks = createHooks();
-    const connection = new JellyfinembyConnection(config, identity, hooks);
-    const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
-      connection
-    );
+    const { hooks, connection, processSessions } = createConnectionHarness(config);
 
     processSessions([sessionRecord("item-old", "Old Movie", false, 10_000)]);
     connection.setActiveSession("server-1:session-1");
@@ -161,7 +166,6 @@ describe("JellyfinembyConnection", () => {
   });
 
   it("reloads subtitles when the same media reappears after a no-item session snapshot", async () => {
-    const hooks = createHooks();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -169,10 +173,7 @@ describe("JellyfinembyConnection", () => {
         text: async () => subtitleSrt
       }))
     );
-    const connection = new JellyfinembyConnection(configuredServer(), identity, hooks);
-    const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
-      connection
-    );
+    const { hooks, connection, processSessions } = createConnectionHarness();
 
     processSessions([sessionRecord("item-1", "Movie", false, 10_000, [subtitleStream()])]);
     connection.setActiveSession("server-1:session-1");
@@ -208,13 +209,9 @@ describe("JellyfinembyConnection", () => {
   });
 
   it("does not emit stale subtitles after the active session reports no item", async () => {
-    const hooks = createHooks();
     const subtitleDownload = createDeferred<{ ok: boolean; text: () => Promise<string> }>();
     vi.stubGlobal("fetch", vi.fn(() => subtitleDownload.promise));
-    const connection = new JellyfinembyConnection(configuredServer(), identity, hooks);
-    const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
-      connection
-    );
+    const { hooks, connection, processSessions } = createConnectionHarness();
 
     processSessions([sessionRecord("item-1", "Movie", false, 10_000, [subtitleStream()])]);
     connection.setActiveSession("server-1:session-1");
@@ -242,13 +239,9 @@ describe("JellyfinembyConnection", () => {
   });
 
   it("does not start duplicate subtitle fetches while unchanged media is already loading", async () => {
-    const hooks = createHooks();
     const subtitleDownload = createDeferred<{ ok: boolean; text: () => Promise<string> }>();
     vi.stubGlobal("fetch", vi.fn(() => subtitleDownload.promise));
-    const connection = new JellyfinembyConnection(configuredServer(), identity, hooks);
-    const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
-      connection
-    );
+    const { hooks, connection, processSessions } = createConnectionHarness();
 
     processSessions([sessionRecord("item-1", "Movie", false, 10_000, [subtitleStream()])]);
     connection.setActiveSession("server-1:session-1");
@@ -278,7 +271,6 @@ describe("JellyfinembyConnection", () => {
   });
 
   it("does not emit stale subtitles after a metadata refresh completes late", async () => {
-    const hooks = createHooks();
     const metadataRefresh = createDeferred<{ ok: boolean; json: () => Promise<unknown> }>();
     let fetchCount = 0;
     vi.stubGlobal(
@@ -291,10 +283,7 @@ describe("JellyfinembyConnection", () => {
         return metadataRefresh.promise;
       })
     );
-    const connection = new JellyfinembyConnection(configuredServer(), identity, hooks);
-    const processSessions = (connection as unknown as { processSessions(data: unknown): void }).processSessions.bind(
-      connection
-    );
+    const { hooks, connection, processSessions } = createConnectionHarness();
 
     processSessions([sessionRecord("item-1", "Movie", false, 10_000)]);
     connection.setActiveSession("server-1:session-1");

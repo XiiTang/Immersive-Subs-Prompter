@@ -1,4 +1,4 @@
-import type { ProfileDefinition, ProfileRule } from "../../types.js";
+import type { ProfileDefinition } from "../../types.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
 const RULE_KEYS = ["id", "name", "pattern", "profileId"] as const;

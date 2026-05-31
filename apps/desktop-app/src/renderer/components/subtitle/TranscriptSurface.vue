@@ -75,7 +75,7 @@ const {
   primaryFontSize,
   secondaryFontFamily,
   secondaryFontSize,
-  timestampFontSize = 11,
+  timestampFontSize,
   autoHideMetaRow = false,
   lineHeight,
   primarySecondaryGap,
@@ -99,7 +99,7 @@ const {
   primaryFontSize: number;
   secondaryFontFamily: string;
   secondaryFontSize: number;
-  timestampFontSize?: number;
+  timestampFontSize: number;
   autoHideMetaRow?: boolean;
   lineHeight: number;
   primarySecondaryGap: number;

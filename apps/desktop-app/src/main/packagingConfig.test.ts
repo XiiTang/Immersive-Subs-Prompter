@@ -21,7 +21,6 @@ describe("desktop packaging config", () => {
     expect(config.packagerConfig.asar).toBe(true);
     expect(resources).toEqual(
       expect.arrayContaining([
-        "yt-dlp",
         "icon.ico",
         "icon.icns",
         "icon.png",
@@ -29,6 +28,7 @@ describe("desktop packaging config", () => {
         "trayTemplate@2x.png"
       ])
     );
+    expect(resources).not.toContain("yt-dlp");
 
     for (const resource of resources) {
       expect(existsSync(path.join(desktopAppRoot, "resources", resource))).toBe(true);

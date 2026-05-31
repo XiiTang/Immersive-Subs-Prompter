@@ -26,11 +26,8 @@ function createInitialState(settings: AppSettings): {
   state: DesktopState;
   activeProfileId: string | null;
 } {
-  const initialProfile =
-    settings.profiles.find((profile) => profile.id === settings.defaultProfileId) ??
-    settings.profiles[0] ??
-    null;
-  const profileId = initialProfile?.id ?? null;
+  const initialProfile = getDefaultProfile(settings);
+  const profileId = initialProfile.id;
 
   return {
     activeProfileId: profileId,
@@ -440,10 +437,11 @@ function getProfileById(settings: AppSettings, profileId: string | null | undefi
 }
 
 function getDefaultProfile(settings: AppSettings): ProfileDefinition {
-  return (
-    settings.profiles.find((profile) => profile.id === settings.defaultProfileId) ??
-    settings.profiles[0]!
-  );
+  const profile = settings.profiles.find((candidate) => candidate.id === settings.defaultProfileId);
+  if (!profile) {
+    throw new Error("settings invariant violated: default profile is missing");
+  }
+  return profile;
 }
 
 function getProfileSettingsFrom(settings: AppSettings, profileId: string | null | undefined): ProfileSettings {

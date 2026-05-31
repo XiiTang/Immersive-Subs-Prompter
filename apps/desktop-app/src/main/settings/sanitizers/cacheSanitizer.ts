@@ -1,4 +1,3 @@
-import { SubtitleCacheSettings } from "../../types.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
 const CACHE_SETTINGS_KEYS = ["enabled", "path", "retentionDays"] as const;

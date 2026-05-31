@@ -9,7 +9,7 @@ export function setEditingProfile(this: DesktopStoreThis, profileId: string) {
     return;
   }
   const exists = this.settings.profiles.some((profile) => profile.id === profileId);
-  this.editingProfileId = exists ? profileId : this.settings.defaultProfileId ?? this.settings.profiles[0].id;
+  this.editingProfileId = exists ? profileId : this.settings.defaultProfileId;
 }
 
 export function updateProfileSetting<Key extends keyof ProfileSettings>(
@@ -104,7 +104,7 @@ export function deleteProfile(this: DesktopStoreThis, profileId: string) {
     return;
   }
   const nextProfiles = this.settings.profiles.filter((profile) => profile.id !== profileId);
-  this.editingProfileId = nextProfiles[0]?.id ?? this.settings.defaultProfileId ?? null;
+  this.editingProfileId = this.settings.defaultProfileId;
   this.updateSettings({
     profiles: nextProfiles,
     rules: this.settings.rules.filter((rule) => rule.profileId !== profileId)

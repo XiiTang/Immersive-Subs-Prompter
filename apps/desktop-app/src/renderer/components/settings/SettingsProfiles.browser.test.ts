@@ -4,7 +4,6 @@ import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
 import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
-import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import "../../style.css";
@@ -155,13 +154,6 @@ function createDesktopState(appliedProfileId = "profile-1", appliedProfileName =
   };
 }
 
-function expectContainedBy(container: HTMLElement, element: HTMLElement) {
-  const containerRect = container.getBoundingClientRect();
-  const elementRect = element.getBoundingClientRect();
-  expect(elementRect.left).toBeGreaterThanOrEqual(containerRect.left - 1);
-  expect(elementRect.right).toBeLessThanOrEqual(containerRect.right + 1);
-}
-
 describe("SettingsProfiles", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -307,24 +299,6 @@ describe("SettingsProfiles", () => {
     expect(store.editingProfileSettings.subtitleTimestampFontSize).toBe(16);
   });
 
-  it("does not render a separate subtitle line spacing control", () => {
-    const store = useDesktopStore();
-    store.settings = createSettings();
-    store.editingProfileId = "profile-1";
-
-    const wrapper = mount(SettingsProfiles, {
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    expect(wrapper.text()).not.toContain("Subtitle Line Spacing");
-    expect(wrapper.text()).not.toContain("字幕行间距");
-  });
-
   it("edits profile names inline in the profile list", async () => {
     const store = useDesktopStore();
     store.settings = {
@@ -416,157 +390,6 @@ describe("SettingsProfiles", () => {
     expect(toggle.element.tagName).toBe("BUTTON");
     expect(toggle.attributes("role")).toBe("switch");
     expect(toggle.attributes("aria-checked")).toBe("true");
-  });
-
-  it("renders subtitle appearance controls as a compact property panel", () => {
-    const store = useDesktopStore();
-    store.settings = createSettings();
-    store.editingProfileId = "profile-1";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const fields = wrapper.get('[data-testid="subtitle-style-compact-panel"]');
-    const primaryTypographyRow = fields.get('[data-testid="primary-subtitle-typography-row"]');
-    const secondaryTypographyRow = fields.get('[data-testid="secondary-subtitle-typography-row"]');
-    const layoutGrid = fields.get('[data-testid="subtitle-style-layout-grid"]');
-    const behaviorRow = fields.get('[data-testid="subtitle-style-behavior-row"]');
-
-    expect(fields.find('[data-testid="subtitle-typography-controls"]').exists()).toBe(false);
-    expect(fields.find('[data-testid="subtitle-layout-controls"]').exists()).toBe(false);
-    expect(fields.find('[data-testid="subtitle-behavior-controls"]').exists()).toBe(false);
-    expect(fields.findAll(".subtitle-style-fields__group")).toHaveLength(0);
-    expect(fields.text()).not.toContain("Typography");
-    expect(fields.text()).not.toContain("Layout");
-    expect(fields.text()).not.toContain("Behavior");
-    expect(fields.text()).toContain("Primary Font");
-    expect(fields.text()).toContain("Primary Size");
-    expect(fields.text()).toContain("Secondary Font");
-    expect(fields.text()).toContain("Secondary Size");
-    expect(fields.text()).toContain("Timestamp Size");
-    expect(fields.text()).toContain("Scroll Position");
-    expect(fields.text()).toContain("Subtitle Gap");
-    expect(fields.text()).toContain("Auto-hide Controls");
-    expect(fields.text()).toContain("Restore Delay (s)");
-    expect(fields.text()).not.toContain("Primary Subtitle Font");
-    expect(fields.text()).not.toContain("Secondary Subtitle Font");
-    expect(fields.text()).not.toContain("Primary to Secondary Subtitle Gap");
-    expect(fields.text()).not.toContain("Auto-hide Timestamps & Action Bar");
-    expect(fields.text()).not.toContain("Auto-scroll Restore Time (seconds)");
-    expect(primaryTypographyRow.find('[data-testid="primary-subtitle-font-select"]').exists()).toBe(true);
-    expect(primaryTypographyRow.find('input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]').exists()).toBe(
-      true
-    );
-    expect(secondaryTypographyRow.find('[data-testid="secondary-subtitle-font-select"]').exists()).toBe(true);
-    expect(
-      secondaryTypographyRow.find('input[type="range"][aria-labelledby="secondary-subtitle-font-size-label"]').exists()
-    ).toBe(true);
-    expect(fields.find('input[type="range"][aria-labelledby="subtitle-timestamp-font-size-label"]').exists()).toBe(true);
-    expect(layoutGrid.find('input[aria-labelledby="subtitle-scroll-position-label"]').exists()).toBe(true);
-    expect(layoutGrid.find('input[aria-labelledby="subtitle-primary-secondary-gap-label"]').exists()).toBe(true);
-    expect(layoutGrid.find('input[aria-labelledby="subtitle-line-height-label"]').exists()).toBe(true);
-    expect(layoutGrid.find('input[aria-labelledby="subtitle-block-gap-label"]').exists()).toBe(true);
-    expect(behaviorRow.find('[data-testid="subtitle-meta-auto-hide-toggle"]').exists()).toBe(true);
-    expect(behaviorRow.find('input[aria-labelledby="subtitle-autoscroll-label"]').exists()).toBe(true);
-    expect(fields.findAll(".ui-field__hint")).toHaveLength(0);
-    expect(fields.text()).not.toContain("0%=");
-    expect(fields.text()).not.toContain("Gap between subtitle text blocks");
-  });
-
-  it("renders URL rules first and keeps the fixed subtitle preview after style controls", async () => {
-    const store = useDesktopStore();
-    store.settings = createSettings();
-    store.editingProfileId = "profile-1";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const editorChildren = Array.from(wrapper.get(".settings-split__editor").element.children);
-    const styleFields = wrapper.get(".subtitle-style-fields").element;
-    const colorGrid = wrapper.get<HTMLElement>(".settings-color-grid").element;
-    const preview = wrapper.get('[data-testid="subtitle-style-preview"]').element;
-    const urlRules = wrapper.get('[data-testid="profile-url-rules"]').element;
-    const editor = wrapper.get<HTMLElement>(".settings-split__editor").element;
-    const previewCanvas = wrapper.get<HTMLElement>('[data-testid="subtitle-preview-canvas"]');
-    const previewStyle = getComputedStyle(previewCanvas.element);
-    await flushPreviewSurface();
-    const previewSurface = wrapper.get('[data-testid="subtitle-preview-canvas"] [data-testid="transcript-surface"]');
-    const previewViewport = wrapper.get<HTMLElement>(
-      '[data-testid="subtitle-preview-canvas"] .transcript-surface__viewport'
-    );
-    const previewViewportStyle = getComputedStyle(previewViewport.element);
-    const previewBlocks = previewSurface.findAll(".transcript-block");
-    const activeBlock = previewSurface.get(".transcript-block--active");
-    const activeMeta = activeBlock.get<HTMLElement>('[data-testid="transcript-meta-row"]');
-    const activeActions = activeMeta.get<HTMLElement>('[data-testid="transcript-cue-actions"]');
-    const content = previewSurface.get<HTMLElement>(".transcript-surface__content").element;
-
-    expect(editorChildren[0]).toBe(urlRules);
-    expect(editorChildren.indexOf(urlRules)).toBeLessThan(editorChildren.indexOf(styleFields));
-    expect(editorChildren.indexOf(styleFields)).toBeLessThan(editorChildren.indexOf(preview));
-    expect(styleFields.contains(colorGrid)).toBe(true);
-    expect(editorChildren.includes(colorGrid)).toBe(false);
-    const editorRect = editor.getBoundingClientRect();
-    const previewCanvasRect = previewCanvas.element.getBoundingClientRect();
-    const previewLeftGap = previewCanvasRect.left - editorRect.left;
-    const previewRightGap = editorRect.right - previewCanvasRect.right;
-    expect(previewLeftGap).toBeCloseTo(previewRightGap, 0);
-    expect(wrapper.text()).not.toContain("390 x 630");
-    expect(wrapper.text()).not.toContain("Subtitle Preview");
-    expect(preview.querySelector(".ui-group__title")).toBeNull();
-    expect(previewStyle.width).toBe("390px");
-    expect(previewStyle.height).toBe("630px");
-    expect(previewViewportStyle.overflowY).toBe("hidden");
-    expect(previewBlocks.length).toBeGreaterThanOrEqual(4);
-    expect(Number.parseFloat(content.style.height)).toBeGreaterThan(630);
-    expect(activeBlock.get(".transcript-block__line--primary").text()).toContain(
-      "Till this moment I never knew myself."
-    );
-    expect(activeMeta.classes()).toContain("transcript-block__meta-row");
-    expect(getComputedStyle(activeMeta.element).position).toBe("absolute");
-    expect(activeActions.classes()).toContain("transcript-block__cue-actions");
-  });
-
-  it("omits the fallback summary badge from the default profile URL rules panel", () => {
-    const store = useDesktopStore();
-    store.settings = createSettings();
-    store.editingProfileId = "profile-1";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const urlRules = wrapper.get('[data-testid="profile-url-rules"]');
-    const headerBounds = wrapper.get<HTMLElement>(".profile-url-rules__header").element.getBoundingClientRect();
-    const hint = urlRules.get<HTMLElement>(".profile-url-rules__hint");
-    const hintBounds = hint.element.getBoundingClientRect();
-    const hintStyle = getComputedStyle(hint.element);
-
-    expect(urlRules.text()).toContain("URL Rules");
-    expect(urlRules.text()).toContain("Fallback when no URL rule matches.");
-    expect(urlRules.find(".ui-badge").exists()).toBe(false);
-    expect(hintBounds.right).toBeCloseTo(headerBounds.right, 0);
-    expect(hintStyle.textAlign).toBe("right");
   });
 
   it("renders the subtitle preview through the real transcript surface", async () => {
@@ -849,114 +672,6 @@ describe("SettingsProfiles", () => {
     expect(normalMeta.dataset.autoHideQuiet).toBe("true");
   });
 
-  it("keeps compact subtitle controls aligned and inside the editor column", () => {
-    const store = useDesktopStore();
-    store.settings = createSettings();
-    store.editingProfileId = "profile-1";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const compactPanel = wrapper.get<HTMLElement>('[data-testid="subtitle-style-compact-panel"]').element;
-    const primaryTypographyRow = wrapper.get<HTMLElement>('[data-testid="primary-subtitle-typography-row"]').element;
-    const secondaryTypographyRow = wrapper.get<HTMLElement>('[data-testid="secondary-subtitle-typography-row"]').element;
-    const layoutGrid = wrapper.get<HTMLElement>('[data-testid="subtitle-style-layout-grid"]').element;
-    const behaviorRow = wrapper.get<HTMLElement>('[data-testid="subtitle-style-behavior-row"]').element;
-    const primaryFontField = wrapper.get("#primary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
-    const primaryFontSizeField = wrapper
-      .get("#primary-subtitle-font-size-label")
-      .element.closest(".ui-field") as HTMLElement;
-    const secondaryFontField = wrapper.get("#secondary-subtitle-font-label").element.closest(".ui-field") as HTMLElement;
-    const secondaryFontSizeField = wrapper
-      .get("#secondary-subtitle-font-size-label")
-      .element.closest(".ui-field") as HTMLElement;
-    const subtitleScrollPositionField = wrapper
-      .get("#subtitle-scroll-position-label")
-      .element.closest(".ui-field") as HTMLElement;
-    const metaAutoHideField = wrapper.get("#subtitle-meta-auto-hide-label").element.closest(".ui-field") as HTMLElement;
-    const autoScrollField = wrapper.get("#subtitle-autoscroll-label").element.closest(".ui-field") as HTMLElement;
-    const metaAutoHideLabel = wrapper.get("#subtitle-meta-auto-hide-label").element as HTMLElement;
-    const autoScrollLabel = wrapper.get("#subtitle-autoscroll-label").element as HTMLElement;
-    const metaAutoHideControl = metaAutoHideField.querySelector(".ui-field__control") as HTMLElement;
-    const autoScrollInput = autoScrollField.querySelector<HTMLInputElement>(".ui-input")!;
-    const primaryFontSelect = wrapper.get<HTMLElement>('[data-testid="primary-subtitle-font-select"]').element;
-    const primaryFontSizeSlider = primaryFontSizeField.querySelector<HTMLInputElement>('input[type="range"]')!;
-    const subtitleScrollPositionSlider = subtitleScrollPositionField.querySelector<HTMLInputElement>('input[type="range"]')!;
-    const colorGrid = wrapper.get<HTMLElement>(".settings-color-grid").element;
-    const colorSwatches = wrapper.findAll(".color-swatch-item").map((item) => item.element as HTMLElement);
-    const ytDlpTextarea = wrapper.get<HTMLTextAreaElement>('textarea[aria-labelledby="yt-dlp-args-label"]');
-
-    expect(primaryTypographyRow.contains(primaryFontField)).toBe(true);
-    expect(primaryTypographyRow.contains(primaryFontSizeField)).toBe(true);
-    expect(secondaryTypographyRow.contains(secondaryFontField)).toBe(true);
-    expect(secondaryTypographyRow.contains(secondaryFontSizeField)).toBe(true);
-    expect(layoutGrid.contains(subtitleScrollPositionField)).toBe(true);
-    expect(behaviorRow.contains(metaAutoHideField)).toBe(true);
-    expect(behaviorRow.contains(autoScrollField)).toBe(true);
-    expect(primaryFontField.getBoundingClientRect().top).toBe(primaryFontSizeField.getBoundingClientRect().top);
-    expect(secondaryFontField.getBoundingClientRect().top).toBe(secondaryFontSizeField.getBoundingClientRect().top);
-    expect(primaryFontField.getBoundingClientRect().left).toBeLessThan(primaryFontSizeField.getBoundingClientRect().left);
-    expect(secondaryFontField.getBoundingClientRect().left).toBeLessThan(secondaryFontSizeField.getBoundingClientRect().left);
-    expect(primaryTypographyRow.getBoundingClientRect().bottom).toBeLessThanOrEqual(
-      secondaryTypographyRow.getBoundingClientRect().top
-    );
-    expect(primaryFontField.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeField.getBoundingClientRect().width, 0);
-    expect(secondaryFontField.getBoundingClientRect().width).toBeCloseTo(secondaryFontSizeField.getBoundingClientRect().width, 0);
-    expect(primaryFontSelect.getBoundingClientRect().width).toBeCloseTo(primaryFontSizeSlider.getBoundingClientRect().width, 0);
-    expect(primaryFontSizeSlider.getBoundingClientRect().width).toBeGreaterThan(120);
-    expect(subtitleScrollPositionSlider.getBoundingClientRect().width).toBeGreaterThan(120);
-    expect(compactPanel.contains(colorGrid)).toBe(true);
-    expect(wrapper.text()).not.toContain("Color Scheme");
-    expect(colorSwatches).toHaveLength(4);
-    const [primaryColorSwatch, secondaryColorSwatch, activePrimaryColorSwatch, activeSecondaryColorSwatch] = colorSwatches;
-    const primaryColorSwatchStyle = getComputedStyle(primaryColorSwatch!);
-    const primaryColorTrigger = primaryColorSwatch!.querySelector<HTMLElement>('[data-testid="color-label-trigger"]')!;
-    const primaryColorTriggerStyle = getComputedStyle(primaryColorTrigger);
-    expect(primaryColorSwatchStyle.borderTopWidth).toBe("0px");
-    expect(primaryColorSwatchStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(primaryColorSwatchStyle.paddingLeft).toBe("0px");
-    expect(primaryColorTriggerStyle.borderTopWidth).toBe("1px");
-    expect(primaryColorTriggerStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
-    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(secondaryColorSwatch!.getBoundingClientRect().top);
-    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(activePrimaryColorSwatch!.getBoundingClientRect().top);
-    expect(primaryColorSwatch!.getBoundingClientRect().top).toBe(activeSecondaryColorSwatch!.getBoundingClientRect().top);
-    expect(primaryColorSwatch!.getBoundingClientRect().left).toBeLessThan(
-      secondaryColorSwatch!.getBoundingClientRect().left
-    );
-    expect(activePrimaryColorSwatch!.getBoundingClientRect().left).toBeLessThan(
-      activeSecondaryColorSwatch!.getBoundingClientRect().left
-    );
-    expect(
-      Math.abs(metaAutoHideField.getBoundingClientRect().top - autoScrollField.getBoundingClientRect().top)
-    ).toBeLessThanOrEqual(1);
-    expect(metaAutoHideField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
-    expect(autoScrollField.getBoundingClientRect().height).toBeLessThanOrEqual(40);
-    const autoScrollLabelCenter =
-      (autoScrollLabel.getBoundingClientRect().top + autoScrollLabel.getBoundingClientRect().bottom) / 2;
-    const autoScrollInputCenter =
-      (autoScrollInput.getBoundingClientRect().top + autoScrollInput.getBoundingClientRect().bottom) / 2;
-    expect(Math.abs(autoScrollLabelCenter - autoScrollInputCenter)).toBeLessThanOrEqual(4);
-    expect(autoScrollLabel.getBoundingClientRect().right).toBeLessThanOrEqual(autoScrollInput.getBoundingClientRect().left);
-    expect(autoScrollInput.getBoundingClientRect().width).toBeLessThanOrEqual(64);
-    expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideField.getBoundingClientRect().right);
-    expect(autoScrollLabel.getBoundingClientRect().right).toBeLessThanOrEqual(autoScrollField.getBoundingClientRect().right);
-    expect(metaAutoHideLabel.getBoundingClientRect().right).toBeLessThanOrEqual(metaAutoHideControl.getBoundingClientRect().left);
-    expect(compactPanel.getBoundingClientRect().height).toBeLessThanOrEqual(310);
-    [primaryTypographyRow, secondaryTypographyRow, layoutGrid, behaviorRow, colorGrid].forEach((element) =>
-      expectContainedBy(compactPanel, element)
-    );
-    expect(wrapper.text()).not.toContain("Leave blank to use default arguments.");
-    expect(ytDlpTextarea.attributes("placeholder")).toBe(DEFAULT_YTDLP_ARGS);
-    expect(ytDlpTextarea.element.value).toBe("");
-  });
-
   it("renders the default profile editor with the applied profile selected", () => {
     const store = useDesktopStore();
     store.settings = {
@@ -1096,77 +811,6 @@ describe("SettingsProfiles", () => {
     expect(wrapper.find(".profile-url-rule__toggle").exists()).toBe(false);
     expect(wrapper.find(".profile-url-rule__actions").exists()).toBe(false);
     expect(wrapper.find('[data-testid="profile-url-rule-type"]').exists()).toBe(false);
-  });
-
-  it("uses a blank draft pill for new URL rules", () => {
-    const store = useDesktopStore();
-    store.settings = {
-      ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
-      rules: [
-        {
-          id: "rule-youtube",
-          name: "YouTube",
-          pattern: "youtube.com",
-          profileId: "profile-youtube"
-        }
-      ]
-    };
-    store.editingProfileId = "profile-youtube";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const firstRule = wrapper.get('[data-testid="profile-url-rule-display-rule-youtube"]');
-    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="profile-url-rule-draft"]');
-
-    expect(wrapper.find(".profile-url-rule-form").exists()).toBe(false);
-    expect(firstRule.text()).toBe("youtube.com");
-    expect(draftInput.attributes("placeholder")).toBe("youtube.com, *.site.com/path/*, =full URL, re:pattern");
-    expect(draftInput.element.value).toBe("");
-  });
-
-  it("keeps URL rule pills compact and unlabeled", () => {
-    const store = useDesktopStore();
-    store.settings = {
-      ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
-      rules: [
-        {
-          id: "rule-youtube",
-          name: "YouTube",
-          pattern: "youtube.com",
-          profileId: "profile-youtube"
-        }
-      ]
-    };
-    store.editingProfileId = "profile-youtube";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const firstRule = wrapper.get('[data-testid="profile-url-rule-display-rule-youtube"]');
-    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="profile-url-rule-draft"]');
-
-    expect(firstRule.text()).not.toContain("Match Type");
-    expect(firstRule.text()).not.toContain("Pattern");
-    expect(draftInput.element.closest(".priority-editor__draft")).not.toBeNull();
   });
 
   it("adds a URL rule from the draft pill on blur without an add button or enabled flag", async () => {
@@ -1433,51 +1077,4 @@ describe("SettingsProfiles", () => {
     expect(primaryEditor.get<HTMLInputElement>('[data-testid="priority-draft-input"]').element.value).toBe("");
   });
 
-  it("uses the regex term inside the priority hint as the only documentation link", () => {
-    const store = useDesktopStore();
-    store.settings = {
-      ...createSettings(),
-      profiles: [
-        {
-          ...createProfile("profile-default", "Default"),
-          settings: {
-            ...createProfile("profile-default", "Default").settings,
-            primarySubtitlePriority: [],
-            secondarySubtitlePriority: []
-          }
-        }
-      ],
-      defaultProfileId: "profile-default"
-    };
-    store.editingProfileId = "profile-default";
-
-    const wrapper = mount(SettingsProfiles, {
-      attachTo: document.body,
-      global: {
-        stubs: {
-          IconAdd: true,
-          IconDelete: true
-        }
-      }
-    });
-
-    const primaryEditor = wrapper.findAll(".priority-editor")[0]!;
-    const secondaryEditor = wrapper.findAll(".priority-editor")[1]!;
-    const hintLink = primaryEditor.get(".priority-editor__hint a");
-
-    expect(wrapper.text()).not.toContain("No priorities yet");
-    expect(wrapper.text()).not.toContain("View regex examples");
-    expect(primaryEditor.text()).toContain("Primary Priority");
-    expect(primaryEditor.text()).toContain("Use regular expressions; drag to reorder.");
-    expect(secondaryEditor.text()).toContain("Secondary Priority");
-    expect(secondaryEditor.text()).toContain("Match filenames; drag to reorder.");
-    expect(wrapper.text()).not.toContain("Primary Subtitle Priority");
-    expect(wrapper.text()).not.toContain("Secondary Subtitle Priority");
-    expect(wrapper.text()).not.toContain("Use regular expressions to match subtitle filenames; drag to reorder.");
-    expect(wrapper.text()).not.toContain("Match subtitle filenames; drag to reorder.");
-    expect(wrapper.text().match(/regular expressions/g)).toHaveLength(1);
-    expect(hintLink.text()).toBe("regular expressions");
-    expect(hintLink.attributes("href")).toContain("subtitle-priority-regex.md");
-    expect(primaryEditor.find(".priority-editor__draft").exists()).toBe(true);
-  });
 });

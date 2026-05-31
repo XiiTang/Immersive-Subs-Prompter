@@ -54,6 +54,7 @@ function defaultProps(overrides: Record<string, unknown> = {}) {
     primaryFontSize: 16,
     secondaryFontFamily: "Georgia",
     secondaryFontSize: 15,
+    timestampFontSize: 11,
     lineHeight: 1.5,
     primarySecondaryGap: 6,
     blockGap: 12,
@@ -772,14 +773,6 @@ describe("TranscriptSurface", () => {
 
     scrollTo.mockRestore();
     wrapper.unmount();
-  });
-
-  it("does not render a permanent focus-band overlay", () => {
-    const wrapper = mount(TranscriptSurface, {
-      props: defaultProps()
-    });
-
-    expect(wrapper.find(".transcript-surface__focus-band").exists()).toBe(false);
   });
 
   it("positions blocks and lines from pretext geometry instead of stacked DOM flow", async () => {

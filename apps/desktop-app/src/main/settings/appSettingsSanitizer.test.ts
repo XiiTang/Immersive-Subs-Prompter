@@ -9,6 +9,7 @@ import {
   DEFAULT_PROFILE_ID,
   DEFAULT_PROFILE_SETTINGS
 } from "../../common/defaultSettings.js";
+import { DEFAULT_YTDLP_ARGS } from "../../common/ytdlpDefaults.js";
 
 describe("appSettingsSanitizer", () => {
   describe("sanitizeSettings", () => {
@@ -126,11 +127,13 @@ describe("appSettingsSanitizer", () => {
       expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontSize).toBe(26);
       expect(DEFAULT_PROFILE_SETTINGS.secondarySubtitleFontSize).toBe(25);
       expect(DEFAULT_PROFILE_SETTINGS.subtitleTimestampFontSize).toBe(11);
+      expect(DEFAULT_PROFILE_SETTINGS.ytDlpArgs).toBe(DEFAULT_YTDLP_ARGS);
       expect(settings.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.secondarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);
       expect(settings.primarySubtitleFontSize).toBe(26);
       expect(settings.secondarySubtitleFontSize).toBe(25);
       expect(settings.subtitleTimestampFontSize).toBe(11);
+      expect(settings.ytDlpArgs).toBe(DEFAULT_YTDLP_ARGS);
       expect(result.cache.enabled).toBe(true);
       expect(result.cache.retentionDays).toBe(7);
     });

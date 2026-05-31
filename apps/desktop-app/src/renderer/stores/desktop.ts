@@ -75,14 +75,14 @@ export const useDesktopStore = defineStore("desktop", {
         return null;
       }
       const targetId = state.desktopState?.appliedProfileId ?? state.settings.defaultProfileId;
-      return state.settings.profiles.find((profile) => profile.id === targetId) ?? state.settings.profiles[0] ?? null;
+      return state.settings.profiles.find((profile) => profile.id === targetId) ?? getDefaultProfile(state.settings);
     },
     editingProfile(state): ProfileDefinition | null {
-      if (!state.settings || state.settings.profiles.length === 0) {
+      if (!state.settings) {
         return null;
       }
       const requestedId = state.editingProfileId ?? state.settings.defaultProfileId;
-      return state.settings.profiles.find((profile) => profile.id === requestedId) ?? state.settings.profiles[0];
+      return state.settings.profiles.find((profile) => profile.id === requestedId) ?? getDefaultProfile(state.settings);
     },
     editingProfileSettings(): ProfileSettings {
       return this.editingProfile?.settings ?? DEFAULT_PROFILE_TEMPLATE;
@@ -106,3 +106,7 @@ export const useDesktopStore = defineStore("desktop", {
     ...playbackActions
   }
 });
+
+function getDefaultProfile(settings: AppSettings): ProfileDefinition | null {
+  return settings.profiles.find((profile) => profile.id === settings.defaultProfileId) ?? null;
+}

@@ -9,7 +9,6 @@ import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
-import { swallow } from "./errors.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
@@ -187,15 +186,9 @@ export async function runCommand(
       stderr: ""
     };
 
-    // On Windows, yt-dlp output may be in GBK encoding
-    // Try to decode with GBK first, fall back to UTF-8 if it fails
     const decodeBuffer = (chunk: Buffer): string => {
       if (process.platform === "win32") {
-        try {
-          return iconv.decode(chunk, "gbk");
-        } catch (decodeError) {
-          swallow(decodeError, "subtitle.decode.gbk", "falling back to UTF-8");
-        }
+        return iconv.decode(chunk, "gbk");
       }
       return chunk.toString("utf8");
     };

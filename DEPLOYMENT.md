@@ -54,7 +54,7 @@ The build process first executes `npm run build`, then Forge packages contents f
 - Build each target on its matching host platform: `dist:win` on Windows, `dist:mac` on macOS, and `dist:linux` on Linux.
 - Windows currently uses the Squirrel maker, macOS uses DMG/ZIP, and Linux uses DEB/RPM/ZIP.
 - Forge now uses `packagerConfig.icon` with `resources/icon.ico` / `resources/icon.icns`, and DMG output uses the dedicated macOS `.icns` asset.
-- Forge packages `resources/icon.png`, the macOS tray template assets, and `resources/yt-dlp/` as `extraResource`.
+- Forge packages `resources/icon.png` and the macOS tray template assets as `extraResource`.
 - ASAR packaging is enabled, and Electron 41 runtime validation is enforced through the `EnableEmbeddedAsarIntegrityValidation` and `OnlyLoadAppFromAsar` fuses.
 
 > Electron Forge uses Electron Packager under the hood. With `asar: true`, Forge automatically emits the integrity digest metadata required by Electron 39+ ASAR integrity validation.
@@ -67,9 +67,7 @@ The build process first executes `npm run build`, then Forge packages contents f
 
 ## 3. `yt-dlp` Bundle Strategy
 
-The desktop app now comes with automatic download and auto-update mechanism: when the subtitle service runs, it checks for the `yt-dlp/<platform>` executable in the user data directory, and fetches the latest version number via GitHub Release API. If missing locally or outdated, it automatically downloads the latest binary and updates the cache. If update fails, an error is shown in the UI while keeping the old version as fallback.
-
-For offline installation or intranet environments, you can pre-place official binaries in `desktop-app/resources/yt-dlp/`; Electron Forge will copy that directory into the packaged app's `resources/yt-dlp` path during packaging. The current runtime still downloads into the user data directory on first launch, so pre-bundling mainly helps distribution and manual recovery rather than changing the default download flow.
+The desktop app uses an automatic download and update mechanism: when the subtitle service runs, it checks for the `yt-dlp/<platform>` executable in the user data directory, then fetches the latest version number via GitHub Release API. If missing locally or outdated, it downloads the latest binary and updates the cache. If update fails, an error is shown in the UI while keeping the old user-data binary when one exists.
 
 ## 4. Pre-Release Checklist
 
@@ -79,6 +77,6 @@ For offline installation or intranet environments, you can pre-place official bi
 | Platform Testing | Run through Windows / macOS / Linux once, verify subtitle download, track switching, control commands work correctly |
 | Permissions | Are extension `host_permissions` and background scripts minimized, add privacy notice if necessary |
 | Subtitle Cache | Is the temporary subtitle directory on Electron side deleted after download, avoid remnants |
-| `yt-dlp` Version | If bundled for distribution, confirm version and license (Unlicense/MIT) information; show on About page if necessary |
+| `yt-dlp` Version | Confirm the auto-download source, update flow, and license (Unlicense/MIT) information; show on About page if necessary |
 
 After completing the above steps, you can release to users: ① Plugin ZIP, ② Installation packages for each platform, ③ Corresponding release notes together.

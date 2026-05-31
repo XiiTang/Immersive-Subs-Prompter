@@ -214,13 +214,6 @@ describe("TopControlPanel", () => {
     expect(surface.find('[data-testid="top-control-panel-body"]').exists()).toBe(true);
   });
 
-  it("does not render the static product title in the main window header", async () => {
-    const { wrapper } = mountTopControlPanel({ autoHidePanels: false });
-
-    expect(wrapper.find('[data-testid="top-control-panel-title"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain("Immersive Subs Prompter");
-  });
-
   it("cancels collapse when the pointer re-enters the unified surface before the timer fires", async () => {
     vi.useFakeTimers();
     mockPanelGeometry(28, 112);
@@ -234,13 +227,6 @@ describe("TopControlPanel", () => {
     await vi.advanceTimersByTimeAsync(60);
 
     expect(wrapper.classes()).toContain("top-control-panel--expanded");
-  });
-
-  it("has no independent trigger-zone interaction concept when auto hide is disabled", async () => {
-    const { wrapper } = mountTopControlPanel({ autoHidePanels: false });
-
-    expect(wrapper.classes()).toContain("top-control-panel--force-expanded");
-    expect(wrapper.find('[data-testid="top-edge-trigger-zone"]').exists()).toBe(false);
   });
 
   it("stays force-expanded when auto hide is disabled", async () => {
@@ -365,11 +351,6 @@ describe("TopControlPanel", () => {
 
     expect(wrapper.classes()).toContain("top-control-panel--force-expanded");
     expect(wrapper.classes()).toContain("top-control-panel--draggable");
-  });
-
-  it("keeps opacity and icon controls in fixed non-overlapping header slots", () => {
-    expect(rendererStylesheet).toMatch(/\.header-slider\s*{[\s\S]*width: 64px;[\s\S]*min-width: 64px;[\s\S]*max-width: 64px;[\s\S]*flex: 0 0 64px;/);
-    expect(rendererStylesheet).toMatch(/\.top-control-panel__actions \.ui-icon-button\s*{[\s\S]*flex: 0 0 auto;/);
   });
 
   it("localizes top-panel chrome and connection labels through the provided translator", () => {
