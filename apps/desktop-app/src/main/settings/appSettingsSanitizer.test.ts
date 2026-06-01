@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS_FACTORY,
   sanitizeSettings
 } from "./appSettingsSanitizer.js";
+import type { AppSettings } from "../types.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import {
   DEFAULT_GLOBAL_SETTINGS,
@@ -19,18 +20,22 @@ describe("appSettingsSanitizer", () => {
       expect(sanitizeSettings(settings)).toEqual(settings);
     });
 
-    it("returns defaults for missing or obsolete saved settings", () => {
+    it("returns defaults for missing saved settings", () => {
       const result = sanitizeSettings(null);
-      const obsolete = sanitizeSettings({
-        ...DEFAULT_SETTINGS_FACTORY(),
-        defaultProfileId: "profile-youtube",
-        mediaServer: {}
-      } as never);
 
       expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
       expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
-      expect(obsolete.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
-      expect(obsolete.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
+    });
+
+    it("keeps saved plugin records without pruning unknown plugin ids", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY() as AppSettings & {
+        plugins: AppSettings["plugins"] & Record<string, { config: Record<string, unknown> }>;
+      };
+      settings.plugins["custom.lookup"] = { config: { enabled: true } };
+
+      expect(sanitizeSettings(settings).plugins["custom.lookup"]).toEqual({
+        config: { enabled: true }
+      });
     });
 
     it("uses explicit product defaults from the factory", () => {

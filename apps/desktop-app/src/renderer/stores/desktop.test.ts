@@ -277,6 +277,37 @@ describe("desktop store profile selection", () => {
     expect(store.pluginCatalog[0]?.enabled).toBe(true);
   });
 
+  it("keeps renderer settings unchanged when main rejects a settings update", async () => {
+    const store = useDesktopStore();
+    const original = createSettings();
+    const originalUsp = window.usp;
+    store.settings = original;
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings: vi.fn(async () => {
+          throw new Error("At least one network endpoint is required");
+        })
+      }
+    });
+
+    try {
+      await store.updateSettings({
+        network: {
+          ...original.network,
+          endpoints: []
+        }
+      });
+
+      expect(store.settings).toStrictEqual(original);
+    } finally {
+      Object.defineProperty(window, "usp", {
+        configurable: true,
+        value: originalUsp
+      });
+    }
+  });
+
   it("requires main-sanitized transcription plugin settings", () => {
     const store = useDesktopStore();
     const settings = createSettings();

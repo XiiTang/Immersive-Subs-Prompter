@@ -29,11 +29,13 @@ export async function updateSettings(
   if (!this.settings) {
     return;
   }
+  const previous = toPlain(this.settings);
   const payload = toPlain(partial);
   this.settings = mergeSettingsPatch(this.settings, payload);
   try {
     this.settings = await window.usp.updateSettings(payload);
   } catch (error) {
+    this.settings = previous;
     reportError(error, "settings.update");
   }
 }

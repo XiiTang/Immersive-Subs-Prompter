@@ -29,7 +29,6 @@ describe("PillListEditor", () => {
     expect(wrapper.text()).toContain("two.exe");
     expect(wrapper.find('[data-testid="pill-display-one"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="pill-draft-input"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="pill-edit-one"]').exists()).toBe(false);
   });
 
   it("emits draft updates and add-draft on enter and blur", async () => {

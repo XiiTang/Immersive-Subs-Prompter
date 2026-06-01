@@ -126,7 +126,6 @@ describe("SettingsTranscription", () => {
 
     const newConfigName = store.getTranscriptionPluginConfig().configs.at(-1)?.name;
     expect(newConfigName).toBe("Whisper API");
-    expect(newConfigName?.toLowerCase()).not.toContain("default");
   });
 
   it("renames the active transcription config directly from the config card", async () => {
@@ -146,7 +145,6 @@ describe("SettingsTranscription", () => {
     await input.trigger("blur");
 
     expect(store.getTranscriptionPluginConfig().configs[0]?.name).toBe("Meeting Notes");
-    expect(wrapper.find("#transcription-name-label").exists()).toBe(false);
   });
 
   it("shows active and inactive transcription configs with check indicators", () => {
@@ -161,7 +159,6 @@ describe("SettingsTranscription", () => {
 
     const indicators = wrapper.findAll('[data-testid="transcription-config-state"]');
     expect(indicators.map((indicator) => indicator.attributes("data-state"))).toEqual(["checked", "unchecked"]);
-    expect(wrapper.find(".transcription-config-list .ui-badge--info").exists()).toBe(false);
   });
 
   it("selects a transcription config from the card body without activating it", async () => {

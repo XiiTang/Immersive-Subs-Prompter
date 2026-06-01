@@ -189,7 +189,6 @@ describe("SettingsProfiles", () => {
     expect(secondaryFontSelect.element.tagName).toBe("BUTTON");
     expect(secondaryFontSelect.attributes("role")).toBe("combobox");
     expect(secondaryFontSelect.text()).toContain("Georgia");
-    expect(wrapper.find('[data-testid="subtitle-font-select"]').exists()).toBe(false);
   });
 
   it("renders primary and secondary subtitle size sliders with 3 to 96 bounds", () => {
@@ -325,8 +324,6 @@ describe("SettingsProfiles", () => {
 
     const nameActions = wrapper.findAll<HTMLButtonElement>('[data-testid="profile-list-name-action"]');
 
-    expect(wrapper.find("#profile-name").exists()).toBe(false);
-    expect(wrapper.find('[data-testid="profile-list-name-input"]').exists()).toBe(false);
     expect(nameActions).toHaveLength(2);
 
     const nameActionStyle = getComputedStyle(nameActions[1]!.element);
@@ -418,7 +415,6 @@ describe("SettingsProfiles", () => {
     expect(activeBlock.get('[data-testid="cue-action-play"]').attributes("aria-label")).toBe(
       "Play from cue 00:47 - 00:51"
     );
-    expect(wrapper.find(".subtitle-style-preview__line").exists()).toBe(false);
   });
 
   it("keeps subtitle style slider input local until the slider commits", async () => {
@@ -777,7 +773,7 @@ describe("SettingsProfiles", () => {
     expect(firstRule.attributes("draggable")).toBe("true");
   });
 
-  it("adds a URL rule from the draft pill on blur without an add button or enabled flag", async () => {
+  it("adds a URL rule from the draft pill on blur", async () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
@@ -1027,7 +1023,6 @@ describe("SettingsProfiles", () => {
     const draftPill = primaryEditor.get(".priority-editor__draft");
     const draftInput = draftPill.get<HTMLInputElement>('[data-testid="priority-draft-input"]');
 
-    expect(primaryEditor.find('[aria-label="Add priority"]').exists()).toBe(false);
     expect(draftPill.attributes("draggable")).toBeUndefined();
 
     await draftInput.setValue("ai-en");

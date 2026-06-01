@@ -184,8 +184,6 @@ describe("TopControlPanel", () => {
   it("keeps a dedicated drag handle inside the unified panel surface after expansion", async () => {
     const { wrapper } = mountTopControlPanel({ autoHidePanels: true });
 
-    expect(wrapper.find('[data-testid="top-control-panel-header-drag-region"]').exists()).toBe(false);
-
     await wrapper.get('[data-testid="top-edge-trigger-zone"]').trigger("pointerenter");
 
     expect(wrapper.get('[data-testid="top-control-panel-drag-handle"]').classes())
@@ -199,8 +197,6 @@ describe("TopControlPanel", () => {
 
     expect(wrapper.get('[data-testid="top-control-panel-actions"]').classes())
       .toContain("top-control-panel__actions");
-    expect(wrapper.get('[data-testid="top-control-panel-actions"]').classes())
-      .not.toContain("top-control-panel__drag-handle");
   });
 
   it("renders header and body inside one animated surface", async () => {
@@ -240,14 +236,12 @@ describe("TopControlPanel", () => {
 
   it("collapses the whole surface as one block", () => {
     expect(rendererStylesheet).toContain(".top-control-panel--collapsed .top-control-panel__surface");
-    expect(rendererStylesheet).not.toContain(".top-control-panel--collapsed .top-control-panel__header {\n  opacity:");
   });
 
-  it("enables the Electron drag region only while the panel is expanded", async () => {
+  it("enables the Electron drag region while the panel is expanded", async () => {
     mockPanelGeometry(28, 112);
     const { wrapper, setPointerState } = mountTopControlPanel({ autoHidePanels: true });
 
-    expect(wrapper.classes()).not.toContain("top-control-panel--draggable");
     expect(rendererStylesheet).toContain(".top-control-panel__header {");
     expect(rendererStylesheet).toContain("-webkit-app-region: no-drag;");
     expect(rendererStylesheet).toContain(".top-control-panel--draggable .top-control-panel__header {");

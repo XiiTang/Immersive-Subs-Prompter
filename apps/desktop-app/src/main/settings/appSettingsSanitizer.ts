@@ -66,33 +66,12 @@ export function sanitizeSettings(input: unknown): AppSettings {
     return DEFAULT_SETTINGS_FACTORY();
   }
 
-  const snapshot = createSettingsSnapshot(input as Record<string, unknown>);
   try {
-    validateSettingsSnapshot(snapshot);
-    return snapshot;
+    validateSettingsSnapshot(input as AppSettings);
+    return input as AppSettings;
   } catch {
     return DEFAULT_SETTINGS_FACTORY();
   }
-}
-
-function createSettingsSnapshot(raw: Record<string, unknown>): AppSettings {
-  return {
-    global: raw.global,
-    network: raw.network,
-    profiles: raw.profiles,
-    defaultProfileId: raw.defaultProfileId,
-    rules: raw.rules,
-    plugins: pickBuiltinPlugins(raw.plugins),
-    cache: raw.cache
-  } as AppSettings;
-}
-
-function pickBuiltinPlugins(input: unknown): unknown {
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return input;
-  }
-  const source = input as Record<string, unknown>;
-  return Object.fromEntries(BUILTIN_PLUGIN_IDS.map((pluginId) => [pluginId, source[pluginId]]));
 }
 
 function validateSettingsSnapshot(input: AppSettings): void {

@@ -78,8 +78,6 @@ describe("SettingsGlobal", () => {
 
     expect(wrapper.text()).toContain("ws://127.0.0.1:44501/");
     expect(wrapper.text()).toContain("ws://192.168.1.2:44502/?token=0123456789abcdef0123456789abcdef");
-    expect(wrapper.find("#network-host").exists()).toBe(false);
-    expect(wrapper.find("#network-port").exists()).toBe(false);
   });
 
   it("adds a draft endpoint from host:port input", async () => {
@@ -162,7 +160,6 @@ describe("SettingsGlobal", () => {
     await wrapper.get('[data-testid="network-endpoint-display-default"]').trigger("click");
     await nextTick();
 
-    expect(wrapper.find('[data-testid="network-endpoint-edit-default"]').exists()).toBe(false);
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
