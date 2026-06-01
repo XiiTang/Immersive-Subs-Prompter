@@ -3,7 +3,7 @@
     "message": "Immersive Subs Prompter"
   },
   "extensionDescription": {
-    "message": "Captures playback info from major video sites and relays it to the Immersive Subs Prompter desktop app for immersive subtitle learning."
+    "message": "Captures video playback info and syncs with the desktop app for immersive subtitle learning."
   },
   "popupTitle": {
     "message": "Media Monitor"
