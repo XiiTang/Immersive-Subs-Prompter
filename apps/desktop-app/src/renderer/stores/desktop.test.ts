@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import type { AppSettings, DesktopState } from "../../main/types";
 import type { RendererApi } from "../../preload.cts";
 import { useDesktopStore } from "./desktop";
@@ -16,7 +17,12 @@ function createTrack(id: string) {
 }
 
 function createSettings(): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+
   return {
+    ...base,
     global: {
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
@@ -35,7 +41,7 @@ function createSettings(): AppSettings {
     },
     profiles: [
       {
-        id: "profile-default",
+        id: DEFAULT_PROFILE_ID,
         name: "Default",
         description: null,
         settings: {
@@ -85,7 +91,7 @@ function createSettings(): AppSettings {
         }
       }
     ],
-    defaultProfileId: "profile-default",
+    defaultProfileId: DEFAULT_PROFILE_ID,
     rules: [
       {
         id: "rule-bilibili",
@@ -94,13 +100,7 @@ function createSettings(): AppSettings {
         profileId: "profile-bilibili"
       }
     ],
-    plugins: {
-      "official.jellyfinemby": {
-        config: {
-          servers: []
-        }
-      }
-    },
+    plugins: base.plugins,
     cache: {
       enabled: false,
       path: "",
@@ -329,12 +329,12 @@ describe("desktop store profile selection", () => {
 
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
       "profile-bilibili",
-      "profile-default"
+      DEFAULT_PROFILE_ID
     ]);
 
     store.deleteProfile("profile-bilibili");
 
-    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual(["profile-default"]);
+    expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([DEFAULT_PROFILE_ID]);
     expect(store.settings?.rules).toEqual([]);
   });
 
@@ -358,7 +358,7 @@ describe("desktop store profile selection", () => {
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
       "profile-youtube",
       "profile-bilibili",
-      "profile-default"
+      DEFAULT_PROFILE_ID
     ]);
 
     store.reorderProfile(0, 2);
@@ -366,7 +366,7 @@ describe("desktop store profile selection", () => {
     expect(store.settings?.profiles.map((profile) => profile.id)).toEqual([
       "profile-bilibili",
       "profile-youtube",
-      "profile-default"
+      DEFAULT_PROFILE_ID
     ]);
   });
 
@@ -381,12 +381,12 @@ describe("desktop store profile selection", () => {
 
     store.addProfile();
 
-    expect(store.settings?.profiles.at(-1)?.id).toBe("profile-default");
+    expect(store.settings?.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
     expect(store.settings?.profiles.at(-2)?.name).toBe("Profile 3");
 
     store.duplicateProfile();
 
-    expect(store.settings?.profiles.at(-1)?.id).toBe("profile-default");
+    expect(store.settings?.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
     expect(store.settings?.profiles.map((profile) => profile.id)).toContain("profile-bilibili");
   });
 
@@ -399,7 +399,7 @@ describe("desktop store profile selection", () => {
           id: "rule-other",
           name: "Other",
           pattern: "example.com",
-          profileId: "profile-default"
+          profileId: DEFAULT_PROFILE_ID
         },
         {
           id: "rule-first",

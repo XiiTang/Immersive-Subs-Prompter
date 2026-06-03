@@ -116,23 +116,19 @@ describe("transcript pretext layout", () => {
     });
   });
 
-  it("measures block geometry and cumulative line ownership without materializing line strings", () => {
+  it("measures block geometry without materializing line strings", () => {
     const layout = measureTranscriptLayout(baseInput);
 
     expect(layout.blocks).toHaveLength(2);
     expect(layout.blocks[0]).toMatchObject({
       blockId: "block-0",
-      lineStart: 0,
       primaryLineCount: 1,
-      secondaryLineCount: 1,
-      lineCount: 2
+      secondaryLineCount: 1
     });
     expect(layout.blocks[1]).toMatchObject({
       blockId: "block-1",
-      lineStart: 2,
       primaryLineCount: 2,
-      secondaryLineCount: 0,
-      lineCount: 2
+      secondaryLineCount: 0
     });
     expect(pretextMocks.materializeLineRange).not.toHaveBeenCalled();
   });

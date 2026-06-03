@@ -1,12 +1,13 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../../../common/defaultSettings.js";
 import type { ProfileDefinition } from "../../../../main/types";
 import { useDesktopStore } from "../../../stores/desktop";
 import ProfileList from "./ProfileList.vue";
 
 const profile: ProfileDefinition = {
-  id: "profile-default",
+  id: DEFAULT_PROFILE_ID,
   name: "Default",
   settings: {
     primarySubtitleFontFamily: "Inter",
@@ -34,26 +35,18 @@ describe("ProfileList", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     const store = useDesktopStore();
+    const settings = createDefaultAppSettings({
+      networkAuthToken: "0123456789abcdef0123456789abcdef"
+    });
     store.settings = {
+      ...settings,
       global: {
-        autoLaunch: false,
-        toggleWindowShortcut: "CommandOrControl+Shift+S",
-        gameProcessBlacklist: [],
-        autoHidePanels: false,
-        alwaysOnTop: "off",
-        panelOpacity: 100,
-        language: "en",
-        appearance: { theme: "system" }
-      },
-      network: {
-        endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }],
-        authToken: "0123456789abcdef0123456789abcdef"
+        ...settings.global,
+        language: "en"
       },
       profiles: [profile],
       defaultProfileId: profile.id,
-      rules: [],
-      plugins: {},
-      cache: { enabled: true, path: "", retentionDays: 30 }
+      rules: []
     };
   });
 

@@ -24,13 +24,7 @@ export class SettingsStore {
       return DEFAULT_SETTINGS_FACTORY();
     }
     const raw = fs.readFileSync(this.filePath, "utf-8");
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return DEFAULT_SETTINGS_FACTORY();
-    }
-    return sanitizeSettings(parsed);
+    return sanitizeSettings(JSON.parse(raw));
   }
 
   private save(data: AppSettings) {

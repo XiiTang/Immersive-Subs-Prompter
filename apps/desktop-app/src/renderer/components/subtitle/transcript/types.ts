@@ -37,8 +37,6 @@ export type TranscriptLayoutBlock = {
   end: number;
   top: number;
   height: number;
-  lineStart: number;
-  lineCount: number;
   primaryLineCount: number;
   secondaryLineCount: number;
   primaryLineHeight: number;

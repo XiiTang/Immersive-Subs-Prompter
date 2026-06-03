@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../../common/defaultSettings.js";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
 import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
@@ -49,7 +50,7 @@ async function flushPreviewSurface() {
   });
 }
 
-function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
+function createProfile(id = DEFAULT_PROFILE_ID, name = "Default"): ProfileDefinition {
   return {
     id,
     name,
@@ -78,7 +79,12 @@ function createProfile(id = "profile-1", name = "Default"): ProfileDefinition {
 }
 
 function createSettings(): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+
   return {
+    ...base,
     global: {
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
@@ -96,9 +102,9 @@ function createSettings(): AppSettings {
       authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createProfile()],
-    defaultProfileId: "profile-1",
+    defaultProfileId: DEFAULT_PROFILE_ID,
     rules: [],
-    plugins: { "official.jellyfinemby": { config: { servers: [] } } },
+    plugins: base.plugins,
     cache: {
       enabled: false,
       path: "",
@@ -107,7 +113,7 @@ function createSettings(): AppSettings {
   };
 }
 
-function createDesktopState(appliedProfileId = "profile-1", appliedProfileName = "Default"): DesktopState {
+function createDesktopState(appliedProfileId = DEFAULT_PROFILE_ID, appliedProfileName = "Default"): DesktopState {
   return {
     connectionCount: 1,
     networkListeners: [],
@@ -167,7 +173,7 @@ describe("SettingsProfiles", () => {
   it("renders independent curated font selects for primary and secondary subtitles", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       global: {
@@ -194,7 +200,7 @@ describe("SettingsProfiles", () => {
   it("renders primary and secondary subtitle size sliders with 3 to 96 bounds", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       global: {
@@ -226,11 +232,11 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-youtube", "YouTube"), createProfile("profile-default", "Fallback")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile("profile-youtube", "YouTube"), createProfile(DEFAULT_PROFILE_ID, "Fallback")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: []
     } as AppSettings;
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       attachTo: document.body,
@@ -262,7 +268,7 @@ describe("SettingsProfiles", () => {
     const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;
     const timesFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Times New Roman")!.value;
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     Object.defineProperty(window, "usp", {
       configurable: true,
       value: {
@@ -302,9 +308,9 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-1", "Default"), createProfile("profile-2", "Bilibili")]
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-2", "Bilibili")]
     };
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     Object.defineProperty(window, "usp", {
       configurable: true,
       value: {
@@ -371,7 +377,7 @@ describe("SettingsProfiles", () => {
   it("renders a profile-level toggle for auto-hiding transcript timestamps and actions", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       global: {
@@ -392,7 +398,7 @@ describe("SettingsProfiles", () => {
   it("renders the subtitle preview through the real transcript surface", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       attachTo: document.body,
@@ -420,7 +426,7 @@ describe("SettingsProfiles", () => {
   it("keeps subtitle style slider input local until the slider commits", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
       ...store.settings!,
       ...partial
@@ -451,7 +457,7 @@ describe("SettingsProfiles", () => {
   it("keeps subtitle font size slider local until the slider commits", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
       ...store.settings!,
       ...partial
@@ -484,7 +490,7 @@ describe("SettingsProfiles", () => {
   it("keeps timestamp font size slider local until the slider commits", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
       ...store.settings!,
       ...partial
@@ -517,7 +523,7 @@ describe("SettingsProfiles", () => {
   it("keeps subtitle color palette drag live locally until the palette commits", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
       ...store.settings!,
       ...partial
@@ -556,7 +562,7 @@ describe("SettingsProfiles", () => {
     const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;
     const timesFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Times New Roman")!.value;
     store.settings = createSettings();
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       attachTo: document.body,
@@ -643,7 +649,7 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-1", "Default"), createProfile("profile-2", "Bilibili")]
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-2", "Bilibili")]
     };
     store.desktopState = createDesktopState("profile-2", "Bilibili");
     store.editingProfileId = "profile-2";
@@ -671,8 +677,8 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: [
         {
           id: "rule-youtube",
@@ -711,8 +717,8 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-youtube", "YouTube"), createProfile("profile-default", "Fallback")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile("profile-youtube", "YouTube"), createProfile(DEFAULT_PROFILE_ID, "Fallback")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: []
     };
     store.editingProfileId = "profile-youtube";
@@ -739,8 +745,8 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: [
         {
           id: "rule-youtube",
@@ -777,8 +783,8 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: []
     };
     store.editingProfileId = "profile-youtube";
@@ -822,8 +828,8 @@ describe("SettingsProfiles", () => {
     const store = useDesktopStore();
     store.settings = {
       ...createSettings(),
-      profiles: [createProfile("profile-default", "Default"), createProfile("profile-youtube", "YouTube")],
-      defaultProfileId: "profile-default",
+      profiles: [createProfile(DEFAULT_PROFILE_ID, "Default"), createProfile("profile-youtube", "YouTube")],
+      defaultProfileId: DEFAULT_PROFILE_ID,
       rules: [
         {
           id: "rule-youtube",
@@ -863,17 +869,17 @@ describe("SettingsProfiles", () => {
       ...createSettings(),
       profiles: [
         {
-          ...createProfile("profile-default", "Default"),
+          ...createProfile(DEFAULT_PROFILE_ID, "Default"),
           settings: {
-            ...createProfile("profile-default", "Default").settings,
+            ...createProfile(DEFAULT_PROFILE_ID, "Default").settings,
             primarySubtitlePriority: ["eng.*", "en", "ai-en", "English"],
             secondarySubtitlePriority: ["zh-Hans", "zh", "cmn-Hans"]
           }
         }
       ],
-      defaultProfileId: "profile-default"
+      defaultProfileId: DEFAULT_PROFILE_ID
     };
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SettingsProfiles, {
       attachTo: document.body,
@@ -903,17 +909,17 @@ describe("SettingsProfiles", () => {
       ...createSettings(),
       profiles: [
         {
-          ...createProfile("profile-default", "Default"),
+          ...createProfile(DEFAULT_PROFILE_ID, "Default"),
           settings: {
-            ...createProfile("profile-default", "Default").settings,
+            ...createProfile(DEFAULT_PROFILE_ID, "Default").settings,
             primarySubtitlePriority: ["en", "ja"],
             secondarySubtitlePriority: []
           }
         }
       ],
-      defaultProfileId: "profile-default"
+      defaultProfileId: DEFAULT_PROFILE_ID
     };
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
 
     const wrapper = mount(SettingsProfiles, { attachTo: document.body });
@@ -929,17 +935,17 @@ describe("SettingsProfiles", () => {
       ...createSettings(),
       profiles: [
         {
-          ...createProfile("profile-default", "Default"),
+          ...createProfile(DEFAULT_PROFILE_ID, "Default"),
           settings: {
-            ...createProfile("profile-default", "Default").settings,
+            ...createProfile(DEFAULT_PROFILE_ID, "Default").settings,
             primarySubtitlePriority: ["en", "ja", "zh"],
             secondarySubtitlePriority: ["fr"]
           }
         }
       ],
-      defaultProfileId: "profile-default"
+      defaultProfileId: DEFAULT_PROFILE_ID
     };
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const reorderSpy = vi.spyOn(store, "reorderPriority").mockImplementation(() => undefined);
     const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
     const dataTransfer = new DataTransfer();
@@ -961,17 +967,17 @@ describe("SettingsProfiles", () => {
       ...createSettings(),
       profiles: [
         {
-          ...createProfile("profile-default", "Default"),
+          ...createProfile(DEFAULT_PROFILE_ID, "Default"),
           settings: {
-            ...createProfile("profile-default", "Default").settings,
+            ...createProfile(DEFAULT_PROFILE_ID, "Default").settings,
             primarySubtitlePriority: ["en", "ja"],
             secondarySubtitlePriority: ["fr"]
           }
         }
       ],
-      defaultProfileId: "profile-default"
+      defaultProfileId: DEFAULT_PROFILE_ID
     };
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     const reorderSpy = vi.spyOn(store, "reorderPriority").mockImplementation(() => undefined);
     const removeSpy = vi.spyOn(store, "removePriority").mockImplementation(() => undefined);
     const dataTransfer = new DataTransfer();
@@ -991,17 +997,17 @@ describe("SettingsProfiles", () => {
       ...createSettings(),
       profiles: [
         {
-          ...createProfile("profile-default", "Default"),
+          ...createProfile(DEFAULT_PROFILE_ID, "Default"),
           settings: {
-            ...createProfile("profile-default", "Default").settings,
+            ...createProfile(DEFAULT_PROFILE_ID, "Default").settings,
             primarySubtitlePriority: ["en"],
             secondarySubtitlePriority: []
           }
         }
       ],
-      defaultProfileId: "profile-default"
+      defaultProfileId: DEFAULT_PROFILE_ID
     };
-    store.editingProfileId = "profile-default";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     Object.defineProperty(window, "usp", {
       configurable: true,
       value: {

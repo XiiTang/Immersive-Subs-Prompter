@@ -4,34 +4,27 @@ import { projectTranscriptViewport, resolveTranscriptViewportAnchor } from "./pr
 
 const layout: TranscriptLayoutResult = {
   totalHeight: 320,
-  lines: [],
   blocks: [
     {
       blockId: "block-0",
       start: 0,
       end: 1000,
       top: 0,
-      height: 48,
-      lineStart: 0,
-      lineCount: 1
+      height: 48
     },
     {
       blockId: "block-1",
       start: 1000,
       end: 2000,
       top: 96,
-      height: 48,
-      lineStart: 1,
-      lineCount: 1
+      height: 48
     },
     {
       blockId: "block-2",
       start: 2000,
       end: 3000,
       top: 192,
-      height: 48,
-      lineStart: 2,
-      lineCount: 1
+      height: 48
     }
   ]
 };

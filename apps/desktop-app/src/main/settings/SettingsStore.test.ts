@@ -98,17 +98,12 @@ describe("SettingsStore", () => {
     expect(store.get().global.language).toBe(previous.global.language);
   });
 
-  it("loads defaults when the settings file is corrupted", async () => {
+  it("throws when the settings file contains invalid JSON", async () => {
     const filePath = path.join(userDataDir, "settings.json");
     await fsp.mkdir(userDataDir, { recursive: true });
     await fsp.writeFile(filePath, "{not valid json", "utf-8");
 
-    const store = await loadStore();
-
-    expect(store.get().network.endpoints).toEqual([
-      { id: "default", host: "127.0.0.1", port: 44501 }
-    ]);
-    expect(store.get().network.authToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    await expect(loadStore()).rejects.toThrow(SyntaxError);
   });
 
   it("rejects defaultProfileId updates", async () => {

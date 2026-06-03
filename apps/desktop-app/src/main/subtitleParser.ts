@@ -26,11 +26,15 @@ function sanitizeCueText(text: string): string {
 
 export function parseSubtitle(content: string, extension: string): SubtitleCue[] {
   const normalized = content.replace(/\ufeff/g, '');
-  
-  if (extension === "srt") {
+  const normalizedExtension = extension.toLowerCase();
+
+  if (normalizedExtension === "srt") {
     return parseSrt(normalized);
   }
-  return parseVtt(normalized);
+  if (normalizedExtension === "vtt") {
+    return parseVtt(normalized);
+  }
+  throw new Error(`Unsupported subtitle extension: ${extension}`);
 }
 
 function parseVtt(content: string): SubtitleCue[] {

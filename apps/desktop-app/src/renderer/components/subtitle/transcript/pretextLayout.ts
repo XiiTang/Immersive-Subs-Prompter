@@ -173,7 +173,6 @@ export function measureTranscriptLayout({
   const safeMetaRowHeight = Math.max(metaRowHeight, 0);
   const layoutBlocks: TranscriptLayoutBlock[] = [];
   let top = 0;
-  let nextLineStart = 0;
 
   blocks.forEach((block) => {
     const blockTop = top;
@@ -199,8 +198,6 @@ export function measureTranscriptLayout({
       end: block.end,
       top: blockTop,
       height: blockHeight,
-      lineStart: nextLineStart,
-      lineCount: primaryLineCount + secondaryLineCount,
       primaryLineCount,
       secondaryLineCount,
       primaryLineHeight: primaryLinePixelHeight,
@@ -211,7 +208,6 @@ export function measureTranscriptLayout({
       secondaryPreparedTextKey: secondaryPreparedKey
     });
 
-    nextLineStart += primaryLineCount + secondaryLineCount;
     top = textTop + primaryLineCount * primaryLinePixelHeight;
     if (secondaryLineCount > 0) {
       top += secondaryGap + secondaryLineCount * secondaryLinePixelHeight;

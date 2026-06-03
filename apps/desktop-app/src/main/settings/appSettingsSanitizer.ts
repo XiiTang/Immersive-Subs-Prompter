@@ -63,18 +63,15 @@ function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown
 
 export function sanitizeSettings(input: unknown): AppSettings {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return DEFAULT_SETTINGS_FACTORY();
+    throw new Error("saved settings must use the current object setting");
   }
 
-  try {
-    validateSettingsSnapshot(input as AppSettings);
-    return input as AppSettings;
-  } catch {
-    return DEFAULT_SETTINGS_FACTORY();
-  }
+  validateSettingsSnapshot(input as AppSettings);
+  return input as AppSettings;
 }
 
 function validateSettingsSnapshot(input: AppSettings): void {
+  assertNoUnknownKeys(input as unknown as Record<string, unknown>, APP_SETTINGS_KEYS, "settings");
   if (input.defaultProfileId !== DEFAULT_PROFILE_ID) {
     throw new Error("settings.defaultProfileId must use the fixed current fallback profile");
   }

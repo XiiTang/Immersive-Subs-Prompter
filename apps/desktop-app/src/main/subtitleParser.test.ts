@@ -72,7 +72,7 @@ describe("subtitleParser", () => {
       expect(cues[0].text).toBe("Hello");
     });
 
-    it("defaults to VTT parsing when extension is unknown", () => {
+    it("rejects unsupported subtitle extensions", () => {
       const vtt = [
         "WEBVTT",
         "",
@@ -80,8 +80,9 @@ describe("subtitleParser", () => {
         "Hi",
         ""
       ].join("\n");
-      const cues = parseSubtitle(vtt, "unknown");
-      expect(cues).toHaveLength(1);
+      expect(() => parseSubtitle(vtt, "unknown")).toThrow(
+        "Unsupported subtitle extension: unknown"
+      );
     });
   });
 });

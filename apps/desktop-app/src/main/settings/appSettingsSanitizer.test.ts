@@ -20,11 +20,18 @@ describe("appSettingsSanitizer", () => {
       expect(sanitizeSettings(settings)).toEqual(settings);
     });
 
-    it("returns defaults for missing saved settings", () => {
-      const result = sanitizeSettings(null);
+    it("rejects missing saved settings snapshots", () => {
+      expect(() => sanitizeSettings(null)).toThrow(
+        "saved settings must use the current object setting"
+      );
+    });
 
-      expect(result.defaultProfileId).toBe(DEFAULT_PROFILE_ID);
-      expect(result.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
+    it("rejects saved settings snapshots that do not match the current shape", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() => sanitizeSettings({ ...settings, defaultProfileId: "profile-default" })).toThrow(
+        "settings.defaultProfileId must use the fixed current fallback profile"
+      );
     });
 
     it("keeps saved plugin records without pruning unknown plugin ids", () => {

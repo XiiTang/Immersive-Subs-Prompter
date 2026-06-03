@@ -1,30 +1,28 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PROFILE_ID } from "../common/defaultSettings.js";
 import { AppEventBus } from "./appEventBus.js";
 import { DEFAULT_SETTINGS_FACTORY } from "./settings/appSettingsSanitizer.js";
 import { StateManager } from "./stateManager.js";
 import type { AppSettings } from "./types.js";
 
+function createProfile(base: AppSettings, id: string, name: string) {
+  const template = base.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!;
+  return {
+    ...template,
+    id,
+    name
+  };
+}
+
 function makeSettings(): AppSettings {
   const base = DEFAULT_SETTINGS_FACTORY();
-  const defaultProfile = {
-    ...base.profiles[0]!,
-    id: "profile-default",
-    name: "Default"
-  };
-  const specificProfile = {
-    ...base.profiles[0]!,
-    id: "profile-music-youtube",
-    name: "Music YouTube"
-  };
-  const broadProfile = {
-    ...base.profiles[0]!,
-    id: "profile-youtube",
-    name: "YouTube"
-  };
+  const defaultProfile = createProfile(base, DEFAULT_PROFILE_ID, "Default");
+  const specificProfile = createProfile(base, "profile-music-youtube", "Music YouTube");
+  const broadProfile = createProfile(base, "profile-youtube", "YouTube");
 
   return {
     ...base,
-    defaultProfileId: defaultProfile.id,
+    defaultProfileId: DEFAULT_PROFILE_ID,
     profiles: [defaultProfile, specificProfile, broadProfile],
     rules: [
       {
@@ -60,25 +58,17 @@ describe("StateManager profile URL matching", () => {
 
     const selection = manager.selectProfileForUrl("https://example.com/watch");
 
-    expect(selection.profile.id).toBe("profile-default");
+    expect(selection.profile.id).toBe(DEFAULT_PROFILE_ID);
     expect(selection.rule).toBeNull();
   });
 
   it("matches plain host rules against URL hosts instead of arbitrary URL text", () => {
     const base = DEFAULT_SETTINGS_FACTORY();
-    const defaultProfile = {
-      ...base.profiles[0]!,
-      id: "profile-default",
-      name: "Default"
-    };
-    const youtubeProfile = {
-      ...base.profiles[0]!,
-      id: "profile-youtube",
-      name: "YouTube"
-    };
+    const defaultProfile = createProfile(base, DEFAULT_PROFILE_ID, "Default");
+    const youtubeProfile = createProfile(base, "profile-youtube", "YouTube");
     const settings = {
       ...base,
-      defaultProfileId: defaultProfile.id,
+      defaultProfileId: DEFAULT_PROFILE_ID,
       profiles: [youtubeProfile, defaultProfile],
       rules: [
         {
@@ -102,34 +92,14 @@ describe("StateManager profile URL matching", () => {
 
   it("supports exact, regex, contains, and URL glob syntax in rule input", () => {
     const base = DEFAULT_SETTINGS_FACTORY();
-    const defaultProfile = {
-      ...base.profiles[0]!,
-      id: "profile-default",
-      name: "Default"
-    };
-    const exactProfile = {
-      ...base.profiles[0]!,
-      id: "profile-exact",
-      name: "Exact"
-    };
-    const regexProfile = {
-      ...base.profiles[0]!,
-      id: "profile-regex",
-      name: "Regex"
-    };
-    const containsProfile = {
-      ...base.profiles[0]!,
-      id: "profile-contains",
-      name: "Contains"
-    };
-    const globProfile = {
-      ...base.profiles[0]!,
-      id: "profile-glob",
-      name: "Glob"
-    };
+    const defaultProfile = createProfile(base, DEFAULT_PROFILE_ID, "Default");
+    const exactProfile = createProfile(base, "profile-exact", "Exact");
+    const regexProfile = createProfile(base, "profile-regex", "Regex");
+    const containsProfile = createProfile(base, "profile-contains", "Contains");
+    const globProfile = createProfile(base, "profile-glob", "Glob");
     const settings = {
       ...base,
-      defaultProfileId: defaultProfile.id,
+      defaultProfileId: DEFAULT_PROFILE_ID,
       profiles: [exactProfile, regexProfile, containsProfile, globProfile, defaultProfile],
       rules: [
         {

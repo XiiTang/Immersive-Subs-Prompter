@@ -29,6 +29,16 @@ function makeData(text: string): SubtitleLoadResult {
   };
 }
 
+async function ageOnlyCacheFile(ageMs: number) {
+  const files = await fsp.readdir(cacheDir);
+  const cacheFile = files.find((file) => file.endsWith(".json"));
+  expect(cacheFile).toBeDefined();
+  const filePath = path.join(cacheDir, cacheFile!);
+  const entry = JSON.parse(await fsp.readFile(filePath, "utf-8")) as { timestamp: number };
+  entry.timestamp = Date.now() - ageMs;
+  await fsp.writeFile(filePath, JSON.stringify(entry, null, 2), "utf-8");
+}
+
 beforeEach(async () => {
   cacheDir = await fsp.mkdtemp(path.join(os.tmpdir(), "usp-cache-"));
 });
@@ -103,9 +113,12 @@ describe("SubtitleCacheManager", () => {
   });
 
   it("treats expired entries as misses", async () => {
-    // Negative retention forces every entry to be considered expired.
-    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: -1 }));
+    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
     await manager.set("http://x", "ytdlp", makeData("stale"));
+    await ageOnlyCacheFile(2 * 24 * 60 * 60 * 1000);
+    manager.stop();
+    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
+
     expect(await manager.get("http://x", "ytdlp")).toBeNull();
   });
 
@@ -122,8 +135,12 @@ describe("SubtitleCacheManager", () => {
   });
 
   it("cleanup removes expired entries", async () => {
-    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: -1 }));
+    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
     await manager.set("http://x", "ytdlp", makeData("stale"));
+    await ageOnlyCacheFile(2 * 24 * 60 * 60 * 1000);
+    manager.stop();
+    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
+
     const removed = await manager.cleanup();
     expect(removed).toBeGreaterThanOrEqual(1);
   });
