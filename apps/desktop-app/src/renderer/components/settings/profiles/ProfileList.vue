@@ -1,20 +1,21 @@
 <template>
-  <div class="settings-split__sidebar">
+  <div class="settings-split__sidebar profile-list-sidebar">
     <div class="settings-split__sidebar-header">
       <div class="settings-split__sidebar-buttons">
-        <UiIconButton :label="t('button-add')" @click="$emit('add')">
-          <IconAdd size="md" />
+        <UiIconButton :label="t('button-add')" size="sm" @click="$emit('add')">
+          <IconAdd size="sm" />
         </UiIconButton>
-        <UiIconButton :label="t('button-duplicate')" @click="$emit('duplicate')">
-          <IconCopy size="md" />
+        <UiIconButton :label="t('button-duplicate')" size="sm" @click="$emit('duplicate')">
+          <IconCopy size="sm" />
         </UiIconButton>
         <UiIconButton
           :disabled="!canDelete"
           variant="danger"
           :label="t('button-delete')"
+          size="sm"
           @click="$emit('delete')"
         >
-          <IconDelete size="md" />
+          <IconDelete size="sm" />
         </UiIconButton>
       </div>
     </div>

@@ -263,6 +263,58 @@ describe("SettingsProfiles", () => {
     expect(wrapper.get('[data-testid="subtitle-style-compact-panel"]').element.contains(timestampField)).toBe(true);
   });
 
+  it("keeps profile list action controls compact", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+
+    const sidebar = wrapper.get<HTMLElement>(".settings-split__sidebar").element;
+    const buttonGroup = wrapper.get<HTMLElement>(".settings-split__sidebar-buttons").element;
+    const actionButtons = wrapper.findAll<HTMLElement>(".settings-split__sidebar-buttons .ui-icon-button");
+
+    expect(actionButtons).toHaveLength(3);
+    expect(Number.parseFloat(getComputedStyle(sidebar).paddingTop)).toBeLessThanOrEqual(8);
+    expect(Number.parseFloat(getComputedStyle(sidebar).gap)).toBeLessThanOrEqual(8);
+    expect(Number.parseFloat(getComputedStyle(buttonGroup).gap)).toBeLessThanOrEqual(4);
+    for (const button of actionButtons) {
+      const rect = button.element.getBoundingClientRect();
+      expect(rect.width).toBeLessThanOrEqual(24);
+      expect(rect.height).toBeLessThanOrEqual(24);
+    }
+  });
+
+  it("places timestamp size with compact auto-hide and restore controls", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const behaviorRow = wrapper.get<HTMLElement>('[data-testid="subtitle-style-behavior-row"]').element;
+    const timestampField = wrapper
+      .get("#subtitle-timestamp-font-size-label")
+      .element.closest(".subtitle-style-fields__field") as HTMLElement;
+    const autoHideField = wrapper
+      .get("#subtitle-meta-auto-hide-label")
+      .element.closest(".subtitle-style-fields__field") as HTMLElement;
+    const restoreField = wrapper
+      .get("#subtitle-autoscroll-label")
+      .element.closest(".subtitle-style-fields__field") as HTMLElement;
+
+    expect(behaviorRow.contains(timestampField)).toBe(true);
+    expect(behaviorRow.contains(autoHideField)).toBe(true);
+    expect(behaviorRow.contains(restoreField)).toBe(true);
+    expect(Math.round(timestampField.getBoundingClientRect().top)).toBe(
+      Math.round(autoHideField.getBoundingClientRect().top)
+    );
+    expect(Math.round(restoreField.getBoundingClientRect().top)).toBe(
+      Math.round(autoHideField.getBoundingClientRect().top)
+    );
+    expect(wrapper.get("#subtitle-meta-auto-hide-label").text()).toBe("Auto-hide");
+    expect(wrapper.get("#subtitle-autoscroll-label").text()).toBe("Restore (s)");
+  });
+
   it("updates independent typography settings from the profile editor", async () => {
     const store = useDesktopStore();
     const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;

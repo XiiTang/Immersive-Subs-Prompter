@@ -1686,6 +1686,21 @@ body.main-window-body,
   justify-content: flex-end;
 }
 
+.profile-list-sidebar {
+  gap: 8px;
+  padding: 8px;
+}
+
+.profile-list-sidebar .settings-split__sidebar-header,
+.profile-list-sidebar .settings-split__sidebar-buttons {
+  gap: 4px;
+}
+
+.profile-list-sidebar .settings-split__sidebar-buttons .ui-icon-button {
+  width: 24px;
+  height: 24px;
+}
+
 .settings-split__editor {
   display: flex;
   flex-direction: column;
@@ -1993,7 +2008,7 @@ body.main-window-body,
 }
 
 .subtitle-style-fields__typography-row--primary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .subtitle-style-preview {
@@ -2036,9 +2051,9 @@ body.main-window-body,
 
 .subtitle-style-fields__behavior-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
-  align-items: center;
+  grid-template-columns: minmax(132px, 1.25fr) minmax(96px, 0.8fr) minmax(96px, 0.75fr);
+  gap: 8px 10px;
+  align-items: start;
   min-width: 0;
 }
 
@@ -2082,8 +2097,8 @@ body.main-window-body,
 }
 
 .subtitle-style-fields__field--behavior {
-  min-height: 32px;
-  gap: 8px;
+  min-height: 28px;
+  gap: 6px;
 }
 
 .subtitle-style-fields__field--behavior .ui-field__control {

@@ -31,21 +31,6 @@
             @change="commitDraftProfileSetting('primarySubtitleFontSize')"
           />
         </UiField>
-        <UiField
-          id="subtitle-timestamp-font-size"
-          class="subtitle-style-fields__field subtitle-style-fields__field--slider"
-          :label="t('subtitle-timestamp-font-size-label')"
-          :value="`${draft.subtitleTimestampFontSize}px`"
-        >
-          <UiSlider
-            v-model="draft.subtitleTimestampFontSize"
-            :min="6"
-            :max="24"
-            :step="1"
-            :label="t('subtitle-timestamp-font-size-label')"
-            @change="commitDraftProfileSetting('subtitleTimestampFontSize')"
-          />
-        </UiField>
       </div>
 
       <div class="subtitle-style-fields__typography-row" data-testid="secondary-subtitle-typography-row">
@@ -146,6 +131,21 @@
     </div>
 
     <div class="subtitle-style-fields__behavior-row" data-testid="subtitle-style-behavior-row">
+      <UiField
+        id="subtitle-timestamp-font-size"
+        class="subtitle-style-fields__field subtitle-style-fields__field--slider subtitle-style-fields__field--timestamp"
+        :label="t('subtitle-timestamp-font-size-label')"
+        :value="`${draft.subtitleTimestampFontSize}px`"
+      >
+        <UiSlider
+          v-model="draft.subtitleTimestampFontSize"
+          :min="6"
+          :max="24"
+          :step="1"
+          :label="t('subtitle-timestamp-font-size-label')"
+          @change="commitDraftProfileSetting('subtitleTimestampFontSize')"
+        />
+      </UiField>
       <UiField
         id="subtitle-meta-auto-hide"
         class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
