@@ -4,12 +4,13 @@
       <UiIconButton
         class="playback-toggle-btn"
         variant="secondary"
+        size="sm"
         :disabled="!hasActiveVideo"
         :label="isPlaying ? t('pause-button') : t('play-button')"
         @click="$emit('toggle-playback')"
       >
-        <IconPause v-if="isPlaying" size="md" />
-        <IconPlay v-else size="md" />
+        <IconPause v-if="isPlaying" size="sm" />
+        <IconPlay v-else size="sm" />
       </UiIconButton>
     </UiTooltip>
     <div class="playback-progress">
@@ -34,13 +35,14 @@
       <UiIconButton
         class="auto-hide-toggle"
         variant="secondary"
+        size="sm"
         :pressed="autoHideEnabled"
         :active="autoHideEnabled"
         :label="autoHideLabel"
         @click="$emit('toggle-auto-hide')"
       >
-        <IconChevronUp v-if="autoHideEnabled" size="md" />
-        <IconChevronDown v-else size="md" />
+        <IconChevronUp v-if="autoHideEnabled" size="sm" />
+        <IconChevronDown v-else size="sm" />
       </UiIconButton>
     </UiTooltip>
   </div>

@@ -6,7 +6,7 @@ import { createTopControlPanelProps, createTopPanelDesktopState, createTopPanelS
 import { useDesktopStore } from "../../stores/desktop";
 import "../../style.css";
 
-function mountTopControlPanelInNarrowHost(widthPx: number) {
+function mountTopControlPanelInNarrowHost(widthPx: number, propsOverrides: Record<string, unknown> = {}) {
   const host = document.createElement("div");
   host.style.position = "relative";
   host.style.width = `${widthPx}px`;
@@ -28,7 +28,7 @@ function mountTopControlPanelInNarrowHost(widthPx: number) {
 
   const wrapper = mount(TopControlPanel, {
     attachTo: host,
-    props: createTopControlPanelProps({ autoHideEnabled: false })
+    props: createTopControlPanelProps({ autoHideEnabled: false, ...propsOverrides })
   });
 
   return { host, wrapper };
@@ -36,6 +36,14 @@ function mountTopControlPanelInNarrowHost(widthPx: number) {
 
 async function nextFrame() {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+function expectBorderless(element: HTMLElement) {
+  const style = getComputedStyle(element);
+  expect(style.borderTopWidth).toBe("0px");
+  expect(style.borderRightWidth).toBe("0px");
+  expect(style.borderBottomWidth).toBe("0px");
+  expect(style.borderLeftWidth).toBe("0px");
 }
 
 describe("TopControlPanel browser layout", () => {
@@ -81,6 +89,70 @@ describe("TopControlPanel browser layout", () => {
       const rect = button.getBoundingClientRect();
       expect(rect.width).toBeLessThanOrEqual(28);
       expect(rect.height).toBeLessThanOrEqual(28);
+    }
+
+    wrapper.unmount();
+    host.remove();
+  });
+
+  it("keeps the main controls compact across selectors, transcription, status, and playback", async () => {
+    const { host, wrapper } = mountTopControlPanelInNarrowHost(520, {
+      transcriptionEnabled: true,
+      transcriptionConfigs: [{ id: "fast", name: "Fast local" }],
+      activeTranscriptionId: "fast",
+      canTranscribe: true
+    });
+
+    await nextFrame();
+
+    const selectors = Array.from(
+      host.querySelectorAll<HTMLElement>(".control-panel .ui-select")
+    );
+    expect(selectors.length).toBeGreaterThanOrEqual(3);
+    for (const selector of selectors) {
+      expect(selector.getBoundingClientRect().height).toBeLessThanOrEqual(30);
+    }
+
+    const compactButtons = Array.from(
+      host.querySelectorAll<HTMLElement>(".playback-row .ui-icon-button, .transcription-controls .ui-icon-button")
+    );
+    expect(compactButtons).toHaveLength(3);
+    for (const button of compactButtons) {
+      const rect = button.getBoundingClientRect();
+      expect(rect.width).toBeLessThanOrEqual(28);
+      expect(rect.height).toBeLessThanOrEqual(28);
+    }
+
+    const statusBanner = host.querySelector<HTMLElement>(".status-banner");
+    expect(statusBanner).not.toBeNull();
+    expect(statusBanner!.getBoundingClientRect().height).toBeLessThanOrEqual(26);
+
+    const playbackSlider = host.querySelector<HTMLElement>(".playback-slider");
+    expect(playbackSlider).not.toBeNull();
+    expect(playbackSlider!.getBoundingClientRect().height).toBeLessThanOrEqual(16);
+
+    wrapper.unmount();
+    host.remove();
+  });
+
+  it("removes borders from the compact panel controls", async () => {
+    const { host, wrapper } = mountTopControlPanelInNarrowHost(520, {
+      transcriptionEnabled: true,
+      transcriptionConfigs: [{ id: "fast", name: "Fast local" }],
+      activeTranscriptionId: "fast",
+      canTranscribe: true
+    });
+
+    await nextFrame();
+
+    const borderedControls = Array.from(
+      host.querySelectorAll<HTMLElement>(
+        ".control-panel .ui-select, .status-banner, .top-control-panel__actions .ui-icon-button, .playback-row .ui-icon-button, .transcription-controls .ui-icon-button"
+      )
+    );
+    expect(borderedControls.length).toBeGreaterThan(0);
+    for (const control of borderedControls) {
+      expectBorderless(control);
     }
 
     wrapper.unmount();

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { describe, expect, it } from "vitest";
 import TranscriptBlock from "./TranscriptBlock.vue";
 
@@ -96,6 +97,25 @@ describe("TranscriptBlock", () => {
 
     await wrapper.get('[data-testid="cue-action-play"]').trigger("click");
     expect(wrapper.emitted("play")).toEqual([[]]);
+  });
+
+  it("releases pointer action focus so inactive auto-hidden rows can return quiet", async () => {
+    const wrapper = mount(TranscriptBlock, {
+      attachTo: document.body,
+      props: { ...defaultProps, isActive: true, autoHideMetaRow: true }
+    });
+
+    const playButton = wrapper.get('[data-testid="cue-action-play"]');
+    (playButton.element as HTMLButtonElement).focus();
+    playButton.element.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await nextTick();
+    await wrapper.setProps({ isActive: false });
+
+    expect(document.activeElement).not.toBe(playButton.element);
+    expect(wrapper.emitted("play")).toEqual([[]]);
+    expect(wrapper.get('[data-testid="transcript-meta-row"]').attributes("data-meta-state")).toBe("quiet");
+
+    wrapper.unmount();
   });
 
   it("localizes cue action aria labels through the provided translator", () => {

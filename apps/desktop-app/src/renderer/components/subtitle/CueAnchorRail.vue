@@ -10,7 +10,7 @@
       :aria-label="playLabel"
       data-testid="cue-action-play"
       type="button"
-      @click.stop="$emit('play')"
+      @click.stop="handleActionClick($event, 'play')"
     >
       ▶
     </button>
@@ -23,7 +23,7 @@
       :aria-label="abLoopLabel"
       data-testid="cue-action-ab"
       type="button"
-      @click.stop="$emit('loop-range')"
+      @click.stop="handleActionClick($event, 'loop-range')"
     >
       {{ abLabel }}
     </button>
@@ -34,7 +34,7 @@
       :aria-pressed="isLooping"
       data-testid="cue-action-loop"
       type="button"
-      @click.stop="$emit('loop')"
+      @click.stop="handleActionClick($event, 'loop')"
     >
       ↻
     </button>
@@ -63,7 +63,7 @@ const {
   t: SubtitleTranslate;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "play"): void;
   (e: "loop"): void;
   (e: "loop-range"): void;
@@ -84,4 +84,22 @@ const abLoopLabel = computed(() => {
   }
   return translate("cue-ab-set-label", { time: timeLabel.value });
 });
+
+type CueAction = "play" | "loop" | "loop-range";
+
+function handleActionClick(event: MouseEvent, action: CueAction) {
+  if (event.detail > 0 && event.currentTarget instanceof HTMLButtonElement) {
+    event.currentTarget.blur();
+  }
+
+  if (action === "play") {
+    emit("play");
+    return;
+  }
+  if (action === "loop") {
+    emit("loop");
+    return;
+  }
+  emit("loop-range");
+}
 </script>

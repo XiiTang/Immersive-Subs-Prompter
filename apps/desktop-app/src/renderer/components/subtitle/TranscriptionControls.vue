@@ -10,6 +10,7 @@
     </div>
     <UiIconButton
       class="transcription-btn"
+      size="sm"
       :disabled="!canTranscribe || isTranscribing"
       :label="
         isTranscribing
@@ -18,8 +19,8 @@
       "
       @click="$emit('start')"
     >
-      <IconRefresh v-if="isTranscribing" size="md" class="icon--spinning" />
-      <IconPlay v-else size="md" />
+      <IconRefresh v-if="isTranscribing" size="sm" class="icon--spinning" />
+      <IconPlay v-else size="sm" />
     </UiIconButton>
   </div>
 </template>
