@@ -158,4 +158,20 @@ describe("TopControlPanel browser layout", () => {
     wrapper.unmount();
     host.remove();
   });
+
+  it("adds a little breathing room between the status title and profile line", async () => {
+    const { host, wrapper } = mountTopControlPanelInNarrowHost(520, {
+      title: "Waiting for video",
+      profileLabel: "Profile: Default"
+    });
+
+    await nextFrame();
+
+    const profileLine = host.querySelector<HTMLElement>(".top-control-panel__info-profile");
+    expect(profileLine).not.toBeNull();
+    expect(getComputedStyle(profileLine!).marginTop).toBe("2px");
+
+    wrapper.unmount();
+    host.remove();
+  });
 });

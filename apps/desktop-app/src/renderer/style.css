@@ -1237,6 +1237,10 @@ body.main-window-body,
   line-height: 1.25;
 }
 
+.top-control-panel__info-profile {
+  margin-top: 2px;
+}
+
 .top-control-panel__info-profile,
 .top-control-panel__info-url {
   color: var(--ui-text-muted);
