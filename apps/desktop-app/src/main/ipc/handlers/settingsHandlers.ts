@@ -1,4 +1,4 @@
-import { dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
+import { ipcMain, shell } from "electron";
 import fs from "fs";
 import { AppSettings } from "../../types.js";
 import { IpcContext } from "../ipcRouter.js";
@@ -39,24 +39,5 @@ export function registerSettingsHandlers(context: IpcContext) {
         error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
       return { ok: false, error: message };
     }
-  });
-
-  ipcMain.handle("usp:select-word-list-file", async () => {
-    const window = context.openSettingsWindow() ?? context.getMainWindow() ?? undefined;
-    const options: OpenDialogOptions = {
-      title: "Select word list",
-      properties: ["openFile"],
-      filters: [
-        { name: "JSONL word lists", extensions: ["jsonl", "json"] },
-        { name: "All files", extensions: ["*"] }
-      ]
-    };
-    const result = window
-      ? await dialog.showOpenDialog(window, options)
-      : await dialog.showOpenDialog(options);
-    if (result.canceled || !result.filePaths[0]) {
-      return { canceled: true, path: null };
-    }
-    return { canceled: false, path: result.filePaths[0] };
   });
 }

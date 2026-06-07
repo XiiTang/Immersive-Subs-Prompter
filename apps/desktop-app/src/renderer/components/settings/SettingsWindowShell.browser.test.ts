@@ -39,7 +39,7 @@ describe("SettingsWindowShell browser layout", () => {
       profiles: [],
       defaultProfileId: "",
       rules: [],
-      plugins: { "official.jellyfinemby": { config: { servers: [] } } },
+      plugins: {},
       cache: { enabled: false, path: "", retentionDays: 30 }
     } as never;
   });

@@ -2,7 +2,7 @@ import type {
   WordLookupPluginConfig,
   WordLookupResult,
   WordLookupStatus
-} from "../../main/plugins/official/wordLookup/wordLookupTypes";
+} from "../../common/wordLookupTypes";
 
 export type { WordLookupPluginConfig, WordLookupResult, WordLookupStatus };
 

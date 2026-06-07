@@ -3,17 +3,7 @@ import { validateGlobalSettingsForUpdate } from "./sanitizers/globalSanitizer.js
 import { validateNetworkSettingsForUpdate } from "./sanitizers/networkSanitizer.js";
 import { validateProfilesForUpdate } from "./sanitizers/profileSanitizer.js";
 import { validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
-import {
-  validateTranscriptionPluginConfigForUpdate
-} from "./sanitizers/transcriptionSanitizer.js";
-import {
-  validateWordLookupPluginConfigForUpdate
-} from "./sanitizers/wordLookupSanitizer.js";
-import {
-  validateJellyfinembyPluginConfigForUpdate
-} from "./sanitizers/jellyfinembySanitizer.js";
 import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
-import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
 import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
@@ -21,7 +11,6 @@ import { assertNoUnknownKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "plugins", "cache"] as const;
 const PLUGIN_SETTINGS_RECORD_KEYS = ["config"] as const;
-const BUILTIN_PLUGIN_IDS = [JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID] as const;
 const GLOBAL_SETTINGS_KEYS = [
   "autoLaunch",
   "toggleWindowShortcut",
@@ -33,11 +22,6 @@ const GLOBAL_SETTINGS_KEYS = [
   "appearance"
 ] as const;
 const CACHE_SETTINGS_KEYS = Object.keys(DEFAULT_CACHE_SETTINGS);
-type BuiltinPluginId = (typeof BUILTIN_PLUGIN_IDS)[number];
-
-function isBuiltinPluginId(pluginId: string): pluginId is BuiltinPluginId {
-  return (BUILTIN_PLUGIN_IDS as readonly string[]).includes(pluginId);
-}
 
 function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown): void {
   if (!record || typeof record !== "object" || Array.isArray(record)) {
@@ -50,14 +34,6 @@ function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown
   const config = (record as { config?: unknown }).config;
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     throw new Error(`${pluginId} plugin config must use the current object setting`);
-  }
-
-  if (pluginId === JELLYFINEMBY_PLUGIN_ID) {
-    validateJellyfinembyPluginConfigForUpdate(config);
-  } else if (pluginId === TRANSCRIPTION_PLUGIN_ID) {
-    validateTranscriptionPluginConfigForUpdate(config);
-  } else if (pluginId === WORD_LOOKUP_PLUGIN_ID) {
-    validateWordLookupPluginConfigForUpdate(config);
   }
 }
 
@@ -102,8 +78,8 @@ function validatePluginSettingsSnapshot(input: unknown): void {
     throw new Error("plugins settings must use the current object setting");
   }
   const source = input as Record<string, unknown>;
-  for (const pluginId of BUILTIN_PLUGIN_IDS) {
-    validatePluginSettingsRecordForUpdate(pluginId, source[pluginId]);
+  for (const [pluginId, record] of Object.entries(source)) {
+    validatePluginSettingsRecordForUpdate(pluginId, record);
   }
 }
 
@@ -145,9 +121,6 @@ export function validateSettingsForUpdate(
       throw new Error("plugins settings must use the current object setting");
     }
     for (const [pluginId, record] of Object.entries(plugins as Record<string, unknown>)) {
-      if (!isBuiltinPluginId(pluginId)) {
-        throw new Error(`plugins contains unknown plugin: ${pluginId}`);
-      }
       validatePluginSettingsRecordForUpdate(pluginId, record);
     }
   }

@@ -1,14 +1,10 @@
-import type { WordLookupPluginConfig } from "../main/plugins/official/wordLookup/wordLookupTypes.js";
-
-const DEFAULT_WORD_LOOKUP_PANEL_SIZE = {
-  width: 360,
-  height: 300
-};
+import type { WordLookupPluginConfig } from "./wordLookupTypes.js";
 
 export const DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG: WordLookupPluginConfig = {
   wordListPath: "",
   modifierKey: "alt",
-  panelSize: DEFAULT_WORD_LOOKUP_PANEL_SIZE
+  panelWidth: 360,
+  panelHeight: 300
 };
 
 export const WORD_LOOKUP_PANEL_SIZE_LIMITS = {

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-const SCAN_DIRS = ["apps/desktop-app/src", "apps/extension/src", "packages"];
+const SCAN_DIRS = ["apps/desktop-app/src", "apps/extension/src", "packages", "plugins"];
 const SKIP_DIRS = new Set(["node_modules", "dist", "build", ".turbo", "out"]);
 const EXT = new Set([".ts", ".tsx", ".mts", ".cts", ".vue", ".js", ".mjs", ".cjs"]);
 

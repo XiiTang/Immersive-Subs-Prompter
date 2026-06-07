@@ -2,8 +2,6 @@ import type {
   AppSettings,
   DesktopState,
   GlobalSettings,
-  JellyfinembyPluginConfig,
-  JellyfinembyServerConfig,
   NetworkSettings,
   PlaybackState,
   ProfileDefinition,
@@ -12,14 +10,13 @@ import type {
   SubtitleCacheSettings,
   SubtitleTrack,
   PluginSettingsRecord,
-  TranscriptionPluginConfig,
   TranscriptionState,
   VideoControlCommand
 } from "../../../main/types";
 import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { RendererApi } from "../../../preload.cts";
-import type { WordLookupPluginConfig } from "../../plugins/wordLookupTypes";
+import type { PluginManifest } from "../../../main/plugins/pluginManifest";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 
@@ -69,11 +66,6 @@ interface DesktopStoreActions {
   removePriority(role: "primary" | "secondary", value: string): void;
   reorderPriority(role: "primary" | "secondary", fromIndex: number, toIndex: number): void;
 
-  // media server
-  addMediaServerConfig(): string | null;
-  updateMediaServerConfig(configId: string, patch: Partial<JellyfinembyServerConfig>): void;
-  deleteMediaServerConfig(configId: string): void;
-
   // rules
   addRule(payload: Omit<ProfileRule, "id">): void;
   deleteRule(ruleId: string): void;
@@ -81,13 +73,14 @@ interface DesktopStoreActions {
 
   // plugins
   refreshPluginCatalog(): Promise<void>;
-  enablePlugin(pluginId: string): Promise<void>;
-  disablePlugin(pluginId: string): Promise<void>;
-  setPluginConfig(pluginId: string, config: PluginSettingsRecord["config"]): void;
-  isPluginEnabled(pluginId: string): boolean;
-  getTranscriptionPluginConfig(): TranscriptionPluginConfig;
-  getWordLookupPluginConfig(): WordLookupPluginConfig;
-  getJellyfinembyPluginConfig(): JellyfinembyPluginConfig;
+  previewPluginInstall(sourceUrl: string): Promise<PluginManifest>;
+  installPlugin(sourceUrl: string, confirmedManifest: PluginManifest): Promise<void>;
+  updatePlugin(pluginKey: string): Promise<void>;
+  deletePlugin(pluginKey: string): Promise<void>;
+  enablePlugin(pluginKey: string): Promise<void>;
+  disablePlugin(pluginKey: string): Promise<void>;
+  setPluginConfig(pluginKey: string, config: PluginSettingsRecord["config"]): void;
+  isPluginEnabled(pluginKey: string): boolean;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

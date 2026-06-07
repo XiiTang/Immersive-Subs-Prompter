@@ -219,4 +219,51 @@ describe("ConnectionManager network listeners", () => {
     expect(stateManager.setSubtitleTracks).not.toHaveBeenCalled();
     expect(stateManager.state.status).toBe("loading-subtitles");
   });
+
+  it("waits for async connection message handlers before falling back to extension subtitle loading", async () => {
+    const network: NetworkSettings = {
+      endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+      authToken: "0123456789abcdef0123456789abcdef"
+    };
+    const stateManager = createStateManager();
+    const bus = new AppEventBus();
+    const subtitleService = {
+      getSubtitles: vi.fn(async () => ({ tracks: [] }))
+    };
+    const manager = new ConnectionManager({
+      getNetworkSettings: () => network,
+      getSettings: () => makeSettings(network),
+      subtitleService: subtitleService as never,
+      stateManager: stateManager as never,
+      bus,
+      createWebSocketServer: () => new FakeWebSocketServer() as never
+    });
+    bus.on("connection:message", (event) => {
+      if (typeof (event as any).waitUntil === "function") {
+        (event as any).waitUntil(Promise.resolve().then(() => event.markHandled()));
+      }
+    });
+    const handleSocketMessage = (manager as unknown as {
+      handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+    }).handleSocketMessage.bind(manager);
+
+    await handleSocketMessage(
+      {},
+      Buffer.from(JSON.stringify({
+        source: "usp-extension",
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://example.test/watch",
+          videoSrc: "https://cdn.example.test/video.mp4",
+          site: "example",
+          title: "Example",
+          currentTime: 0,
+          paused: false
+        }
+      }))
+    );
+
+    expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
+  });
 });

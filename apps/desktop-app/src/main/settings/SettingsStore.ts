@@ -52,4 +52,11 @@ export class SettingsStore {
     this.data = next;
     return this.data;
   }
+
+  replace(next: AppSettings): AppSettings {
+    sanitizeSettings(next);
+    this.save(next);
+    this.data = next;
+    return this.data;
+  }
 }

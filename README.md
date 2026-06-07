@@ -8,7 +8,7 @@
 
 **A cross-platform subtitle enhancement tool for language learners and immersive viewing.** 🌐🎧
 
-This project combines a browser extension with an Electron desktop app. It extracts subtitles from streaming services — YouTube, Bilibili, Douyin, and even Jellyfinemby — and displays them on your desktop in a standalone, scrollable "teleprompter" panel. 🖥️📜
+This project combines a browser extension with an Electron desktop app. It extracts subtitles from streaming services such as YouTube, Bilibili, and Douyin, and can extend desktop capabilities through runtime-installed plugins such as word lookup, speech transcription, and Jellyfin / Emby media-library integration. Subtitles are displayed on your desktop in a standalone, scrollable "teleprompter" panel. 🖥️📜
 
 It unlocks the full potential of video subtitles and delivers an exceptional experience for both watching and learning. ✨
 
@@ -21,8 +21,8 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
   - **A–B repeat (single-sentence loop) 🔁:** Spot a tricky sentence? Click the "loop" button beside a subtitle line and the corresponding segment will replay continuously — perfect for listening drills and shadowing.
   - **Precise seeking 🎯:** Click the play button above a subtitle line to jump the video to that exact timestamp for quick review.
 
-- **Jellyfinemby media-library enhancements 🏠:**
-  - **Unified experience:** Not limited to web players — deep Jellyfinemby integration brings the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
+- **Plugin-based media-library enhancements 🏠:**
+  - **Unified experience:** Install the Jellyfin / Emby plugin to bring the same bilingual subtitles, teleprompter panel, and A–B repeat features to your personal media library.
 
 - **Transcription & note-taking 📝:**
   - **Scrollable transcript:** Present the entire video's subtitles as a searchable, scrollable transcript for fast browsing, locating, and copying.
@@ -41,7 +41,7 @@ This tool is more than a simple "subtitle viewer" — it transforms how you inte
 The extension (`apps/extension/`) runs in the page and continuously collects playback information (URL, play state, timestamp), pushing updates via WebSocket to the local desktop app (`apps/desktop-app/`). The desktop application is the control center and is responsible for:
 
 1. (For web pages) invoking `yt-dlp` to obtain all subtitle tracks for a given URL.
-2. (For Jellyfinemby) synchronizing session and subtitle information in real time via a WebSocket API.
+2. (For plugin media sources such as Jellyfin / Emby) receiving adapter events for session matching, subtitle tracks, and playback snapshots.
 3. Pairing selected subtitle tracks by cue timing and displaying them in a cue-anchored bilingual reader in the desktop panel.
 4. Enabling bidirectional control so clicking to seek, looping a segment, or sending play/pause commands from the subtitle panel can control the browser video.
 
@@ -124,6 +124,10 @@ Use the popup's "Desktop Apps" card to add multiple `ws://` endpoints; playback 
 - **Track Switching**: UI provides dropdown to select different languages/tracks, and the play button above each subtitle line jumps to the corresponding timestamp.
 - **Bidirectional Control**: Desktop app can initiate play / pause / seek commands, extension receives and directly controls video elements.
 
+### Plugins
+
+Desktop capabilities such as word lookup, speech transcription, and Jellyfin / Emby integration are installed as plugins from HTTPS plugin install links. The project-maintained plugins live in `plugins/*`; installable packages and remote manifests are generated into committed `plugin-repository/*` artifacts and served through GitHub raw URLs on the `main` branch. Open Settings -> Plugins, use a recommended entry or paste an install link, review the plugin author, version, package hash, and permissions, then install it. Installed plugins can be enabled, disabled, updated, or deleted. Recommended plugin entries are shortcuts to install links and use the same install, update, permission, and delete flow as any other plugin.
+
 ### Desktop Subtitle Reader
 
 The desktop subtitle panel is rendered as a cue-anchored reader rather than a chrome-heavy cue list. Layout is computed in the renderer with `@chenglou/pretext` 0.0.7 using a two-phase pipeline: transcript blocks are measured up front, then visible blocks materialize line text on demand for the virtualized viewport. Subtitle text is prepared with `white-space: pre-wrap` and `word-break: keep-all` so explicit cue breaks are preserved while CJK / Hangul wrapping stays closer to browser behavior. Cue actions are exposed as lightweight anchors on active or hovered reading blocks. The app does not attempt semantic alignment across downloaded subtitle tracks; primary and secondary subtitles are paired by cue timing only, so cue boundaries remain the source of truth.
@@ -142,6 +146,7 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `root` | `pnpm --filter @immersive-subs/extension typecheck` | Run the extension TypeScript compile check |
 | `root` | `pnpm --filter @immersive-subs/extension build` | Type-check and build the extension |
 | `root` | `pnpm --filter @immersive-subs/extension test` | Run the extension test suite |
+| `root` | `pnpm build:plugins` | Generate committed plugin artifacts under `plugin-repository/*` |
 | `root` | `pnpm --filter @immersive-subs/desktop-app dist:win/mac/linux` | Build Electron Forge distributables; run on the matching host platform |
 
 ## Deployment and Distribution

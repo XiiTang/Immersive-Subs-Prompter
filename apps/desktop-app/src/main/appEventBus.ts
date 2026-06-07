@@ -7,6 +7,7 @@ export interface ConnectionMessageEvent {
   resolvedUrl: string | null;
   handled: boolean;
   markHandled: () => void;
+  waitUntil: (promise: Promise<unknown>) => void;
 }
 
 export interface AppEventMap {

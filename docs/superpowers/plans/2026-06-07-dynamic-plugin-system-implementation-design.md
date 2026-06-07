@@ -13,7 +13,7 @@ This is the fused implementation plan. It intentionally removes the appendix-sty
 
 ## Goal
 
-Replace the bundled-only plugin toggle model with downloadable, deletable, isolated runtime plugins, then distribute the first three project-maintained plugins from this repository through GitHub raw HTTPS manifests.
+Replace the bundled-only plugin toggle model with downloadable, deletable, isolated runtime plugins, then distribute the first three project-maintained plugin entries from this repository through GitHub raw HTTPS manifests. The `transcription` plugin is the downloadable provider and settings entry for the host-owned transcription runtime; the desktop host keeps audio extraction, Whisper-compatible uploads, and Faster-Whisper process execution instead of granting downloaded plugins process or unrestricted filesystem access.
 
 The final system uses:
 
@@ -34,7 +34,7 @@ Use these final decisions everywhere:
 - `pluginKey = <author.id>/<id>` is the runtime identity.
 - Manifest `id` is a short plugin ID, not an `official.*` or globally unique dotted ID.
 - `author` is required in all remote and package manifests.
-- Registry records include `pluginKey`, `id`, and `author`.
+- Registry records include `pluginKey` and the installed manifest snapshot.
 - Plugin config lives under `settings.plugins[pluginKey]`.
 - Catalog rows and renderer actions use `pluginKey`.
 - Install paths expand the plugin key into path segments.
@@ -170,8 +170,8 @@ git commit -m "feat: add plugin author identity"
 - [ ] Add tests proving registry records are keyed by plugin key.
 - [ ] Add tests rejecting records whose `pluginKey` does not match `author.id` plus `id`.
 - [ ] Add path tests proving `xiitang/word-lookup` expands to `installed/xiitang/word-lookup/<version>/`.
-- [ ] Update installed record, catalog row, and recommended entry types to carry `pluginKey`, short `id`, and `author`.
-- [ ] Update registry validation to require `pluginKey`, `id`, `author`, `version`, `sourceUrl`, `enabled`, `status`, `permissions`, `error`, `installedAt`, and `updatedAt`.
+- [ ] Update installed record types to carry `pluginKey` plus the installed manifest snapshot; catalog rows and recommended entries still expose `pluginKey`, short `id`, and `author`.
+- [ ] Update registry validation to require `pluginKey`, `manifest`, `sourceUrl`, `enabled`, `status`, `error`, `installedAt`, and `updatedAt`.
 - [ ] Rename registry operation parameters from `pluginId` to `pluginKey`.
 - [ ] Ensure `getPlugin`, `writePlugin`, `updatePlugin`, and `deletePlugin` preserve the record key and reject mismatched identity.
 
@@ -180,13 +180,10 @@ Final type shape:
 ```ts
 export interface InstalledPluginRecord {
   pluginKey: string;
-  id: PluginManifest["id"];
-  author: PluginAuthor;
-  version: string;
+  manifest: PluginManifest;
   sourceUrl: string;
   enabled: boolean;
   status: LocalPluginStatus;
-  permissions: PluginPermission[];
   error: string | null;
   installedAt: string;
   updatedAt: string;
@@ -337,12 +334,12 @@ git commit -m "feat: gate plugin contributions by permission"
 - Modify: `apps/desktop-app/src/main/plugins/pluginManager.test.ts`
 
 - [ ] Use `pluginKey` for registry lookups, runtime maps, settings records, contribution cleanup, and catalog rows.
-- [ ] Keep install input as `sourceUrl` plus optional confirmed manifest.
+- [ ] Keep install input as `sourceUrl` plus required confirmed manifest.
 - [ ] Preview and install must refetch and reject if the manifest changed after confirmation.
 - [ ] Compute candidate and installed keys with `derivePluginKey`.
 - [ ] Reject update manifests whose derived key differs from the installed plugin key.
 - [ ] Reject same key plus same version.
-- [ ] Write registry records with `pluginKey`, short `id`, `author`, version, `sourceUrl`, status, permissions, error, and timestamps.
+- [ ] Write registry records with `pluginKey`, installed manifest snapshot, `sourceUrl`, status, error, and timestamps.
 - [ ] Create default config under `settings.plugins[pluginKey]` from manifest settings schema.
 - [ ] Delete config under `settings.plugins[pluginKey]` on uninstall.
 - [ ] Start runtimes from `getPluginInstallPath(rootDir, pluginKey, version)`.
@@ -579,7 +576,8 @@ pnpm --filter @immersive-subs/desktop-app typecheck:app
 - Modify `plugins/transcription/*`
 - Modify matching tests
 
-- [ ] Move provider-specific transcription logic into the downloadable `transcription` plugin.
+- [ ] Keep provider-specific transcription execution in the host transcription runtime.
+- [ ] Make the downloadable `transcription` plugin own provider registration, settings schema, config defaults, and config normalization before calling the host transcription runtime.
 - [ ] Register transcription behavior through `transcriptionProvider`.
 - [ ] Replace hard-coded official transcription command lookup with contribution-registry lookup.
 - [ ] Keep active video state, transcription status projection, cache placement, subtitle track injection/replacement, track selection, and renderer updates in the host.
@@ -956,7 +954,7 @@ Open the files listed above and compare them with the final identity rules in th
 
 - Write a registry test that stores a xiitang/word-lookup record keyed by pluginKey.
 - Write a registry test that rejects a map key whose record.pluginKey differs.
-- Write a registry test that rejects pluginKey values not derived from author.id plus id.
+- Write a registry test that rejects pluginKey values not derived from the stored manifest author.id plus id.
 - Write pluginPaths.test.ts for installed/<author.id>/<id>/<version>.
 - Update InstalledPluginRecord and PluginCatalogRow type shapes.
 
@@ -965,13 +963,10 @@ Plugin record shape:
 ```ts
 export interface InstalledPluginRecord {
   pluginKey: string;
-  id: PluginManifest["id"];
-  author: PluginAuthor;
-  version: string;
+  manifest: PluginManifest;
   sourceUrl: string;
   enabled: boolean;
   status: LocalPluginStatus;
-  permissions: PluginPermission[];
   error: string | null;
   installedAt: string;
   updatedAt: string;
@@ -1000,9 +995,9 @@ Expected: FAIL because records do not include pluginKey/author or install paths 
 
 - Update RecommendedPluginInstallLink to include pluginKey and author.
 - Update getPluginInstallPath and getPluginVersionsPath to split pluginKey.
-- Update registry validation keys and exact record validation.
+- Update registry validation keys and exact record validation for the plugin key plus installed manifest snapshot.
 - Rename registry method parameters from pluginId to pluginKey.
-- Update old registry test fixtures from community.word-lookup to community/word-lookup.
+- Update old registry test fixtures to current `pluginKey = <author.id>/<id>` records with short manifest IDs.
 - Keep implementation aligned to `pluginKey = <author.id>/<id>` wherever identity crosses file, process, IPC, settings, registry, or UI boundaries.
 - Do not add compatibility readers, migration branches, old-name aliases, catch-all fallbacks, or old host wrappers unless this plan explicitly asks for them.
 
@@ -1399,8 +1394,8 @@ Expected: FAIL because PluginManager is missing or still addresses records/setti
 
 - Import derivePluginKey into pluginManager.ts.
 - Use pluginKey for runtimes map keys.
-- Write InstalledPluginRecord with pluginKey/id/author.
-- Read installed manifests from plugin-key-derived install paths.
+- Write InstalledPluginRecord with pluginKey and the installed manifest snapshot.
+- Read runtime entry metadata from the installed manifest snapshot and plugin-key-derived install paths.
 - Ensure and delete settings under settings.plugins[pluginKey].
 - Project install, enable, update, delete, crash, timeout, and config refresh errors into catalog rows.
 - Broadcast catalog updates after every lifecycle transition.
@@ -1914,7 +1909,8 @@ Expected: FAIL because transcription handler still uses official.transcription o
 
 - [ ] **Step 4: Implement the final-state behavior**
 
-- Move provider-specific transcription logic into plugins/transcription.
+- Keep provider-specific transcription execution in the host transcription runtime.
+- Make plugins/transcription own provider registration, settings schema, config defaults, and config normalization before calling the host transcription runtime.
 - Use settings contribution ID transcription.settings.
 - Store config under settings.plugins["xiitang/transcription"].
 - Update renderer enable checks to use permissions.

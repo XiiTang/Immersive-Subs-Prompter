@@ -12,7 +12,7 @@
         class="settings-window-shell__content"
         data-testid="settings-content"
       >
-        <component :is="activeComponent" :key="currentSection" />
+        <component :is="activeComponent" :key="currentSection" :section-id="currentSection" />
       </main>
     </div>
   </section>
@@ -27,8 +27,8 @@ import SettingsNav from "./SettingsNav.vue";
 import { buildSettingsSections, type SettingsNavIconKey, type SettingsSectionId } from "./settingsSections";
 import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
-import { localizePluginSettingsTitle } from "../../plugins/pluginLocalization";
-import { resolvePluginSettingsComponent } from "../../plugins/pluginSettingsRegistry";
+import PluginSettingsSchema from "./PluginSettingsSchema.vue";
+import { encodePluginSettingsSectionKey } from "./pluginSettingsSectionKey";
 
 const store = useDesktopStore();
 const language = computed(() => normalizeLanguage(store.settings?.global.language ?? DEFAULT_LANGUAGE));
@@ -43,9 +43,9 @@ const pluginSections = computed(() => {
     .filter((p) => p.enabled)
     .flatMap((plugin) =>
       (plugin.settings ?? []).map((section) => ({
-        id: section.id,
-        label: localizePluginSettingsTitle(section.id, section.title, t),
-        icon: pluginSettingsIcon(section.id)
+        id: encodePluginSettingsSectionKey(plugin.pluginKey, section.id),
+        label: section.title,
+        icon: pluginSettingsIcon(plugin.id, section.id)
       }))
     );
 });
@@ -61,7 +61,7 @@ const hostComponentMap: Record<string, unknown> = {
 };
 
 function resolveComponent(sectionId: string): unknown {
-  return hostComponentMap[sectionId] ?? resolvePluginSettingsComponent(sectionId);
+  return hostComponentMap[sectionId] ?? PluginSettingsSchema;
 }
 
 const activeComponent = computed(() => resolveComponent(currentSection.value));
@@ -70,17 +70,18 @@ function selectSection(id: SettingsSectionId) {
   currentSection.value = id;
 }
 
-function pluginSettingsIcon(sectionId: string): SettingsNavIconKey | undefined {
-  switch (sectionId) {
-    case "official.transcription.settings":
-      return "transcription";
-    case "official.word-lookup.settings":
-      return "wordLookup";
-    case "official.jellyfinemby.settings":
-      return "mediaServer";
-    default:
-      return undefined;
+function pluginSettingsIcon(pluginId: string, sectionId: string): SettingsNavIconKey | undefined {
+  const identity = `${pluginId} ${sectionId}`;
+  if (identity.includes("transcription")) {
+    return "transcription";
   }
+  if (identity.includes("word-lookup") || identity.includes("lookup")) {
+    return "wordLookup";
+  }
+  if (identity.includes("jellyfin") || identity.includes("emby") || identity.includes("media")) {
+    return "mediaServer";
+  }
+  return undefined;
 }
 
 watch(

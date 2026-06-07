@@ -256,18 +256,23 @@ describe("desktop store profile selection", () => {
 
     bridge.emitPluginCatalog([
       {
-        id: "official.transcription",
+        pluginKey: "xiitang/transcription",
+        id: "transcription",
+        author: { id: "xiitang", name: "XiiTang" },
         version: "1.0.0",
         displayName: "Speech Transcription",
         description: "Transcribe video audio.",
+        sourceUrl: "https://plugins.example.test/transcription.json",
         enabled: true,
         status: "enabled",
         error: null,
+        permissions: ["settingsSchema", "transcriptionProvider"],
+        contributions: { transcription: true },
         settings: [
           {
-            id: "official.transcription.settings",
+            id: "transcription.settings",
             title: "Speech Transcription",
-            componentId: "official.transcription.settings"
+            schema: []
           }
         ]
       }
@@ -306,19 +311,6 @@ describe("desktop store profile selection", () => {
         value: originalUsp
       });
     }
-  });
-
-  it("requires main-sanitized transcription plugin settings", () => {
-    const store = useDesktopStore();
-    const settings = createSettings();
-    store.settings = {
-      ...settings,
-      plugins: {}
-    };
-
-    expect(() => store.getTranscriptionPluginConfig()).toThrow(
-      "Missing sanitized plugin config: official.transcription"
-    );
   });
 
   it("reorders profiles and removes a deleted profile's URL rules", () => {

@@ -1,25 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 import type { AppSettings } from "./main/types.js" with { "resolution-mode": "import" };
 import type { CacheStats } from "./main/subtitleCacheManager.js" with { "resolution-mode": "import" };
+import type { PluginManifest } from "./main/plugins/pluginManifest.js" with { "resolution-mode": "import" };
 
 type Listener<T> = (payload: T) => void;
-type FasterWhisperPaths = {
-  binaryDir: string;
-  modelsDir: string;
-  cpuBinaryPath: string;
-  gpuBinaryPath: string;
-};
-type FasterWhisperStatusResult =
-  | {
-      ok: true;
-      paths: FasterWhisperPaths;
-      binaryDownloadsSupported: boolean;
-      binaryDownloadUnsupportedReason: string | null;
-      binaries: { cpu: { exists: boolean; path: string }; gpu: { exists: boolean; path: string } };
-      models: Array<{ name: string; path: string; folder: string }>;
-      modelsBaseDir: string;
-    }
-  | { ok: false; error: string };
 
 function subscribe<T>(channel: string, listener: Listener<T>) {
   const wrapped = (_event: any, payload: T) => listener(payload);
@@ -40,32 +24,9 @@ const api = {
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
   onPluginCatalogChange: (listener: Listener<any[]>) => subscribe("usp:plugin-catalog", listener),
-  getFasterWhisperPaths: (): Promise<FasterWhisperPaths> => ipcRenderer.invoke("usp:faster-whisper-paths"),
-  getFasterWhisperStatus: (modelDir?: string): Promise<FasterWhisperStatusResult> =>
-    ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
-  onFasterWhisperDownloadProgress: (
-    listener: Listener<{
-      id: string;
-      type: "binary" | "model";
-      variant?: "cpu" | "gpu";
-      model?: string;
-      percent: number;
-      status: string;
-    }>
-  ) => subscribe("usp:faster-whisper-download-progress", listener),
-  downloadFasterWhisperBinary: (
-    payload: { variant: "cpu" | "gpu"; jobId?: string }
-  ): Promise<{ ok: boolean; path?: string; id?: string; error?: string }> =>
-    ipcRenderer.invoke("usp:faster-whisper-download-binary", payload),
-  downloadFasterWhisperModel: (
-    payload: { model: string; jobId?: string }
-  ): Promise<{ ok: boolean; path?: string; files?: string[]; id?: string; error?: string }> =>
-    ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
   openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
-  selectWordListFile: (): Promise<{ canceled: boolean; path: string | null }> =>
-    ipcRenderer.invoke("usp:select-word-list-file"),
   getCacheStats: (): Promise<CacheStats> =>
     ipcRenderer.invoke("usp:cache-stats"),
   openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder"),
@@ -78,13 +39,19 @@ const api = {
     ipcRenderer.invoke("usp:open-settings-window"),
   getPluginCatalog: (): Promise<any[]> =>
     ipcRenderer.invoke("usp:get-plugin-catalog"),
-  enablePlugin: (pluginId: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:enable-plugin", pluginId),
-  disablePlugin: (pluginId: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:disable-plugin", pluginId),
+  previewPluginInstall: (sourceUrl: string): Promise<any> =>
+    ipcRenderer.invoke("usp:preview-plugin-install", sourceUrl),
+  installPlugin: (sourceUrl: string, confirmedManifest: PluginManifest): Promise<any[]> =>
+    ipcRenderer.invoke("usp:install-plugin", sourceUrl, confirmedManifest),
+  updatePlugin: (pluginKey: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:update-plugin", pluginKey),
+  deletePlugin: (pluginKey: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:delete-plugin", pluginKey),
+  enablePlugin: (pluginKey: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:enable-plugin", pluginKey),
+  disablePlugin: (pluginKey: string): Promise<any[]> =>
+    ipcRenderer.invoke("usp:disable-plugin", pluginKey),
   lookupWord: (token: string): Promise<any> => ipcRenderer.invoke("usp:word-lookup", token),
-  refreshWordLookup: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-refresh"),
-  getWordLookupStatus: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-status"),
   openWordLookupWindow: (payload: any): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:word-lookup-window-open", payload),
   notifyWordLookupWindowPointerEnter: (): Promise<void> =>

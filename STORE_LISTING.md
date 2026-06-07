@@ -25,7 +25,7 @@ English: Captures video playback info and syncs with desktop app for immersive s
 • YouTube
 • Bilibili
 • Douyin
-• Jellyfin / Emby（需配合桌面应用和媒体服务器配置）
+• Jellyfin / Emby（需配合桌面应用和 Jellyfin / Emby 插件）
 
 **🔧 使用方法：**
 1. 安装此浏览器扩展
@@ -36,7 +36,7 @@ English: Captures video playback info and syncs with desktop app for immersive s
 • 不收集个人身份信息
 • 扩展设置保存在浏览器本地
 • 播放和页面元数据仅发送到你配置的桌面应用 WebSocket 地址
-• 如启用 Whisper-compatible API、媒体服务器或字幕下载，相关请求由桌面应用按你的配置发起
+• 如启用 Whisper-compatible API、媒体服务器插件或字幕下载，相关请求由桌面应用按你的配置发起
 
 **📧 联系我们：**
 问题反馈或功能建议请发送邮件至 sheixunixitang3@gmail.com
@@ -58,7 +58,7 @@ English: Captures video playback info and syncs with desktop app for immersive s
 • YouTube
 • Bilibili
 • Douyin
-• Jellyfin / Emby with the desktop app and media server configuration
+• Jellyfin / Emby with the desktop app and Jellyfin / Emby plugin
 
 **🔧 How to Use:**
 1. Install this browser extension
@@ -69,7 +69,7 @@ English: Captures video playback info and syncs with desktop app for immersive s
 • No personal identity data collection
 • Extension settings are stored locally in your browser
 • Playback and page metadata is sent only to desktop app WebSocket endpoints you configure
-• If enabled, Whisper-compatible APIs, media servers, or subtitle downloads are contacted by the desktop app according to your settings
+• If enabled, Whisper-compatible APIs, media server plugins, or subtitle downloads are contacted by the desktop app according to your settings
 
 **📧 Contact:**
 For feedback or feature requests: sheixunixitang3@gmail.com

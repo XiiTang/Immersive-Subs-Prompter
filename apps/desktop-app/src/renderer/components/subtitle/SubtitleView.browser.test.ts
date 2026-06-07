@@ -7,13 +7,12 @@ import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
-import {
-  JELLYFINEMBY_PLUGIN_ID,
-  TRANSCRIPTION_PLUGIN_ID,
-  WORD_LOOKUP_PLUGIN_ID
-} from "../../../common/pluginIds.js";
-import { createDefaultTranscriptionPluginConfig } from "../../../common/transcriptionDefaults.js";
 import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "../../../common/wordLookupDefaults.js";
+
+const TEST_AUTHOR = { id: "test", name: "Test" };
+const TRANSCRIPTION_PLUGIN_KEY = "test/transcription";
+const WORD_LOOKUP_PLUGIN_KEY = "test/word-lookup";
+const JELLYFINEMBY_PLUGIN_KEY = "test/jellyfinemby";
 
 const topControlPanelStub = defineComponent({
   name: "TopControlPanelStub",
@@ -84,6 +83,28 @@ function createProfile(): ProfileDefinition {
   };
 }
 
+function createTranscriptionPluginConfig(): Record<string, unknown> {
+  return {
+    provider: "whisper-api",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "",
+    model: "whisper-1",
+    language: "",
+    prompt: "",
+    enableWordTimestamps: false,
+    extraParamsJson: "{}",
+    ytDlpArgs: "",
+    fasterWhisperBinary: "faster-whisper",
+    fasterWhisperModel: "base",
+    fasterWhisperModelDir: "",
+    fasterWhisperDevice: "cpu",
+    fasterWhisperVadFilter: true,
+    fasterWhisperVadThreshold: 0.5,
+    fasterWhisperVadMethod: "",
+    fasterWhisperUseKim2: false
+  };
+}
+
 function createSettings(): AppSettings {
   return {
     global: {
@@ -106,14 +127,15 @@ function createSettings(): AppSettings {
     defaultProfileId: "profile-1",
     rules: [],
     plugins: {
-      [JELLYFINEMBY_PLUGIN_ID]: { config: { servers: [] } },
-      [TRANSCRIPTION_PLUGIN_ID]: {
-        config: createDefaultTranscriptionPluginConfig() as unknown as Record<string, unknown>
+      [JELLYFINEMBY_PLUGIN_KEY]: { config: { servers: [] } },
+      [TRANSCRIPTION_PLUGIN_KEY]: {
+        config: createTranscriptionPluginConfig()
       },
-      [WORD_LOOKUP_PLUGIN_ID]: {
+      [WORD_LOOKUP_PLUGIN_KEY]: {
         config: {
           ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG,
-          panelSize: { ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelSize }
+          panelWidth: DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelWidth,
+          panelHeight: DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelHeight
         } as unknown as Record<string, unknown>
       }
     },
@@ -756,13 +778,18 @@ describe("SubtitleView", () => {
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.transcription",
+        pluginKey: TRANSCRIPTION_PLUGIN_KEY,
+        id: "transcription",
+        author: TEST_AUTHOR,
         version: "1.0.0",
         displayName: "Speech Transcription",
         description: "Transcribe video audio.",
+        sourceUrl: "https://plugins.example.test/transcription.json",
         status: "disabled",
         enabled: false,
-        error: null
+        error: null,
+        permissions: ["transcriptionProvider"],
+        contributions: { transcription: true }
       }
     ];
 
@@ -831,11 +858,12 @@ describe("SubtitleView", () => {
       ...settings,
       plugins: {
         ...settings.plugins,
-        [WORD_LOOKUP_PLUGIN_ID]: {
+        [WORD_LOOKUP_PLUGIN_KEY]: {
           config: {
             wordListPath: "/tmp/words.jsonl",
             modifierKey: "alt",
-            panelSize: { width: 360, height: 300 }
+            panelWidth: 360,
+            panelHeight: 300
           }
         }
       }
@@ -845,13 +873,18 @@ describe("SubtitleView", () => {
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.word-lookup",
+        pluginKey: WORD_LOOKUP_PLUGIN_KEY,
+        id: "word-lookup",
+        author: TEST_AUTHOR,
         version: "1.0.0",
         displayName: "Word Lookup",
         description: "Look up words.",
+        sourceUrl: "https://plugins.example.test/word-lookup.json",
         status: "enabled",
         enabled: true,
-        error: null
+        error: null,
+        permissions: ["wordLookupProvider"],
+        contributions: { wordLookup: true }
       }
     ];
 
@@ -953,11 +986,12 @@ describe("SubtitleView", () => {
       ...settings,
       plugins: {
         ...settings.plugins,
-        [WORD_LOOKUP_PLUGIN_ID]: {
+        [WORD_LOOKUP_PLUGIN_KEY]: {
           config: {
             wordListPath: "/tmp/words.jsonl",
             modifierKey: "alt",
-            panelSize: { width: 360, height: 300 }
+            panelWidth: 360,
+            panelHeight: 300
           }
         }
       }
@@ -967,13 +1001,18 @@ describe("SubtitleView", () => {
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.word-lookup",
+        pluginKey: WORD_LOOKUP_PLUGIN_KEY,
+        id: "word-lookup",
+        author: TEST_AUTHOR,
         version: "1.0.0",
         displayName: "Word Lookup",
         description: "Look up words.",
+        sourceUrl: "https://plugins.example.test/word-lookup.json",
         status: "enabled",
         enabled: true,
-        error: null
+        error: null,
+        permissions: ["wordLookupProvider"],
+        contributions: { wordLookup: true }
       }
     ];
 

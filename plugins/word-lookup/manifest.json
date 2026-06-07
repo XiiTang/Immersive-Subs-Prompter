@@ -1,0 +1,39 @@
+{
+  "id": "word-lookup",
+  "author": {
+    "id": "xiitang",
+    "name": "XiiTang",
+    "url": "https://github.com/XiiTang"
+  },
+  "version": "1.0.0",
+  "displayName": "Word Lookup",
+  "description": "Look up subtitle words from a JSONL word list.",
+  "appCompatibility": { "minVersion": "1.0.0" },
+  "entry": { "main": "main.js" },
+  "permissions": ["settingsSchema", "readSelectedFile", "wordLookupProvider"],
+  "contributions": {
+    "settings": [
+      {
+        "id": "word-lookup.settings",
+        "title": "Word Lookup",
+        "schema": [
+          { "id": "wordListPath", "label": "Word List Path", "type": "file", "defaultValue": "" },
+          {
+            "id": "modifierKey",
+            "label": "Trigger Key",
+            "type": "select",
+            "defaultValue": "alt",
+            "options": [
+              { "value": "alt", "label": "Alt / Option" },
+              { "value": "ctrl", "label": "Ctrl / Command" },
+              { "value": "shift", "label": "Shift" }
+            ]
+          },
+          { "id": "panelWidth", "label": "Panel Width", "type": "number", "defaultValue": 360 },
+          { "id": "panelHeight", "label": "Panel Height", "type": "number", "defaultValue": 300 }
+        ]
+      }
+    ],
+    "wordLookup": true
+  }
+}

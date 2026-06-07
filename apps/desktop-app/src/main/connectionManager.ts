@@ -347,15 +347,22 @@ export class ConnectionManager {
 
     this.rememberTabSocket(tabId, socket);
     const resolvedUrl = type === "video-context" ? this.resolveVideoUrl(payload) : null;
+    const pendingHandlers: Promise<unknown>[] = [];
     const event: ConnectionMessageEvent = {
       message,
       resolvedUrl,
       handled: false,
       markHandled() {
         this.handled = true;
+      },
+      waitUntil(promise) {
+        pendingHandlers.push(Promise.resolve(promise));
       }
     };
     this.options.bus.emit("connection:message", event);
+    for (let index = 0; index < pendingHandlers.length; index += 1) {
+      await pendingHandlers[index];
+    }
     if (event.handled) {
       return;
     }

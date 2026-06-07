@@ -9,6 +9,7 @@ import { useDesktopStore } from "../../stores/desktop";
 import type { AppSettings } from "../../../main/types";
 
 const rendererStylesheet = readFileSync(resolve(process.cwd(), "src/renderer/style.css"), "utf8");
+const AUTHOR = { id: "xiitang", name: "XiiTang", url: "https://github.com/XiiTang" };
 
 const sectionStub = (testId: string) =>
   defineComponent({
@@ -100,23 +101,28 @@ describe("SettingsWindowShell", () => {
     expect(shellHeaderText).toBe("设置");
   });
 
-  it("only mounts transcription settings when the transcription plugin is enabled", async () => {
+  it("only mounts transcription schema settings when the transcription plugin is enabled", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("en");
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.transcription",
+        pluginKey: "xiitang/transcription",
+        id: "transcription",
+        author: AUTHOR,
         version: "1.0.0",
         displayName: "Speech Transcription",
         description: "Transcribe video audio.",
+        sourceUrl: "https://plugins.example.test/transcription.json",
         status: "disabled",
         enabled: false,
         error: null,
+        permissions: ["settingsSchema", "transcriptionProvider"],
         settings: [
           {
-            id: "official.transcription.settings",
-            title: "Speech Transcription"
+            id: "transcription.settings",
+            title: "Speech Transcription",
+            schema: [{ id: "model", label: "Model", type: "string", defaultValue: "whisper-1" }]
           }
         ]
       }
@@ -128,13 +134,12 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content"),
-          SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
     });
 
-    expect(wrapper.find('[data-testid="settings-nav-item-official.transcription.settings"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-xiitang/transcription::transcription.settings"]').exists()).toBe(false);
 
     store.pluginCatalog = [
       {
@@ -146,12 +151,12 @@ describe("SettingsWindowShell", () => {
 
     await nextTick();
 
-    expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-plugin-official-transcription-content"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="settings-nav-item-xiitang/transcription::transcription.settings"]').exists()).toBe(true);
+    expect(wrapper.find('input[value="whisper-1"]').exists()).toBe(false);
 
-    await wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').trigger("click");
+    await wrapper.get('[data-testid="settings-nav-item-xiitang/transcription::transcription.settings"]').trigger("click");
 
-    expect(wrapper.get('[data-testid="settings-section-plugin-official-transcription-content"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("Model");
   });
 
   it("shows Jellyfin / Emby settings only when the plugin is enabled", async () => {
@@ -160,17 +165,22 @@ describe("SettingsWindowShell", () => {
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.jellyfinemby",
+        pluginKey: "xiitang/jellyfinemby",
+        id: "jellyfinemby",
+        author: AUTHOR,
         version: "1.0.0",
         displayName: "Jellyfin / Emby",
         description: "Sync playback and subtitles from Jellyfin or Emby media servers.",
+        sourceUrl: "https://plugins.example.test/jellyfinemby.json",
         status: "disabled",
         enabled: false,
         error: null,
+        permissions: ["settingsSchema", "mediaSourceAdapter"],
         settings: [
           {
-            id: "official.jellyfinemby.settings",
-            title: "Jellyfin / Emby"
+            id: "jellyfinemby.settings",
+            title: "Jellyfin / Emby",
+            schema: [{ id: "serverUrl", label: "Server URL", type: "string", defaultValue: "" }]
           }
         ]
       }
@@ -182,13 +192,12 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content"),
-          SettingsMediaServer: sectionStub("settings-section-plugin-official-jellyfinemby-content")
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
     });
 
-    expect(wrapper.find('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-xiitang/jellyfinemby::jellyfinemby.settings"]').exists()).toBe(false);
 
     store.pluginCatalog = [
       {
@@ -200,31 +209,36 @@ describe("SettingsWindowShell", () => {
 
     await nextTick();
 
-    expect(wrapper.get('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="settings-nav-item-xiitang/jellyfinemby::jellyfinemby.settings"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("Server URL");
 
-    await wrapper.get('[data-testid="settings-nav-item-official.jellyfinemby.settings"]').trigger("click");
+    await wrapper.get('[data-testid="settings-nav-item-xiitang/jellyfinemby::jellyfinemby.settings"]').trigger("click");
 
-    expect(wrapper.get('[data-testid="settings-section-plugin-official-jellyfinemby-content"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("Server URL");
   });
 
-  it("localizes official plugin navigation titles in Chinese", async () => {
+  it("uses plugin-provided navigation titles without official localization", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("zh");
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.transcription",
+        pluginKey: "xiitang/transcription",
+        id: "transcription",
+        author: AUTHOR,
         version: "1.0.0",
         displayName: "Speech Transcription",
         description: "Transcribe video audio.",
+        sourceUrl: "https://plugins.example.test/transcription.json",
         status: "enabled",
         enabled: true,
         error: null,
+        permissions: ["settingsSchema", "transcriptionProvider"],
         settings: [
           {
-            id: "official.transcription.settings",
-            title: "Speech Transcription"
+            id: "transcription.settings",
+            title: "Speech Transcription",
+            schema: []
           }
         ]
       }
@@ -236,49 +250,58 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content"),
-          SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"]').text()).toContain("语音转写");
+      expect(wrapper.get('[data-testid="settings-nav-item-xiitang/transcription::transcription.settings"]').text()).toContain("Speech Transcription");
     });
   });
 
-  it("shows icons for built-in and known official plugin navigation items", async () => {
+  it("shows icons for built-in and known plugin navigation items", async () => {
     const store = useDesktopStore();
     store.settings = createSettings("en");
     store.editingProfileId = "profile-1";
     store.pluginCatalog = [
       {
-        id: "official.transcription",
+        pluginKey: "xiitang/transcription",
+        id: "transcription",
+        author: AUTHOR,
         version: "1.0.0",
         displayName: "Speech Transcription",
         description: "Transcribe video audio.",
+        sourceUrl: "https://plugins.example.test/transcription.json",
         status: "enabled",
         enabled: true,
         error: null,
+        permissions: ["settingsSchema", "transcriptionProvider"],
         settings: [
           {
-            id: "official.transcription.settings",
-            title: "Speech Transcription"
+            id: "transcription.settings",
+            title: "Speech Transcription",
+            schema: []
           }
         ]
       },
       {
-        id: "custom.unknown",
+        pluginKey: "custom/unknown",
+        id: "unknown",
+        author: { id: "custom", name: "Custom" },
         version: "1.0.0",
         displayName: "Custom Unknown",
         description: "Unknown third-party plugin.",
+        sourceUrl: "https://plugins.example.test/custom.json",
         status: "enabled",
         enabled: true,
         error: null,
+        permissions: ["settingsSchema"],
         settings: [
           {
-            id: "custom.unknown.settings",
-            title: "Custom Unknown"
+            id: "unknown.settings",
+            title: "Custom Unknown",
+            schema: []
           }
         ]
       }
@@ -290,8 +313,7 @@ describe("SettingsWindowShell", () => {
         stubs: {
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content"),
-          SettingsTranscription: sectionStub("settings-section-plugin-official-transcription-content")
+          SettingsPlugins: sectionStub("settings-section-plugins-content")
         }
       }
     });
@@ -299,8 +321,8 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-nav-item-general"] .settings-nav__icon').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-nav-item-profiles"] .settings-nav__icon').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-nav-item-plugins"] .settings-nav__icon').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="settings-nav-item-official.transcription.settings"] .settings-nav__icon').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="settings-nav-item-custom.unknown.settings"] .settings-nav__icon').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="settings-nav-item-xiitang/transcription::transcription.settings"] .settings-nav__icon').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="settings-nav-item-custom/unknown::unknown.settings"] .settings-nav__icon').exists()).toBe(false);
   });
 
   it("keeps settings controls outside Electron drag regions", () => {

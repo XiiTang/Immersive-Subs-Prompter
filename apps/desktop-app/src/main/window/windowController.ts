@@ -1,13 +1,12 @@
+import { app } from "electron";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
 import { SettingsStore } from "../settings/SettingsStore.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
-import { AppSettings, DesktopState, PlaybackState, TranscriptionPluginConfig } from "../types.js";
-import { MediaServerController } from "../mediaServerController.js";
+import { AppSettings, DesktopState, PlaybackState, TranscriptionConfig } from "../types.js";
 import { TranscriptionService } from "../transcriptionService.js";
-import { FasterWhisperManager } from "../fasterWhisperManager.js";
 import { AutoLaunchManager } from "./autoLaunchManager.js";
 import { DisplayManager } from "./displayManager.js";
 import { GameProcessMonitor } from "./gameProcessMonitor.js";
@@ -18,18 +17,11 @@ import { SettingsWindowManager } from "./settingsWindowManager.js";
 import { WordLookupWindowManager } from "./wordLookupWindowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
-import { PluginHost } from "../plugins/pluginHost.js";
 import { PluginRegistryStore } from "../plugins/pluginRegistryStore.js";
-import { getRegistryPath } from "../plugins/pluginPaths.js";
-import { TRANSCRIPTION_MANIFEST } from "../plugins/official/transcription/manifest.js";
-import { registerTranscriptionPluginMain } from "../plugins/official/transcription/registerMain.js";
-import { WORD_LOOKUP_MANIFEST } from "../plugins/official/wordLookup/manifest.js";
-import { registerWordLookupPluginMain } from "../plugins/official/wordLookup/registerMain.js";
-import type { WordLookupPluginConfig } from "../plugins/official/wordLookup/wordLookupTypes.js";
-import { JELLYFINEMBY_MANIFEST } from "../plugins/official/jellyfinemby/manifest.js";
-import { registerJellyfinembyPluginMain } from "../plugins/official/jellyfinemby/registerMain.js";
-import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../common/pluginIds.js";
+import { getPluginRootPath, getRegistryPath } from "../plugins/pluginPaths.js";
+import { PluginManager } from "../plugins/pluginManager.js";
 import { areNetworkSettingsEqual } from "../networkSettings.js";
+import { MediaSourceController } from "../mediaSources/mediaSourceController.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -37,9 +29,7 @@ type WindowControllerOptions = {
   connectionManager: ConnectionManager;
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
-  mediaServerController: MediaServerController;
   transcriptionService: TranscriptionService;
-  fasterWhisperManager: FasterWhisperManager;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
 };
@@ -55,7 +45,8 @@ export class WindowController {
   private readonly wordLookupWindowManager: WordLookupWindowManager;
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
-  private readonly pluginHost: PluginHost;
+  private readonly pluginManager: PluginManager;
+  private readonly mediaSourceController: MediaSourceController;
 
   constructor(private readonly options: WindowControllerOptions) {
     this.displayManager = new DisplayManager(options.stateManager);
@@ -99,38 +90,33 @@ export class WindowController {
       onUnblocked: () => this.shortcutManager.unblockAfterGame()
     });
 
-    const registryStore = new PluginRegistryStore(getRegistryPath());
-    this.pluginHost = new PluginHost(registryStore);
-    this.pluginHost.registerBundledPlugin(TRANSCRIPTION_MANIFEST, () =>
-      registerTranscriptionPluginMain({
-        stateManager: this.options.stateManager,
-        transcriptionService: this.options.transcriptionService,
-        cacheManager: this.options.cacheManager,
-        getTranscriptionSettings: () =>
-          this.options.getSettings().plugins[TRANSCRIPTION_PLUGIN_ID]?.config as unknown as TranscriptionPluginConfig,
-        logger: this.log
-      })
-    );
-    this.pluginHost.registerBundledPlugin(WORD_LOOKUP_MANIFEST, () =>
-      registerWordLookupPluginMain({
-        getWordLookupSettings: () =>
-          this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config as unknown as WordLookupPluginConfig
-      })
-    );
-    this.pluginHost.registerBundledPlugin(JELLYFINEMBY_MANIFEST, () =>
-      registerJellyfinembyPluginMain({
-        mediaServerController: this.options.mediaServerController
-      })
-    );
+    const pluginRoot = getPluginRootPath();
+    const registryStore = new PluginRegistryStore(getRegistryPath(pluginRoot));
+    this.pluginManager = new PluginManager({
+      rootDir: pluginRoot,
+      registryStore,
+      appVersion: app.getVersion(),
+      getSettings: this.options.getSettings,
+      replaceSettings: (settings) => this.replaceAppSettings(settings),
+      transcriptionRuntime: {
+        transcribe: (videoUrl, config) =>
+          this.options.transcriptionService.transcribe(videoUrl, config as unknown as TranscriptionConfig)
+      },
+      onCatalogChanged: () => this.pushPluginCatalog(),
+      onPluginContributionsRemoved: (pluginId) => this.mediaSourceController.handlePluginRemoved(pluginId)
+    });
+    this.mediaSourceController = new MediaSourceController({
+      bus: this.options.bus,
+      stateManager: this.options.stateManager,
+      getAdapters: () => this.pluginManager.getMediaSourceAdapters()
+    });
 
     this.ipcRouter = new IpcRouter({
       stateManager: this.options.stateManager,
       connectionManager: this.options.connectionManager,
       settingsStore: this.options.settingsStore,
       cacheManager: this.options.cacheManager,
-      transcriptionService: this.options.transcriptionService,
-      fasterWhisperManager: this.options.fasterWhisperManager,
-      pluginHost: this.pluginHost,
+      pluginManager: this.pluginManager,
       getSettings: this.options.getSettings,
       setSettings: this.options.setSettings,
       updateAppSettings: (partial) => this.updateAppSettings(partial),
@@ -155,9 +141,10 @@ export class WindowController {
     this.applyGlobalShortcut();
     this.trayManager.ensureTray();
     this.gameProcessMonitor.start();
+    this.mediaSourceController.start();
     this.setupBusListeners();
     this.ipcRouter.register();
-    this.pluginHost.loadEnabledPlugins().catch((err) => {
+    this.pluginManager.loadEnabledPlugins().catch((err) => {
       this.log.error("Failed to load enabled plugins", err);
     });
     this.windowManager.createWindow();
@@ -167,7 +154,9 @@ export class WindowController {
     this.gameProcessMonitor.stop();
     this.shortcutManager.clearRegistration();
     this.options.cacheManager.stop();
-    this.options.mediaServerController.deactivate();
+    void Promise.all([this.pluginManager.shutdown(), this.mediaSourceController.stop()]).catch((error) => {
+      this.log.error("Failed to stop plugin runtime", error);
+    });
     this.options.connectionManager.stop();
     this.trayManager.destroy();
   }
@@ -240,7 +229,7 @@ export class WindowController {
   }
 
   private async pushPluginCatalog() {
-    const catalog = await this.pluginHost.listCatalog();
+    const catalog = await this.pluginManager.listCatalog();
     this.windowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
     this.settingsWindowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
   }
@@ -257,7 +246,6 @@ export class WindowController {
     const appSettings = this.options.settingsStore.update(partial);
     this.options.setSettings(appSettings);
     this.options.stateManager.handleSettingsUpdated(previous);
-    this.options.mediaServerController.handleSettingsUpdated();
 
     if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
       this.autoLaunchManager.apply(appSettings.global.autoLaunch);
@@ -279,6 +267,7 @@ export class WindowController {
     if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
       this.options.connectionManager.applyNetworkSettings();
     }
+    this.refreshPluginRuntimeSettings();
 
     this.options.bus.emit("state:changed", this.options.stateManager.getState());
     this.pushSettings();
@@ -286,14 +275,58 @@ export class WindowController {
     return appSettings;
   }
 
+  private replaceAppSettings(next: AppSettings) {
+    const previous = this.options.getSettings();
+    const previousGlobal = previous.global;
+    const previousNetwork = previous.network;
+    const appSettings = this.options.settingsStore.replace(next);
+    this.options.setSettings(appSettings);
+    this.options.stateManager.handleSettingsUpdated(previous);
+
+    if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
+      this.autoLaunchManager.apply(appSettings.global.autoLaunch);
+    }
+    if (previousGlobal.toggleWindowShortcut !== appSettings.global.toggleWindowShortcut) {
+      this.applyGlobalShortcut();
+    }
+    if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop) {
+      this.windowManager.updateAlwaysOnTop(appSettings.global.alwaysOnTop);
+      this.wordLookupWindowManager.updateAlwaysOnTop();
+    }
+    if (previousGlobal.language !== appSettings.global.language) {
+      this.trayManager.updateLanguage();
+    }
+    if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
+      this.options.connectionManager.applyNetworkSettings();
+    }
+    this.refreshPluginRuntimeSettings();
+
+    this.options.bus.emit("state:changed", this.options.stateManager.getState());
+    this.pushSettings();
+    this.gameProcessMonitor.refresh();
+    return appSettings;
+  }
+
+  private refreshPluginRuntimeSettings() {
+    void this.pluginManager.refreshRuntimeConfigs()
+      .catch((error) => {
+        this.log.error("Failed to refresh plugin runtime settings", error);
+      });
+  }
+
   private updateWordLookupPanelSize(size: { width: number; height: number }) {
-    const currentConfig = this.options.getSettings().plugins[WORD_LOOKUP_PLUGIN_ID]?.config;
+    const pluginId = this.pluginManager.getWordLookupProvider()?.pluginId;
+    if (!pluginId) {
+      return;
+    }
+    const currentConfig = this.options.getSettings().plugins[pluginId]?.config;
     this.updateAppSettings({
       plugins: {
-        [WORD_LOOKUP_PLUGIN_ID]: {
+        [pluginId]: {
           config: {
             ...(currentConfig && typeof currentConfig === "object" ? currentConfig : {}),
-            panelSize: size
+            panelWidth: size.width,
+            panelHeight: size.height
           }
         }
       }

@@ -2,7 +2,6 @@ import { app } from "electron";
 import { AppEventBus } from "./appEventBus.js";
 import { StateManager } from "./stateManager.js";
 import { ConnectionManager } from "./connectionManager.js";
-import { MediaServerController } from "./mediaServerController.js";
 import { WindowController } from "./window/windowController.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { SubtitleService } from "./subtitleService.js";
@@ -10,7 +9,6 @@ import { YtDlpManager } from "./ytDlpManager.js";
 import { TranscriptionService } from "./transcriptionService.js";
 import { SettingsStore } from "./settings/SettingsStore.js";
 import { AppSettings } from "./types.js";
-import { FasterWhisperManager } from "./fasterWhisperManager.js";
 import { resolveBundledResource } from "./resourcePaths.js";
 
 let appSettings: AppSettings;
@@ -34,7 +32,6 @@ app.whenReady().then(() => {
   const cacheManager = new SubtitleCacheManager(() => getSettings().cache);
   const ytDlpManager = new YtDlpManager();
   const transcriptionService = new TranscriptionService(() => ytDlpManager.getBinaryPath());
-  const fasterWhisperManager = new FasterWhisperManager();
   const stateManager = new StateManager(bus, getSettings);
   const subtitleService = new SubtitleService(
     () => ytDlpManager.getBinaryPath(),
@@ -48,28 +45,18 @@ app.whenReady().then(() => {
     stateManager,
     bus
   });
-  const mediaServerController = new MediaServerController({
-    bus,
-    stateManager,
-    getSettings,
-    cacheManager
-  });
-
   windowController = new WindowController({
     bus,
     stateManager,
     connectionManager,
     settingsStore,
     cacheManager,
-    mediaServerController,
     transcriptionService,
-    fasterWhisperManager,
     getSettings,
     setSettings
   });
 
   windowController.initialize();
-  mediaServerController.start();
   connectionManager.start();
 
   app.on("activate", () => {

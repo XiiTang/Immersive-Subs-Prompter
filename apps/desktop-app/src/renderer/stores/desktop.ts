@@ -15,7 +15,6 @@ import { DEFAULT_PANEL_OPACITY, DEFAULT_PROFILE_TEMPLATE } from "./desktop/defau
 import type { RendererApi } from "../../preload.cts";
 import { settingsActions } from "./desktop/actions/settingsActions";
 import { profileActions } from "./desktop/actions/profileActions";
-import { mediaServerActions } from "./desktop/actions/mediaServerActions";
 import { ruleActions } from "./desktop/actions/ruleActions";
 import { pluginActions } from "./desktop/actions/pluginActions";
 import { cacheActions } from "./desktop/actions/cacheActions";
@@ -80,7 +79,6 @@ export const useDesktopStore = defineStore("desktop", {
     ...initActions,
     ...settingsActions,
     ...profileActions,
-    ...mediaServerActions,
     ...ruleActions,
     ...pluginActions,
     ...cacheActions,

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS_FACTORY,
-  sanitizeSettings
+  sanitizeSettings,
+  validateSettingsForUpdate
 } from "./appSettingsSanitizer.js";
 import type { AppSettings } from "../types.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
@@ -34,7 +35,7 @@ describe("appSettingsSanitizer", () => {
       );
     });
 
-    it("keeps saved plugin records without pruning unknown plugin ids", () => {
+    it("keeps saved dynamic plugin records without pruning by plugin id", () => {
       const settings = DEFAULT_SETTINGS_FACTORY() as AppSettings & {
         plugins: AppSettings["plugins"] & Record<string, { config: Record<string, unknown> }>;
       };
@@ -43,6 +44,17 @@ describe("appSettingsSanitizer", () => {
       expect(sanitizeSettings(settings).plugins["custom.lookup"]).toEqual({
         config: { enabled: true }
       });
+    });
+
+    it("allows settings updates for dynamic plugin config records", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          { plugins: { "xiitang/word-lookup": { config: { wordListPath: "/tmp/words.jsonl" } } } },
+          settings
+        )
+      ).not.toThrow();
     });
 
     it("uses explicit product defaults from the factory", () => {
@@ -77,6 +89,7 @@ describe("appSettingsSanitizer", () => {
       expect(settings.ytDlpArgs).toBe(DEFAULT_YTDLP_ARGS);
       expect(result.cache.enabled).toBe(true);
       expect(result.cache.retentionDays).toBe(7);
+      expect(result.plugins).toEqual({});
     });
 
     it("returns a fresh object on each factory invocation", () => {
@@ -84,9 +97,8 @@ describe("appSettingsSanitizer", () => {
       const b = DEFAULT_SETTINGS_FACTORY();
       expect(a).not.toBe(b);
       expect(a.profiles).not.toBe(b.profiles);
-      expect(a.plugins["official.jellyfinemby"]?.config).not.toBe(
-        b.plugins["official.jellyfinemby"]?.config
-      );
+      a.plugins["xiitang/word-lookup"] = { config: { wordListPath: "a" } };
+      expect(b.plugins["xiitang/word-lookup"]).toBeUndefined();
     });
   });
 });

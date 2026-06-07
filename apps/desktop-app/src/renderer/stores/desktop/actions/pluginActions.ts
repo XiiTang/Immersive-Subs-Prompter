@@ -1,27 +1,38 @@
-import type {
-  JellyfinembyPluginConfig,
-  PluginSettingsRecord,
-  TranscriptionPluginConfig
-} from "../../../../main/types";
-import { JELLYFINEMBY_PLUGIN_ID, TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../../common/pluginIds.js";
+import type { PluginSettingsRecord } from "../../../../main/types";
+import type { PluginManifest } from "../../../../main/plugins/pluginManifest";
 import type { DesktopStoreThis } from "../types";
-import type { WordLookupPluginConfig } from "../../../plugins/wordLookupTypes";
 
 export async function refreshPluginCatalog(this: DesktopStoreThis) {
   this.pluginCatalog = await window.usp.getPluginCatalog();
 }
 
-export async function enablePlugin(this: DesktopStoreThis, pluginId: string) {
-  this.pluginCatalog = await window.usp.enablePlugin(pluginId);
+export async function previewPluginInstall(this: DesktopStoreThis, sourceUrl: string): Promise<PluginManifest> {
+  return window.usp.previewPluginInstall(sourceUrl);
 }
 
-export async function disablePlugin(this: DesktopStoreThis, pluginId: string) {
-  this.pluginCatalog = await window.usp.disablePlugin(pluginId);
+export async function installPlugin(this: DesktopStoreThis, sourceUrl: string, confirmedManifest: PluginManifest) {
+  this.pluginCatalog = await window.usp.installPlugin(sourceUrl, confirmedManifest);
+}
+
+export async function updatePlugin(this: DesktopStoreThis, pluginKey: string) {
+  this.pluginCatalog = await window.usp.updatePlugin(pluginKey);
+}
+
+export async function deletePlugin(this: DesktopStoreThis, pluginKey: string) {
+  this.pluginCatalog = await window.usp.deletePlugin(pluginKey);
+}
+
+export async function enablePlugin(this: DesktopStoreThis, pluginKey: string) {
+  this.pluginCatalog = await window.usp.enablePlugin(pluginKey);
+}
+
+export async function disablePlugin(this: DesktopStoreThis, pluginKey: string) {
+  this.pluginCatalog = await window.usp.disablePlugin(pluginKey);
 }
 
 export function setPluginConfig(
   this: DesktopStoreThis,
-  pluginId: string,
+  pluginKey: string,
   config: PluginSettingsRecord["config"]
 ) {
   if (!this.settings) {
@@ -29,42 +40,23 @@ export function setPluginConfig(
   }
   this.updateSettings({
     plugins: {
-      [pluginId]: { config }
+      [pluginKey]: { config }
     }
   });
 }
 
-export function isPluginEnabled(this: DesktopStoreThis, pluginId: string) {
-  return this.pluginCatalog.some((plugin) => plugin.id === pluginId && plugin.enabled);
-}
-
-function getRequiredPluginConfig<T>(store: DesktopStoreThis, pluginId: string): T {
-  const config = store.settings?.plugins[pluginId]?.config;
-  if (!config || typeof config !== "object" || Array.isArray(config)) {
-    throw new Error(`Missing sanitized plugin config: ${pluginId}`);
-  }
-  return config as unknown as T;
-}
-
-export function getTranscriptionPluginConfig(this: DesktopStoreThis): TranscriptionPluginConfig {
-  return getRequiredPluginConfig<TranscriptionPluginConfig>(this, TRANSCRIPTION_PLUGIN_ID);
-}
-
-export function getWordLookupPluginConfig(this: DesktopStoreThis): WordLookupPluginConfig {
-  return getRequiredPluginConfig<WordLookupPluginConfig>(this, WORD_LOOKUP_PLUGIN_ID);
-}
-
-export function getJellyfinembyPluginConfig(this: DesktopStoreThis): JellyfinembyPluginConfig {
-  return getRequiredPluginConfig<JellyfinembyPluginConfig>(this, JELLYFINEMBY_PLUGIN_ID);
+export function isPluginEnabled(this: DesktopStoreThis, pluginKey: string) {
+  return this.pluginCatalog.some((plugin) => plugin.pluginKey === pluginKey && plugin.enabled);
 }
 
 export const pluginActions = {
   refreshPluginCatalog,
+  previewPluginInstall,
+  installPlugin,
+  updatePlugin,
+  deletePlugin,
   enablePlugin,
   disablePlugin,
   setPluginConfig,
-  isPluginEnabled,
-  getTranscriptionPluginConfig,
-  getWordLookupPluginConfig,
-  getJellyfinembyPluginConfig
+  isPluginEnabled
 };

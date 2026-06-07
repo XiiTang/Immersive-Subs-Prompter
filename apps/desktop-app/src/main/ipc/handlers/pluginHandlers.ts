@@ -1,45 +1,48 @@
 import { ipcMain } from "electron";
-import { WORD_LOOKUP_PLUGIN_ID } from "../../../common/pluginIds.js";
+import type { PluginManifest } from "../../plugins/pluginManifest.js";
 import { IpcContext } from "../ipcRouter.js";
 
 export function registerPluginHandlers(context: IpcContext) {
   ipcMain.handle("usp:get-plugin-catalog", async () => {
-    return context.pluginHost.listCatalog();
+    return context.pluginManager.listCatalog();
   });
 
-  ipcMain.handle("usp:enable-plugin", async (_event, pluginId: string) => {
-    await context.pluginHost.enable(pluginId);
-    await context.pushPluginCatalog();
-    return context.pluginHost.listCatalog();
+  ipcMain.handle("usp:preview-plugin-install", async (_event, sourceUrl: string) => {
+    return context.pluginManager.previewInstall(sourceUrl);
   });
 
-  ipcMain.handle("usp:disable-plugin", async (_event, pluginId: string) => {
-    await context.pluginHost.disable(pluginId);
+  ipcMain.handle("usp:install-plugin", async (_event, sourceUrl: string, confirmedManifest: PluginManifest) => {
+    const catalog = await context.pluginManager.install(sourceUrl, confirmedManifest);
     await context.pushPluginCatalog();
-    return context.pluginHost.listCatalog();
+    return catalog;
+  });
+
+  ipcMain.handle("usp:update-plugin", async (_event, pluginKey: string) => {
+    const catalog = await context.pluginManager.update(pluginKey);
+    await context.pushPluginCatalog();
+    return catalog;
+  });
+
+  ipcMain.handle("usp:delete-plugin", async (_event, pluginKey: string) => {
+    const catalog = await context.pluginManager.delete(pluginKey);
+    await context.pushPluginCatalog();
+    return catalog;
+  });
+
+  ipcMain.handle("usp:enable-plugin", async (_event, pluginKey: string) => {
+    const catalog = await context.pluginManager.enable(pluginKey);
+    await context.pushPluginCatalog();
+    return catalog;
+  });
+
+  ipcMain.handle("usp:disable-plugin", async (_event, pluginKey: string) => {
+    const catalog = await context.pluginManager.disable(pluginKey);
+    await context.pushPluginCatalog();
+    return catalog;
   });
 
   ipcMain.handle("usp:word-lookup", async (_event, token: string) => {
-    const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "lookup");
-    if (!command) {
-      throw new Error("Word Lookup plugin is not enabled.");
-    }
-    return command(token);
+    return context.pluginManager.lookupWord(token);
   });
 
-  ipcMain.handle("usp:word-lookup-refresh", async () => {
-    const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "refresh");
-    if (!command) {
-      throw new Error("Word Lookup plugin is not enabled.");
-    }
-    return command();
-  });
-
-  ipcMain.handle("usp:word-lookup-status", async () => {
-    const command = context.pluginHost.getCommand(WORD_LOOKUP_PLUGIN_ID, "getStatus");
-    if (!command) {
-      throw new Error("Word Lookup plugin is not enabled.");
-    }
-    return command();
-  });
 }

@@ -57,7 +57,7 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
     profiles: [createTopPanelProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    plugins: { "official.jellyfinemby": { config: { servers: [] } } },
+    plugins: {},
     cache: {
       enabled: false,
       path: "",

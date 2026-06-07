@@ -8,14 +8,6 @@ import type {
   SubtitleCacheSettings
 } from "../main/types.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "./subtitleFonts.js";
-import {
-  JELLYFINEMBY_PLUGIN_ID,
-  TRANSCRIPTION_PLUGIN_ID,
-  WORD_LOOKUP_PLUGIN_ID
-} from "./pluginIds.js";
-import { createDefaultTranscriptionPluginConfig } from "./transcriptionDefaults.js";
-import { createDefaultJellyfinembyPluginConfig } from "./jellyfinembyDefaults.js";
-import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "./wordLookupDefaults.js";
 import { DEFAULT_YTDLP_ARGS } from "./ytdlpDefaults.js";
 
 export const DEFAULT_PROFILE_ID = "default-profile";
@@ -122,17 +114,7 @@ export function createDefaultAppSettings(options: DefaultAppSettingsOptions): Ap
     profiles: createDefaultProfiles(),
     defaultProfileId: DEFAULT_PROFILE_ID,
     rules: createDefaultRules(),
-    plugins: {
-      [JELLYFINEMBY_PLUGIN_ID]: {
-        config: createDefaultJellyfinembyPluginConfig() as unknown as Record<string, unknown>
-      },
-      [TRANSCRIPTION_PLUGIN_ID]: {
-        config: createDefaultTranscriptionPluginConfig() as unknown as Record<string, unknown>
-      },
-      [WORD_LOOKUP_PLUGIN_ID]: {
-        config: cloneWordLookupPluginConfig() as unknown as Record<string, unknown>
-      }
-    },
+    plugins: {},
     cache: { ...DEFAULT_CACHE_SETTINGS }
   };
 }
@@ -206,12 +188,5 @@ function cloneProfileSettings(settings: ProfileSettings): ProfileSettings {
     ...settings,
     primarySubtitlePriority: [...settings.primarySubtitlePriority],
     secondarySubtitlePriority: [...settings.secondarySubtitlePriority]
-  };
-}
-
-function cloneWordLookupPluginConfig() {
-  return {
-    ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG,
-    panelSize: { ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelSize }
   };
 }

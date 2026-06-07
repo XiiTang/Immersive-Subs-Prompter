@@ -21,7 +21,7 @@ The first project-maintained plugins are:
 - `transcription`
 - `jellyfinemby`
 
-These three capabilities become normal downloadable plugins. Their code is not bundled as privileged desktop plugin code, and each can be deleted like any other plugin.
+These three capabilities are exposed through normal downloadable plugins, and each can be deleted like any other plugin. `word-lookup` and `jellyfinemby` own their provider-specific runtime logic inside the downloaded plugin package. `transcription` is a downloadable provider and settings plugin for the host-owned transcription runtime, because audio extraction, Whisper-compatible uploads, and Faster-Whisper process execution stay in the desktop host instead of granting downloaded plugins process or unrestricted filesystem access.
 
 ## Final-State Decisions
 
@@ -72,7 +72,7 @@ Plugin manifests use a short plugin ID and an author object:
 }
 ```
 
-`id` is the plugin short name. `author.id` is the publisher short name. Both must be path-safe strings. `author.name` is required display text. `author.url` is optional, but when present it must be an HTTPS URL.
+`id` is the plugin short name. `author.id` is the publisher short name. Both must be path-safe strings using letters, digits, `_`, or `-`; globally dotted plugin IDs are rejected. `author.name` is required display text. `author.url` is optional, but when present it must be an HTTPS URL.
 
 The desktop app derives the internal plugin key:
 
@@ -148,7 +148,7 @@ Install flow:
 2. The renderer fetches and validates the remote manifest for preview.
 3. The confirmation shows plugin key, author, version, compatibility, package URL, package hash, and requested permissions.
 4. The confirmed manifest is sent to the main process with the source URL.
-5. The main process refetches the manifest and rejects the install if the freshly fetched manifest differs from the confirmed manifest.
+5. The main process rejects install requests that do not include the confirmed manifest, refetches the manifest, and rejects the install if the freshly fetched manifest differs from the confirmed manifest.
 6. The app downloads, verifies, extracts, and installs the package.
 7. The Settings page updates with installed status or an actionable error.
 
@@ -187,7 +187,7 @@ Install flow:
 
 1. Fetch the remote manifest over HTTPS.
 2. Validate exact manifest shape, app compatibility, author, safe `author.id`, safe `id`, safe version, safe entry, permissions, network declarations, and contributions.
-3. Reject install if the manifest changed after user confirmation.
+3. Reject install if the confirmed manifest is missing or the manifest changed after user confirmation.
 4. Reject same plugin key and same version.
 5. Download the package over HTTPS into `userData/plugins/tmp/<job-id>/`.
 6. Verify `sha256`.
@@ -219,16 +219,15 @@ userData/plugins/
 Registry records store:
 
 - `pluginKey`
-- `id`
-- `author`
-- `version`
+- `manifest`
 - `sourceUrl`
 - `enabled`
 - `status`
-- `permissions`
 - `error`
 - `installedAt`
 - `updatedAt`
+
+The stored manifest is the current installed manifest snapshot. Catalog rows are rendered from this snapshot, so a failed partial delete can still show an actionable broken row even when files under `installed/` are incomplete.
 
 Supported statuses:
 
@@ -326,8 +325,11 @@ The host owns:
 - subtitle track insertion and replacement
 - track selection
 - renderer updates
+- audio extraction
+- Whisper-compatible API uploads
+- Faster-Whisper process execution
 
-The plugin owns provider-specific transcription logic and config interpretation.
+The plugin owns provider registration, settings schema, config defaults, and config normalization before it calls the host transcription runtime.
 
 ### Media Source Adapter
 
@@ -369,7 +371,7 @@ The host consumes those events and updates the shared state machine. Connection 
 
 `word-lookup` becomes a normal downloadable word lookup provider plugin. The host keeps hover, floating UI, markdown rendering, and resize behavior.
 
-`transcription` becomes a normal downloadable transcription provider plugin. The host keeps active video state, cache integration, status updates, and subtitle track injection.
+`transcription` becomes a normal downloadable transcription provider and settings plugin. The host keeps active video state, cache integration, status updates, subtitle track injection, audio extraction, Whisper-compatible API uploads, and Faster-Whisper process execution.
 
 `jellyfinemby` becomes a normal downloadable media source adapter plugin. It owns Jellyfin/Emby URL and item detection, server connections, sessions, subtitle stream fetching, and playback snapshot conversion. The host keeps state projection and UI behavior.
 
@@ -408,7 +410,7 @@ Runtime config refresh failures, including media-source adapter settings refresh
 
 Update failures before replacement keep the current installed version active. If replacement fails after the old plugin was stopped, the host restarts the previous version when it was enabled before the update.
 
-Delete stops the plugin first, then removes installed files, registry state, and config. If file deletion fails, the UI reports the error and the registry is not silently rewritten as deleted.
+Delete stops the plugin first, then removes installed files, registry state, and config. If file deletion fails, the UI reports the error and the registry is not silently rewritten as deleted; if the stopped runtime cannot be restored because the install directory is incomplete, the catalog keeps a readable `broken` row with the delete and restore errors.
 
 ## Documentation
 

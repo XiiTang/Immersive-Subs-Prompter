@@ -1,12 +1,14 @@
 import { ipcMain } from "electron";
+import { startPluginTranscription } from "../../pluginTranscriptionController.js";
 import { IpcContext } from "../ipcRouter.js";
 
 export function registerTranscriptionHandlers(context: IpcContext) {
   ipcMain.handle("usp:start-transcription", async () => {
-    const run = context.pluginHost?.getCommand("official.transcription", "startTranscription");
-    if (!run) {
-      throw new Error("Speech Transcription plugin is not enabled.");
-    }
-    return run();
+    return startPluginTranscription({
+      stateManager: context.stateManager,
+      cacheManager: context.cacheManager,
+      pluginManager: context.pluginManager,
+      getPluginConfig: (pluginId) => context.getSettings().plugins[pluginId]?.config ?? {}
+    });
   });
 }

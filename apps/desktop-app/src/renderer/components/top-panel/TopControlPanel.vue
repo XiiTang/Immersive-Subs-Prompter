@@ -150,7 +150,6 @@ import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { UiIconButton, UiSlider, UiTooltip } from "../ui";
 import { IconFullscreen, IconLock, IconPin, IconSettings } from "../icons";
-import { JELLYFINEMBY_PLUGIN_ID } from "../../../common/pluginIds.js";
 
 interface SubtitleTrackOption {
   id: string;
@@ -259,14 +258,13 @@ const connectionText = computed(() => {
     return t("connection-connecting");
   }
   const browser = store.desktopState.connectionCount;
-  const jellyfinembyEnabled = store.pluginCatalog.some(
-    (plugin) => plugin.id === JELLYFINEMBY_PLUGIN_ID && plugin.enabled
+  const mediaSourceEnabled = store.pluginCatalog.some(
+    (plugin) => plugin.enabled && plugin.contributions?.mediaSource
   );
-  if (jellyfinembyEnabled) {
-    const pluginConfig = store.settings?.plugins[JELLYFINEMBY_PLUGIN_ID]?.config as
-      | { servers?: Array<{ enabled?: boolean }> }
-      | undefined;
-    const mediaServer = pluginConfig?.servers?.filter((server) => server.enabled).length ?? 0;
+  if (mediaSourceEnabled) {
+    const mediaServer = store.desktopState.mediaServer.connected
+      ? Math.max(1, store.desktopState.mediaServer.sessions.length)
+      : 0;
     return t("connection-extension-mediaserver", {
       browser,
       mediaServer

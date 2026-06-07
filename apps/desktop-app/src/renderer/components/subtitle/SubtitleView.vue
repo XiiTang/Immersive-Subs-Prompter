@@ -86,8 +86,8 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
 import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
 import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
-import { TRANSCRIPTION_PLUGIN_ID, WORD_LOOKUP_PLUGIN_ID } from "../../../common/pluginIds.js";
 import type { WordHoverPayload, WordLeavePayload, WordLookupResult } from "../../plugins/wordLookupTypes";
+import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "../../../common/wordLookupDefaults.js";
 
 const store = useDesktopStore();
 const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
@@ -96,12 +96,33 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
-const transcriptionEnabled = computed(() => store.isPluginEnabled(TRANSCRIPTION_PLUGIN_ID));
-const wordLookupEnabled = computed(() => store.isPluginEnabled(WORD_LOOKUP_PLUGIN_ID));
-const wordLookupConfig = computed(() => store.getWordLookupPluginConfig());
-const transcriptionPluginConfig = computed(() => store.getTranscriptionPluginConfig());
+const transcriptionProviderPlugin = computed(() =>
+  store.pluginCatalog.find((plugin) => plugin.enabled && plugin.contributions?.transcription) ?? null
+);
+const wordLookupProviderPlugin = computed(() =>
+  store.pluginCatalog.find((plugin) => plugin.enabled && plugin.contributions?.wordLookup) ?? null
+);
+const transcriptionEnabled = computed(() => Boolean(transcriptionProviderPlugin.value));
+const wordLookupEnabled = computed(() => Boolean(wordLookupProviderPlugin.value));
+const wordLookupConfig = computed(() => {
+  const pluginKey = wordLookupProviderPlugin.value?.pluginKey;
+  const rawConfig = pluginKey ? store.settings?.plugins[pluginKey]?.config ?? {} : {};
+  const modifierKey = rawConfig.modifierKey === "ctrl" || rawConfig.modifierKey === "shift"
+    ? rawConfig.modifierKey
+    : "alt";
+  return {
+    wordListPath: typeof rawConfig.wordListPath === "string" ? rawConfig.wordListPath : "",
+    modifierKey,
+    panelSize: {
+      width: typeof rawConfig.panelWidth === "number" ? rawConfig.panelWidth : DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelWidth,
+      height: typeof rawConfig.panelHeight === "number" ? rawConfig.panelHeight : DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelHeight
+    }
+  };
+});
 const transcriptionConfigs = computed(() => (
-  transcriptionEnabled.value ? transcriptionPluginConfig.value.configs : []
+  transcriptionProviderPlugin.value
+    ? [{ id: transcriptionProviderPlugin.value.pluginKey, name: transcriptionProviderPlugin.value.displayName }]
+    : []
 ));
 const transcriptionConfigNames = computed(() =>
   transcriptionConfigs.value
@@ -303,16 +324,11 @@ const sliderFillStyle = computed(() => {
 });
 
 const activeTranscriptionId = computed({
-  get: () => transcriptionPluginConfig.value.activeConfigId,
+  get: () => transcriptionProviderPlugin.value?.pluginKey ?? "",
   set: (value: string) => {
-    const configs = transcriptionPluginConfig.value.configs;
-    if (!configs.some((config) => config.id === value)) {
+    if (value !== transcriptionProviderPlugin.value?.pluginKey) {
       return;
     }
-    store.setPluginConfig(TRANSCRIPTION_PLUGIN_ID, {
-      ...transcriptionPluginConfig.value,
-      activeConfigId: value
-    });
   }
 });
 const isTranscribing = computed(() => transcriptionState.value?.status === "running");
