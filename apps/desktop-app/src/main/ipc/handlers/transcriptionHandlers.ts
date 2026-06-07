@@ -8,7 +8,7 @@ export function registerTranscriptionHandlers(context: IpcContext) {
       stateManager: context.stateManager,
       cacheManager: context.cacheManager,
       pluginManager: context.pluginManager,
-      getPluginConfig: (pluginId) => context.getSettings().plugins[pluginId]?.config ?? {}
+      getPluginConfig: (pluginKey) => context.getSettings().plugins[pluginKey]?.config ?? {}
     });
   });
 }

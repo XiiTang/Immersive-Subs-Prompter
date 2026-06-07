@@ -70,8 +70,8 @@ function selectSection(id: SettingsSectionId) {
   currentSection.value = id;
 }
 
-function pluginSettingsIcon(pluginId: string, sectionId: string): SettingsNavIconKey | undefined {
-  const identity = `${pluginId} ${sectionId}`;
+function pluginSettingsIcon(pluginShortId: string, sectionId: string): SettingsNavIconKey | undefined {
+  const identity = `${pluginShortId} ${sectionId}`;
   if (identity.includes("transcription")) {
     return "transcription";
   }

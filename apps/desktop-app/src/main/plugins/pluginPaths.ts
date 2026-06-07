@@ -19,11 +19,11 @@ export function getInstalledPluginsPath(rootDir = getPluginRootPath()): string {
 }
 
 export function getPluginInstallPath(rootDir: string, pluginKey: string, version: string): string {
-  const { authorId, pluginId } = splitPluginKey(pluginKey);
-  return path.join(getInstalledPluginsPath(rootDir), authorId, pluginId, version);
+  const { authorId, pluginShortId } = splitPluginKey(pluginKey);
+  return path.join(getInstalledPluginsPath(rootDir), authorId, pluginShortId, version);
 }
 
 export function getPluginVersionsPath(rootDir: string, pluginKey: string): string {
-  const { authorId, pluginId } = splitPluginKey(pluginKey);
-  return path.join(getInstalledPluginsPath(rootDir), authorId, pluginId);
+  const { authorId, pluginShortId } = splitPluginKey(pluginKey);
+  return path.join(getInstalledPluginsPath(rootDir), authorId, pluginShortId);
 }

@@ -23,17 +23,17 @@ const GLOBAL_SETTINGS_KEYS = [
 ] as const;
 const CACHE_SETTINGS_KEYS = Object.keys(DEFAULT_CACHE_SETTINGS);
 
-function validatePluginSettingsRecordForUpdate(pluginId: string, record: unknown): void {
+function validatePluginSettingsRecordForUpdate(pluginKey: string, record: unknown): void {
   if (!record || typeof record !== "object" || Array.isArray(record)) {
-    throw new Error(`${pluginId} plugin settings must use the current object setting`);
+    throw new Error(`${pluginKey} plugin settings must use the current object setting`);
   }
-  assertNoUnknownKeys(record as Record<string, unknown>, PLUGIN_SETTINGS_RECORD_KEYS, `${pluginId} plugin settings`);
+  assertNoUnknownKeys(record as Record<string, unknown>, PLUGIN_SETTINGS_RECORD_KEYS, `${pluginKey} plugin settings`);
   if (!Object.prototype.hasOwnProperty.call(record, "config")) {
-    throw new Error(`${pluginId} plugin settings must include the current config object`);
+    throw new Error(`${pluginKey} plugin settings must include the current config object`);
   }
   const config = (record as { config?: unknown }).config;
   if (!config || typeof config !== "object" || Array.isArray(config)) {
-    throw new Error(`${pluginId} plugin config must use the current object setting`);
+    throw new Error(`${pluginKey} plugin config must use the current object setting`);
   }
 }
 
@@ -78,8 +78,8 @@ function validatePluginSettingsSnapshot(input: unknown): void {
     throw new Error("plugins settings must use the current object setting");
   }
   const source = input as Record<string, unknown>;
-  for (const [pluginId, record] of Object.entries(source)) {
-    validatePluginSettingsRecordForUpdate(pluginId, record);
+  for (const [pluginKey, record] of Object.entries(source)) {
+    validatePluginSettingsRecordForUpdate(pluginKey, record);
   }
 }
 
@@ -120,8 +120,8 @@ export function validateSettingsForUpdate(
     if (!plugins || typeof plugins !== "object" || Array.isArray(plugins)) {
       throw new Error("plugins settings must use the current object setting");
     }
-    for (const [pluginId, record] of Object.entries(plugins as Record<string, unknown>)) {
-      validatePluginSettingsRecordForUpdate(pluginId, record);
+    for (const [pluginKey, record] of Object.entries(plugins as Record<string, unknown>)) {
+      validatePluginSettingsRecordForUpdate(pluginKey, record);
     }
   }
   if (Object.prototype.hasOwnProperty.call(input, "cache")) {

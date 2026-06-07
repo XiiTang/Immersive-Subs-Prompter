@@ -26,7 +26,7 @@ export interface PluginRuntime {
 }
 
 interface PluginRuntimeStartInput {
-  pluginId: string;
+  pluginKey: string;
   entryPath: string;
   permissions: PluginManifest["permissions"];
   config: Record<string, unknown>;
@@ -57,7 +57,7 @@ export interface PluginManagerOptions {
     transcribe(videoUrl: string, config: Record<string, unknown>): Promise<SubtitleTrack>;
   };
   onCatalogChanged?: () => Promise<void> | void;
-  onPluginContributionsRemoved?: (pluginId: string) => Promise<void> | void;
+  onPluginContributionsRemoved?: (pluginKey: string) => Promise<void> | void;
 }
 
 export class PluginManager {
@@ -261,8 +261,8 @@ export class PluginManager {
   }
 
   async shutdown(): Promise<void> {
-    for (const pluginId of Array.from(this.runtimes.keys())) {
-      await this.stopRuntime(pluginId);
+    for (const pluginKey of Array.from(this.runtimes.keys())) {
+      await this.stopRuntime(pluginKey);
     }
   }
 
@@ -313,15 +313,15 @@ export class PluginManager {
     return this.contributions.lookupWord(token);
   }
 
-  getWordLookupProvider(): { pluginId: string; provider: WordLookupProvider } | null {
+  getWordLookupProvider(): { pluginKey: string; provider: WordLookupProvider } | null {
     return this.contributions.getWordLookupProvider();
   }
 
-  getTranscriptionProvider(): { pluginId: string; provider: TranscriptionProvider } | null {
+  getTranscriptionProvider(): { pluginKey: string; provider: TranscriptionProvider } | null {
     return this.contributions.getTranscriptionProvider();
   }
 
-  getMediaSourceAdapters(): Array<{ pluginId: string; adapter: MediaSourceAdapter }> {
+  getMediaSourceAdapters(): Array<{ pluginKey: string; adapter: MediaSourceAdapter }> {
     return this.contributions.getMediaSourceAdapters();
   }
 
@@ -332,7 +332,7 @@ export class PluginManager {
     await assertRuntimeEntryExists(entryPath, record.pluginKey);
     let runtime: PluginRuntime | null = null;
     runtime = await this.createRuntime({
-      pluginId: record.pluginKey,
+      pluginKey: record.pluginKey,
       entryPath,
       permissions: manifest.permissions,
       config,
@@ -352,14 +352,14 @@ export class PluginManager {
   }
 
   private async stopRuntime(
-    pluginId: string,
+    pluginKey: string,
     options: { notifyContributionsRemoved?: boolean } = {}
   ): Promise<boolean> {
-    const runtime = this.runtimes.get(pluginId);
-    this.runtimes.delete(pluginId);
-    const hadContributions = this.contributions.unregisterPlugin(pluginId);
+    const runtime = this.runtimes.get(pluginKey);
+    this.runtimes.delete(pluginKey);
+    const hadContributions = this.contributions.unregisterPlugin(pluginKey);
     if (hadContributions && options.notifyContributionsRemoved !== false) {
-      await this.notifyPluginContributionsRemoved(pluginId);
+      await this.notifyPluginContributionsRemoved(pluginKey);
     }
     if (runtime) {
       await runtime.stop();
@@ -367,17 +367,17 @@ export class PluginManager {
     return hadContributions;
   }
 
-  private async handleRuntimeExit(pluginId: string, error: Error): Promise<void> {
-    if (!this.runtimes.has(pluginId)) {
+  private async handleRuntimeExit(pluginKey: string, error: Error): Promise<void> {
+    if (!this.runtimes.has(pluginKey)) {
       return;
     }
-    this.runtimes.delete(pluginId);
-    const hadContributions = this.contributions.unregisterPlugin(pluginId);
+    this.runtimes.delete(pluginKey);
+    const hadContributions = this.contributions.unregisterPlugin(pluginKey);
     if (hadContributions) {
-      await this.notifyPluginContributionsRemoved(pluginId);
+      await this.notifyPluginContributionsRemoved(pluginKey);
     }
-    this.log.error(`Plugin "${pluginId}" runtime exited`, error);
-    await this.options.registryStore.updatePlugin(pluginId, {
+    this.log.error(`Plugin "${pluginKey}" runtime exited`, error);
+    await this.options.registryStore.updatePlugin(pluginKey, {
       enabled: false,
       status: "broken",
       error: error.message
@@ -424,33 +424,33 @@ export class PluginManager {
     }
   }
 
-  private async notifyPluginContributionsRemoved(pluginId: string): Promise<void> {
+  private async notifyPluginContributionsRemoved(pluginKey: string): Promise<void> {
     try {
-      await this.options.onPluginContributionsRemoved?.(pluginId);
+      await this.options.onPluginContributionsRemoved?.(pluginKey);
     } catch (error) {
-      this.log.error(`Failed to notify plugin contribution removal for "${pluginId}"`, error);
+      this.log.error(`Failed to notify plugin contribution removal for "${pluginKey}"`, error);
     }
   }
 
-  private registerRuntimeContributions(pluginId: string, runtime: PluginRuntime): void {
+  private registerRuntimeContributions(pluginKey: string, runtime: PluginRuntime): void {
     const wordLookup = runtime.getWordLookupProvider();
     if (wordLookup) {
-      this.contributions.registerWordLookupProvider(pluginId, wordLookup);
+      this.contributions.registerWordLookupProvider(pluginKey, wordLookup);
     }
     const transcription = runtime.getTranscriptionProvider();
     if (transcription) {
-      this.contributions.registerTranscriptionProvider(pluginId, transcription);
+      this.contributions.registerTranscriptionProvider(pluginKey, transcription);
     }
     const mediaSource = runtime.getMediaSourceAdapter();
     if (mediaSource) {
-      this.contributions.registerMediaSourceAdapter(pluginId, mediaSource);
+      this.contributions.registerMediaSourceAdapter(pluginKey, mediaSource);
     }
   }
 
-  private async requireRecord(pluginId: string): Promise<InstalledPluginRecord> {
-    const record = await this.options.registryStore.getPlugin(pluginId);
+  private async requireRecord(pluginKey: string): Promise<InstalledPluginRecord> {
+    const record = await this.options.registryStore.getPlugin(pluginKey);
     if (!record) {
-      throw new Error(`Plugin "${pluginId}" is not installed.`);
+      throw new Error(`Plugin "${pluginKey}" is not installed.`);
     }
     return record;
   }
@@ -491,13 +491,13 @@ export class PluginManager {
     });
   }
 
-  private deletePluginConfig(pluginId: string): void {
+  private deletePluginConfig(pluginKey: string): void {
     const settings = this.options.getSettings();
-    if (!settings.plugins[pluginId]) {
+    if (!settings.plugins[pluginKey]) {
       return;
     }
     const plugins = { ...settings.plugins };
-    delete plugins[pluginId];
+    delete plugins[pluginKey];
     this.options.replaceSettings({
       ...settings,
       plugins

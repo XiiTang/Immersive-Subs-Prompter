@@ -72,7 +72,7 @@ describe("MediaSourceController", () => {
       stateManager: stateManager as never,
       getAdapters: () => [
         {
-          pluginId: "xiitang/media-source",
+          pluginKey: "xiitang/media-source",
           adapter: {
             handleConnectionMessage: vi.fn(async () => [
               {
@@ -155,7 +155,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginId: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
     });
     controller.start();
 
@@ -223,7 +223,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginId: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
     });
     controller.start();
 
@@ -275,7 +275,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginId: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
     });
     controller.start();
 
@@ -318,7 +318,7 @@ describe("MediaSourceController", () => {
       stateManager: stateManager as never,
       getAdapters: () => [
         {
-          pluginId: "xiitang/media-source",
+          pluginKey: "xiitang/media-source",
           adapter: {
             handleConnectionMessage: vi.fn(async () => [
               {

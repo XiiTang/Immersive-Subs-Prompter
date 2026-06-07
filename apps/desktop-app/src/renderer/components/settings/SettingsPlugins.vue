@@ -27,8 +27,7 @@
               <span class="ui-list-item__title">{{ plugin.displayName }}</span>
             </div>
             <p class="ui-list-item__description">{{ plugin.description }}</p>
-            <p class="ui-list-item__meta">{{ formatAuthor(plugin.author) }}</p>
-            <p class="ui-list-item__meta">{{ plugin.sourceUrl }}</p>
+            <p class="ui-list-item__meta">{{ plugin.author.name }}</p>
           </div>
           <UiButton
             variant="secondary"
@@ -53,8 +52,7 @@
               <UiBadge :tone="statusTone(plugin.status)">{{ statusLabel(plugin.status) }}</UiBadge>
             </div>
             <p class="ui-list-item__description">{{ plugin.description }}</p>
-            <p class="ui-list-item__meta">{{ formatAuthor(plugin.author) }}</p>
-            <p class="ui-list-item__meta">{{ plugin.sourceUrl }}</p>
+            <p class="ui-list-item__meta">{{ plugin.author.name }}</p>
             <p v-if="plugin.permissions.length" class="ui-list-item__meta">
               {{ t("plugin-permissions-label") }} {{ plugin.permissions.join(", ") }}
             </p>
@@ -158,18 +156,11 @@ function formatInstallConfirmation(plugin: PluginManifest): string {
   const pluginKey = `${plugin.author.id}/${plugin.id}`;
   return [
     `Install ${plugin.displayName} v${plugin.version}?`,
-    `ID: ${plugin.id}`,
-    `Author: ${formatAuthor(plugin.author)}`,
-    `Key: ${pluginKey}`,
+    `Publisher: ${plugin.author.name}`,
+    `Plugin key: ${pluginKey}`,
     `Compatibility: ${plugin.appCompatibility.minVersion}${plugin.appCompatibility.maxVersion ? ` - ${plugin.appCompatibility.maxVersion}` : "+"}`,
-    `Permissions: ${plugin.permissions.length ? plugin.permissions.join(", ") : "none"}`,
-    `Package: ${plugin.package.url}`,
-    `sha256: ${plugin.package.sha256}`
+    `Permissions: ${plugin.permissions.length ? plugin.permissions.join(", ") : "none"}`
   ].join("\n");
-}
-
-function formatAuthor(author: PluginManifest["author"]): string {
-  return `${author.name} (${author.id})`;
 }
 
 function statusLabel(status: string): string {

@@ -35,13 +35,13 @@ describe("appSettingsSanitizer", () => {
       );
     });
 
-    it("keeps saved dynamic plugin records without pruning by plugin id", () => {
+    it("keeps saved dynamic plugin records without pruning by plugin key", () => {
       const settings = DEFAULT_SETTINGS_FACTORY() as AppSettings & {
         plugins: AppSettings["plugins"] & Record<string, { config: Record<string, unknown> }>;
       };
-      settings.plugins["custom.lookup"] = { config: { enabled: true } };
+      settings.plugins["custom/lookup"] = { config: { enabled: true } };
 
-      expect(sanitizeSettings(settings).plugins["custom.lookup"]).toEqual({
+      expect(sanitizeSettings(settings).plugins["custom/lookup"]).toEqual({
         config: { enabled: true }
       });
     });

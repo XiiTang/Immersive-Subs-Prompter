@@ -68,7 +68,7 @@ describe("PluginRuntimeHost", () => {
 
   it("waits for the worker stop acknowledgement before killing the utility process", async () => {
     const runtime = await PluginRuntimeHost.start({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: "/plugins/xiitang/word-lookup/main.js",
       permissions: ["wordLookupProvider"],
       config: {},
@@ -84,5 +84,27 @@ describe("PluginRuntimeHost", () => {
     await stop;
 
     expect(child.killed).toBe(true);
+  });
+
+  it("reports a worker runtime fault once when the killed process exits", async () => {
+    const onRuntimeExit = vi.fn();
+    await PluginRuntimeHost.start({
+      pluginKey: "xiitang/word-lookup",
+      entryPath: "/plugins/xiitang/word-lookup/main.js",
+      permissions: ["wordLookupProvider"],
+      config: {},
+      requestTimeoutMs: 100,
+      onRuntimeExit
+    });
+    const child = electronMock.children[0]!;
+
+    child.emit("message", { type: "runtime-fault", error: "timer callback timed out" });
+    child.emit("exit", 1);
+
+    expect(child.killed).toBe(true);
+    expect(onRuntimeExit).toHaveBeenCalledTimes(1);
+    expect(onRuntimeExit).toHaveBeenCalledWith(expect.objectContaining({
+      message: "timer callback timed out"
+    }));
   });
 });

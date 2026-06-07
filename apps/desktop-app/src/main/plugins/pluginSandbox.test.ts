@@ -48,7 +48,7 @@ describe("plugin sandbox", () => {
       });
     `);
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: entry,
       permissions: ["wordLookupProvider"],
       config: { marker: "loaded" }
@@ -73,7 +73,7 @@ describe("plugin sandbox", () => {
 
     await expect(
       startPluginSandbox({
-        pluginId: "xiitang/word-lookup",
+        pluginKey: "xiitang/word-lookup",
         entryPath: entry,
         permissions: [],
         config: {}
@@ -89,7 +89,7 @@ describe("plugin sandbox", () => {
     `);
     const onRuntimeFault = vi.fn();
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: entry,
       permissions: ["wordLookupProvider"],
       config: {},
@@ -112,12 +112,37 @@ describe("plugin sandbox", () => {
     await runtime.stop();
   });
 
+  it("faults timer callbacks that run longer than the plugin timeout", async () => {
+    const entry = await writePluginMain(`
+      setTimeout(() => {
+        const started = Date.now();
+        while (Date.now() - started < 80) {}
+      }, 0);
+    `);
+    const onRuntimeFault = vi.fn();
+    const runtime = await startPluginSandbox({
+      pluginKey: "xiitang/word-lookup",
+      entryPath: entry,
+      permissions: [],
+      config: {},
+      requestTimeoutMs: 10,
+      onRuntimeFault
+    });
+
+    await delay(120);
+
+    expect(onRuntimeFault).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining("Script execution timed out")
+    }));
+    await runtime.stop();
+  });
+
   it("times out synchronous plugin startup code", async () => {
     const entry = await writePluginMain("while (true) {}");
 
     await expect(
       startPluginSandbox({
-        pluginId: "xiitang/word-lookup",
+        pluginKey: "xiitang/word-lookup",
         entryPath: entry,
         permissions: ["wordLookupProvider"],
         config: {},
@@ -137,7 +162,7 @@ describe("plugin sandbox", () => {
       });
     `);
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: entry,
       permissions: ["wordLookupProvider", "network"],
       config: {},
@@ -162,7 +187,7 @@ describe("plugin sandbox", () => {
       });
     `);
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: entry,
       permissions: ["wordLookupProvider", "readSelectedFile"],
       config: {},
@@ -209,7 +234,7 @@ describe("plugin sandbox", () => {
       });
     `);
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: entry,
       permissions: ["wordLookupProvider", "network"],
       config: {},
@@ -246,7 +271,7 @@ describe("plugin sandbox", () => {
       "utf-8"
     );
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: wordLookupPluginEntry,
       permissions: ["settingsSchema", "wordLookupProvider", "readSelectedFile"],
       readableFiles: [wordListPath],
@@ -281,7 +306,7 @@ describe("plugin sandbox", () => {
       "utf-8"
     );
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/word-lookup",
+      pluginKey: "xiitang/word-lookup",
       entryPath: wordLookupPluginEntry,
       permissions: ["settingsSchema", "wordLookupProvider", "readSelectedFile"],
       readableFiles: [wordListPath],
@@ -347,7 +372,7 @@ describe("plugin sandbox", () => {
     );
 
     const runtime = await startPluginSandbox({
-      pluginId: "xiitang/jellyfinemby",
+      pluginKey: "xiitang/jellyfinemby",
       entryPath: jellyfinembyPluginEntry,
       permissions: ["network", "mediaSourceAdapter"],
       allowedNetworkHosts: ["media.example.test"],

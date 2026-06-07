@@ -34,7 +34,7 @@ describe("plugin worker entry", () => {
     onMessage?.({
       data: {
         type: "start",
-        pluginId: "xiitang/word-lookup",
+        pluginKey: "xiitang/word-lookup",
         entryPath: "/plugins/xiitang/word-lookup/main.js",
         permissions: ["wordLookupProvider"],
         config: {}
@@ -43,7 +43,7 @@ describe("plugin worker entry", () => {
 
     await vi.waitFor(() => {
       expect(startPluginSandbox).toHaveBeenCalledWith(expect.objectContaining({
-        pluginId: "xiitang/word-lookup",
+        pluginKey: "xiitang/word-lookup",
         entryPath: "/plugins/xiitang/word-lookup/main.js"
       }));
       expect(parentPort.postMessage).toHaveBeenCalledWith({ type: "ready" });

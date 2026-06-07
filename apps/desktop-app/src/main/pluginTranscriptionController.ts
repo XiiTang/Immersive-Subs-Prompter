@@ -8,7 +8,7 @@ export interface PluginTranscriptionControllerOptions {
   stateManager: StateManager;
   cacheManager: SubtitleCacheManager;
   pluginManager: PluginManager;
-  getPluginConfig: (pluginId: string) => Record<string, unknown>;
+  getPluginConfig: (pluginKey: string) => Record<string, unknown>;
 }
 
 let isTranscribing = false;
@@ -23,7 +23,7 @@ export async function startPluginTranscription(
     return { ok: false, error: message };
   }
 
-  const configName = provider.pluginId;
+  const configName = provider.pluginKey;
   const state = options.stateManager.getState();
   if (state.activeSource === "mediaserver") {
     const message = "Transcription is not supported in MediaServer mode.";
@@ -42,8 +42,8 @@ export async function startPluginTranscription(
   }
 
   const targetVideoUrl = state.videoUrl;
-  const config = options.getPluginConfig(provider.pluginId);
-  const cacheVariant = buildPluginTranscriptionCacheVariant(provider.pluginId, config);
+  const config = options.getPluginConfig(provider.pluginKey);
+  const cacheVariant = buildPluginTranscriptionCacheVariant(provider.pluginKey, config);
   isTranscribing = true;
   try {
     options.stateManager.setTranscriptionStatus("running", null, configName);
@@ -87,7 +87,7 @@ function applyTrackToState(stateManager: StateManager, track: SubtitleTrack, con
   );
 }
 
-function buildPluginTranscriptionCacheVariant(pluginId: string, config: Record<string, unknown>): string {
+function buildPluginTranscriptionCacheVariant(pluginKey: string, config: Record<string, unknown>): string {
   const hash = createHash("sha256").update(JSON.stringify(config)).digest("hex");
-  return `${pluginId}:${hash}`;
+  return `${pluginKey}:${hash}`;
 }

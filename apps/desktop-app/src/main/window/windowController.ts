@@ -103,7 +103,7 @@ export class WindowController {
           this.options.transcriptionService.transcribe(videoUrl, config as unknown as TranscriptionConfig)
       },
       onCatalogChanged: () => this.pushPluginCatalog(),
-      onPluginContributionsRemoved: (pluginId) => this.mediaSourceController.handlePluginRemoved(pluginId)
+      onPluginContributionsRemoved: (pluginKey) => this.mediaSourceController.handlePluginRemoved(pluginKey)
     });
     this.mediaSourceController = new MediaSourceController({
       bus: this.options.bus,
@@ -315,14 +315,14 @@ export class WindowController {
   }
 
   private updateWordLookupPanelSize(size: { width: number; height: number }) {
-    const pluginId = this.pluginManager.getWordLookupProvider()?.pluginId;
-    if (!pluginId) {
+    const pluginKey = this.pluginManager.getWordLookupProvider()?.pluginKey;
+    if (!pluginKey) {
       return;
     }
-    const currentConfig = this.options.getSettings().plugins[pluginId]?.config;
+    const currentConfig = this.options.getSettings().plugins[pluginKey]?.config;
     this.updateAppSettings({
       plugins: {
-        [pluginId]: {
+        [pluginKey]: {
           config: {
             ...(currentConfig && typeof currentConfig === "object" ? currentConfig : {}),
             panelWidth: size.width,

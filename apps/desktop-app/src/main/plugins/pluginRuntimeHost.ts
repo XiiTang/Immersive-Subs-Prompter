@@ -9,7 +9,7 @@ import type {
 import type { SubtitleTrack } from "../types.js";
 
 export interface PluginRuntimeHostOptions {
-  pluginId: string;
+  pluginKey: string;
   entryPath: string;
   permissions: PluginPermission[];
   config: Record<string, unknown>;
@@ -76,7 +76,7 @@ export class PluginRuntimeHost {
   private stopped = false;
 
   private constructor(
-    readonly pluginId: string,
+    readonly pluginKey: string,
     private readonly contributions: RuntimeContributions,
     private readonly disposers: Array<() => void | Promise<void>>,
     private readonly updateRuntimeConfig: (update: PluginRuntimeConfigUpdate) => Promise<void> | void,
@@ -105,7 +105,8 @@ export class PluginRuntimeHost {
       return new Promise<unknown>((resolve, reject) => {
         const timeout = setTimeout(() => {
           pending.delete(requestId);
-          const error = new Error(`${options.pluginId} plugin call timed out after ${timeoutMs}ms`);
+          const error = new Error(`${options.pluginKey} plugin call timed out after ${timeoutMs}ms`);
+          stopped = true;
           child.kill();
           options.onRuntimeExit?.(error);
           reject(error);
@@ -159,18 +160,19 @@ export class PluginRuntimeHost {
       if (payload.type === "runtime-fault") {
         const error = new Error(String(payload.error ?? "Plugin worker runtime fault"));
         rejectPendingRequests(pending, error);
+        stopped = true;
         child.kill();
         options.onRuntimeExit?.(error);
       }
     });
 
     child.on("error", (type, location) => {
-      const error = new Error(`${options.pluginId} plugin worker error: ${type} at ${location}`);
+      const error = new Error(`${options.pluginKey} plugin worker error: ${type} at ${location}`);
       rejectPendingRequests(pending, error);
     });
 
     child.on("exit", (code) => {
-      const error = new Error(`${options.pluginId} plugin worker exited with code ${code}`);
+      const error = new Error(`${options.pluginKey} plugin worker exited with code ${code}`);
       rejectPendingRequests(pending, error);
       if (!stopped) {
         options.onRuntimeExit?.(error);
@@ -180,7 +182,7 @@ export class PluginRuntimeHost {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         child.kill();
-        reject(new Error(`${options.pluginId} plugin worker did not start`));
+        reject(new Error(`${options.pluginKey} plugin worker did not start`));
       }, 5000);
       const onMessage = (message: unknown) => {
         if (message && typeof message === "object" && (message as { type?: unknown }).type === "ready") {
@@ -198,7 +200,7 @@ export class PluginRuntimeHost {
       child.on("message", onMessage);
       child.postMessage({
         type: "start",
-        pluginId: options.pluginId,
+        pluginKey: options.pluginKey,
         entryPath: options.entryPath,
         permissions: options.permissions,
         config: options.config,
@@ -209,7 +211,7 @@ export class PluginRuntimeHost {
     });
 
     return new PluginRuntimeHost(
-      options.pluginId,
+      options.pluginKey,
       contributions,
       [
         async () => {
@@ -262,7 +264,7 @@ async function handleHostCall(
       throw new Error(`Unknown host runtime method: ${method}`);
     }
     if (!options.transcriptionRuntime) {
-      throw new Error(`${options.pluginId} requested unavailable transcription runtime`);
+      throw new Error(`${options.pluginKey} requested unavailable transcription runtime`);
     }
     const source = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
     const result = await options.transcriptionRuntime.transcribe(

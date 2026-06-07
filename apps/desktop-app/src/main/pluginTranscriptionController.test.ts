@@ -31,7 +31,7 @@ describe("startPluginTranscription", () => {
     } as unknown as SubtitleCacheManager;
     const pluginManager = {
       getTranscriptionProvider: vi.fn(() => ({
-        pluginId: "xiitang/transcription",
+        pluginKey: "xiitang/transcription",
         provider: {
           transcribe: vi.fn(async () => track)
         }
@@ -42,7 +42,7 @@ describe("startPluginTranscription", () => {
       stateManager,
       cacheManager,
       pluginManager,
-      getPluginConfig: (pluginId) => ({ model: pluginId })
+      getPluginConfig: (pluginKey) => ({ model: pluginKey })
     });
 
     expect(result).toEqual({ ok: true, trackId: "track-1" });

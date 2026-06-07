@@ -15,7 +15,7 @@ if (!parentPort) {
 }
 
 let runtime: PluginSandboxRuntime | null = null;
-let pluginId = "";
+let pluginKey = "";
 let requestTimeoutMs = 30_000;
 let nextHostRequestId = 0;
 const pendingHostCalls = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
@@ -79,12 +79,12 @@ async function handleParentMessage(message: unknown): Promise<void> {
 }
 
 async function startPlugin(payload: Record<string, unknown>): Promise<void> {
-  pluginId = String(payload.pluginId ?? "");
+  pluginKey = String(payload.pluginKey ?? "");
   requestTimeoutMs = typeof payload.requestTimeoutMs === "number" && payload.requestTimeoutMs > 0
     ? payload.requestTimeoutMs
     : 30_000;
   runtime = await startPluginSandbox({
-    pluginId,
+    pluginKey,
     entryPath: String(payload.entryPath ?? ""),
     permissions: Array.isArray(payload.permissions) ? (payload.permissions as PluginPermission[]) : [],
     config: payload.config && typeof payload.config === "object" && !Array.isArray(payload.config)
@@ -110,7 +110,7 @@ function hostCall(method: string, payload: unknown): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       pendingHostCalls.delete(requestId);
-      reject(new Error(`${pluginId} host call timed out after ${requestTimeoutMs}ms`));
+      reject(new Error(`${pluginKey} host call timed out after ${requestTimeoutMs}ms`));
     }, requestTimeoutMs);
     pendingHostCalls.set(requestId, {
       resolve: (value) => {

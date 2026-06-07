@@ -41,13 +41,13 @@ export type MediaSourceAdapterEvent =
 export interface MediaSourceControllerOptions {
   bus: AppEventBus;
   stateManager: StateManager;
-  getAdapters: () => Array<{ pluginId: string; adapter: MediaSourceAdapter }>;
+  getAdapters: () => Array<{ pluginKey: string; adapter: MediaSourceAdapter }>;
 }
 
 export class MediaSourceController {
   private readonly log = createLogger("media-source-controller");
   private started = false;
-  private activeMediaSourcePluginId: string | null = null;
+  private activeMediaSourcePluginKey: string | null = null;
 
   constructor(private readonly options: MediaSourceControllerOptions) {}
 
@@ -74,11 +74,11 @@ export class MediaSourceController {
   }
 
   private async handleConnectionMessage(event: ConnectionMessageEvent): Promise<void> {
-    for (const { pluginId, adapter } of this.options.getAdapters()) {
+    for (const { pluginKey, adapter } of this.options.getAdapters()) {
       if (!adapter.handleConnectionMessage) {
         continue;
       }
-      const wasActiveAdapter = this.activeMediaSourcePluginId === pluginId;
+      const wasActiveAdapter = this.activeMediaSourcePluginKey === pluginKey;
       try {
         const result = await adapter.handleConnectionMessage(event.message);
         const events = normalizeAdapterEvents(result);
@@ -86,11 +86,11 @@ export class MediaSourceController {
           continue;
         }
         for (const adapterEvent of events) {
-          this.applyAdapterEvent(pluginId, adapterEvent);
+          this.applyAdapterEvent(pluginKey, adapterEvent);
         }
         if (
           wasActiveAdapter ||
-          this.activeMediaSourcePluginId === pluginId ||
+          this.activeMediaSourcePluginKey === pluginKey ||
           events.some((adapterEvent) => adapterEvent.type === "sourceMatched")
         ) {
           event.markHandled();
@@ -98,30 +98,30 @@ export class MediaSourceController {
         return;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        this.log.error(`Media source adapter "${pluginId}" failed`, error);
-        this.applyAdapterEvent(pluginId, { type: "error", message });
+        this.log.error(`Media source adapter "${pluginKey}" failed`, error);
+        this.applyAdapterEvent(pluginKey, { type: "error", message });
         if (wasActiveAdapter) {
           event.markHandled();
         }
         return;
       }
     }
-    if (event.message.type === "video-context" && this.activeMediaSourcePluginId) {
+    if (event.message.type === "video-context" && this.activeMediaSourcePluginKey) {
       this.clearRuntimeState();
     }
   }
 
-  handlePluginRemoved(pluginId: string): void {
-    if (this.activeMediaSourcePluginId !== pluginId) {
+  handlePluginRemoved(pluginKey: string): void {
+    if (this.activeMediaSourcePluginKey !== pluginKey) {
       return;
     }
     this.clearRuntimeState();
   }
 
-  private applyAdapterEvent(pluginId: string, event: MediaSourceAdapterEvent): void {
+  private applyAdapterEvent(pluginKey: string, event: MediaSourceAdapterEvent): void {
     switch (event.type) {
       case "sourceMatched":
-        this.activeMediaSourcePluginId = pluginId;
+        this.activeMediaSourcePluginKey = pluginKey;
         this.options.stateManager.setPageContext(event.tabId, {
           pageUrl: event.pageUrl,
           site: event.site,
@@ -208,7 +208,7 @@ export class MediaSourceController {
   }
 
   private clearRuntimeState(): void {
-    this.activeMediaSourcePluginId = null;
+    this.activeMediaSourcePluginKey = null;
     this.options.stateManager.resetSubtitleState();
     this.options.stateManager.updateState((draft) => {
       draft.mediaServer = {

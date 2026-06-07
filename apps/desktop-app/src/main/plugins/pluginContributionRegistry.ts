@@ -36,41 +36,41 @@ function createEmptySet(): PluginContributionSet {
 export class PluginContributionRegistry {
   private readonly contributions = new Map<string, PluginContributionSet>();
 
-  registerWordLookupProvider(pluginId: string, provider: WordLookupProvider): void {
-    this.getOrCreate(pluginId).wordLookup = provider;
+  registerWordLookupProvider(pluginKey: string, provider: WordLookupProvider): void {
+    this.getOrCreate(pluginKey).wordLookup = provider;
   }
 
-  registerTranscriptionProvider(pluginId: string, provider: TranscriptionProvider): void {
-    this.getOrCreate(pluginId).transcription = provider;
+  registerTranscriptionProvider(pluginKey: string, provider: TranscriptionProvider): void {
+    this.getOrCreate(pluginKey).transcription = provider;
   }
 
-  registerMediaSourceAdapter(pluginId: string, adapter: MediaSourceAdapter): void {
-    this.getOrCreate(pluginId).mediaSource = adapter;
+  registerMediaSourceAdapter(pluginKey: string, adapter: MediaSourceAdapter): void {
+    this.getOrCreate(pluginKey).mediaSource = adapter;
   }
 
-  unregisterPlugin(pluginId: string): boolean {
-    return this.contributions.delete(pluginId);
+  unregisterPlugin(pluginKey: string): boolean {
+    return this.contributions.delete(pluginKey);
   }
 
-  getTranscriptionProvider(): { pluginId: string; provider: TranscriptionProvider } | null {
-    for (const [pluginId, set] of this.contributions.entries()) {
+  getTranscriptionProvider(): { pluginKey: string; provider: TranscriptionProvider } | null {
+    for (const [pluginKey, set] of this.contributions.entries()) {
       if (set.transcription) {
-        return { pluginId, provider: set.transcription };
+        return { pluginKey, provider: set.transcription };
       }
     }
     return null;
   }
 
-  getMediaSourceAdapters(): Array<{ pluginId: string; adapter: MediaSourceAdapter }> {
+  getMediaSourceAdapters(): Array<{ pluginKey: string; adapter: MediaSourceAdapter }> {
     return Array.from(this.contributions.entries())
       .filter((entry): entry is [string, PluginContributionSet & { mediaSource: MediaSourceAdapter }] => !!entry[1].mediaSource)
-      .map(([pluginId, set]) => ({ pluginId, adapter: set.mediaSource }));
+      .map(([pluginKey, set]) => ({ pluginKey, adapter: set.mediaSource }));
   }
 
-  getWordLookupProvider(): { pluginId: string; provider: WordLookupProvider } | null {
-    for (const [pluginId, set] of this.contributions.entries()) {
+  getWordLookupProvider(): { pluginKey: string; provider: WordLookupProvider } | null {
+    for (const [pluginKey, set] of this.contributions.entries()) {
       if (set.wordLookup) {
-        return { pluginId, provider: set.wordLookup };
+        return { pluginKey, provider: set.wordLookup };
       }
     }
     return null;
@@ -84,13 +84,13 @@ export class PluginContributionRegistry {
     return provider.provider.lookup(token);
   }
 
-  private getOrCreate(pluginId: string): PluginContributionSet {
-    const current = this.contributions.get(pluginId);
+  private getOrCreate(pluginKey: string): PluginContributionSet {
+    const current = this.contributions.get(pluginKey);
     if (current) {
       return current;
     }
     const next = createEmptySet();
-    this.contributions.set(pluginId, next);
+    this.contributions.set(pluginKey, next);
     return next;
   }
 }

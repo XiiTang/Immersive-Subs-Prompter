@@ -34,6 +34,7 @@ These three capabilities are exposed through normal downloadable plugins, and ea
 - Require plugin manifests to use short plugin IDs plus author metadata.
 - Derive stable runtime identity as `<author.id>/<id>`.
 - Key registry records, settings, catalog actions, runtime maps, contribution ownership, lifecycle operations, and installed paths by plugin key.
+- Treat `author.id` as identity and path metadata; normal Settings lists display `author.name` only.
 - Allow plugins with the same short ID from different authors to coexist.
 - Reject same plugin key plus same version as already installed.
 - Do not support the old `official.*` plugin identities, old bundled plugin host, or old config migration.
@@ -138,7 +139,7 @@ Updating a project-maintained plugin means changing plugin source, regenerating 
 
 Settings -> Plugins shows:
 
-- installed plugins with plugin key, short ID, author, version, source link, status, permissions, errors, and lifecycle actions
+- installed plugins with display name, `author.name`, version, status, permissions, errors, and lifecycle actions
 - recommended plugin entries for the three project-maintained plugins
 - an install action that accepts an HTTPS plugin manifest link
 
@@ -146,7 +147,7 @@ Install flow:
 
 1. The user enters an install link or clicks a recommended plugin entry.
 2. The renderer fetches and validates the remote manifest for preview.
-3. The confirmation shows plugin key, author, version, compatibility, package URL, package hash, and requested permissions.
+3. The confirmation shows display name, version, `author.name`, plugin key, compatibility, and requested permissions.
 4. The confirmed manifest is sent to the main process with the source URL.
 5. The main process rejects install requests that do not include the confirmed manifest, refetches the manifest, and rejects the install if the freshly fetched manifest differs from the confirmed manifest.
 6. The app downloads, verifies, extracts, and installs the package.
@@ -253,6 +254,8 @@ The desktop app keeps a main-process `PluginManager`. It owns:
 Enabled plugins run in an Electron utility-process host. Downloaded plugin code is not loaded into the Electron main process and is not injected as arbitrary Vue code into the renderer.
 
 Plugin communication uses RPC. The plugin process receives a limited `usp` API based on its manifest permissions. The plugin cannot access Electron, `ipcMain`, renderer DOM, or unrestricted Node APIs. The VM context receives only serialized bridge calls. Provider objects, timer callbacks, host constructors, and host response objects stay on their owning side of the boundary. The plugin context recreates safe wrapper objects from serialized data.
+
+Plugin startup code, parent-initiated provider calls, host calls, and sandbox timer callbacks are bounded by the plugin request timeout. A timeout is a runtime fault: only that plugin is stopped, its contributions are cleared, and its catalog row is marked `broken`.
 
 If a plugin crashes or times out, only that plugin moves to `broken`. The desktop app remains running.
 

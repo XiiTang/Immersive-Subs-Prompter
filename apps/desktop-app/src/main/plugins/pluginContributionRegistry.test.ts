@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PluginContributionRegistry } from "./pluginContributionRegistry.js";
 
 describe("PluginContributionRegistry", () => {
-  it("routes word lookup calls to the enabled provider and unregisters by plugin id", async () => {
+  it("routes word lookup calls to the enabled provider and unregisters by plugin key", async () => {
     const registry = new PluginContributionRegistry();
     const lookup = vi.fn(async (token: string) => ({ token, matches: [] }));
 

@@ -14,7 +14,7 @@ import type { PluginRuntimeConfigUpdate } from "./pluginRuntimeHost.js";
 export type PluginSandboxContribution = "wordLookup" | "transcription" | "mediaSource";
 
 export interface PluginSandboxOptions {
-  pluginId: string;
+  pluginKey: string;
   entryPath: string;
   permissions: PluginPermission[];
   config: Record<string, unknown>;
@@ -348,14 +348,14 @@ function getFetchHost(input: string): string {
 }
 
 function withPluginTimeout<T>(
-  pluginId: string,
+  pluginKey: string,
   timeoutMs: number,
   operation: () => Promise<T> | T,
   onTimeout?: (error: Error) => void
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      const error = new Error(`${pluginId} plugin call timed out after ${timeoutMs}ms`);
+      const error = new Error(`${pluginKey} plugin call timed out after ${timeoutMs}ms`);
       onTimeout?.(error);
       reject(error);
     }, timeoutMs);
@@ -375,7 +375,7 @@ function withPluginTimeout<T>(
 }
 
 export async function startPluginSandbox(options: PluginSandboxOptions): Promise<PluginSandboxRuntime> {
-  const gate = new PluginPermissionGate(options.pluginId, options.permissions);
+  const gate = new PluginPermissionGate(options.pluginKey, options.permissions);
   const timeoutMs = getRequestTimeoutMs(options);
   let currentConfig = cloneConfig(options.config);
   let allowedNetworkHosts = new Set((options.allowedNetworkHosts ?? []).map(normalizeHost).filter(Boolean));
@@ -398,7 +398,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
         gate.require("wordLookupProvider");
         contributions.wordLookup = {
           lookup: (token) => withPluginTimeout(
-            options.pluginId,
+            options.pluginKey,
             timeoutMs,
             () => callSandboxProvider(context, "wordLookup.lookup", { token }),
             onTimeout
@@ -410,7 +410,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
         gate.require("transcriptionProvider");
         contributions.transcription = {
           transcribe: (providerContext) => withPluginTimeout(
-            options.pluginId,
+            options.pluginKey,
             timeoutMs,
             () => callSandboxProvider(context, "transcription.transcribe", { context: providerContext }) as Promise<SubtitleTrack>,
             onTimeout
@@ -422,19 +422,19 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
         gate.require("mediaSourceAdapter");
         contributions.mediaSource = {
           handleConnectionMessage: (message) => withPluginTimeout(
-            options.pluginId,
+            options.pluginKey,
             timeoutMs,
             () => callSandboxProvider(context, "mediaSource.handleConnectionMessage", { message }),
             onTimeout
           ),
           handleSettingsUpdated: (config) => withPluginTimeout(
-            options.pluginId,
+            options.pluginKey,
             timeoutMs,
             () => callSandboxProvider(context, "mediaSource.handleSettingsUpdated", { config }) as Promise<void>,
             onTimeout
           ),
           stop: () => withPluginTimeout(
-            options.pluginId,
+            options.pluginKey,
             timeoutMs,
             () => callSandboxProvider(context, "mediaSource.stop", {} ) as Promise<void>,
             onTimeout
@@ -443,7 +443,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
         options.onContribution?.("mediaSource");
         return;
       default:
-        throw new Error(`${options.pluginId} registered unsupported contribution: ${String(contribution)}`);
+        throw new Error(`${options.pluginKey} registered unsupported contribution: ${String(contribution)}`);
     }
   };
 
@@ -459,7 +459,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
           gate.require("readSelectedFile");
           const targetPath = String(getRecordValue(payload, "targetPath") ?? "");
           if (!readableFiles.has(normalizeFilePath(targetPath))) {
-            throw new Error(`${options.pluginId} cannot read unselected file: ${targetPath}`);
+            throw new Error(`${options.pluginKey} cannot read unselected file: ${targetPath}`);
           }
           return fs.readFile(targetPath, "utf-8");
         });
@@ -469,7 +469,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
           const input = String(getRecordValue(payload, "input") ?? "");
           const host = getFetchHost(input);
           if (!allowedNetworkHosts.has(host)) {
-            throw new Error(`${options.pluginId} cannot access network host: ${host}`);
+            throw new Error(`${options.pluginKey} cannot access network host: ${host}`);
           }
           const response = await fetch(input, parseFetchInit(getRecordValue(payload, "init")));
           return {
@@ -485,7 +485,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
         return bridgeResultAsync(async () => {
           gate.require("transcriptionRuntime");
           if (!options.transcriptionRuntime) {
-            throw new Error(`${options.pluginId} requested unavailable transcription runtime`);
+            throw new Error(`${options.pluginKey} requested unavailable transcription runtime`);
           }
           return options.transcriptionRuntime.transcribe(
             String(getRecordValue(payload, "videoUrl") ?? ""),
@@ -527,11 +527,11 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
           return parsed.toString();
         });
       case "timer.setTimeout":
-        return bridgeResult(() => setSandboxTimeout(context, timers, payload, options.onRuntimeFault));
+        return bridgeResult(() => setSandboxTimeout(context, timers, payload, timeoutMs, options.onRuntimeFault));
       case "timer.clearTimeout":
         return bridgeResult(() => clearSandboxTimeout(timers, payload));
       case "timer.setInterval":
-        return bridgeResult(() => setSandboxInterval(context, timers, payload, options.onRuntimeFault));
+        return bridgeResult(() => setSandboxInterval(context, timers, payload, timeoutMs, options.onRuntimeFault));
       case "timer.clearInterval":
         return bridgeResult(() => clearSandboxInterval(timers, payload));
       default:
@@ -550,7 +550,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
       wasm: false
     }
   });
-  vm.runInContext(SANDBOX_BOOTSTRAP_SOURCE, context, { filename: `${options.pluginId}:bootstrap` });
+  vm.runInContext(SANDBOX_BOOTSTRAP_SOURCE, context, { filename: `${options.pluginKey}:bootstrap` });
   vm.runInContext(source, context, { filename: options.entryPath, timeout: timeoutMs });
 
   return {
@@ -582,10 +582,17 @@ async function runSandboxStop(context: vm.Context): Promise<void> {
   await vm.runInContext("__uspStop()", context);
 }
 
-function fireSandboxTimer(context: vm.Context, timerId: number, onRuntimeFault?: (error: Error) => void): void {
+function fireSandboxTimer(
+  context: vm.Context,
+  timers: TimerMaps,
+  timerId: number,
+  timeoutMs: number,
+  onRuntimeFault?: (error: Error) => void
+): void {
   try {
-    vm.runInContext(`__uspFireTimer(${JSON.stringify(timerId)})`, context);
+    vm.runInContext(`__uspFireTimer(${JSON.stringify(timerId)})`, context, { timeout: timeoutMs });
   } catch (error) {
+    clearSandboxTimer(timers, timerId);
     onRuntimeFault?.(error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -594,6 +601,7 @@ function setSandboxTimeout(
   context: vm.Context,
   timers: TimerMaps,
   payload: unknown,
+  timeoutMs: number,
   onRuntimeFault?: (error: Error) => void
 ): void {
   const timerId = numberValue(getRecordValue(payload, "timerId"));
@@ -601,7 +609,7 @@ function setSandboxTimeout(
   clearSandboxTimeout(timers, payload);
   const timeout = setTimeout(() => {
     timers.timeouts.delete(timerId);
-    fireSandboxTimer(context, timerId, onRuntimeFault);
+    fireSandboxTimer(context, timers, timerId, timeoutMs, onRuntimeFault);
   }, delay);
   timers.timeouts.set(timerId, timeout);
 }
@@ -619,17 +627,31 @@ function setSandboxInterval(
   context: vm.Context,
   timers: TimerMaps,
   payload: unknown,
+  timeoutMs: number,
   onRuntimeFault?: (error: Error) => void
 ): void {
   const timerId = numberValue(getRecordValue(payload, "timerId"));
   const delay = Math.max(0, numberValue(getRecordValue(payload, "delay")));
   clearSandboxInterval(timers, payload);
-  const interval = setInterval(() => fireSandboxTimer(context, timerId, onRuntimeFault), delay);
+  const interval = setInterval(() => fireSandboxTimer(context, timers, timerId, timeoutMs, onRuntimeFault), delay);
   timers.intervals.set(timerId, interval);
 }
 
 function clearSandboxInterval(timers: TimerMaps, payload: unknown): void {
   const timerId = numberValue(getRecordValue(payload, "timerId"));
+  const interval = timers.intervals.get(timerId);
+  if (interval) {
+    clearInterval(interval);
+    timers.intervals.delete(timerId);
+  }
+}
+
+function clearSandboxTimer(timers: TimerMaps, timerId: number): void {
+  const timeout = timers.timeouts.get(timerId);
+  if (timeout) {
+    clearTimeout(timeout);
+    timers.timeouts.delete(timerId);
+  }
   const interval = timers.intervals.get(timerId);
   if (interval) {
     clearInterval(interval);

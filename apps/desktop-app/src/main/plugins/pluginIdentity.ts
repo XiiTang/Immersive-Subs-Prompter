@@ -6,7 +6,7 @@ export interface PluginAuthor {
 
 export interface PluginKeyParts {
   authorId: string;
-  pluginId: string;
+  pluginShortId: string;
 }
 
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/i;
@@ -29,6 +29,6 @@ export function splitPluginKey(pluginKey: string): PluginKeyParts {
   }
   return {
     authorId: validatePluginIdentitySegment(parts[0], "plugin key author id"),
-    pluginId: validatePluginIdentitySegment(parts[1], "plugin key id")
+    pluginShortId: validatePluginIdentitySegment(parts[1], "plugin key id")
   };
 }

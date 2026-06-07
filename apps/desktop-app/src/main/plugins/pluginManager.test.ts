@@ -424,7 +424,7 @@ describe("PluginManager", () => {
     expect(runtimeStop).not.toHaveBeenCalled();
   });
 
-  it("rejects update manifests that resolve to a different plugin id", async () => {
+  it("rejects update manifests that resolve to a different plugin key", async () => {
     const rootDir = await createTempDir();
     const installDir = path.join(rootDir, "installed", "xiitang", manifest.id, manifest.version);
     await fs.mkdir(installDir, { recursive: true });
@@ -564,7 +564,7 @@ describe("PluginManager", () => {
     );
   });
 
-  it("keeps a plugin enabled when installing a new package for the same plugin id", async () => {
+  it("keeps a plugin enabled when installing a new package for the same plugin key", async () => {
     const rootDir = await createTempDir();
     const nextManifest: PluginManifest = {
       ...manifest,

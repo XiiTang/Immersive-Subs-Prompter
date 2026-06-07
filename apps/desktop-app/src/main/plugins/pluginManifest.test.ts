@@ -29,7 +29,7 @@ describe("validatePluginManifest", () => {
     expect(manifest.id).toBe("word-lookup");
     expect(manifest.author).toEqual(XIITANG_AUTHOR);
     expect(derivePluginKey(manifest)).toBe("xiitang/word-lookup");
-    expect(splitPluginKey("xiitang/word-lookup")).toEqual({ authorId: "xiitang", pluginId: "word-lookup" });
+    expect(splitPluginKey("xiitang/word-lookup")).toEqual({ authorId: "xiitang", pluginShortId: "word-lookup" });
   });
 
   it("rejects manifests without author metadata", () => {

@@ -66,7 +66,10 @@ describe("SettingsPlugins", () => {
 
     expect(previewSpy).toHaveBeenCalledWith("https://plugins.example.test/manifest.json");
     expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Community Word Lookup"));
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Author: XiiTang (xiitang)"));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Publisher: XiiTang"));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Plugin key: xiitang/word-lookup"));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.not.stringContaining("ID: word-lookup"));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.not.stringContaining("XiiTang (xiitang)"));
     expect(installSpy).toHaveBeenCalledWith("https://plugins.example.test/manifest.json", previewManifest);
   });
 
@@ -95,10 +98,11 @@ describe("SettingsPlugins", () => {
     const wrapper = mount(SettingsPlugins);
 
     expect(wrapper.text()).toContain("Community Word Lookup");
-    expect(wrapper.text()).toContain("XiiTang (xiitang)");
+    expect(wrapper.text()).toContain("XiiTang");
+    expect(wrapper.text()).not.toContain("XiiTang (xiitang)");
     expect(wrapper.text()).toContain("settingsSchema");
     expect(wrapper.text()).toContain("wordLookupProvider");
-    expect(wrapper.text()).toContain("https://plugins.example.test/manifest.json");
+    expect(wrapper.text()).not.toContain("https://plugins.example.test/manifest.json");
 
     const buttons = wrapper.findAll("button");
     await buttons.find((button) => button.text() === "Update")!.trigger("click");
@@ -121,7 +125,8 @@ describe("SettingsPlugins", () => {
     const recommendedButton = wrapper.find('[data-testid="recommended-plugin-install-xiitang/word-lookup"]');
 
     expect(wrapper.text()).toContain("Word Lookup");
-    expect(wrapper.text()).toContain("XiiTang (xiitang)");
+    expect(wrapper.text()).toContain("XiiTang");
+    expect(wrapper.text()).not.toContain("XiiTang (xiitang)");
     await recommendedButton.trigger("click");
 
     expect(installSpy).toHaveBeenCalledWith(expect.stringContaining("word-lookup"), previewManifest);
