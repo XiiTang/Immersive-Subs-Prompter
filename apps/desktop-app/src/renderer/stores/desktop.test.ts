@@ -33,7 +33,9 @@ function createSettings(): AppSettings {
       language: "en",
       appearance: {
         theme: "system"
-      }
+      },
+      autoCheckUpdates: true,
+      lastUpdateCheckAt: null
     },
     network: {
       endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
@@ -161,6 +163,7 @@ function createDesktopState(): DesktopState {
 
 function installRendererApi(state: DesktopState, settings: AppSettings) {
   let pluginCatalogListener: ((catalog: unknown[]) => void) | null = null;
+  let releaseStateListener: ((state: unknown) => void) | null = null;
   const api: Partial<RendererApi> = {
     getInitialState: vi.fn().mockResolvedValue(state),
     getSettings: vi.fn().mockResolvedValue(settings),
@@ -171,6 +174,18 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       newestEntry: null
     }),
     getPluginCatalog: vi.fn().mockResolvedValue([]),
+    getReleaseState: vi.fn().mockResolvedValue({
+      status: "idle",
+      currentVersion: "1.0.0",
+      latestVersion: null,
+      checkedAt: null,
+      manifest: null,
+      platformKey: "darwin-arm64",
+      platformArtifact: null,
+      error: null
+    }),
+    checkForUpdates: vi.fn(),
+    openReleaseDownload: vi.fn().mockResolvedValue({ ok: true }),
     updateSettings: vi.fn(async (partial: Partial<AppSettings>) => ({
       ...settings,
       ...partial
@@ -181,6 +196,9 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
     onSettingsChange: vi.fn(),
     onPluginCatalogChange: vi.fn((listener: (catalog: unknown[]) => void) => {
       pluginCatalogListener = listener;
+    }),
+    onReleaseStateChange: vi.fn((listener: (state: unknown) => void) => {
+      releaseStateListener = listener;
     }),
     openSettingsWindow: vi.fn().mockResolvedValue({ success: true })
   };
@@ -193,6 +211,9 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
   return {
     emitPluginCatalog(catalog: unknown[]) {
       pluginCatalogListener?.(catalog);
+    },
+    emitReleaseState(state: unknown) {
+      releaseStateListener?.(state);
     }
   };
 }

@@ -16,7 +16,9 @@ function createSettings(): AppSettings {
       alwaysOnTop: "off",
       panelOpacity: 100,
       language: "en",
-      appearance: { theme: "system" }
+      appearance: { theme: "system" },
+      autoCheckUpdates: true,
+      lastUpdateCheckAt: null
     },
     network: {
       endpoints: [
@@ -53,6 +55,7 @@ describe("SettingsGlobal", () => {
     expect(wrapper.text()).toContain("Global");
     expect(groups.map((group) => group.get(".global-settings__group-title").text())).toEqual([
       "General",
+      "Updates",
       "Network",
       "Shortcuts",
       "Cache"

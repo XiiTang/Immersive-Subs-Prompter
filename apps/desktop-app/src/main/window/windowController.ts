@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, shell } from "electron";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
@@ -22,6 +22,7 @@ import { getPluginRootPath, getRegistryPath } from "../plugins/pluginPaths.js";
 import { PluginManager } from "../plugins/pluginManager.js";
 import { areNetworkSettingsEqual } from "../networkSettings.js";
 import { MediaSourceController } from "../mediaSources/mediaSourceController.js";
+import { AppReleaseService } from "../appReleaseService.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -47,6 +48,7 @@ export class WindowController {
   private readonly ipcRouter: IpcRouter;
   private readonly pluginManager: PluginManager;
   private readonly mediaSourceController: MediaSourceController;
+  private readonly releaseService: AppReleaseService;
 
   constructor(private readonly options: WindowControllerOptions) {
     this.displayManager = new DisplayManager(options.stateManager);
@@ -64,6 +66,7 @@ export class WindowController {
       onDidFinishLoad: () => {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
+        this.pushReleaseState();
       },
       onHide: () => this.wordLookupWindowManager?.close(),
       onClosed: () => {
@@ -76,6 +79,7 @@ export class WindowController {
       onDidFinishLoad: () => {
         this.pushSettings();
         this.pushState(this.options.stateManager.getState());
+        this.pushReleaseState();
       }
     });
     this.wordLookupWindowManager = new WordLookupWindowManager({
@@ -110,6 +114,13 @@ export class WindowController {
       stateManager: this.options.stateManager,
       getAdapters: () => this.pluginManager.getMediaSourceAdapters()
     });
+    this.releaseService = new AppReleaseService({
+      getCurrentVersion: () => app.getVersion(),
+      getSettings: this.options.getSettings,
+      updateSettings: (partial) => this.updateAppSettings(partial),
+      openExternal: (url) => shell.openExternal(url),
+      onStateChange: (state) => this.pushReleaseState(state)
+    });
 
     this.ipcRouter = new IpcRouter({
       stateManager: this.options.stateManager,
@@ -117,6 +128,7 @@ export class WindowController {
       settingsStore: this.options.settingsStore,
       cacheManager: this.options.cacheManager,
       pluginManager: this.pluginManager,
+      releaseService: this.releaseService,
       getSettings: this.options.getSettings,
       setSettings: this.options.setSettings,
       updateAppSettings: (partial) => this.updateAppSettings(partial),
@@ -148,6 +160,9 @@ export class WindowController {
       this.log.error("Failed to load enabled plugins", err);
     });
     this.windowManager.createWindow();
+    setTimeout(() => {
+      void this.releaseService.maybeCheckAutomatically();
+    }, 5000);
   }
 
   handleBeforeQuit() {
@@ -226,6 +241,11 @@ export class WindowController {
     const settings = this.options.getSettings();
     this.windowManager.getWindow()?.webContents.send("usp:settings", settings);
     this.settingsWindowManager.getWindow()?.webContents.send("usp:settings", settings);
+  }
+
+  private pushReleaseState(state = this.releaseService.getState()) {
+    this.windowManager.getWindow()?.webContents.send("usp:release-state", state);
+    this.settingsWindowManager.getWindow()?.webContents.send("usp:release-state", state);
   }
 
   private async pushPluginCatalog() {

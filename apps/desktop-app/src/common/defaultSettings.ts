@@ -23,7 +23,9 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   language: "zh",
   appearance: {
     theme: "system"
-  }
+  },
+  autoCheckUpdates: true,
+  lastUpdateCheckAt: null
 };
 
 const DEFAULT_NETWORK_ENDPOINTS: NetworkEndpoint[] = [

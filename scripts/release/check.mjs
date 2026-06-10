@@ -1,0 +1,38 @@
+import { execFileSync } from "node:child_process";
+import { fileExists, normalizeVersion, assertUnifiedPackageVersions, readJson, validateReleaseManifest } from "./utils.mjs";
+
+const args = parseArgs(process.argv.slice(2).filter((arg) => arg !== "--"));
+const expectedVersion = args.tag ? normalizeVersion(args.tag) : null;
+
+const version = assertUnifiedPackageVersions(process.cwd(), expectedVersion);
+execFileSync("pnpm", ["build:plugins"], {
+  stdio: "inherit",
+  shell: process.platform === "win32"
+});
+execFileSync("git", ["diff", "--exit-code", "--", "plugin-repository"], {
+  stdio: "inherit",
+  shell: process.platform === "win32"
+});
+
+if (fileExists("releases/latest.json")) {
+  validateReleaseManifest(readJson("releases/latest.json"));
+}
+
+console.log(`Release preflight passed for ${version}`);
+
+function parseArgs(argv) {
+  const parsed = {};
+  for (let index = 0; index < argv.length; index += 1) {
+    const key = argv[index];
+    if (!key?.startsWith("--")) {
+      throw new Error(`Unexpected argument: ${key}`);
+    }
+    const value = argv[index + 1];
+    if (!value || value.startsWith("--")) {
+      throw new Error(`Missing value for ${key}`);
+    }
+    parsed[key.slice(2)] = value;
+    index += 1;
+  }
+  return parsed;
+}

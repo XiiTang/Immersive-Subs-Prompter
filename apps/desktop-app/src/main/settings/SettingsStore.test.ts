@@ -46,6 +46,8 @@ describe("SettingsStore", () => {
     const settings = store.get();
     expect(settings.profiles.length).toBeGreaterThan(0);
     expect(settings.defaultProfileId).toBe(settings.profiles.at(-1)?.id);
+    expect(settings.global.autoCheckUpdates).toBe(true);
+    expect(settings.global.lastUpdateCheckAt).toBeNull();
     expect(settings.network.endpoints).toEqual([
       { id: "default", host: "127.0.0.1", port: 44501 }
     ]);
@@ -78,6 +80,44 @@ describe("SettingsStore", () => {
     vi.resetModules();
     const second = await loadStore();
     expect(second.get().global.language).toBe("en");
+  });
+
+  it("persists valid update-check settings", async () => {
+    const store = await loadStore();
+
+    store.update({
+      global: {
+        ...store.get().global,
+        autoCheckUpdates: false,
+        lastUpdateCheckAt: 1760000000000
+      }
+    });
+
+    expect(store.get().global.autoCheckUpdates).toBe(false);
+    expect(store.get().global.lastUpdateCheckAt).toBe(1760000000000);
+  });
+
+  it("rejects invalid update-check settings", async () => {
+    const store = await loadStore();
+    const current = store.get();
+
+    expect(() =>
+      store.update({
+        global: {
+          ...current.global,
+          autoCheckUpdates: "yes" as unknown as boolean
+        }
+      })
+    ).toThrow("global.autoCheckUpdates must use the current boolean setting");
+
+    expect(() =>
+      store.update({
+        global: {
+          ...current.global,
+          lastUpdateCheckAt: -1
+        }
+      })
+    ).toThrow("global.lastUpdateCheckAt must be null or a non-negative integer timestamp");
   });
 
   it("keeps previous settings in memory when persistence fails", async () => {

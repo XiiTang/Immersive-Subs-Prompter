@@ -71,7 +71,9 @@ describe("appSettingsSanitizer", () => {
         language: "zh",
         appearance: {
           theme: "system"
-        }
+        },
+        autoCheckUpdates: true,
+        lastUpdateCheckAt: null
       });
       expect(result.global).toEqual(DEFAULT_GLOBAL_SETTINGS);
       expect(DEFAULT_PROFILE_SETTINGS.primarySubtitleFontFamily).toBe(DEFAULT_SUBTITLE_FONT_FAMILY);

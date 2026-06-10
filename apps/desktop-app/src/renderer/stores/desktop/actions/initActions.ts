@@ -4,10 +4,15 @@ export async function initialize(this: DesktopStoreThis) {
   this.isInitializing = true;
   this.initError = null;
   try {
-    const [state, settings] = await Promise.all([window.usp.getInitialState(), window.usp.getSettings()]);
+    const [state, settings, releaseState] = await Promise.all([
+      window.usp.getInitialState(),
+      window.usp.getSettings(),
+      window.usp.getReleaseState()
+    ]);
     this.desktopState = state;
     this.playback = state.playback;
     this.settings = settings;
+    this.releaseState = releaseState;
     this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId;
     this.attachIpcListeners();
     await this.refreshCacheStats();
@@ -39,6 +44,9 @@ export function attachIpcListeners(this: DesktopStoreThis) {
   });
   window.usp.onPluginCatalogChange((catalog) => {
     this.pluginCatalog = catalog;
+  });
+  window.usp.onReleaseStateChange((state) => {
+    this.releaseState = state;
   });
   window.usp.onLoopCleared(() => {
     if (this.playback) {

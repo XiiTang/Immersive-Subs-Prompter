@@ -38,6 +38,7 @@ The reference project for release/update architecture is `/Users/cq-laptop/Proje
 - Create `scripts/release/utils.mjs`: shared release script helpers.
 - Create `scripts/release/prepare.mjs`: unified version bump script.
 - Create `scripts/release/check.mjs`: release preflight checks.
+- Create `scripts/release/collect-desktop-artifact.mjs`: standard desktop artifact naming for CI release assets.
 - Create `scripts/release/zip-extension.mjs`: deterministic Chrome and Firefox ZIP creation.
 - Create `scripts/release/manifest.mjs`: manifest generation from artifacts and checksums.
 - Create `scripts/release/release-scripts.test.mjs`: Node test coverage for release script helpers.
@@ -1155,6 +1156,7 @@ git commit -m "feat: add release update settings UI"
 - Create: `scripts/release/utils.mjs`
 - Create: `scripts/release/prepare.mjs`
 - Create: `scripts/release/check.mjs`
+- Create: `scripts/release/collect-desktop-artifact.mjs`
 - Create: `scripts/release/zip-extension.mjs`
 - Create: `scripts/release/manifest.mjs`
 - Create: `scripts/release/release-scripts.test.mjs`
@@ -1321,6 +1323,7 @@ Modify root `package.json` scripts:
 ```json
 "release:prepare": "node ./scripts/release/prepare.mjs",
 "release:check": "node ./scripts/release/check.mjs",
+"release:collect-desktop": "node ./scripts/release/collect-desktop-artifact.mjs",
 "release:manifest": "node ./scripts/release/manifest.mjs",
 "release:zip-extension": "node ./scripts/release/zip-extension.mjs",
 "test:release-scripts": "node --test scripts/release/release-scripts.test.mjs"
@@ -1388,7 +1391,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - run: pnpm install
       - id: meta
         shell: bash
@@ -1426,7 +1429,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - run: pnpm install
       - if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y rpm
@@ -1444,7 +1447,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - run: pnpm install
       - run: pnpm --filter @immersive-subs/extension build:chrome
       - run: pnpm --filter @immersive-subs/extension build:firefox
@@ -1469,7 +1472,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - run: pnpm install
       - uses: actions/download-artifact@v4
         with:

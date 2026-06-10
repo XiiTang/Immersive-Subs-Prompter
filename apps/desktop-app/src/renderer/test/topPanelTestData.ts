@@ -48,7 +48,9 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
       language: "en",
       appearance: {
         theme: "system"
-      }
+      },
+      autoCheckUpdates: true,
+      lastUpdateCheckAt: null
     },
     network: {
       endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],

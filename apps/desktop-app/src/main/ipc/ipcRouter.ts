@@ -8,6 +8,7 @@ import { DisplayManager } from "../window/displayManager.js";
 import { PluginManager } from "../plugins/pluginManager.js";
 import { createLogger } from "../logger.js";
 import { WordLookupWindowManager } from "../window/wordLookupWindowManager.js";
+import { AppReleaseService } from "../appReleaseService.js";
 import { registerStateHandlers } from "./handlers/stateHandlers.js";
 import { registerSettingsHandlers } from "./handlers/settingsHandlers.js";
 import { registerSubtitleHandlers } from "./handlers/subtitleHandlers.js";
@@ -15,6 +16,7 @@ import { registerTranscriptionHandlers } from "./handlers/transcriptionHandlers.
 import { registerCacheHandlers } from "./handlers/cacheHandlers.js";
 import { registerWindowHandlers } from "./handlers/windowHandlers.js";
 import { registerPluginHandlers } from "./handlers/pluginHandlers.js";
+import { registerReleaseHandlers } from "./handlers/releaseHandlers.js";
 
 export type IpcContext = {
   stateManager: StateManager;
@@ -22,6 +24,7 @@ export type IpcContext = {
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
   pluginManager: PluginManager;
+  releaseService: AppReleaseService;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
   updateAppSettings: (partial: Partial<AppSettings>) => AppSettings;
@@ -44,5 +47,6 @@ export class IpcRouter {
     registerCacheHandlers(this.context);
     registerWindowHandlers(this.context);
     registerPluginHandlers(this.context);
+    registerReleaseHandlers(this.context);
   }
 }

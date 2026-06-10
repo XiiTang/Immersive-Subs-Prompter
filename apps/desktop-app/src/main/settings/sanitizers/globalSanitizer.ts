@@ -10,7 +10,9 @@ const GLOBAL_SETTINGS_KEYS = [
   "alwaysOnTop",
   "panelOpacity",
   "language",
-  "appearance"
+  "appearance",
+  "autoCheckUpdates",
+  "lastUpdateCheckAt"
 ] as const;
 const APPEARANCE_SETTINGS_KEYS = ["theme"] as const;
 
@@ -66,6 +68,15 @@ export function validateGlobalSettingsForUpdate(input: unknown): void {
     assertNoUnknownKeys(appearance, APPEARANCE_SETTINGS_KEYS, "global.appearance");
     if (!isAppearanceTheme(appearance.theme)) {
       throw new Error("global.appearance.theme must use the current string setting");
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(source, "autoCheckUpdates") && typeof source.autoCheckUpdates !== "boolean") {
+    throw new Error("global.autoCheckUpdates must use the current boolean setting");
+  }
+  if (Object.prototype.hasOwnProperty.call(source, "lastUpdateCheckAt")) {
+    const value = source.lastUpdateCheckAt;
+    if (value !== null && (typeof value !== "number" || !Number.isInteger(value) || value < 0)) {
+      throw new Error("global.lastUpdateCheckAt must be null or a non-negative integer timestamp");
     }
   }
 }

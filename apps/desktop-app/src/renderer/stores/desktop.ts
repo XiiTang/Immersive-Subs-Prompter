@@ -21,6 +21,8 @@ import { cacheActions } from "./desktop/actions/cacheActions";
 import { gameBlacklistActions } from "./desktop/actions/gameBlacklistActions";
 import { playbackActions } from "./desktop/actions/playbackActions";
 import { initActions } from "./desktop/actions/initActions";
+import { releaseActions } from "./desktop/actions/releaseActions";
+import type { ReleaseState } from "../../main/releases/releaseManifest";
 
 export { DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
 
@@ -37,7 +39,8 @@ export const useDesktopStore = defineStore("desktop", {
     initError: null as string | null,
     editingProfileId: null as string | null,
     cacheStats: null as CacheStats | null,
-    pluginCatalog: [] as PluginCatalogRow[]
+    pluginCatalog: [] as PluginCatalogRow[],
+    releaseState: null as ReleaseState | null
   }),
   getters: {
     subtitleTracks(state): SubtitleTrack[] {
@@ -83,7 +86,8 @@ export const useDesktopStore = defineStore("desktop", {
     ...pluginActions,
     ...cacheActions,
     ...gameBlacklistActions,
-    ...playbackActions
+    ...playbackActions,
+    ...releaseActions
   }
 });
 

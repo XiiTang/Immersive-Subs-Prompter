@@ -19,7 +19,9 @@ const GLOBAL_SETTINGS_KEYS = [
   "alwaysOnTop",
   "panelOpacity",
   "language",
-  "appearance"
+  "appearance",
+  "autoCheckUpdates",
+  "lastUpdateCheckAt"
 ] as const;
 const CACHE_SETTINGS_KEYS = Object.keys(DEFAULT_CACHE_SETTINGS);
 

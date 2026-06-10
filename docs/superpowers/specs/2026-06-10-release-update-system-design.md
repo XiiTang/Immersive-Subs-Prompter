@@ -212,6 +212,7 @@ The release system includes focused scripts:
 
 - `release:prepare <version>` updates the three package versions and validates the requested semantic version.
 - `release:check` validates version consistency, manifest schema, artifact naming, and checksum shape.
+- `release:collect-desktop` copies the current Electron Forge desktop artifact into the standard GitHub Release asset name.
 - `release:manifest <tag>` generates `releases/latest.json` from release assets and checksum data.
 
 Scripts fail on stale generated plugin artifacts, mismatched package versions, invalid SemVer, missing required release URLs, duplicate platform keys, missing checksums, and invalid extension store status.

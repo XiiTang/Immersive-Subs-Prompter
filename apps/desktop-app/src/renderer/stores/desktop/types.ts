@@ -17,6 +17,7 @@ import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { RendererApi } from "../../../preload.cts";
 import type { PluginManifest } from "../../../main/plugins/pluginManifest";
+import type { ReleaseState } from "../../../main/releases/releaseManifest";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 
@@ -29,6 +30,7 @@ interface DesktopStoreState {
   editingProfileId: string | null;
   cacheStats: CacheStats | null;
   pluginCatalog: PluginCatalogRow[];
+  releaseState: ReleaseState | null;
 }
 
 interface DesktopStoreGetters {
@@ -46,6 +48,7 @@ interface DesktopStoreActions {
   // init
   initialize(): Promise<void>;
   attachIpcListeners(): void;
+  refreshReleaseState(): Promise<void>;
 
   // settings
   updateSettings(partial: Partial<AppSettings>): Promise<void>;
@@ -86,6 +89,10 @@ interface DesktopStoreActions {
   refreshCacheStats(): Promise<CacheStats>;
   openCacheFolder(): Promise<unknown>;
   updateCacheSetting<Key extends keyof SubtitleCacheSettings>(key: Key, value: SubtitleCacheSettings[Key]): void;
+
+  // release
+  checkForUpdates(): Promise<void>;
+  openReleaseDownload(url?: string): Promise<void>;
 
   // game blacklist
   addGameProcess(processName: string): void;

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 import type { AppSettings } from "./main/types.js" with { "resolution-mode": "import" };
 import type { CacheStats } from "./main/subtitleCacheManager.js" with { "resolution-mode": "import" };
 import type { PluginManifest } from "./main/plugins/pluginManifest.js" with { "resolution-mode": "import" };
+import type { ReleaseState } from "./main/releases/releaseManifest.js" with { "resolution-mode": "import" };
 
 type Listener<T> = (payload: T) => void;
 
@@ -23,6 +24,12 @@ const api = {
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
+  getReleaseState: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:get-release-state"),
+  checkForUpdates: (manual = true): Promise<ReleaseState> =>
+    ipcRenderer.invoke("usp:check-for-updates", { manual }),
+  openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:open-release-download", { url }),
+  onReleaseStateChange: (listener: Listener<ReleaseState>) => subscribe("usp:release-state", listener),
   onPluginCatalogChange: (listener: Listener<any[]>) => subscribe("usp:plugin-catalog", listener),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),

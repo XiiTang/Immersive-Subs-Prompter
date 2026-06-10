@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag such as v1.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - run: pnpm release:check -- --tag "${{ steps.meta.outputs.tag }}"
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  desktop:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            command: pnpm --filter @immersive-subs/desktop-app dist:mac
+            platform: darwin
+            extension: .dmg
+            name: desktop-macos
+          - os: windows-latest
+            command: pnpm --filter @immersive-subs/desktop-app dist:win
+            platform: win32
+            extension: .exe
+            name: desktop-windows
+          - os: ubuntu-latest
+            command: pnpm --filter @immersive-subs/desktop-app dist:linux
+            platform: linux
+            extension: .deb
+            name: desktop-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - run: ${{ matrix.command }}
+      - shell: bash
+        run: |
+          ARCH="$(node -p "process.arch")"
+          pnpm release:collect-desktop -- --platform "${{ matrix.platform }}" --arch "$ARCH" --extension "${{ matrix.extension }}" --version "${{ needs.validate.outputs.version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: release-artifacts/desktop
+
+  extension:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @immersive-subs/extension build:chrome
+      - run: pnpm --filter @immersive-subs/extension build:firefox
+      - run: pnpm release:zip-extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: release-artifacts/extension
+
+  publish:
+    needs:
+      - validate
+      - desktop
+      - extension
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - run: pnpm release:manifest -- --tag "${{ needs.validate.outputs.tag }}" --artifacts release-artifacts --out releases/latest.json --notes-en "See the GitHub Release for details." --notes-zh "请查看 GitHub Release 获取更新内容。"
+      - shell: bash
+        run: |
+          TAG="${{ needs.validate.outputs.tag }}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "$TAG" --notes "Release $TAG"
+          find release-artifacts -type f -print0 | xargs -0 gh release upload "$TAG" --clobber
+      - shell: bash
+        run: |
+          BRANCH="chore/publish-release-manifest-${{ needs.validate.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add releases/latest.json
+          git commit -m "chore: publish release manifest ${{ needs.validate.outputs.tag }}"
+          git push origin "$BRANCH"
+          gh pr create --title "chore: publish release manifest ${{ needs.validate.outputs.tag }}" --body "Publishes releases/latest.json for ${{ needs.validate.outputs.tag }}." --base main --head "$BRANCH"

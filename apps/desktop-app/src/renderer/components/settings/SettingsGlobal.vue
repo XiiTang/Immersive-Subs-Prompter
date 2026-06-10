@@ -30,6 +30,8 @@
         </div>
       </section>
 
+      <SettingsReleaseUpdate />
+
       <section class="global-settings__group">
         <h3 class="global-settings__group-title">{{ t("global-connectivity") }}</h3>
 
@@ -192,6 +194,7 @@ import { IconFolder, IconRefresh } from "../icons";
 import { UiBadge, UiField, UiIconButton, UiInput, UiSection, UiSegmentedControl, UiSelect, UiSwitch } from "../ui";
 import NetworkEndpointEditor from "./NetworkEndpointEditor.vue";
 import PillListEditor from "./PillListEditor.vue";
+import SettingsReleaseUpdate from "./SettingsReleaseUpdate.vue";
 import ShortcutInput from "./ShortcutInput.vue";
 import type { PillListEditorItem } from "./pillListEditorTypes";
 

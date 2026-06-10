@@ -104,7 +104,8 @@ Thumbs.db
 *.temp
 
 # Electron specific
-release/
+/release/
+/release-artifacts/
 *.exe
 *.dmg
 *.pkg

@@ -5,13 +5,37 @@ This repository is a pnpm workspace. Run packaging commands from the repository 
 ## Prerequisites
 
 - Node.js 24+
-- pnpm 10
+- pnpm 11
 - Dependencies installed once with `pnpm install`
 - Playwright Chromium installed for renderer browser tests:
 
 ```bash
 pnpm --filter @immersive-subs/desktop-app exec playwright install chromium
 ```
+
+## Product Release
+
+Desktop and extension releases use one product version. Before creating a tag, run:
+
+```bash
+pnpm release:prepare 1.2.0
+pnpm release:check
+pnpm typecheck
+pnpm test
+```
+
+Create and push a release tag:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+The release workflow builds desktop installers on macOS, Windows, and Linux, builds Chrome and Firefox extension ZIP files, creates a draft GitHub Release, uploads release assets and checksums, and opens a pull request updating `releases/latest.json`.
+
+The desktop app reads `releases/latest.json` for update checks. The manifest becomes active only after the release-manifest pull request is reviewed and merged.
+
+Chrome Web Store and Firefox AMO submission remain manual. Update `extension.chrome.storeStatus` and `extension.firefox.storeStatus` in a follow-up manifest pull request when store review status changes.
 
 ## Browser Extension
 
@@ -27,12 +51,16 @@ Outputs:
 - Chrome / Edge / Chromium: `apps/extension/dist/chrome`
 - Firefox temporary add-on: `apps/extension/dist/firefox`
 
-For Chrome Web Store or Edge Add-ons, zip the Chrome output directory after a successful build:
+For store submission ZIP files, run both extension builds and then:
 
 ```bash
-cd apps/extension/dist/chrome
-zip -r ../immersive-subs-prompter-chrome.zip .
+pnpm release:zip-extension
 ```
+
+Outputs:
+
+- `release-artifacts/extension/immersive-subs-prompter-chrome-vX.Y.Z.zip`
+- `release-artifacts/extension/immersive-subs-prompter-firefox-vX.Y.Z.zip`
 
 Before submission, verify the generated target manifest, `_locales`, icons, permissions, and store listing text match the current feature set. Browser-specific manifests are generated from the shared manifest builder during extension builds.
 

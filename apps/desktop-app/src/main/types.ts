@@ -89,6 +89,8 @@ export interface GlobalSettings {
   panelOpacity: number;
   language: string;
   appearance: AppearanceSettings;
+  autoCheckUpdates: boolean;
+  lastUpdateCheckAt: number | null;
 }
 
 export interface TranscriptionConfig {
