@@ -46,6 +46,8 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -115,6 +117,17 @@ release/
 *.crx
 *.pem
 
+# Signing keys and certificates
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+*.mobileprovision
+*.provisionprofile
+
 # yt-dlp cache (if any)
 __pycache__/
 *.pyc
@@ -131,6 +144,10 @@ uv.lock
 .vitest-traces/
 playwright-report/
 test-results/
+
+# Local agent/tooling state
+.axis/
+.claude/
 
 # Extension release zip
 immersive-subs-prompter-*.zip

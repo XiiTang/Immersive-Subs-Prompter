@@ -201,4 +201,6 @@ Locale dictionaries live in [apps/desktop-app/src/renderer/locales](apps/desktop
 
 ## License
 
-This example is for internal integration reference only. Before distributing, confirm the license requirements of third-party dependencies (especially `yt-dlp`).
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
+Third-party dependencies keep their own license terms. Review those terms before redistributing packaged binaries, especially binaries downloaded or invoked at runtime such as `yt-dlp`.
