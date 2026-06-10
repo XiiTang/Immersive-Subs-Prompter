@@ -7,7 +7,7 @@ export async function refreshReleaseState(this: DesktopStoreThis) {
 
 export async function checkForUpdates(this: DesktopStoreThis) {
   try {
-    this.releaseState = await window.usp.checkForUpdates(true);
+    this.releaseState = await window.usp.checkForUpdates();
   } catch (error) {
     reportError(error, "release.check");
   }

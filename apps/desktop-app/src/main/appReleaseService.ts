@@ -54,19 +54,31 @@ export class AppReleaseService {
     if (settings.lastUpdateCheckAt !== null && this.now() - settings.lastUpdateCheckAt < UPDATE_AUTO_CHECK_INTERVAL_MS) {
       return this.state;
     }
-    return this.checkForUpdates({ manual: false });
+    return this.checkForUpdates();
   }
 
-  async checkForUpdates(_options: { manual: boolean }): Promise<ReleaseState> {
+  async checkForUpdates(): Promise<ReleaseState> {
+    const currentVersion = this.options.getCurrentVersion();
     this.setState({
       status: "checking",
-      currentVersion: this.options.getCurrentVersion(),
+      currentVersion,
       latestVersion: this.state.latestVersion,
       checkedAt: this.state.checkedAt,
       manifest: this.state.manifest,
       platformKey: this.state.platformKey,
       platformArtifact: this.state.platformArtifact,
       error: null
+    });
+    const checkedAt = this.now();
+    const updatedSettings = this.options.updateSettings({
+      global: {
+        ...this.options.getSettings().global,
+        lastUpdateCheckAt: checkedAt
+      }
+    });
+    this.setState({
+      ...this.state,
+      checkedAt: updatedSettings.global.lastUpdateCheckAt
     });
 
     let payload;
@@ -101,14 +113,6 @@ export class AppReleaseService {
       return this.state;
     }
 
-    const checkedAt = this.now();
-    const updatedSettings = this.options.updateSettings({
-      global: {
-        ...this.options.getSettings().global,
-        lastUpdateCheckAt: checkedAt
-      }
-    });
-    const currentVersion = this.options.getCurrentVersion();
     const platformArtifact = selectDesktopArtifact(manifest, this.state.platformKey);
     const newer = compareReleaseVersions(manifest.version, currentVersion) > 0;
 

@@ -56,7 +56,6 @@ export interface ReleaseState {
       | "network-error"
       | "invalid-manifest"
       | "unsupported-schema"
-      | "not-newer"
       | "platform-artifact-missing"
       | "open-url-failed";
     message: string;

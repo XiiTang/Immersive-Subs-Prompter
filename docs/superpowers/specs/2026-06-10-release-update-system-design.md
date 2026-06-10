@@ -165,7 +165,7 @@ The renderer exposes update controls in Settings, in the global or about area:
 - "Open download page" primary action
 - optional platform artifact name and SHA-256
 
-Automatic checking runs after app startup and is rate-limited to once per 24 hours. Manual checking ignores the rate limit. Network failure, invalid JSON, unknown schema version, and missing platform artifacts are shown as non-fatal update errors in Settings.
+Automatic checking runs after app startup and is rate-limited to once per 24 hours by check attempt, including failed fetches and invalid manifests. Manual checking invokes a new check directly and ignores the rate limit. Network failure, invalid JSON, unknown schema version, and missing platform artifacts are shown as non-fatal update errors in Settings.
 
 When the manifest version is newer but the current platform artifact is missing, the app still offers the GitHub Release page. It does not invent a download URL.
 
@@ -215,7 +215,7 @@ The release system includes focused scripts:
 - `release:collect-desktop` copies the current Electron Forge desktop artifact into the standard GitHub Release asset name.
 - `release:manifest <tag>` generates `releases/latest.json` from release assets and checksum data.
 
-Scripts fail on stale generated plugin artifacts, mismatched package versions, invalid SemVer, missing required release URLs, duplicate platform keys, missing checksums, and invalid extension store status.
+Scripts fail on stale generated plugin artifacts, mismatched package versions, invalid SemVer, missing required release URLs, duplicate platform keys, missing checksums, missing desktop artifacts for macOS, Windows, or Linux, and invalid extension store status.
 
 Scripts do not preserve older draft formats or update legacy release metadata.
 
@@ -240,7 +240,6 @@ Update check errors are explicit and non-fatal:
 - `network-error`
 - `invalid-manifest`
 - `unsupported-schema`
-- `not-newer`
 - `platform-artifact-missing`
 - `open-url-failed`
 

@@ -18,6 +18,7 @@
   "release-check": "Check for updates",
   "release-checking": "Checking",
   "release-update-available": "Version {version} available",
+  "release-date": "Released",
   "release-up-to-date": "Up to date",
   "release-check-failed": "Update check failed",
   "release-open-download": "Open download page",

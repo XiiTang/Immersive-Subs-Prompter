@@ -18,6 +18,7 @@
   "release-check": "检查更新",
   "release-checking": "检查中",
   "release-update-available": "发现版本 {version}",
+  "release-date": "发布日期",
   "release-up-to-date": "已是最新版本",
   "release-check-failed": "检查更新失败",
   "release-open-download": "打开下载页",

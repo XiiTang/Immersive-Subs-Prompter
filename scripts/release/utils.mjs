@@ -20,6 +20,7 @@ const PLATFORM_KEYS = [
   "linux-arm64",
   "linux-x64"
 ];
+const REQUIRED_DESKTOP_PLATFORM_FAMILIES = ["darwin", "win32", "linux"];
 const STORE_STATUSES = ["not-submitted", "manual-review", "published", "rejected"];
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const HTTPS_PATTERN = /^https:\/\//;
@@ -130,6 +131,7 @@ export function buildReleaseManifest(options) {
       signed: requireBoolean(artifact.signed, `${fileName} signed`)
     };
   }
+  requireDesktopPlatformFamilies(desktop);
 
   return {
     schemaVersion: RELEASE_MANIFEST_SCHEMA_VERSION,
@@ -141,6 +143,15 @@ export function buildReleaseManifest(options) {
     desktop,
     extension
   };
+}
+
+function requireDesktopPlatformFamilies(desktop) {
+  const platformFamilies = new Set(Object.keys(desktop).map((platformKey) => platformKey.split("-")[0]));
+  for (const family of REQUIRED_DESKTOP_PLATFORM_FAMILIES) {
+    if (!platformFamilies.has(family)) {
+      throw new Error(`Missing desktop release artifact for ${family}`);
+    }
+  }
 }
 
 export function validateReleaseManifest(manifest) {

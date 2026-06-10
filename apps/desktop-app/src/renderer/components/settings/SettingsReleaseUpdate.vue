@@ -29,6 +29,7 @@
       <div class="global-settings__row-meta">
         <UiStatus tone="success">{{ t("release-update-available", { version: state.latestVersion }) }}</UiStatus>
         <span class="ui-field__hint">{{ localizedNotes }}</span>
+        <span v-if="releaseDate" class="ui-field__hint">{{ t("release-date") }} {{ releaseDate }}</span>
         <span v-if="state.error" class="ui-field__hint">{{ state.error.message }}</span>
       </div>
       <div class="global-settings__control global-settings__control--editor">
@@ -37,7 +38,7 @@
           {{ t("release-open-download") }}
         </UiButton>
         <span v-if="state.platformArtifact" class="ui-field__hint">
-          {{ state.platformArtifact.fileName }} · SHA-256 {{ shortHash }}
+          {{ state.platformArtifact.fileName }} · SHA-256 {{ artifactHash }}
         </span>
       </div>
     </div>
@@ -82,7 +83,8 @@ const localizedNotes = computed(() => {
   }
   return normalizeLanguage(language.value) === "zh" ? notes.zh : notes.en;
 });
-const shortHash = computed(() => state.value?.platformArtifact?.sha256.slice(0, 12) ?? "");
+const releaseDate = computed(() => state.value?.manifest?.releasedAt.slice(0, 10) ?? "");
+const artifactHash = computed(() => state.value?.platformArtifact?.sha256 ?? "");
 
 function check() {
   void store.checkForUpdates();

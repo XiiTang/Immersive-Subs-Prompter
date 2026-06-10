@@ -379,7 +379,6 @@ export interface ReleaseState {
       | "network-error"
       | "invalid-manifest"
       | "unsupported-schema"
-      | "not-newer"
       | "platform-artifact-missing"
       | "open-url-failed";
     message: string;
@@ -569,7 +568,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    const state = await service.checkForUpdates({ manual: true });
+    const state = await service.checkForUpdates();
 
     expect(state.status).toBe("available");
     expect(state.latestVersion).toBe("1.2.0");
@@ -589,7 +588,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    expect((await service.checkForUpdates({ manual: true })).status).toBe("unavailable");
+    expect((await service.checkForUpdates()).status).toBe("unavailable");
   });
 
   it("rate-limits automatic checks", async () => {
@@ -624,7 +623,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    await service.checkForUpdates({ manual: true });
+    await service.checkForUpdates();
     await service.openDownload();
 
     expect(openExternal).toHaveBeenCalledWith("https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/mac.dmg");
@@ -649,7 +648,7 @@ Create `apps/desktop-app/src/main/appReleaseService.ts` with these public method
 ```ts
 export class AppReleaseService {
   getState(): ReleaseState;
-  checkForUpdates(options: { manual: boolean }): Promise<ReleaseState>;
+  checkForUpdates(): Promise<ReleaseState>;
   maybeCheckAutomatically(): Promise<ReleaseState>;
   openDownload(url?: string): Promise<{ ok: boolean; error?: string }>;
 }
@@ -681,7 +680,7 @@ const UPDATE_AUTO_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 `maybeCheckAutomatically` returns the current idle state without fetching when `autoCheckUpdates` is false or `lastUpdateCheckAt` is inside the interval.
 
-`checkForUpdates` must set state to `checking`, fetch the manifest, validate it, compare versions, update `global.lastUpdateCheckAt`, and emit state through `onStateChange`.
+`checkForUpdates` must set state to `checking`, update `global.lastUpdateCheckAt` for the check attempt, fetch the manifest, validate it, compare versions, and emit state through `onStateChange`.
 
 - [ ] **Step 4: Add release IPC handlers**
 
@@ -693,9 +692,7 @@ import type { IpcContext } from "../ipcRouter.js";
 
 export function registerReleaseHandlers(context: IpcContext) {
   ipcMain.handle("usp:get-release-state", () => context.releaseService.getState());
-  ipcMain.handle("usp:check-for-updates", (_event, payload: { manual?: boolean } | null) =>
-    context.releaseService.checkForUpdates({ manual: payload?.manual !== false })
-  );
+  ipcMain.handle("usp:check-for-updates", () => context.releaseService.checkForUpdates());
   ipcMain.handle("usp:open-release-download", (_event, payload: { url?: string } | null) =>
     context.releaseService.openDownload(payload?.url)
   );
@@ -723,8 +720,7 @@ In `apps/desktop-app/src/preload.cts`, add:
 
 ```ts
   getReleaseState: (): Promise<any> => ipcRenderer.invoke("usp:get-release-state"),
-  checkForUpdates: (manual = true): Promise<any> =>
-    ipcRenderer.invoke("usp:check-for-updates", { manual }),
+  checkForUpdates: (): Promise<any> => ipcRenderer.invoke("usp:check-for-updates"),
   openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-release-download", { url }),
   onReleaseStateChange: (listener: Listener<any>) => subscribe("usp:release-state", listener),
@@ -962,7 +958,7 @@ export async function refreshReleaseState(this: DesktopStoreThis) {
 
 export async function checkForUpdates(this: DesktopStoreThis) {
   try {
-    this.releaseState = await window.usp.checkForUpdates(true);
+    this.releaseState = await window.usp.checkForUpdates();
   } catch (error) {
     reportError(error, "release.check");
   }
@@ -1037,6 +1033,7 @@ Create `apps/desktop-app/src/renderer/components/settings/SettingsReleaseUpdate.
       <div class="global-settings__row-meta">
         <UiStatus tone="success">{{ t("release-update-available", { version: state.latestVersion }) }}</UiStatus>
         <span class="ui-field__hint">{{ localizedNotes }}</span>
+        <span v-if="releaseDate" class="ui-field__hint">{{ t("release-date") }} {{ releaseDate }}</span>
       </div>
       <div class="global-settings__control global-settings__control--editor">
         <UiButton data-testid="release-open-download" variant="primary" @click="openDownload">
@@ -1044,7 +1041,7 @@ Create `apps/desktop-app/src/renderer/components/settings/SettingsReleaseUpdate.
           {{ t("release-open-download") }}
         </UiButton>
         <span v-if="state.platformArtifact" class="ui-field__hint">
-          {{ state.platformArtifact.fileName }} · SHA-256 {{ shortHash }}
+          {{ state.platformArtifact.fileName }} · SHA-256 {{ artifactHash }}
         </span>
       </div>
     </div>
@@ -1065,7 +1062,7 @@ Create `apps/desktop-app/src/renderer/components/settings/SettingsReleaseUpdate.
 </template>
 ```
 
-The script section must compute `state`, `checking`, `currentVersion`, `autoCheckUpdates`, `localizedNotes`, and `shortHash` from the store. Use `store.updateGlobalSetting("autoCheckUpdates", value)` for the switch.
+The script section must compute `state`, `checking`, `currentVersion`, `autoCheckUpdates`, `localizedNotes`, `releaseDate`, and `artifactHash` from the store. Use `store.updateGlobalSetting("autoCheckUpdates", value)` for the switch.
 
 - [ ] **Step 5: Mount the component and add icon support**
 
@@ -1208,6 +1205,18 @@ test("buildReleaseManifest creates current schema", () => {
         url: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/mac.dmg",
         sha256: checksum,
         signed: false
+      },
+      {
+        fileName: "Immersive-Subs-Prompter-1.2.0-win32-x64.exe",
+        url: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/win.exe",
+        sha256: checksum,
+        signed: false
+      },
+      {
+        fileName: "Immersive-Subs-Prompter-1.2.0-linux-x64.deb",
+        url: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/linux.deb",
+        sha256: checksum,
+        signed: false
       }
     ],
     extensionArtifacts: {
@@ -1304,7 +1313,7 @@ Create `scripts/release/manifest.mjs`. It must accept:
 node scripts/release/manifest.mjs --tag v1.2.0 --artifacts release-artifacts --out releases/latest.json --notes-en "English notes" --notes-zh "中文说明"
 ```
 
-The script scans artifacts, computes SHA-256, builds GitHub Release asset URLs, and writes `releases/latest.json`. Extension store status defaults to `manual-review`. Desktop `signed` defaults to `false` unless the artifact metadata file says otherwise.
+The script scans artifacts, computes SHA-256, builds GitHub Release asset URLs, and writes `releases/latest.json`. Extension store status defaults to `manual-review`. Desktop `signed` defaults to `false`, and generation fails unless macOS, Windows, and Linux desktop artifact families are all present.
 
 - [ ] **Step 7: Implement release preflight**
 
@@ -1628,6 +1637,10 @@ Use the current package version in the expected filenames if it is not `1.0.0`.
 Run:
 
 ```bash
+mkdir -p release-artifacts/desktop-local
+printf darwin > release-artifacts/desktop-local/Immersive-Subs-Prompter-1.0.0-darwin-arm64.dmg
+printf win32 > release-artifacts/desktop-local/Immersive-Subs-Prompter-1.0.0-win32-x64.exe
+printf linux > release-artifacts/desktop-local/Immersive-Subs-Prompter-1.0.0-linux-x64.deb
 pnpm release:manifest -- --tag v1.0.0 --artifacts release-artifacts --out releases/latest.json --notes-en "Local release verification." --notes-zh "本地发布验证。"
 node -e "const fs=require('node:fs'); const m=JSON.parse(fs.readFileSync('releases/latest.json','utf8')); if (m.schemaVersion !== 1) process.exit(1); console.log(m.version)"
 ```

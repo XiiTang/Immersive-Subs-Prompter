@@ -25,8 +25,7 @@ const api = {
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
   getReleaseState: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:get-release-state"),
-  checkForUpdates: (manual = true): Promise<ReleaseState> =>
-    ipcRenderer.invoke("usp:check-for-updates", { manual }),
+  checkForUpdates: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:check-for-updates"),
   openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-release-download", { url }),
   onReleaseStateChange: (listener: Listener<ReleaseState>) => subscribe("usp:release-state", listener),

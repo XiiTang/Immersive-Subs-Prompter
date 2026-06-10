@@ -114,7 +114,9 @@ describe("SettingsReleaseUpdate", () => {
 
     expect(wrapper.text()).toContain("1.2.0");
     expect(wrapper.text()).toContain("English notes");
+    expect(wrapper.text()).toContain("2026-06-10");
     expect(wrapper.text()).toContain("Immersive-Subs-Prompter-1.2.0-darwin-arm64.dmg");
+    expect(wrapper.text()).toContain(`SHA-256 ${checksum}`);
     expect(openSpy).toHaveBeenCalledTimes(1);
   });
 });

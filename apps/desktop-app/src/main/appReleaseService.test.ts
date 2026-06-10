@@ -89,7 +89,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    const state = await service.checkForUpdates({ manual: true });
+    const state = await service.checkForUpdates();
 
     expect(state.status).toBe("available");
     expect(state.latestVersion).toBe("1.2.0");
@@ -109,7 +109,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    expect((await service.checkForUpdates({ manual: true })).status).toBe("unavailable");
+    expect((await service.checkForUpdates()).status).toBe("unavailable");
   });
 
   it("rate-limits automatic checks", async () => {
@@ -131,6 +131,36 @@ describe("AppReleaseService", () => {
     expect(fetchManifest).not.toHaveBeenCalled();
   });
 
+  it("records failed automatic checks for rate limiting", async () => {
+    let currentSettings = settings();
+    const fetchManifest = vi.fn().mockRejectedValue(new Error("offline"));
+    const service = new AppReleaseService({
+      getCurrentVersion: () => "1.0.0",
+      getSettings: () => currentSettings,
+      updateSettings: (partial) => {
+        currentSettings = {
+          ...currentSettings,
+          global: {
+            ...currentSettings.global,
+            ...partial.global
+          }
+        };
+        return currentSettings;
+      },
+      fetchManifest,
+      openExternal: vi.fn(),
+      platform: "darwin",
+      arch: "arm64",
+      now: () => Date.now()
+    });
+
+    const state = await service.maybeCheckAutomatically();
+
+    expect(state.status).toBe("error");
+    expect(state.checkedAt).toBe(Date.now());
+    expect(currentSettings.global.lastUpdateCheckAt).toBe(Date.now());
+  });
+
   it("reports network errors without inventing a manifest state", async () => {
     const service = new AppReleaseService({
       getCurrentVersion: () => "1.0.0",
@@ -143,7 +173,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    const state = await service.checkForUpdates({ manual: true });
+    const state = await service.checkForUpdates();
 
     expect(state.status).toBe("error");
     expect(state.error?.code).toBe("network-error");
@@ -163,7 +193,7 @@ describe("AppReleaseService", () => {
       now: () => Date.now()
     });
 
-    await service.checkForUpdates({ manual: true });
+    await service.checkForUpdates();
     await service.openDownload();
 
     expect(openExternal).toHaveBeenCalledWith(
