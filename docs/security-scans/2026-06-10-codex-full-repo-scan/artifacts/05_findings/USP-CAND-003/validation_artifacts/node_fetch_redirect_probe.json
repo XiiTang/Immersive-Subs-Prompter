@@ -1,0 +1,6 @@
+{
+  "input": "http://127.0.0.1:53368/redirect",
+  "status": 200,
+  "finalUrl": "http://127.0.0.1:53368/secret",
+  "body": "internal-response"
+}
