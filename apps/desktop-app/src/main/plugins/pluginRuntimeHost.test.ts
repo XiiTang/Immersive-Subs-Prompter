@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PluginRuntimeHost } from "./pluginRuntimeHost.js";
+import { PluginRuntimeHost, getPluginUtilityProcessForkOptions } from "./pluginRuntimeHost.js";
 
 const electronMock = vi.hoisted(() => {
   type Listener = (payload: unknown) => void;
@@ -106,5 +106,12 @@ describe("PluginRuntimeHost", () => {
     expect(onRuntimeExit).toHaveBeenCalledWith(expect.objectContaining({
       message: "timer callback timed out"
     }));
+  });
+
+  it("disclaims macOS TCC responsibility for third-party plugin utility processes", () => {
+    expect(getPluginUtilityProcessForkOptions("darwin")).toEqual({
+      stdio: "pipe",
+      disclaim: true
+    });
   });
 });

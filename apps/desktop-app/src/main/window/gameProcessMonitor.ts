@@ -1,15 +1,46 @@
-import { activeWindow } from "get-windows";
+import { app } from "electron";
 import path from "path";
+import { pathToFileURL } from "url";
 import { createLogger } from "../logger.js";
+
+type ActiveWindowResult = Awaited<ReturnType<typeof import("get-windows").activeWindow>>;
+type ActiveWindowProvider = () => Promise<ActiveWindowResult>;
 
 type GameProcessMonitorOptions = {
   getBlacklist: () => string[];
   onBlocked: (matchedValue: string) => void;
   onUnblocked: () => void;
   pollIntervalMs?: number;
+  getActiveWindow?: ActiveWindowProvider;
 };
 
 const DEFAULT_POLL_INTERVAL_MS = 10000;
+
+type GetWindowsModuleSpecifierOptions = {
+  isPackaged: boolean;
+  platform: NodeJS.Platform;
+  resourcesPath: string;
+};
+
+export function resolveGetWindowsModuleSpecifier(options: GetWindowsModuleSpecifierOptions): string {
+  if (options.platform === "darwin" && options.isPackaged) {
+    return pathToFileURL(
+      path.join(options.resourcesPath, "app.asar.unpacked", "node_modules", "get-windows", "index.js")
+    ).href;
+  }
+  return "get-windows";
+}
+
+async function getActiveWindow(): Promise<ActiveWindowResult> {
+  const getWindows = await import(
+    resolveGetWindowsModuleSpecifier({
+      isPackaged: app.isPackaged,
+      platform: process.platform,
+      resourcesPath: process.resourcesPath
+    })
+  ) as typeof import("get-windows");
+  return getWindows.activeWindow();
+}
 
 export class GameProcessMonitor {
   private readonly log = createLogger("desktop");
@@ -53,7 +84,7 @@ export class GameProcessMonitor {
     }
 
     try {
-      const active = await activeWindow();
+      const active = await (this.options.getActiveWindow ?? getActiveWindow)();
 
       const appName = active?.owner?.name?.trim() || "";
       const processPath = active?.owner?.path || "";

@@ -14,7 +14,9 @@ const __dirname = path.dirname(__filename);
 
 export default {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpackDir: "node_modules/get-windows"
+    },
     icon: path.join(__dirname, "resources", "icon"),
     executableName: "Immersive Subs Prompter",
     name: "Immersive Subs Prompter",
@@ -32,6 +34,7 @@ export default {
       /^\/out($|\/)/,
       /^\/src($|\/)/,
       /^\/scripts($|\/)/,
+      /^\/\.vitest-(?:a|attachments|traces)($|\/)/,
       /^\/\.gitignore$/,
       /^\/tsconfig(?:\.[^.]+)?\.json$/,
       /^\/vite\.config\.ts$/,
@@ -63,7 +66,7 @@ export default {
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
-      [FuseV1Options.LoadBrowserProcessSpecificV8Snapshot]: true,
+      [FuseV1Options.LoadBrowserProcessSpecificV8Snapshot]: false,
       [FuseV1Options.GrantFileProtocolExtraPrivileges]: true,
       [FuseV1Options.WasmTrapHandlers]: true
     })

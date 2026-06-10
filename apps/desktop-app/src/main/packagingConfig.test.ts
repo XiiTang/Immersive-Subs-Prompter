@@ -18,7 +18,9 @@ describe("desktop packaging config", () => {
       path.relative(path.join(desktopAppRoot, "resources"), resourcePath).replaceAll("\\", "/")
     );
 
-    expect(config.packagerConfig.asar).toBe(true);
+    expect(config.packagerConfig.asar).toMatchObject({
+      unpackDir: "node_modules/get-windows"
+    });
     expect(resources).toEqual(
       expect.arrayContaining([
         "icon.ico",
@@ -34,9 +36,13 @@ describe("desktop packaging config", () => {
       expect(existsSync(path.join(desktopAppRoot, "resources", resource))).toBe(true);
     }
 
+    const ignoredPaths = config.packagerConfig.ignore as RegExp[];
+    expect(ignoredPaths.some((rule) => rule.test("/.vitest-attachments/trace.zip"))).toBe(true);
+
     const fusesPlugin = config.plugins.find((plugin: { name?: string }) => plugin.name === "fuses");
     expect(fusesPlugin?.config.strictlyRequireAllFuses).toBe(true);
     expect(fusesPlugin?.config[FuseV1Options.EnableEmbeddedAsarIntegrityValidation]).toBe(true);
     expect(fusesPlugin?.config[FuseV1Options.OnlyLoadAppFromAsar]).toBe(true);
+    expect(fusesPlugin?.config[FuseV1Options.LoadBrowserProcessSpecificV8Snapshot]).toBe(false);
   });
 });

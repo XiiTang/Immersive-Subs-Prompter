@@ -47,8 +47,7 @@
               @click.stop
               @mousedown.stop
               @dragstart.stop
-              @keydown.enter.prevent.stop="($event.target as HTMLInputElement).blur()"
-              @keydown.escape.prevent.stop="cancelProfileNameEdit"
+              @keydown="onProfileNameInputKeydown"
               @blur="commitProfileName(profile.id)"
             />
             <UiButton
@@ -141,6 +140,20 @@ async function startProfileNameEdit(profile: ProfileDefinition) {
 function cancelProfileNameEdit() {
   editingNameProfileId.value = null;
   draftProfileName.value = "";
+}
+
+function onProfileNameInputKeydown(event: KeyboardEvent) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLInputElement).blur();
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    cancelProfileNameEdit();
+  }
 }
 
 function commitProfileName(profileId: string) {

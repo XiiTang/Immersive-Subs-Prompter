@@ -1,4 +1,4 @@
-import { BrowserWindow } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { AppSettings } from "../types.js";
@@ -89,11 +89,7 @@ export class WindowManager {
 
   showWindow() {
     if (this.mainWindow) {
-      if (this.mainWindow.isMinimized()) {
-        this.mainWindow.restore();
-      }
-      this.mainWindow.show();
-      this.mainWindow.focus();
+      this.showAndFocusWindow();
       return;
     }
     this.createWindow();
@@ -105,14 +101,10 @@ export class WindowManager {
       return;
     }
 
-    if (this.mainWindow.isVisible()) {
+    if (this.shouldHideOnToggle()) {
       this.mainWindow.hide();
     } else {
-      if (this.mainWindow.isMinimized()) {
-        this.mainWindow.restore();
-      }
-      this.mainWindow.show();
-      this.mainWindow.focus();
+      this.showAndFocusWindow();
     }
   }
 
@@ -125,5 +117,26 @@ export class WindowManager {
     } else {
       this.mainWindow.setAlwaysOnTop(true, level);
     }
+  }
+
+  private shouldHideOnToggle(): boolean {
+    if (!this.mainWindow?.isVisible()) {
+      return false;
+    }
+    if (process.platform === "darwin") {
+      return app.isActive();
+    }
+    return true;
+  }
+
+  private showAndFocusWindow() {
+    if (!this.mainWindow) {
+      return;
+    }
+    if (this.mainWindow.isMinimized()) {
+      this.mainWindow.restore();
+    }
+    this.mainWindow.show();
+    this.mainWindow.focus();
   }
 }

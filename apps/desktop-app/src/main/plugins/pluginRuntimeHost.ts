@@ -37,6 +37,16 @@ interface RuntimeContributions {
 
 const DEFAULT_PLUGIN_REQUEST_TIMEOUT_MS = 30_000;
 
+export function getPluginUtilityProcessForkOptions(
+  platform: NodeJS.Platform = process.platform
+): Electron.ForkOptions {
+  const options: Electron.ForkOptions = { stdio: "pipe" };
+  if (platform === "darwin") {
+    options.disclaim = true;
+  }
+  return options;
+}
+
 function getRequestTimeoutMs(options: Pick<PluginRuntimeHostOptions, "requestTimeoutMs">): number {
   return typeof options.requestTimeoutMs === "number" && options.requestTimeoutMs > 0
     ? options.requestTimeoutMs
@@ -89,7 +99,7 @@ export class PluginRuntimeHost {
 
   private static async startUtilityProcess(options: PluginRuntimeHostOptions): Promise<PluginRuntimeHost> {
     const workerEntry = path.join(app.getAppPath(), "dist/main/plugins/pluginWorkerEntry.js");
-    const child = utilityProcess.fork(workerEntry, [], { stdio: "pipe" });
+    const child = utilityProcess.fork(workerEntry, [], getPluginUtilityProcessForkOptions());
     const timeoutMs = getRequestTimeoutMs(options);
     let stopped = false;
     let nextRequestId = 0;

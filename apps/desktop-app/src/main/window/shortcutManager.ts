@@ -14,11 +14,6 @@ export class ShortcutManager {
     this.requestedShortcut = shortcut?.trim() ?? "";
     this.handler = handler;
 
-    if (this.isBlockedByGame) {
-      this.clearRegistration();
-      return;
-    }
-
     if (!this.requestedShortcut) {
       if (!this.hasLoggedMissingShortcut) {
         this.log.warn("No global shortcut configured");
@@ -29,6 +24,12 @@ export class ShortcutManager {
     }
 
     this.hasLoggedMissingShortcut = false;
+
+    if (this.isBlockedByGame) {
+      return;
+    }
+
+    this.setShortcutHandlingSuspended(false);
 
     if (this.isRegistered && this.lastRegisteredShortcut === this.requestedShortcut) {
       return;
@@ -57,8 +58,11 @@ export class ShortcutManager {
   }
 
   blockForGame() {
+    if (this.isBlockedByGame) {
+      return;
+    }
     this.isBlockedByGame = true;
-    this.clearRegistration();
+    this.setShortcutHandlingSuspended(true);
   }
 
   unblockAfterGame() {
@@ -66,8 +70,27 @@ export class ShortcutManager {
       return;
     }
     this.isBlockedByGame = false;
-    if (this.requestedShortcut && this.handler) {
+    this.setShortcutHandlingSuspended(false);
+    if (
+      this.requestedShortcut
+      && this.handler
+      && (!this.isRegistered || this.lastRegisteredShortcut !== this.requestedShortcut)
+    ) {
       this.applyShortcut(this.requestedShortcut, this.handler);
+    }
+  }
+
+  private setShortcutHandlingSuspended(suspended: boolean) {
+    try {
+      if (globalShortcut.isSuspended() === suspended) {
+        return;
+      }
+      globalShortcut.setSuspended(suspended);
+    } catch (error) {
+      this.log.error(
+        `Failed to ${suspended ? "suspend" : "resume"} global shortcuts`,
+        error
+      );
     }
   }
 }
