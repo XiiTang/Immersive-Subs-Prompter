@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildExtensionManifest } from "./manifest";
 
 const root = process.cwd();
 
@@ -48,12 +49,12 @@ function readJson(path: string) {
 
 describe("extension i18n coverage", () => {
   it("localizes browser manifest metadata through _locales", () => {
-    for (const manifestName of ["manifest.json", "manifest.firefox.json"]) {
-      const manifest = readJson(join(root, manifestName));
+    for (const target of ["chrome", "firefox"]) {
+      const manifest = buildExtensionManifest(target, "0.0.0");
       expect(manifest.default_locale).toBe("en");
       expect(manifest.name).toBe("__MSG_extensionName__");
       expect(manifest.description).toBe("__MSG_extensionDescription__");
-      expect((manifest.action as Record<string, unknown>).default_title).toBe("__MSG_extensionName__");
+      expect(manifest.action.default_title).toBe("__MSG_extensionName__");
     }
   });
 

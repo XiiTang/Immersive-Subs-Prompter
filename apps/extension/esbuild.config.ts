@@ -2,11 +2,10 @@ import * as esbuild from "esbuild";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildExtensionManifest, isExtensionBuildTarget, type ExtensionBuildTarget } from "./src/manifest";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-type BuildTargetName = "chrome" | "firefox";
 
 const shared: esbuild.BuildOptions = {
   bundle: true,
@@ -16,13 +15,11 @@ const shared: esbuild.BuildOptions = {
   target: ["chrome110", "firefox109"],
 };
 
-const targets: Record<BuildTargetName, { manifest: string; outDir: string }> = {
+const targets: Record<ExtensionBuildTarget, { outDir: string }> = {
   chrome: {
-    manifest: path.join(__dirname, "manifest.json"),
     outDir: path.join(__dirname, "dist", "chrome"),
   },
   firefox: {
-    manifest: path.join(__dirname, "manifest.firefox.json"),
     outDir: path.join(__dirname, "dist", "firefox"),
   },
 };
@@ -40,16 +37,22 @@ async function readPackageVersion(): Promise<string> {
   return parsed.version.trim();
 }
 
-async function copyManifest(manifest: string, outDir: string, version: string) {
-  const raw = await fs.readFile(manifest, "utf-8");
-  const parsed = JSON.parse(raw) as Record<string, unknown>;
-  parsed.version = version;
-  await fs.writeFile(path.join(outDir, "manifest.json"), `${JSON.stringify(parsed, null, 2)}\n`, "utf-8");
+async function writeManifest(targetName: ExtensionBuildTarget, outDir: string, version: string) {
+  const manifest = buildExtensionManifest(targetName, version);
+  await fs.writeFile(path.join(outDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf-8");
 }
 
-async function copyStaticAssets({ manifest, outDir, version }: { manifest: string; outDir: string; version: string }) {
+async function copyStaticAssets({
+  targetName,
+  outDir,
+  version
+}: {
+  targetName: ExtensionBuildTarget;
+  outDir: string;
+  version: string;
+}) {
   await Promise.all([
-    copyManifest(manifest, outDir, version),
+    writeManifest(targetName, outDir, version),
     fs.copyFile(path.join(__dirname, "popup.html"), path.join(outDir, "popup.html")),
     fs.copyFile(path.join(__dirname, "popup.css"), path.join(outDir, "popup.css")),
     copyDirectory(path.join(__dirname, "icons"), path.join(outDir, "icons")),
@@ -85,17 +88,16 @@ async function bundleScripts(outputDir: string) {
 }
 
 async function build() {
-  const targetName = (process.argv[2] || "chrome") as BuildTargetName;
-  const target = targets[targetName];
-
-  if (!target) {
+  const targetName = process.argv[2] || "chrome";
+  if (!isExtensionBuildTarget(targetName)) {
     throw new Error(`Unknown build target "${targetName}". Use "chrome" or "firefox".`);
   }
+  const target = targets[targetName];
 
   await fs.rm(target.outDir, { recursive: true, force: true });
   const version = await readPackageVersion();
   await bundleScripts(target.outDir);
-  await copyStaticAssets({ ...target, version });
+  await copyStaticAssets({ targetName, ...target, version });
 
   console.log(`Built ${targetName} extension to ${target.outDir}`);
 }

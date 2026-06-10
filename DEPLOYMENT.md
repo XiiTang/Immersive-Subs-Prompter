@@ -34,7 +34,7 @@ cd apps/extension/dist/chrome
 zip -r ../immersive-subs-prompter-chrome.zip .
 ```
 
-Before submission, verify `apps/extension/manifest.json`, `_locales`, icons, permissions, and store listing text match the current feature set.
+Before submission, verify the generated target manifest, `_locales`, icons, permissions, and store listing text match the current feature set. Browser-specific manifests are generated from the shared manifest builder during extension builds.
 
 ## Desktop Application
 
