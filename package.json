@@ -2,7 +2,7 @@
   "name": "immersive-subs-prompter",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@10.32.1",
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app && pnpm build:plugins",
     "build:plugins": "node ./scripts/package-plugins.mjs",
