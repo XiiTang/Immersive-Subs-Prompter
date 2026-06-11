@@ -17,6 +17,10 @@ const CONTENT_MESSAGE_TYPES = new Set<ContentMessageType>([
   "loop-cleared"
 ]);
 
+function isTopFrame(frameId: number): boolean {
+  return frameId === 0;
+}
+
 function isContentToBackgroundMessage(message: unknown): message is ContentToBackgroundMessage {
   return (
     !!message &&
@@ -78,6 +82,10 @@ export class ContentMessageRouter {
       this.logger.warn("msg", `Ignored unknown content message type`, {
         type: message && typeof message === "object" ? (message as { type?: unknown }).type : undefined
       });
+      return;
+    }
+    if (!isTopFrame(frameId)) {
+      this.logger.debug("msg", `Ignored subframe content message`, { tabId, frameId, type: message.type });
       return;
     }
 

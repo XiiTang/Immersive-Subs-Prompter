@@ -256,15 +256,7 @@ describe("validatePluginManifest", () => {
                 id: "servers",
                 label: "Servers",
                 type: "serverList",
-                defaultValue: [
-                  {
-                    id: "server-1",
-                    name: "Server",
-                    serverUrl: "https://media.example.test",
-                    apiKey: "",
-                    enabled: true
-                  }
-                ]
+                defaultValue: []
               }
             ]
           }
@@ -277,15 +269,89 @@ describe("validatePluginManifest", () => {
       "textarea",
       "serverList"
     ]);
-    expect(manifest.contributions?.settings?.[0]?.schema[1]?.defaultValue).toEqual([
-      {
-        id: "server-1",
-        name: "Server",
-        serverUrl: "https://media.example.test",
-        apiKey: "",
-        enabled: true
-      }
-    ]);
+    expect(manifest.contributions?.settings?.[0]?.schema[1]?.defaultValue).toEqual([]);
+  });
+
+  it("rejects manifest defaults that would silently grant file or network access", () => {
+    expect(() =>
+      validatePluginManifest({
+        id: "file-default",
+        author: XIITANG_AUTHOR,
+        version: "1.0.0",
+        displayName: "File Default",
+        description: "Has a file default.",
+        appCompatibility: { minVersion: "1.0.0" },
+        package: { url: "https://plugins.example.test/file-default.usp-plugin", sha256: "e".repeat(64) },
+        entry: { main: "main.js" },
+        permissions: ["settingsSchema", "readSelectedFile"],
+        contributions: {
+          settings: [
+            {
+              id: "file-default.settings",
+              title: "File Default",
+              schema: [{ id: "wordListPath", label: "Word List", type: "file", defaultValue: "/tmp/words.jsonl" }]
+            }
+          ]
+        }
+      })
+    ).toThrow("file-default manifest settings field 0 file defaultValue must be empty");
+
+    expect(() =>
+      validatePluginManifest({
+        id: "url-default",
+        author: XIITANG_AUTHOR,
+        version: "1.0.0",
+        displayName: "URL Default",
+        description: "Has a URL default.",
+        appCompatibility: { minVersion: "1.0.0" },
+        package: { url: "https://plugins.example.test/url-default.usp-plugin", sha256: "e".repeat(64) },
+        entry: { main: "main.js" },
+        permissions: ["settingsSchema"],
+        contributions: {
+          settings: [
+            {
+              id: "url-default.settings",
+              title: "URL Default",
+              schema: [{ id: "baseUrl", label: "Base URL", type: "string", defaultValue: "https://api.example.test" }]
+            }
+          ]
+        }
+      })
+    ).toThrow("url-default manifest settings field 0 string defaultValue must not be a URL");
+
+    expect(() =>
+      validatePluginManifest({
+        id: "server-default",
+        author: XIITANG_AUTHOR,
+        version: "1.0.0",
+        displayName: "Server Default",
+        description: "Has a server default.",
+        appCompatibility: { minVersion: "1.0.0" },
+        package: { url: "https://plugins.example.test/server-default.usp-plugin", sha256: "e".repeat(64) },
+        entry: { main: "main.js" },
+        permissions: ["settingsSchema", "network"],
+        contributions: {
+          settings: [
+            {
+              id: "server-default.settings",
+              title: "Server Default",
+              schema: [{
+                id: "servers",
+                label: "Servers",
+                type: "serverList",
+                defaultValue: [{
+                  id: "server-1",
+                  name: "Server",
+                  serverUrl: "https://api.example.test",
+                  apiKey: "",
+                  enabled: true
+                }]
+              }]
+            }
+          ]
+        }
+      })
+    ).toThrow("server-default manifest settings field 0 serverList defaultValue must be empty");
   });
 
   it("rejects settings default values that do not match the field type", () => {

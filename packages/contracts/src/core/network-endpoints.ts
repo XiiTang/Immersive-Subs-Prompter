@@ -30,7 +30,7 @@ export function networkEndpointKey(endpoint: Pick<NetworkEndpointValue, "host" |
 
 export function buildNetworkEndpointUrl(endpoint: Pick<NetworkEndpointValue, "host" | "port">, authToken: string): string {
   const url = new URL(`ws://${formatHostForUrl(endpoint.host)}:${endpoint.port}/`);
-  if (!isLoopbackHost(endpoint.host) && authToken) {
+  if (authToken) {
     url.searchParams.set("token", authToken);
   }
   return url.toString();
@@ -66,6 +66,9 @@ export function normalizeEndpoint(value: unknown): string | null {
   const normalized = new URL(`ws://${formatHostForUrl(parsed.endpoint.host)}:${parsed.endpoint.port}/`);
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
     normalized.search = new URL(trimmed).search;
+  }
+  if (!normalized.searchParams.get("token")) {
+    return null;
   }
   return normalized.toString();
 }

@@ -102,6 +102,8 @@ Required behavior:
 - Timer callback timeout is a runtime fault, not a silent no-op.
 - Runtime faults, crashes, call timeouts, and config refresh failures stop only the affected plugin, clear its contributions, clear active media-source state owned by that plugin, and mark the plugin `broken`.
 - Permission checks use concrete permissions only: `network`, `readSelectedFile`, `transcriptionRuntime`, `settingsSchema`, `wordLookupProvider`, `transcriptionProvider`, and `mediaSourceAdapter`.
+- Network grants come only from manifest `network.allowedHosts` and schema `serverList` records; redirects are not followed by the sandbox fetch bridge.
+- `transcriptionRuntime` accepts only the target video URL. Host code derives the transcription config from saved plugin settings and ignores plugin-supplied process fields.
 - Downloaded plugins never receive direct Electron, unrestricted Node, shell, process, arbitrary filesystem, renderer DOM, or arbitrary IPC access.
 
 Focused verification:

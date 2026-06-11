@@ -11,7 +11,7 @@ import { SnapshotBuilder } from "./background/messaging/SnapshotBuilder";
 import { ContentMessageRouter } from "./background/messaging/ContentMessageRouter";
 import { DashboardBridge } from "./background/dashboard/DashboardBridge";
 
-const DEFAULT_ENDPOINTS = ["ws://127.0.0.1:44501"];
+const DEFAULT_ENDPOINTS: string[] = [];
 
 const logger = new Logger("background");
 const tabRegistry = new TabRegistry({ logger: undefined });

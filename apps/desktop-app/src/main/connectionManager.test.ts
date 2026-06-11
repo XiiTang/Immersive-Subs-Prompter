@@ -266,4 +266,33 @@ describe("ConnectionManager network listeners", () => {
 
     expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
   });
+
+  it("does not resolve extension media URLs that target local or private network hosts", () => {
+    const network: NetworkSettings = {
+      endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+      authToken: "0123456789abcdef0123456789abcdef"
+    };
+    const manager = new ConnectionManager({
+      getNetworkSettings: () => network,
+      getSettings: () => makeSettings(network),
+      subtitleService: {} as never,
+      stateManager: createStateManager() as never,
+      bus: new AppEventBus(),
+      createWebSocketServer: () => new FakeWebSocketServer() as never
+    });
+    const resolveVideoUrl = (manager as unknown as {
+      resolveVideoUrl(payload: unknown): string | null;
+    }).resolveVideoUrl.bind(manager);
+
+    expect(resolveVideoUrl({
+      pageUrl: "https://example.test/watch",
+      videoSrc: "http://127.0.0.1:8080/video.mp4",
+      site: "unknown"
+    })).toBe("https://example.test/watch");
+    expect(resolveVideoUrl({
+      pageUrl: "http://192.168.1.2/watch",
+      videoSrc: "http://169.254.169.254/latest/meta-data",
+      site: "unknown"
+    })).toBeNull();
+  });
 });

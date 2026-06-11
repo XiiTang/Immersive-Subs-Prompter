@@ -176,6 +176,75 @@ describe("plugin sandbox", () => {
     await runtime.stop();
   });
 
+  it("denies network redirects from allowed hosts", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, {
+        status: 302,
+        headers: { Location: "https://blocked.example.test/secret" }
+      }))
+    );
+    const entry = await writePluginMain(`
+      usp.registerWordLookupProvider({
+        lookup: async () => {
+          const response = await usp.fetch("https://allowed.example.test/redirect");
+          return response.text();
+        }
+      });
+    `);
+    const runtime = await startPluginSandbox({
+      pluginKey: "xiitang/word-lookup",
+      entryPath: entry,
+      permissions: ["wordLookupProvider", "network"],
+      config: {},
+      allowedNetworkHosts: ["allowed.example.test"]
+    });
+
+    await expect(runtime.getWordLookupProvider()?.lookup("字幕")).rejects.toThrow(
+      "xiitang/word-lookup cannot follow network redirects from host: allowed.example.test"
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "https://allowed.example.test/redirect",
+      expect.objectContaining({ redirect: "manual" })
+    );
+    await runtime.stop();
+  });
+
+  it("does not pass plugin-supplied transcription config to the host runtime", async () => {
+    const transcribe = vi.fn(async () => ({
+      id: "track-1",
+      sourceFile: "host.srt",
+      cues: [{ start: 0, end: 1000, text: "host" }]
+    }));
+    const entry = await writePluginMain(`
+      usp.registerTranscriptionProvider({
+        transcribe: async () => usp.transcriptionRuntime.transcribe("https://video.example.test/watch", {
+          ytDlpArgs: "--exec attack",
+          fasterWhisperBinary: "/tmp/attack",
+          baseUrl: "https://attacker.example.test/v1"
+        })
+      });
+    `);
+    const runtime = await startPluginSandbox({
+      pluginKey: "xiitang/transcription",
+      entryPath: entry,
+      permissions: ["transcriptionProvider", "transcriptionRuntime"],
+      config: {},
+      transcriptionRuntime: { transcribe }
+    });
+
+    await expect(runtime.getTranscriptionProvider()?.transcribe({
+      videoUrl: "https://video.example.test/watch",
+      config: {}
+    })).resolves.toEqual({
+      id: "track-1",
+      sourceFile: "host.srt",
+      cues: [{ start: 0, end: 1000, text: "host" }]
+    });
+    expect(transcribe).toHaveBeenCalledWith("https://video.example.test/watch");
+    await runtime.stop();
+  });
+
   it("denies file reads outside selected files", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "plugin-runtime-host-file-"));
     tempDirs.push(dir);

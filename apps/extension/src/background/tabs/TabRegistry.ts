@@ -48,8 +48,7 @@ export class TabRegistry {
     if (typeof preferredFrameId === "number" && framePorts.has(preferredFrameId)) {
       return framePorts.get(preferredFrameId) ?? null;
     }
-    const iterator = framePorts.values().next();
-    return iterator.done ? null : iterator.value;
+    return framePorts.get(0) ?? null;
   }
 
   getPreferredFrameId(tabId: number): number | null {

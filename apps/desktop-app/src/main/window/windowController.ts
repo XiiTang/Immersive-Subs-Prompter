@@ -5,8 +5,9 @@ import { ConnectionManager } from "../connectionManager.js";
 import { SettingsStore } from "../settings/SettingsStore.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
-import { AppSettings, DesktopState, PlaybackState, TranscriptionConfig } from "../types.js";
+import { AppSettings, DesktopState, PlaybackState } from "../types.js";
 import { TranscriptionService } from "../transcriptionService.js";
+import { buildPluginTranscriptionConfig } from "../pluginTranscriptionConfig.js";
 import { AutoLaunchManager } from "./autoLaunchManager.js";
 import { DisplayManager } from "./displayManager.js";
 import { GameProcessMonitor } from "./gameProcessMonitor.js";
@@ -103,8 +104,11 @@ export class WindowController {
       getSettings: this.options.getSettings,
       replaceSettings: (settings) => this.replaceAppSettings(settings),
       transcriptionRuntime: {
-        transcribe: (videoUrl, config) =>
-          this.options.transcriptionService.transcribe(videoUrl, config as unknown as TranscriptionConfig)
+        transcribe: (pluginKey, videoUrl) =>
+          this.options.transcriptionService.transcribe(
+            videoUrl,
+            buildPluginTranscriptionConfig(this.options.getSettings().plugins[pluginKey]?.config ?? {})
+          )
       },
       onCatalogChanged: () => this.pushPluginCatalog(),
       onPluginContributionsRemoved: (pluginKey) => this.mediaSourceController.handlePluginRemoved(pluginKey)

@@ -16,11 +16,12 @@ describe("ContentMessageRouter", () => {
     const connectionPool = {
       broadcast: vi.fn()
     };
+    const tabRegistry = {
+      rememberActiveFrame: vi.fn()
+    };
     const router = new ContentMessageRouter({
       logger: logger as never,
-      tabRegistry: {
-        rememberActiveFrame: vi.fn()
-      } as never,
+      tabRegistry: tabRegistry as never,
       mediaStateStore: {
         has: vi.fn(() => hasMediaState),
         isValidMedia: vi.fn(() => false),
@@ -41,7 +42,7 @@ describe("ContentMessageRouter", () => {
       } as never
     });
 
-    return { connectionPool, logger, router };
+    return { connectionPool, logger, router, tabRegistry };
   }
 
   it("broadcasts loop-started exactly once with the shared loop payload", () => {
@@ -88,6 +89,34 @@ describe("ContentMessageRouter", () => {
       }
     } as never);
 
+    expect(connectionPool.broadcast).not.toHaveBeenCalled();
+  });
+
+  it("ignores subframe media messages instead of replacing tab-level state", () => {
+    const { connectionPool, router, tabRegistry } = createRouter();
+
+    router.handleMessage(7, 12, {
+      type: "video-context",
+      payload: {
+        pageUrl: "https://embed.example.test/watch",
+        site: "unknown",
+        videoSrc: "https://cdn.example.test/video.mp4",
+        videoWidth: 1920,
+        videoHeight: 1080,
+        pictureInPicture: false,
+        playbackRate: 1,
+        currentTime: 0,
+        duration: 20_000,
+        paused: false,
+        muted: false,
+        volume: 1,
+        readyState: 4,
+        title: "Embed",
+        updatedAt: 1
+      }
+    });
+
+    expect(tabRegistry.rememberActiveFrame).not.toHaveBeenCalled();
     expect(connectionPool.broadcast).not.toHaveBeenCalled();
   });
 });

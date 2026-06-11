@@ -856,6 +856,83 @@ describe("PluginManager", () => {
     });
   });
 
+  it("derives network grants only from manifest hosts and server-list settings", async () => {
+    const rootDir = await createTempDir();
+    const networkManifest: PluginManifest = {
+      ...mediaManifest,
+      network: { allowedHosts: ["api.example.test"] },
+      permissions: ["settingsSchema", "network", "mediaSourceAdapter"],
+      contributions: {
+        settings: [
+          {
+            id: "network.settings",
+            title: "Network",
+            schema: [
+              { id: "notes", label: "Notes", type: "textarea", defaultValue: "" },
+              { id: "servers", label: "Servers", type: "serverList", defaultValue: [] }
+            ]
+          }
+        ],
+        mediaSource: true
+      }
+    };
+    const installDir = path.join(rootDir, "installed", "xiitang", networkManifest.id, networkManifest.version);
+    await fs.mkdir(installDir, { recursive: true });
+    await fs.writeFile(path.join(installDir, "manifest.json"), JSON.stringify(networkManifest), "utf-8");
+    await fs.writeFile(path.join(installDir, "main.js"), "", "utf-8");
+    let settings = createSettings();
+    const updateConfig = vi.fn(async () => undefined);
+    const manager = new PluginManager({
+      rootDir,
+      registryStore: new PluginRegistryStore(path.join(rootDir, "registry.json")),
+      installer: {
+        install: vi.fn(async () => ({ manifest: networkManifest, installDir }))
+      },
+      getSettings: () => settings,
+      replaceSettings: (next) => {
+        settings = next;
+      },
+      createRuntime: vi.fn(async () => ({
+        getWordLookupProvider: () => null,
+        getTranscriptionProvider: () => null,
+        getMediaSourceAdapter: () => null,
+        updateConfig,
+        stop: vi.fn(async () => undefined)
+      }))
+    });
+
+    await manager.install("https://plugins.example.test/manifest.json", networkManifest);
+    await manager.enable(MEDIA_PLUGIN_KEY);
+    settings = {
+      ...settings,
+      plugins: {
+        ...settings.plugins,
+        [MEDIA_PLUGIN_KEY]: {
+          config: {
+            notes: "https://ignored.example.test",
+            servers: [
+              {
+                id: "server-1",
+                name: "Server",
+                serverUrl: "https://media.example.test",
+                apiKey: "",
+                enabled: true
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    await manager.refreshRuntimeConfigs();
+
+    expect(updateConfig).toHaveBeenLastCalledWith({
+      config: settings.plugins[MEDIA_PLUGIN_KEY]?.config,
+      allowedNetworkHosts: ["api.example.test", "media.example.test"],
+      readableFiles: []
+    });
+  });
+
   it("registers plugin contributions that appear after runtime startup", async () => {
     const rootDir = await createTempDir();
     const installDir = path.join(rootDir, "installed", "xiitang", manifest.id, manifest.version);

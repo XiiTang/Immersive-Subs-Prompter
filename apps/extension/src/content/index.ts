@@ -70,10 +70,11 @@ function handleBlacklistStatusChange(result: { blocked: boolean; changed: boolea
 }
 
 function handleUrlChanged(url: string, title: string) {
-  if (state.monitoringActive) {
+  const status = evaluateCurrentUrl();
+  handleBlacklistStatusChange(status, "url-change");
+  if (state.monitoringActive && !status.blocked) {
     send("page-url-changed", { pageUrl: url, title });
   }
-  handleBlacklistStatusChange(evaluateCurrentUrl(), "url-change");
 }
 
 async function bootstrap() {

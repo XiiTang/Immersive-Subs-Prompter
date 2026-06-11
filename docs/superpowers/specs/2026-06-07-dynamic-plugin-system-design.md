@@ -259,7 +259,7 @@ Plugin startup code, parent-initiated provider calls, host calls, and sandbox ti
 
 If a plugin crashes or times out, only that plugin moves to `broken`. The desktop app remains running.
 
-When plugin settings change, the host pushes current plugin config and recomputed config-derived network/file grants into enabled runtimes. Plugins do not keep a stale startup-only config snapshot.
+When plugin settings change, the host pushes current plugin config and recomputed access grants into enabled runtimes. Network grants are limited to manifest `network.allowedHosts` plus `serverList` `serverUrl` hosts. File grants come from schema `file` fields in the saved plugin config. Plugins do not keep a stale startup-only config snapshot.
 
 Contribution registration can happen during startup or later async initialization. When a runtime announces a new contribution, `PluginManager` updates the contribution registry for that enabled plugin key.
 
@@ -267,9 +267,9 @@ Contribution registration can happen during startup or later async initializatio
 
 The first version uses concrete permissions only:
 
-- `network`: access manifest-declared hosts through `network.allowedHosts` or URL hosts present in the plugin's user config
+- `network`: access manifest-declared hosts through `network.allowedHosts` or hosts from schema `serverList` records in the plugin's saved config
 - `readSelectedFile`: read files configured through schema `file` fields under the plugin's own config
-- `transcriptionRuntime`: call the host-managed transcription service for active media
+- `transcriptionRuntime`: call the host-managed transcription service for active media; the runtime accepts only the target video URL and host-normalizes the saved plugin settings
 - `settingsSchema`: contribute a schema-rendered settings page
 - `wordLookupProvider`: register a word lookup provider
 - `transcriptionProvider`: register a transcription provider
@@ -301,7 +301,7 @@ Supported schema field types are:
 - `textarea`
 - `serverList`
 
-Media-server plugins use `serverList` for structured records with `id`, `name`, `serverUrl`, `apiKey`, and `enabled`. They do not use JSON text blobs for server configuration, so config-derived network grants can be computed from the same structured config the plugin receives.
+Media-server plugins use `serverList` for structured records with `id`, `name`, `serverUrl`, `apiKey`, and `enabled`. They do not use JSON text blobs for server configuration, so network grants can be computed from the same structured config the plugin receives. Manifest `serverList` defaults must be empty; hosts are granted only after they are present in saved plugin config.
 
 ### Word Lookup
 
@@ -332,7 +332,7 @@ The host owns:
 - Whisper-compatible API uploads
 - Faster-Whisper process execution
 
-The plugin owns provider registration, settings schema, config defaults, and config normalization before it calls the host transcription runtime.
+The plugin owns provider registration and settings schema. The host owns transcription config normalization before it starts audio extraction, API upload, or Faster-Whisper execution, and plugins cannot pass custom `yt-dlp` args, API base URLs, or executable paths directly through the runtime bridge.
 
 ### Media Source Adapter
 

@@ -24,7 +24,7 @@ export interface PluginSandboxOptions {
   onContribution?: (contribution: PluginSandboxContribution) => void;
   onRuntimeFault?: (error: Error) => void;
   transcriptionRuntime?: {
-    transcribe(videoUrl: string, config: Record<string, unknown>): Promise<SubtitleTrack>;
+    transcribe(videoUrl: string): Promise<SubtitleTrack>;
   };
 }
 
@@ -316,9 +316,8 @@ const SANDBOX_BOOTSTRAP_SOURCE = `
       return new SandboxResponse(response);
     },
     transcriptionRuntime: Object.freeze({
-      transcribe: (videoUrl, config) => hostValueAsync("transcriptionRuntime.transcribe", {
-        videoUrl: String(videoUrl),
-        config: config ?? {}
+      transcribe: (videoUrl) => hostValueAsync("transcriptionRuntime.transcribe", {
+        videoUrl: String(videoUrl)
       })
     })
   });
@@ -471,7 +470,19 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
           if (!allowedNetworkHosts.has(host)) {
             throw new Error(`${options.pluginKey} cannot access network host: ${host}`);
           }
-          const response = await fetch(input, parseFetchInit(getRecordValue(payload, "init")));
+          const response = await fetch(input, {
+            ...parseFetchInit(getRecordValue(payload, "init")),
+            redirect: "manual"
+          });
+          if (response.status >= 300 && response.status < 400) {
+            throw new Error(`${options.pluginKey} cannot follow network redirects from host: ${host}`);
+          }
+          if (response.url) {
+            const finalHost = getFetchHost(response.url);
+            if (finalHost !== host) {
+              throw new Error(`${options.pluginKey} cannot access redirected network host: ${finalHost}`);
+            }
+          }
           return {
             ok: response.ok,
             status: response.status,
@@ -487,10 +498,7 @@ export async function startPluginSandbox(options: PluginSandboxOptions): Promise
           if (!options.transcriptionRuntime) {
             throw new Error(`${options.pluginKey} requested unavailable transcription runtime`);
           }
-          return options.transcriptionRuntime.transcribe(
-            String(getRecordValue(payload, "videoUrl") ?? ""),
-            parseObjectValue(getRecordValue(payload, "config"))
-          );
+          return options.transcriptionRuntime.transcribe(String(getRecordValue(payload, "videoUrl") ?? ""));
         });
       case "url.create":
         return bridgeResult(() => new URL(

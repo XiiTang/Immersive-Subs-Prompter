@@ -35,7 +35,7 @@ interface PluginRuntimeStartInput {
   onRuntimeExit: (error: Error) => void;
   onContributionsChanged: () => void;
   transcriptionRuntime?: {
-    transcribe(videoUrl: string, config: Record<string, unknown>): Promise<SubtitleTrack>;
+    transcribe(videoUrl: string): Promise<SubtitleTrack>;
   };
 }
 
@@ -54,7 +54,7 @@ export interface PluginManagerOptions {
   replaceSettings: (settings: AppSettings) => void;
   createRuntime?: (input: PluginRuntimeStartInput) => Promise<PluginRuntime>;
   transcriptionRuntime?: {
-    transcribe(videoUrl: string, config: Record<string, unknown>): Promise<SubtitleTrack>;
+    transcribe(pluginKey: string, videoUrl: string): Promise<SubtitleTrack>;
   };
   onCatalogChanged?: () => Promise<void> | void;
   onPluginContributionsRemoved?: (pluginKey: string) => Promise<void> | void;
@@ -345,7 +345,12 @@ export class PluginManager {
         if (runtime && this.runtimes.has(record.pluginKey)) {
           this.registerRuntimeContributions(record.pluginKey, runtime);
         }
-      }
+      },
+      transcriptionRuntime: this.options.transcriptionRuntime
+        ? {
+            transcribe: (videoUrl) => this.options.transcriptionRuntime!.transcribe(record.pluginKey, videoUrl)
+          }
+        : undefined
     });
     this.runtimes.set(record.pluginKey, runtime);
     this.registerRuntimeContributions(record.pluginKey, runtime);
@@ -407,13 +412,9 @@ export class PluginManager {
   }
 
   private async createRuntime(input: PluginRuntimeStartInput): Promise<PluginRuntime> {
-    const runtimeInput = {
-      ...input,
-      transcriptionRuntime: this.options.transcriptionRuntime
-    };
     return this.options.createRuntime
-      ? this.options.createRuntime(runtimeInput)
-      : PluginRuntimeHost.start(runtimeInput);
+      ? this.options.createRuntime(input)
+      : PluginRuntimeHost.start(input);
   }
 
   private async notifyCatalogChanged(): Promise<void> {
@@ -546,24 +547,28 @@ function getAllowedNetworkHosts(manifest: PluginManifest, config: Record<string,
       hosts.add(normalized);
     }
   }
-  collectNetworkHosts(config, hosts);
+  for (const section of manifest.contributions?.settings ?? []) {
+    for (const field of section.schema) {
+      if (field.type !== "serverList") {
+        continue;
+      }
+      collectServerListHosts(config[field.id], hosts);
+    }
+  }
   return Array.from(hosts);
 }
 
-function collectNetworkHosts(value: unknown, hosts: Set<string>): void {
-  if (typeof value === "string") {
-    collectNetworkHostFromString(value, hosts);
+function collectServerListHosts(value: unknown, hosts: Set<string>): void {
+  if (!Array.isArray(value)) {
     return;
   }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectNetworkHosts(item, hosts);
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
     }
-    return;
-  }
-  if (value && typeof value === "object") {
-    for (const item of Object.values(value)) {
-      collectNetworkHosts(item, hosts);
+    const serverUrl = (item as { serverUrl?: unknown }).serverUrl;
+    if (typeof serverUrl === "string") {
+      collectNetworkHostFromString(serverUrl, hosts);
     }
   }
 }

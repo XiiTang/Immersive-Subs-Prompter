@@ -12,6 +12,7 @@ Immersive Subs Prompter.
 - `artifacts/04_reconciliation/dedupe_report.md`: canonical candidate-id reconciliation.
 - `artifacts/05_findings/validation_summary.md`: validation summary for reportable findings.
 - `artifacts/05_findings/attack_path_analysis_report.md`: scan-level attack-path summary.
+- `remediation-2026-06-11.md`: follow-up fixes and validation evidence for the reportable findings.
 
 ## Summary
 
@@ -27,4 +28,3 @@ Immersive Subs Prompter.
 - Passed: plugin sandbox/runtime/manifest/install focused vitest group, 7 files and 60 tests.
 - Passed: `transcriptionService.test.ts`, 1 file and 3 tests.
 - Known validation limitation: `subtitleService.test.ts` and `ytDlpManager.test.ts` failed in the scan environment because the Electron `app` mock was not active before `app.getPath` / `app.isReady` usage.
-

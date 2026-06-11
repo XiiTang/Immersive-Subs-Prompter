@@ -1,10 +1,12 @@
 import { app } from "electron";
+import { createHash } from "node:crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import { createLogger } from "./logger.js";
 
 const RELEASE_API = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
 const METADATA_FILE = "yt-dlp.json";
+const CHECKSUM_ASSET = "SHA2-256SUMS";
 
 type PlatformBinary = {
   fileName: string;
@@ -13,7 +15,13 @@ type PlatformBinary = {
 
 type ReleaseInfo = {
   version: string;
-  assets: Map<string, string>;
+  assets: Map<string, ReleaseAsset>;
+};
+
+type ReleaseAsset = {
+  name: string;
+  downloadUrl: string;
+  digest: string | null;
 };
 
 type BinaryMetadata = {
@@ -68,9 +76,13 @@ export class YtDlpManager {
 
       const releaseInfo = await this.fetchLatestReleaseInfo();
       const releaseVersion = releaseInfo.version;
-      const downloadUrl = releaseInfo.assets.get(config.assetName);
-      if (!downloadUrl) {
+      const binaryAsset = releaseInfo.assets.get(config.assetName);
+      if (!binaryAsset) {
         throw new Error(`yt-dlp release does not include asset ${config.assetName}.`);
+      }
+      const checksumAsset = releaseInfo.assets.get(CHECKSUM_ASSET);
+      if (!checksumAsset) {
+        throw new Error(`yt-dlp release does not include asset ${CHECKSUM_ASSET}.`);
       }
 
       const needsDownload =
@@ -78,7 +90,9 @@ export class YtDlpManager {
 
       if (needsDownload) {
         this.log.info(`Downloading yt-dlp ${releaseVersion}...`);
-        await this.downloadBinary(downloadUrl, targetPath);
+        const checksums = await this.downloadChecksumFile(checksumAsset);
+        const expectedSha256 = parseChecksumForAsset(checksums, config.assetName);
+        await this.downloadBinary(binaryAsset, targetPath, expectedSha256);
         await this.ensurePermissions(targetPath);
         await this.writeMetadata(storageDir, {
           version: releaseVersion,
@@ -121,17 +135,32 @@ export class YtDlpManager {
     return dir;
   }
 
-  private async downloadBinary(url: string, targetPath: string) {
-    const response = await fetch(url);
+  private async downloadBinary(asset: ReleaseAsset, targetPath: string, expectedSha256: string) {
+    const response = await fetch(asset.downloadUrl);
     if (!response.ok) {
       throw new Error(`Failed to download yt-dlp: ${response.status} ${response.statusText}`);
     }
+    assertExpectedReleaseDownloadUrl(response.url || asset.downloadUrl);
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    assertSha256(buffer, expectedSha256, asset.name);
     const tempPath = `${targetPath}.download`;
     await fs.writeFile(tempPath, buffer);
     await fs.rename(tempPath, targetPath);
+  }
+
+  private async downloadChecksumFile(asset: ReleaseAsset): Promise<string> {
+    const response = await fetch(asset.downloadUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download yt-dlp checksums: ${response.status} ${response.statusText}`);
+    }
+    assertExpectedReleaseDownloadUrl(response.url || asset.downloadUrl);
+    const text = await response.text();
+    if (asset.digest) {
+      assertSha256(Buffer.from(text, "utf-8"), asset.digest, asset.name);
+    }
+    return text;
   }
 
   private async ensurePermissions(targetPath: string) {
@@ -176,11 +205,15 @@ export class YtDlpManager {
       throw new Error("Unable to parse yt-dlp latest version.");
     }
 
-    const assets = new Map<string, string>();
+    const assets = new Map<string, ReleaseAsset>();
     if (Array.isArray(payload?.assets)) {
       for (const asset of payload.assets) {
         if (asset?.name && asset?.browser_download_url) {
-          assets.set(asset.name, asset.browser_download_url);
+          assets.set(asset.name, {
+            name: asset.name,
+            downloadUrl: asset.browser_download_url,
+            digest: typeof asset.digest === "string" ? asset.digest : null
+          });
         }
       }
     }
@@ -216,5 +249,41 @@ export class YtDlpManager {
     } catch (error) {
       this.log.warn("Failed to persist yt-dlp metadata:", error);
     }
+  }
+}
+
+function parseChecksumForAsset(checksums: string, assetName: string): string {
+  for (const line of checksums.split(/\r?\n/)) {
+    const match = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/i);
+    if (match?.[2]?.trim() === assetName) {
+      return match[1].toLowerCase();
+    }
+  }
+  throw new Error(`yt-dlp checksum file does not include asset ${assetName}.`);
+}
+
+function assertSha256(content: Buffer, expected: string, assetName: string): void {
+  const normalized = expected.startsWith("sha256:") ? expected.slice("sha256:".length) : expected;
+  if (!/^[a-f0-9]{64}$/i.test(normalized)) {
+    throw new Error(`yt-dlp ${assetName} checksum is invalid.`);
+  }
+  const actual = createHash("sha256").update(content).digest("hex");
+  if (actual !== normalized.toLowerCase()) {
+    throw new Error(`yt-dlp ${assetName} checksum mismatch.`);
+  }
+}
+
+function assertExpectedReleaseDownloadUrl(input: string): void {
+  const parsed = new URL(input);
+  if (parsed.protocol !== "https:") {
+    throw new Error("yt-dlp release asset download must use https.");
+  }
+  const allowedHosts = new Set([
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com"
+  ]);
+  if (!allowedHosts.has(parsed.hostname.toLowerCase())) {
+    throw new Error(`yt-dlp release asset redirected to unsupported host: ${parsed.hostname}`);
   }
 }

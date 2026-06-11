@@ -10,6 +10,7 @@ import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
+import { assertPublicHttpUrl } from "./networkUrlSafety.js";
 
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
 
@@ -27,15 +28,16 @@ export class SubtitleService {
   ) {}
 
   async getSubtitles(videoUrl: string): Promise<SubtitleLoadResult> {
+    const safeVideoUrl = assertPublicHttpUrl(videoUrl, "Subtitle video URL");
     const ytDlpArgs = this.resolveYtDlpArgs();
     const cacheVariant = createYtDlpArgsVariant(ytDlpArgs);
-    const inflightKey = `${cacheVariant}:${videoUrl}`;
+    const inflightKey = `${cacheVariant}:${safeVideoUrl}`;
 
     // Check cache first
     if (this.cacheManager) {
-      const cached = await this.cacheManager.get(videoUrl, "ytdlp", cacheVariant);
+      const cached = await this.cacheManager.get(safeVideoUrl, "ytdlp", cacheVariant);
       if (cached) {
-        this.log.debug("Cache hit for:", videoUrl);
+        this.log.debug("Cache hit for:", safeVideoUrl);
         return cached;
       }
     }
@@ -45,14 +47,14 @@ export class SubtitleService {
       return inProgress;
     }
 
-    const job = this.downloadSubtitles(videoUrl, ytDlpArgs);
+    const job = this.downloadSubtitles(safeVideoUrl, ytDlpArgs);
     this.inflight.set(inflightKey, job);
 
     try {
       const result = await job;
       // Save to cache
       if (this.cacheManager) {
-        await this.cacheManager.set(videoUrl, "ytdlp", result, cacheVariant);
+        await this.cacheManager.set(safeVideoUrl, "ytdlp", result, cacheVariant);
       }
       return result;
     } finally {

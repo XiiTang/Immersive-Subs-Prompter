@@ -17,16 +17,19 @@ function makeEndpoint(overrides: Partial<NetworkEndpoint> = {}): NetworkEndpoint
 }
 
 describe("connectionAuth", () => {
-  it("allows extension-origin loopback clients without putting the token in the default endpoint", () => {
+  it("requires the shared token for extension-origin loopback clients", () => {
     expect(
       isAuthorizedDesktopClient(
         { origin: "chrome-extension://abcdefghijklmnop", requestUrl: "/" },
         { endpoint: makeEndpoint(), authToken }
       )
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isAuthorizedDesktopClient(
-        { origin: "moz-extension://2f1c8041-a3fb-44a5-aabf-0be7742fdc1d", requestUrl: "/" },
+        {
+          origin: "moz-extension://2f1c8041-a3fb-44a5-aabf-0be7742fdc1d",
+          requestUrl: "/?token=0123456789abcdef0123456789abcdef"
+        },
         { endpoint: makeEndpoint({ host: "localhost" }), authToken }
       )
     ).toBe(true);

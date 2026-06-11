@@ -3,7 +3,7 @@ import { ENDPOINTS_STORAGE_KEY } from "../../shared/constants";
 import { EndpointManager } from "./EndpointManager";
 
 describe("EndpointManager", () => {
-  const defaultEndpoints = ["ws://127.0.0.1:44501"];
+  const defaultEndpoints = ["ws://127.0.0.1:44501/?token=0123456789abcdef0123456789abcdef"];
   let getMock: ReturnType<typeof vi.fn>;
   let setMock: ReturnType<typeof vi.fn>;
 

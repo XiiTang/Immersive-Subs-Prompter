@@ -98,8 +98,8 @@ async function startPlugin(payload: Record<string, unknown>): Promise<void> {
     onContribution: (contribution) => parentPort!.postMessage({ type: "contribution", contribution }),
     onRuntimeFault: (error) => parentPort!.postMessage({ type: "runtime-fault", error: error.message }),
     transcriptionRuntime: {
-      transcribe: async (videoUrl, config) =>
-        hostCall("transcriptionRuntime.transcribe", { videoUrl, config }) as Promise<SubtitleTrack>
+      transcribe: async (videoUrl) =>
+        hostCall("transcriptionRuntime.transcribe", { videoUrl }) as Promise<SubtitleTrack>
     }
   });
 }

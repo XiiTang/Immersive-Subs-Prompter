@@ -19,7 +19,7 @@ export interface PluginRuntimeHostOptions {
   onRuntimeExit?: (error: Error) => void;
   onContributionsChanged?: () => void;
   transcriptionRuntime?: {
-    transcribe(videoUrl: string, config: Record<string, unknown>): Promise<SubtitleTrack>;
+    transcribe(videoUrl: string): Promise<SubtitleTrack>;
   };
 }
 
@@ -277,12 +277,7 @@ async function handleHostCall(
       throw new Error(`${options.pluginKey} requested unavailable transcription runtime`);
     }
     const source = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
-    const result = await options.transcriptionRuntime.transcribe(
-      String(source.videoUrl ?? ""),
-      source.config && typeof source.config === "object" && !Array.isArray(source.config)
-        ? (source.config as Record<string, unknown>)
-        : {}
-    );
+    const result = await options.transcriptionRuntime.transcribe(String(source.videoUrl ?? ""));
     child.postMessage({ type: "host-response", requestId, ok: true, result });
   } catch (error) {
     child.postMessage({

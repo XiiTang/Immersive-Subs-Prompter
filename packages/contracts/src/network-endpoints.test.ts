@@ -60,13 +60,13 @@ describe("network endpoint utilities", () => {
   });
 
   it("normalizes extension endpoint strings through the same parser", () => {
-    expect(normalizeEndpoint("192.168.1.2:44501")).toBe("ws://192.168.1.2:44501/");
+    expect(normalizeEndpoint("192.168.1.2:44501")).toBeNull();
     expect(normalizeEndpoint("ws://192.168.1.2:44501/?token=abc")).toBe("ws://192.168.1.2:44501/?token=abc");
     expect(normalizeEndpoint("wss://192.168.1.2:44501")).toBeNull();
     expect(normalizeEndpoint("192.168.1.2")).toBeNull();
     expect(normalizeEndpoint("bad host:44501")).toBeNull();
-    expect(normalizeEndpointList(["127.0.0.1:44501", "ws://127.0.0.1:44501/", "bad", "bad host:44501"])).toEqual([
-      "ws://127.0.0.1:44501/"
+    expect(normalizeEndpointList(["127.0.0.1:44501", "ws://127.0.0.1:44501/", "ws://127.0.0.1:44501/?token=abc", "bad", "bad host:44501"])).toEqual([
+      "ws://127.0.0.1:44501/?token=abc"
     ]);
   });
 
@@ -76,10 +76,14 @@ describe("network endpoint utilities", () => {
     expect(isLoopbackHost("127.0.0.1")).toBe(true);
     expect(isLoopbackHost("::1")).toBe(true);
     expect(isLoopbackHost("192.168.1.2")).toBe(false);
-    expect(buildNetworkEndpointUrl({ host: "127.0.0.1", port: 44501 }, "secret")).toBe("ws://127.0.0.1:44501/");
+    expect(buildNetworkEndpointUrl({ host: "127.0.0.1", port: 44501 }, "secret")).toBe(
+      "ws://127.0.0.1:44501/?token=secret"
+    );
     expect(buildNetworkEndpointUrl({ host: "192.168.1.2", port: 44501 }, "secret")).toBe(
       "ws://192.168.1.2:44501/?token=secret"
     );
-    expect(buildNetworkEndpointUrl({ host: "::1", port: 44501 }, "secret")).toBe("ws://[::1]:44501/");
+    expect(buildNetworkEndpointUrl({ host: "::1", port: 44501 }, "secret")).toBe(
+      "ws://[::1]:44501/?token=secret"
+    );
   });
 });

@@ -236,6 +236,9 @@ function validateSettingsDefaultValue(
     if (!Array.isArray(value)) {
       throw new Error(`${pluginId} manifest settings field ${index} defaultValue must be an array`);
     }
+    if (value.length > 0) {
+      throw new Error(`${pluginId} manifest settings field ${index} serverList defaultValue must be empty`);
+    }
     return value.map((server, serverIndex) => {
       const source = requireObject(server, `${pluginId} manifest settings field ${index} server ${serverIndex}`);
       assertExactKeys(source, ["id", "name", "serverUrl", "apiKey", "enabled"], `${pluginId} manifest settings field ${index} server ${serverIndex}`);
@@ -258,9 +261,28 @@ function validateSettingsDefaultValue(
     (type === "string" || type === "select" || type === "file" || type === "textarea") &&
     typeof value === "string"
   ) {
+    const trimmed = value.trim();
+    if (type === "file" && trimmed) {
+      throw new Error(`${pluginId} manifest settings field ${index} file defaultValue must be empty`);
+    }
+    if ((type === "string" || type === "textarea") && isHttpUrlString(trimmed)) {
+      throw new Error(`${pluginId} manifest settings field ${index} ${type} defaultValue must not be a URL`);
+    }
     return value;
   }
   throw new Error(`${pluginId} manifest settings field ${index} defaultValue type does not match ${type}`);
+}
+
+function isHttpUrlString(value: string): boolean {
+  if (!value) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function requireServerDefaultString(

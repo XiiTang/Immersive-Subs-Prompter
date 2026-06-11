@@ -50,7 +50,7 @@ describe("downloadable plugin source manifests", () => {
     }
   });
 
-  it("exposes every host transcription runtime option through the transcription plugin schema", () => {
+  it("exposes only user-owned transcription options through the transcription plugin schema", () => {
     expect(settingFieldIds("transcription")).toEqual([
       "provider",
       "baseUrl",
@@ -60,8 +60,6 @@ describe("downloadable plugin source manifests", () => {
       "prompt",
       "enableWordTimestamps",
       "extraParamsJson",
-      "ytDlpArgs",
-      "fasterWhisperBinary",
       "fasterWhisperModel",
       "fasterWhisperModelDir",
       "fasterWhisperDevice",
@@ -70,6 +68,8 @@ describe("downloadable plugin source manifests", () => {
       "fasterWhisperVadMethod",
       "fasterWhisperUseKim2"
     ]);
+    expect(readPluginMain("transcription")).not.toContain("ytDlpArgs");
+    expect(readPluginMain("transcription")).not.toContain("fasterWhisperBinary");
   });
 
   it("uses structured server-list settings for Jellyfin / Emby instead of JSON text blobs", () => {

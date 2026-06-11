@@ -92,6 +92,19 @@ afterEach(async () => {
 });
 
 describe("SubtitleService ytdlp cache identity", () => {
+  it("rejects local and private video URLs before invoking yt-dlp", async () => {
+    const binaryResolver = vi.fn(async () => process.execPath);
+    const service = new SubtitleService(binaryResolver);
+
+    await expect(service.getSubtitles("http://127.0.0.1:8080/watch")).rejects.toThrow(
+      "Subtitle video URL cannot target local or private network hosts"
+    );
+    await expect(service.getSubtitles("http://192.168.1.2/watch")).rejects.toThrow(
+      "Subtitle video URL cannot target local or private network hosts"
+    );
+    expect(binaryResolver).not.toHaveBeenCalled();
+  });
+
   it("includes DEFAULT_YTDLP_ARGS in the ytdlp cache variant when profile args are empty", async () => {
     const get = vi.fn(async (_url: string, _source: string, _variant?: string) => makeData("cached"));
     const cacheManager = { get, set: vi.fn() } as unknown as SubtitleCacheManager;
@@ -101,10 +114,10 @@ describe("SubtitleService ytdlp cache identity", () => {
       cacheManager
     );
 
-    await service.getSubtitles("http://video.local/watch");
+    await service.getSubtitles("https://video.example.test/watch");
 
     expect(get).toHaveBeenCalledWith(
-      "http://video.local/watch",
+      "https://video.example.test/watch",
       "ytdlp",
       expectedVariant(DEFAULT_YTDLP_ARGS)
     );
@@ -120,9 +133,9 @@ describe("SubtitleService ytdlp cache identity", () => {
       cacheManager
     );
 
-    await service.getSubtitles("http://video.local/watch");
+    await service.getSubtitles("https://video.example.test/watch");
     ytDlpArgs = "--sub-lang en.* --sub-format srt/best";
-    await service.getSubtitles("http://video.local/watch");
+    await service.getSubtitles("https://video.example.test/watch");
 
     const expected = expectedVariant("--sub-lang en.* --sub-format srt/best");
     expect(get.mock.calls[0]?.[2]).toBe(expected);
@@ -139,9 +152,9 @@ describe("SubtitleService ytdlp cache identity", () => {
       manager
     );
 
-    const first = await service.getSubtitles("http://video.local/watch");
+    const first = await service.getSubtitles("https://video.example.test/watch");
     ytDlpArgs = `${quoteArg(scriptPath)} --sub-lang zh`;
-    const second = await service.getSubtitles("http://video.local/watch");
+    const second = await service.getSubtitles("https://video.example.test/watch");
 
     expect(first.tracks[0]?.cues[0]?.text).toBe("en");
     expect(second.tracks[0]?.cues[0]?.text).toBe("zh");
@@ -170,8 +183,8 @@ describe("SubtitleService ytdlp cache identity", () => {
     );
 
     const [first, second] = await Promise.all([
-      service.getSubtitles("http://video.local/watch"),
-      service.getSubtitles("http://video.local/watch")
+      service.getSubtitles("https://video.example.test/watch"),
+      service.getSubtitles("https://video.example.test/watch")
     ]);
 
     expect(first.tracks[0]?.cues[0]?.text).toBe("en");

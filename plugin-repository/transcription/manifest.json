@@ -45,7 +45,7 @@
             "id": "baseUrl",
             "label": "API Base URL",
             "type": "string",
-            "defaultValue": "https://api.openai.com/v1"
+            "defaultValue": ""
           },
           {
             "id": "apiKey",
@@ -82,18 +82,6 @@
             "label": "Extra API Params JSON",
             "type": "textarea",
             "defaultValue": "{}"
-          },
-          {
-            "id": "ytDlpArgs",
-            "label": "yt-dlp Audio Args",
-            "type": "textarea",
-            "defaultValue": ""
-          },
-          {
-            "id": "fasterWhisperBinary",
-            "label": "Faster-Whisper Binary",
-            "type": "string",
-            "defaultValue": "faster-whisper"
           },
           {
             "id": "fasterWhisperModel",
@@ -154,6 +142,6 @@
   },
   "package": {
     "url": "https://raw.githubusercontent.com/XiiTang/Immersive-Subs-Prompter/main/plugin-repository/transcription/1.0.0.usp-plugin",
-    "sha256": "59d31a520ff782c5b1cec2813f72816206113ab3fc17e1b0c5ecccf17da11b13"
+    "sha256": "74ccba1485f42cb0c6fcfe67854457049fe4b85f3640ca8dae308e45a6e7e91b"
   }
 }

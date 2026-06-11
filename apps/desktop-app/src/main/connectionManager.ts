@@ -7,6 +7,7 @@ import { StateManager } from "./stateManager.js";
 import { createLogger } from "./logger.js";
 import { isAuthorizedDesktopClient } from "./connectionAuth.js";
 import { areNetworkSettingsEqual } from "./networkSettings.js";
+import { isPublicHttpUrl } from "./networkUrlSafety.js";
 import { networkEndpointKey } from "@immersive-subs/contracts";
 import type {
   ControlLoopCommandMessage,
@@ -673,15 +674,15 @@ export class ConnectionManager {
     const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
     const site = payload.site;
 
-    if (pageUrl && /^https?:\/\//i.test(pageUrl) && site && PAGE_URL_SITES.has(site)) {
+    if (pageUrl && site && PAGE_URL_SITES.has(site) && isPublicHttpUrl(pageUrl)) {
       return pageUrl;
     }
 
-    if (videoSrc && /^https?:\/\//i.test(videoSrc)) {
+    if (videoSrc && isPublicHttpUrl(videoSrc)) {
       return videoSrc;
     }
 
-    if (pageUrl && /^https?:\/\//i.test(pageUrl)) {
+    if (pageUrl && isPublicHttpUrl(pageUrl)) {
       return pageUrl;
     }
 

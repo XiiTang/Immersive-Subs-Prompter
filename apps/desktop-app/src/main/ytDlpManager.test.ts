@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,6 +8,8 @@ import { YtDlpManager } from "./ytDlpManager.js";
 const originalPlatform = process.platform;
 const originalFetch = globalThis.fetch;
 const ytDlpTestDir = path.join(os.tmpdir(), "usp-test-userdata", "yt-dlp");
+const binaryBytes = Uint8Array.from([1, 2, 3]);
+const binarySha256 = createHash("sha256").update(binaryBytes).digest("hex");
 
 function setPlatform(platform: NodeJS.Platform) {
   Object.defineProperty(process, "platform", {
@@ -15,7 +18,7 @@ function setPlatform(platform: NodeJS.Platform) {
   });
 }
 
-function createReleaseResponse(assetName: string, downloadUrl: string): Response {
+function createReleaseResponse(assetName: string, downloadUrl: string, checksumUrl = "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.01/SHA2-256SUMS"): Response {
   return new Response(
     JSON.stringify({
       tag_name: "2026.01.01",
@@ -23,6 +26,10 @@ function createReleaseResponse(assetName: string, downloadUrl: string): Response
         {
           name: assetName,
           browser_download_url: downloadUrl
+        },
+        {
+          name: "SHA2-256SUMS",
+          browser_download_url: checksumUrl
         }
       ]
     }),
@@ -34,7 +41,11 @@ function createReleaseResponse(assetName: string, downloadUrl: string): Response
 }
 
 function createBinaryResponse(): Response {
-  return new Response(Uint8Array.from([1, 2, 3]));
+  return new Response(binaryBytes);
+}
+
+function createChecksumResponse(checksum = binarySha256): Response {
+  return new Response(`${checksum}  yt-dlp\n`);
 }
 
 describe("YtDlpManager", () => {
@@ -67,7 +78,8 @@ describe("YtDlpManager", () => {
     const fetchMock = vi
       .fn()
       .mockRejectedValueOnce(new Error("release unavailable"))
-      .mockResolvedValueOnce(createReleaseResponse("yt-dlp", "https://download.example/yt-dlp"))
+      .mockResolvedValueOnce(createReleaseResponse("yt-dlp", "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.01/yt-dlp"))
+      .mockResolvedValueOnce(createChecksumResponse())
       .mockResolvedValueOnce(createBinaryResponse());
     globalThis.fetch = fetchMock as typeof fetch;
 
@@ -76,12 +88,31 @@ describe("YtDlpManager", () => {
     await expect(manager.getBinaryPath()).rejects.toThrow("release unavailable");
     await expect(manager.getBinaryPath()).resolves.toBe(path.join(ytDlpTestDir, "yt-dlp"));
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest",
       expect.any(Object)
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://download.example/yt-dlp");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.01/SHA2-256SUMS"
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.01/yt-dlp"
+    );
+  });
+
+  it("rejects downloaded binaries whose checksum does not match the release checksums", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createReleaseResponse("yt-dlp", "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.01/yt-dlp"))
+      .mockResolvedValueOnce(createChecksumResponse("0".repeat(64)))
+      .mockResolvedValueOnce(createBinaryResponse());
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(new YtDlpManager().getBinaryPath()).rejects.toThrow("yt-dlp yt-dlp checksum mismatch");
+    await expect(fs.access(path.join(ytDlpTestDir, "yt-dlp"))).rejects.toThrow();
   });
 });

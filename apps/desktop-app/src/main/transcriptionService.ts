@@ -13,6 +13,7 @@ import { parseSubtitle } from "./subtitleParser.js";
 import { createLogger } from "./logger.js";
 import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../common/transcriptionDefaults.js";
 import { SubtitleTrack, TranscriptionConfig } from "./types.js";
+import { assertPublicHttpUrl } from "./networkUrlSafety.js";
 
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
 
@@ -24,15 +25,16 @@ export class TranscriptionService {
   constructor(private readonly binaryResolver: BinaryResolver) { }
 
   async transcribe(videoUrl: string, config: TranscriptionConfig): Promise<SubtitleTrack> {
+    const safeVideoUrl = assertPublicHttpUrl(videoUrl, "Transcription video URL");
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-transcribe-"));
     const baseOutput = path.join(workingDir, randomUUID());
-    const args = this.buildArgs(config, videoUrl, baseOutput);
+    const args = this.buildArgs(safeVideoUrl, baseOutput);
     let commandLine = "";
 
     try {
       const binaryPath = await this.binaryResolver();
       commandLine = formatCommandLine(binaryPath, args);
-      this.log.info(`Starting yt-dlp audio download for: ${videoUrl}`);
+      this.log.info(`Starting yt-dlp audio download for: ${safeVideoUrl}`);
       await runCommand(binaryPath, args, workingDir, "yt-dlp");
       this.log.info("Audio download completed");
 
@@ -63,9 +65,8 @@ export class TranscriptionService {
     }
   }
 
-  private buildArgs(config: TranscriptionConfig, videoUrl: string, baseOutput: string): string[] {
-    const customLine = config.ytDlpArgs?.trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
-    const args = splitArgs(customLine);
+  private buildArgs(videoUrl: string, baseOutput: string): string[] {
+    const args = splitArgs(DEFAULT_TRANSCRIPTION_YTDLP_ARGS);
     return [...args, "-o", baseOutput, videoUrl];
   }
 
@@ -96,7 +97,7 @@ export class TranscriptionService {
       throw new Error("Whisper API base URL is not set.");
     }
 
-    const endpoint = buildTranscriptionUrl(config.baseUrl);
+    const endpoint = buildTranscriptionUrl(assertPublicHttpUrl(config.baseUrl, "Whisper API base URL"));
     const audioBuffer = await fs.readFile(audioPath);
     const form = new FormData();
     const fileName = path.basename(audioPath);
@@ -159,9 +160,7 @@ export class TranscriptionService {
   }
 
   private async submitToFasterWhisper(audioPath: string, config: TranscriptionConfig): Promise<SubtitleTrack> {
-    const binary =
-      (config.fasterWhisperBinary || "").trim() ||
-      (config.fasterWhisperDevice === "cuda" ? "faster-whisper-xxl" : "faster-whisper");
+    const binary = config.fasterWhisperDevice === "cuda" ? "faster-whisper-xxl" : "faster-whisper";
     const model = (config.fasterWhisperModel || "").trim();
     if (!binary) {
       throw new Error("Faster-Whisper executable is not set.");
