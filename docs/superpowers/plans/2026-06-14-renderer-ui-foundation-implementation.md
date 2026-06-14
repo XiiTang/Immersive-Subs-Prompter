@@ -8,7 +8,7 @@
 
 **Tech Stack:** Vue 3, TypeScript, Vite, Vitest jsdom/browser projects, Electron renderer, existing `@lucide/vue` icons, project-owned CSS tokens.
 
-**Implementation Status:** Implemented on the current branch. The final renderer now has the new foundation components, production renderer UI boundary guard, root test integration, compact foundation control variants, and migrated settings/top-panel/subtitle/word-lookup chrome. Follow-up review fixes moved remaining product-layer shared-control chrome into the UI foundation, added regression coverage for the boundary guard, removed duplicate `UiSettingRow` ARIA wiring, and deleted the weak stylesheet-comment test. Per-task commits, subagents, and worktrees were not used because the implementation request explicitly required a single current-branch modification pass.
+**Implementation Status:** Implemented on the current branch. The final renderer now has the new foundation components, production renderer UI boundary guard, root test integration, compact foundation control variants, and migrated settings/top-panel/subtitle/word-lookup chrome. Follow-up review fixes moved remaining product-layer shared-control chrome into the UI foundation, added regression coverage for the boundary guard, removed duplicate `UiSettingRow` ARIA wiring, and deleted the weak stylesheet-comment test. The final cleanup pass moved subtitle status banners onto `UiMessage` compact/neutral foundation variants, removed unused legacy settings helper CSS, replaced the historical old-class blacklist with foundation class-family chrome checks, and removed old-class negative assertions from focused tests. Per-task commits, subagents, and worktrees were not used because the implementation request explicitly required a single current-branch modification pass.
 
 ---
 
@@ -26,10 +26,10 @@
   Shared tokenized surface wrapper for floating panels, settings shells, word lookup chrome, and repeated product surfaces.
 
 - `apps/desktop-app/src/renderer/components/ui/UiMessage.vue`  
-  Shared inline message component for info, warning, danger, and success text.
+  Shared inline message component for neutral, info, warning, danger, and success text, including compact presentation for dense panels.
 
 - `scripts/check-renderer-ui-boundaries.mjs`  
-  Repository check that blocks external renderer UI/style framework imports and product-owned duplicate control chrome.
+  Repository check that blocks external renderer UI/style framework imports and product-owned overrides of foundation control, feedback, and structure chrome.
 
 ### Modify
 
@@ -109,17 +109,22 @@ const externalUiImportPatterns = [
   /from\s+["']@unocss\//
 ];
 
-const duplicateChromePatterns = [
-  /class=["'][^"']*\bsettings-field__label\b/,
-  /class=["'][^"']*\bsettings-field__error\b/,
-  /class=["'][^"']*\bglobal-settings__row-meta\b/,
-  /class=["'][^"']*\bglobal-settings__control\b/,
-  /class=["'][^"']*\bplayback-toggle-btn\b/,
-  /class=["'][^"']*\btranscription-btn\b/,
-  /class=["'][^"']*\btranscript-block__play-btn\b/,
-  /class=["'][^"']*\btranscript-block__ab-btn\b/,
-  /class=["'][^"']*\btranscript-block__loop-btn\b/
+const foundationChromeSelectorGroups = [
+  {
+    kind: "control",
+    pattern: /\.ui-(?:button|icon-button|input|textarea|select|switch|slider|segmented|color-input)(?:\b|[#.:[\s])/
+  },
+  {
+    kind: "feedback",
+    pattern: /\.ui-(?:status|badge|message|empty-state|progress)(?:\b|[#.:[\s])/
+  },
+  {
+    kind: "structure",
+    pattern: /\.ui-(?:surface|toolbar|setting-row|list-item|chip|stat|group)(?:\b|[#.:[\s])/
+  }
 ];
+const chromeDeclarationPattern = /(?:^|[;\s])(?:width|height|min-height|border|border-color|border-radius|background|color|padding|outline|font-size|line-height)\s*:/;
+const productCssSectionMarker = "/* Product surfaces */";
 
 const failures = [];
 
@@ -137,12 +142,17 @@ for (const root of productRoots) {
   for (const file of walk(root)) {
     const text = readFileSync(file, "utf8");
     const rel = path.relative(repoRoot, file);
-    for (const pattern of duplicateChromePatterns) {
-      if (pattern.test(text)) {
-        failures.push(`${rel}: uses duplicate shared-control chrome (${pattern})`);
-      }
+    for (const failure of findProductUiChromeOverrides(text)) {
+      failures.push(`${rel}: overrides foundation ${failure.kind} chrome (${failure.selector})`);
     }
   }
+}
+
+const rendererStylesheet = path.join(rendererRoot, "style.css");
+for (const failure of findProductUiChromeOverrides(readFileSync(rendererStylesheet, "utf8"), {
+  onlyAfterMarker: productCssSectionMarker
+})) {
+  failures.push(`${path.relative(repoRoot, rendererStylesheet)}: overrides foundation ${failure.kind} chrome (${failure.selector})`);
 }
 
 if (failures.length) {
@@ -200,7 +210,7 @@ Run:
 pnpm lint:renderer-ui-boundaries
 ```
 
-Expected: FAIL with entries for existing duplicate product chrome such as `settings-field__label`, `global-settings__row-meta`, or subtitle action button classes.
+Expected: FAIL while product CSS still overrides `.ui-*` foundation control, feedback, or structure chrome.
 
 - [ ] **Step 4: Commit the standalone guard while failing state is expected for the current task**
 
@@ -762,16 +772,11 @@ textarea {
 Move every `.ui-*` selector and foundation helper selector under `/* UI foundation */`. Foundation helper selectors include:
 
 ```css
-.settings-inline
-.settings-stack
-.settings-row
-.settings-row--between
-.settings-row--three
-.settings-grid
-.settings-grid--two
-.settings-fields-grid
-.settings-fields-grid--two-col
-.settings-field-stack
+.ui-inline-control
+.ui-chip
+.ui-stat-grid
+.ui-stat
+.ui-group
 ```
 
 Put all window/domain selectors under:
@@ -827,15 +832,15 @@ Add this assertion to `SettingsGlobal.test.ts` in the test that mounts global se
 
 ```ts
 expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(8);
-expect(wrapper.find(".global-settings__row-meta").exists()).toBe(false);
-expect(wrapper.find(".global-settings__control").exists()).toBe(false);
+expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')).not.toBeNull();
+expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')?.querySelector(".ui-select")).not.toBeNull();
 ```
 
 Add this assertion to `SettingsReleaseUpdate.test.ts` after mounting `SettingsReleaseUpdate`:
 
 ```ts
 expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(2);
-expect(wrapper.find(".global-settings__row-meta").exists()).toBe(false);
+expect(wrapper.get('[data-testid="release-check"]').exists()).toBe(true);
 ```
 
 - [ ] **Step 2: Run the settings tests and verify they fail**
@@ -846,7 +851,7 @@ Run:
 pnpm --filter @immersive-subs/desktop-app test:renderer:jsdom -- SettingsGlobal.test.ts SettingsReleaseUpdate.test.ts
 ```
 
-Expected: FAIL because these files still use `global-settings__row-meta` and `global-settings__control`.
+Expected: FAIL because these files do not yet expose the final `UiSettingRow` contracts.
 
 - [ ] **Step 3: Replace global settings row chrome**
 
@@ -1020,7 +1025,6 @@ expect(wrapper.findAll('[data-slot="toolbar"]').length).toBeGreaterThanOrEqual(1
 Add this assertion to `PluginSettingsSchema.test.ts`:
 
 ```ts
-expect(wrapper.find(".plugin-server-list__delete").exists()).toBe(false);
 expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(1);
 ```
 
@@ -1315,7 +1319,6 @@ Add this assertion to `PlaybackControls.test.ts`:
 
 ```ts
 const wrapper = mountPlaybackControls(false, document.body);
-expect(wrapper.find(".playback-toggle-btn").exists()).toBe(false);
 expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(2);
 expect(wrapper.findAll('[data-slot="slider"]').length).toBe(1);
 wrapper.unmount();
@@ -1324,7 +1327,6 @@ wrapper.unmount();
 Add this assertion to `TranscriptBlock.test.ts` for cue controls:
 
 ```ts
-expect(wrapper.find(".transcript-block__play-btn").exists()).toBe(false);
 expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(1);
 ```
 
@@ -1452,7 +1454,6 @@ Add this assertion to `WordLookupWindow.test.ts` after mounting with payload:
 ```ts
 expect(wrapper.find('[data-slot="surface"]').exists()).toBe(true);
 expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(1);
-expect(wrapper.find(".word-lookup-popover--window").exists()).toBe(false);
 ```
 
 - [ ] **Step 2: Run word lookup tests and verify they fail**

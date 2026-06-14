@@ -1085,16 +1085,11 @@ button.ui-list-item {
   font-size: var(--ui-font-sm);
 }
 
-.ui-inline-control,
-.settings-inline {
+.ui-inline-control {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.settings-inline--end {
-  justify-content: flex-end;
 }
 
 .ui-chip {
@@ -1127,8 +1122,7 @@ button.ui-list-item {
   font-size: var(--ui-font-sm);
 }
 
-.ui-group,
-.settings-stack {
+.ui-group {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1163,6 +1157,15 @@ button.ui-list-item {
   color: var(--ui-text);
   font-size: var(--ui-font-sm);
   line-height: 1.35;
+}
+
+.ui-message--compact {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.ui-message--neutral {
+  color: var(--ui-text);
 }
 
 .ui-message--info {
@@ -1464,22 +1467,7 @@ body.main-window-body,
 }
 
 .status-row {
-  display: flex;
   padding: 0 12px;
-}
-
-.status-banner {
-  flex: 1;
-  margin: 0;
-  border: 0;
-  border-radius: var(--ui-radius-sm);
-  padding: 4px 8px;
-  background: var(--ui-surface-muted);
-  font-size: 11px;
-  line-height: 1.35;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  user-select: text;
 }
 
 .playback-row {
@@ -1622,21 +1610,6 @@ body.main-window-body,
   white-space: nowrap;
 }
 
-.settings-fields-grid,
-.settings-field-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.settings-fields-grid--two-col,
-.settings-grid--two,
-.settings-row--two {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
 .global-settings {
   display: flex;
   flex-direction: column;
@@ -1656,73 +1629,6 @@ body.main-window-body,
   font-size: 14px;
   font-weight: 650;
   line-height: 18px;
-}
-
-.settings-row,
-.settings-row--between {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.settings-row--between {
-  justify-content: space-between;
-}
-
-.settings-row--three {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.settings-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.settings-list-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  background: var(--ui-surface);
-  padding: 12px;
-}
-
-.settings-list-row__main {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.settings-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  background: var(--ui-surface);
-  padding: 12px;
-}
-
-.settings-progress__info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--ui-info);
-  font-size: var(--ui-font-sm);
-  font-weight: 650;
-}
-
-.settings-model-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
 }
 
 .settings-split {

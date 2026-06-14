@@ -30,7 +30,7 @@
       :hint="localizedNotes"
       control-width="editor"
     >
-      <div class="settings-stack">
+      <div class="ui-group">
         <UiButton data-testid="release-open-download" variant="primary" @click="openDownload">
           <IconExternalLink size="sm" />
           {{ t("release-open-download") }}

@@ -31,6 +31,28 @@ test("fails when product CSS overrides foundation control chrome", () => {
   assert.match(result.stderr, /style\.css/);
 });
 
+test("fails when product CSS overrides foundation feedback chrome", () => {
+  const cwd = createFixture({
+    "apps/desktop-app/src/renderer/style.css": `
+      /* Product surfaces */
+
+      .status-row .local-status-message.ui-status {
+        padding: 4px 8px;
+        background: var(--ui-surface-muted);
+      }
+    `,
+    "apps/desktop-app/src/renderer/components/ui/UiStatus.vue": `
+      <template><span class="ui-status" /></template>
+    `
+  });
+
+  const result = runBoundaryCheck(cwd);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /overrides foundation feedback chrome/);
+  assert.match(result.stderr, /style\.css/);
+});
+
 test("allows foundation-owned UI control styling", () => {
   const cwd = createFixture({
     "apps/desktop-app/src/renderer/style.css": `

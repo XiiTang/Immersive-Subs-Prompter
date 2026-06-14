@@ -1,5 +1,5 @@
 <template>
-  <p class="ui-message" :class="`ui-message--${tone}`" :role="role">
+  <p class="ui-message" :class="[`ui-message--${tone}`, `ui-message--${density}`]" data-slot="message" :role="role">
     <slot />
   </p>
 </template>
@@ -9,10 +9,12 @@ import { computed } from "vue";
 
 const props = withDefaults(
   defineProps<{
-    tone?: "info" | "success" | "warning" | "danger";
+    tone?: "neutral" | "info" | "success" | "warning" | "danger";
+    density?: "default" | "compact";
   }>(),
   {
-    tone: "info"
+    tone: "info",
+    density: "default"
   }
 );
 

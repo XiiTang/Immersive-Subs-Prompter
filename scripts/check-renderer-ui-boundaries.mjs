@@ -31,21 +31,20 @@ const externalUiImportPatterns = [
   /from\s+["']@unocss\//
 ];
 
-const duplicateChromePatterns = [
-  /class=["'][^"']*\bsettings-field__label\b/,
-  /class=["'][^"']*\bsettings-field__error\b/,
-  /class=["'][^"']*\bglobal-settings__row-meta\b/,
-  /class=["'][^"']*\bglobal-settings__control\b/,
-  /class=["'][^"']*\bplayback-toggle-btn\b/,
-  /class=["'][^"']*\bauto-hide-toggle\b/,
-  /class=["'][^"']*\btranscription-btn\b/,
-  /class=["'][^"']*\btranscript-block__play-btn\b/,
-  /class=["'][^"']*\btranscript-block__ab-btn\b/,
-  /class=["'][^"']*\btranscript-block__loop-btn\b/,
-  /class=["'][^"']*\bplugin-server-list__delete\b/,
-  /class=["'][^"']*\bword-lookup-popover--window\b/
+const foundationChromeSelectorGroups = [
+  {
+    kind: "control",
+    pattern: /\.ui-(?:button|icon-button|input|textarea|select|switch|slider|segmented|color-input)(?:\b|[#.:[\s])/
+  },
+  {
+    kind: "feedback",
+    pattern: /\.ui-(?:status|badge|message|empty-state|progress)(?:\b|[#.:[\s])/
+  },
+  {
+    kind: "structure",
+    pattern: /\.ui-(?:surface|toolbar|setting-row|list-item|chip|stat|group)(?:\b|[#.:[\s])/
+  }
 ];
-const productUiChromeSelectorPattern = /\.ui-(?:button|icon-button|input|textarea|select|switch|slider|segmented|color-input)(?:\b|[#.:[\s])/;
 const chromeDeclarationPattern = /(?:^|[;\s])(?:width|height|min-height|border|border-color|border-radius|background|color|padding|outline|font-size|line-height)\s*:/;
 const productCssSectionMarker = "/* Product surfaces */";
 
@@ -65,13 +64,8 @@ for (const root of productRoots) {
   for (const file of walk(root)) {
     const text = readFileSync(file, "utf8");
     const rel = path.relative(repoRoot, file);
-    for (const pattern of duplicateChromePatterns) {
-      if (pattern.test(text)) {
-        failures.push(`${rel}: uses duplicate shared-control chrome (${pattern})`);
-      }
-    }
     for (const failure of findProductUiChromeOverrides(text)) {
-      failures.push(`${rel}: overrides foundation control chrome (${failure})`);
+      failures.push(`${rel}: overrides foundation ${failure.kind} chrome (${failure.selector})`);
     }
   }
 }
@@ -80,7 +74,9 @@ const rendererStylesheet = path.join(rendererRoot, "style.css");
 for (const failure of findProductUiChromeOverrides(readFileSync(rendererStylesheet, "utf8"), {
   onlyAfterMarker: productCssSectionMarker
 })) {
-  failures.push(`${path.relative(repoRoot, rendererStylesheet)}: overrides foundation control chrome (${failure})`);
+  failures.push(
+    `${path.relative(repoRoot, rendererStylesheet)}: overrides foundation ${failure.kind} chrome (${failure.selector})`
+  );
 }
 
 if (failures.length) {
@@ -123,8 +119,12 @@ function findProductUiChromeOverrides(text, options = {}) {
     for (const rule of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
       const selector = rule[1]?.trim() ?? "";
       const declarations = rule[2] ?? "";
-      if (productUiChromeSelectorPattern.test(selector) && chromeDeclarationPattern.test(declarations)) {
-        failures.push(selector.replace(/\s+/g, " "));
+      const group = foundationChromeSelectorGroups.find(({ pattern }) => pattern.test(selector));
+      if (group && chromeDeclarationPattern.test(declarations)) {
+        failures.push({
+          kind: group.kind,
+          selector: selector.replace(/\s+/g, " ")
+        });
       }
     }
   }

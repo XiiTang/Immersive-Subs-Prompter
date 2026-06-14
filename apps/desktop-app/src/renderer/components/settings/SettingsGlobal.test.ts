@@ -93,8 +93,6 @@ describe("SettingsGlobal", () => {
     expect(shortcutsGroup?.text()).toContain("Toggle Shortcut");
     expect(shortcutsGroup?.text()).toContain("Blocked Processes");
     expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(8);
-    expect(wrapper.find(".global-settings__row-meta").exists()).toBe(false);
-    expect(wrapper.find(".global-settings__control").exists()).toBe(false);
     expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')).not.toBeNull();
     expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')?.querySelector(".ui-select")).not.toBeNull();
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);

@@ -85,7 +85,6 @@ describe("TranscriptBlock", () => {
     expect(wrapper.get('[data-testid="cue-action-play"]').attributes("aria-label")).toBe("Play from cue 00:00 - 00:01");
     expect(wrapper.get('[data-testid="cue-action-ab"]').attributes("aria-label")).toBe("Set A-B endpoint at cue 00:00 - 00:01");
     expect(wrapper.get('[data-testid="cue-action-loop"]').attributes("aria-label")).toBe("Loop cue 00:00 - 00:01");
-    expect(wrapper.find(".transcript-block__play-btn").exists()).toBe(false);
     expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(1);
   });
 

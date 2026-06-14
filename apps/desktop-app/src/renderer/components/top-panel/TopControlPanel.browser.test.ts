@@ -145,7 +145,7 @@ describe("TopControlPanel browser layout", () => {
       expect(rect.height).toBeLessThanOrEqual(28);
     }
 
-    const statusBanner = host.querySelector<HTMLElement>(".status-banner");
+    const statusBanner = host.querySelector<HTMLElement>('.status-row [data-slot="message"]');
     expect(statusBanner).not.toBeNull();
     expect(statusBanner!.getBoundingClientRect().height).toBeLessThanOrEqual(26);
 

@@ -1,11 +1,11 @@
 <template>
-  <UiStatus v-if="banner.text" class="status-banner" :tone="banner.tone">
+  <UiMessage v-if="banner.text" density="compact" :tone="banner.tone">
     {{ banner.text }}
-  </UiStatus>
+  </UiMessage>
 </template>
 
 <script setup lang="ts">
-import { UiStatus } from "../ui";
+import { UiMessage } from "../ui";
 
 const { banner } = defineProps<{
   banner: {

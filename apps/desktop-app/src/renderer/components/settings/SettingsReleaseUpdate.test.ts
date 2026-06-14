@@ -102,7 +102,6 @@ describe("SettingsReleaseUpdate", () => {
     expect(wrapper.text()).toContain("1.0.0");
     expect(wrapper.find('[data-testid="release-check"]').exists()).toBe(true);
     expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(2);
-    expect(wrapper.find(".global-settings__row-meta").exists()).toBe(false);
   });
 
   it("shows available release notes and opens the download page", async () => {
