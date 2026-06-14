@@ -98,6 +98,7 @@ Final behavior:
 - hex input
 - partial hex text remains local while typing
 - normalized lowercase `#rrggbb` values
+- no three-digit hex shorthand support
 - emits `update:modelValue` for live edits
 - emits `change` for committed edits, even when the parent has already synced the live `update:modelValue`
 - disabled and readonly states
@@ -117,6 +118,7 @@ Final behavior:
 - `role="radiogroup"` on the root
 - `role="radio"` and `aria-checked` on items
 - click and keyboard selection
+- arrow-key selection moves focus to the selected enabled item
 
 ### UiCheckIndicator
 

@@ -339,10 +339,6 @@ function normalizeHexColor(value: string, fallback: string) {
   if (sixDigit?.[1]) {
     return `#${sixDigit[1].toLowerCase()}`;
   }
-  const threeDigit = trimmed.match(/^#?([0-9a-f]{3})$/i);
-  if (threeDigit?.[1]) {
-    return `#${threeDigit[1].split("").map((char) => char + char).join("").toLowerCase()}`;
-  }
   return fallback.match(/^#[0-9a-f]{6}$/i) ? fallback.toLowerCase() : "#ffffff";
 }
 

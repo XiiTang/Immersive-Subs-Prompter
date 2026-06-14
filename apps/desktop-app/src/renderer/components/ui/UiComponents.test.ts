@@ -350,6 +350,18 @@ describe("UI primitives", () => {
       expect(colorInput.emitted("update:modelValue")).toBeUndefined();
     }
 
+    paletteField!.value = "#abc";
+    paletteField!.dispatchEvent(new Event("input", { bubbles: true }));
+    await nextTick();
+    expect(paletteField!.value).toBe("#abc");
+    expect(colorInput.emitted("update:modelValue")).toBeUndefined();
+
+    paletteField!.dispatchEvent(new Event("blur", { bubbles: true }));
+    await nextTick();
+    expect(paletteField!.value).toBe("#112233");
+    expect(colorInput.emitted("update:modelValue")).toBeUndefined();
+    expect(colorInput.emitted("change")).toBeUndefined();
+
     paletteField!.value = "#445566";
     paletteField!.dispatchEvent(new Event("input", { bubbles: true }));
     await nextTick();
@@ -514,6 +526,53 @@ describe("UI primitives", () => {
     expect(segmented.find('[aria-checked="true"]').text()).toBe("System");
     await segmented.findAll("button")[1]?.trigger("click");
     expect(segmented.emitted("update:modelValue")?.[0]).toEqual(["light"]);
+  });
+
+  it("moves segmented-control focus with keyboard selection", async () => {
+    const segmented = mount(UiSegmentedControl, {
+      attachTo: document.body,
+      props: {
+        modelValue: "system",
+        label: "Theme",
+        options: [
+          { value: "system", label: "System" },
+          { value: "light", label: "Light", disabled: true },
+          { value: "dark", label: "Dark" }
+        ]
+      }
+    });
+
+    const buttons = segmented.findAll<HTMLButtonElement>("button");
+    buttons[0]!.element.focus();
+
+    await buttons[0]!.trigger("keydown", { key: "ArrowRight" });
+    await nextTick();
+
+    expect(segmented.emitted("update:modelValue")?.[0]).toEqual(["dark"]);
+    expect(document.activeElement).toBe(buttons[2]!.element);
+    expect(buttons[0]!.attributes("tabindex")).toBe("-1");
+    expect(buttons[2]!.attributes("tabindex")).toBe("0");
+
+    segmented.unmount();
+  });
+
+  it("uses the selected segmented-control item as the initial tab stop", () => {
+    const segmented = mount(UiSegmentedControl, {
+      props: {
+        modelValue: "dark",
+        label: "Theme",
+        options: [
+          { value: "system", label: "System" },
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" }
+        ]
+      }
+    });
+
+    const buttons = segmented.findAll<HTMLButtonElement>("button");
+
+    expect(buttons[0]!.attributes("tabindex")).toBe("-1");
+    expect(buttons[2]!.attributes("tabindex")).toBe("0");
   });
 
   it("renders progress with an accessible numeric value", () => {

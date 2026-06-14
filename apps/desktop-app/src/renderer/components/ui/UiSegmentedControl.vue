@@ -5,10 +5,12 @@
     role="radiogroup"
     :aria-label="label"
     @keydown="handleKeydown"
+    @focusout="handleFocusout"
   >
     <button
       v-for="(option, index) in options"
       :key="option.value"
+      ref="itemEls"
       type="button"
       class="ui-segmented__item"
       data-slot="segmented-control-item"
@@ -16,6 +18,7 @@
       role="radio"
       :aria-checked="modelValue === option.value"
       :disabled="option.disabled"
+      :tabindex="itemTabIndex(index)"
       @click="selectOption(option.value, option.disabled)"
       @focus="focusedIndex = index"
     >
@@ -25,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 
 const props = defineProps<{
   modelValue: string;
@@ -37,11 +40,40 @@ const emit = defineEmits<{
   (event: "update:modelValue", value: string): void;
 }>();
 
-const focusedIndex = ref(0);
+const focusedIndex = ref(-1);
+const itemEls = ref<HTMLButtonElement[]>([]);
+const enabledIndexes = computed(() =>
+  props.options
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => !option.disabled)
+    .map(({ index }) => index)
+);
+const selectedIndex = computed(() =>
+  props.options.findIndex((option) => option.value === props.modelValue && !option.disabled)
+);
+const tabStopIndex = computed(() => {
+  if (enabledIndexes.value.includes(focusedIndex.value)) {
+    return focusedIndex.value;
+  }
+  return selectedIndex.value >= 0
+    ? selectedIndex.value
+    : enabledIndexes.value[0] ?? -1;
+});
 
 function selectOption(value: string, disabled: boolean | undefined) {
   if (!disabled) {
     emit("update:modelValue", value);
+  }
+}
+
+function itemTabIndex(index: number) {
+  return index === tabStopIndex.value ? 0 : -1;
+}
+
+function handleFocusout(event: FocusEvent) {
+  const nextTarget = event.relatedTarget as Node | null;
+  if (!nextTarget || !(event.currentTarget as HTMLElement).contains(nextTarget)) {
+    focusedIndex.value = -1;
   }
 }
 
@@ -57,29 +89,25 @@ function handleKeydown(event: KeyboardEvent) {
     }
     return;
   }
-  const enabledIndexes = props.options
-    .map((option, index) => ({ option, index }))
-    .filter(({ option }) => !option.disabled)
-    .map(({ index }) => index);
-  if (!enabledIndexes.length) {
+  const indexes = enabledIndexes.value;
+  if (!indexes.length) {
     return;
   }
-  const selectedIndex = props.options.findIndex((option) => option.value === props.modelValue);
-  const currentIndex = enabledIndexes.includes(focusedIndex.value) ? focusedIndex.value : selectedIndex;
-  const currentPosition = enabledIndexes.indexOf(currentIndex);
-  let nextIndex = enabledIndexes[0]!;
+  const currentPosition = indexes.indexOf(tabStopIndex.value);
+  let nextIndex = indexes[0]!;
   if (event.key === "End") {
-    nextIndex = enabledIndexes[enabledIndexes.length - 1]!;
+    nextIndex = indexes[indexes.length - 1]!;
   } else if (currentPosition < 0) {
     nextIndex = event.key === "ArrowLeft" || event.key === "ArrowUp"
-      ? enabledIndexes[enabledIndexes.length - 1]!
-      : enabledIndexes[0]!;
+      ? indexes[indexes.length - 1]!
+      : indexes[0]!;
   } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-    nextIndex = enabledIndexes[(currentPosition - 1 + enabledIndexes.length) % enabledIndexes.length]!;
+    nextIndex = indexes[(currentPosition - 1 + indexes.length) % indexes.length]!;
   } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-    nextIndex = enabledIndexes[(currentPosition + 1) % enabledIndexes.length]!;
+    nextIndex = indexes[(currentPosition + 1) % indexes.length]!;
   }
   focusedIndex.value = nextIndex;
   selectOption(props.options[nextIndex]!.value, false);
+  void nextTick(() => itemEls.value[nextIndex]?.focus());
 }
 </script>
