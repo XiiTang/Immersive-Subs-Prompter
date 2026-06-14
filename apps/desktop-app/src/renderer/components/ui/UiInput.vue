@@ -2,6 +2,7 @@
   <input
     v-bind="attrs"
     class="ui-input"
+    :class="[`ui-input--${size}`, `ui-input--${variant}`]"
     :type="type"
     :value="modelValue"
     :min="min"
@@ -35,6 +36,8 @@ const props = withDefaults(
     readonly?: boolean;
     autocomplete?: string;
     placeholder?: string;
+    size?: "default" | "compact" | "chip";
+    variant?: "default" | "bare";
   }>(),
   {
     type: "text",
@@ -44,7 +47,9 @@ const props = withDefaults(
     disabled: false,
     readonly: false,
     autocomplete: "off",
-    placeholder: ""
+    placeholder: "",
+    size: "default",
+    variant: "default"
   }
 );
 

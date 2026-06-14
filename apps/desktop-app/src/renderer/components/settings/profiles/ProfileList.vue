@@ -1,23 +1,23 @@
 <template>
   <div class="settings-split__sidebar profile-list-sidebar">
     <div class="settings-split__sidebar-header">
-      <div class="settings-split__sidebar-buttons">
-        <UiIconButton :label="t('button-add')" size="sm" @click="$emit('add')">
+      <UiToolbar class="settings-split__sidebar-buttons" :label="t('profile-actions')" density="compact">
+        <UiIconButton :label="t('button-add')" size="compact" @click="$emit('add')">
           <IconAdd size="sm" />
         </UiIconButton>
-        <UiIconButton :label="t('button-duplicate')" size="sm" @click="$emit('duplicate')">
+        <UiIconButton :label="t('button-duplicate')" size="compact" @click="$emit('duplicate')">
           <IconCopy size="sm" />
         </UiIconButton>
         <UiIconButton
           :disabled="!canDelete"
           variant="danger"
           :label="t('button-delete')"
-          size="sm"
+          size="compact"
           @click="$emit('delete')"
         >
           <IconDelete size="sm" />
         </UiIconButton>
-      </div>
+      </UiToolbar>
     </div>
     <div class="profile-list ui-list">
       <template v-if="profiles.length">
@@ -40,6 +40,7 @@
             <UiInput
               v-if="editingNameProfileId === profile.id"
               class="profile-list__name-input"
+              size="compact"
               data-testid="profile-list-name-input"
               :data-profile-id="profile.id"
               v-model="draftProfileName"
@@ -52,9 +53,9 @@
             />
             <UiButton
               v-else
-              variant="ghost"
+              variant="editable"
               size="sm"
-              class="profile-list__name-action"
+              block
               data-testid="profile-list-name-action"
               @click.stop="startProfileNameEdit(profile)"
               @mousedown.stop
@@ -77,7 +78,7 @@ import { IconAdd, IconCopy, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";
-import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem } from "../../ui";
+import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem, UiToolbar } from "../../ui";
 
 interface Props {
   profiles: readonly ProfileDefinition[];

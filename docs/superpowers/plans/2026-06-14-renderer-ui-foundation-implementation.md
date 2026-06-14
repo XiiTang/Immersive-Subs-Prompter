@@ -8,6 +8,8 @@
 
 **Tech Stack:** Vue 3, TypeScript, Vite, Vitest jsdom/browser projects, Electron renderer, existing `@lucide/vue` icons, project-owned CSS tokens.
 
+**Implementation Status:** Implemented on the current branch. The final renderer now has the new foundation components, production renderer UI boundary guard, root test integration, compact foundation control variants, and migrated settings/top-panel/subtitle/word-lookup chrome. Follow-up review fixes moved remaining product-layer shared-control chrome into the UI foundation, added regression coverage for the boundary guard, removed duplicate `UiSettingRow` ARIA wiring, and deleted the weak stylesheet-comment test. Per-task commits, subagents, and worktrees were not used because the implementation request explicitly required a single current-branch modification pass.
+
 ---
 
 ## File Structure
@@ -180,9 +182,10 @@ Modify the root `package.json` scripts so the relevant entries are:
   "scripts": {
     "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app && pnpm build:plugins",
     "build:plugins": "node ./scripts/package-plugins.mjs",
-    "test": "pnpm test:release-scripts && node ./scripts/check-silent-catches.mjs && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
+    "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
     "lint:silent-catches": "node ./scripts/check-silent-catches.mjs",
-    "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs"
+    "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs",
+    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-renderer-ui-boundaries.test.mjs"
   }
 }
 ```
@@ -1606,7 +1609,7 @@ Replace each class according to this table:
 Ensure `package.json` root `test` contains:
 
 ```json
-"test": "pnpm test:release-scripts && node ./scripts/check-silent-catches.mjs && pnpm lint:renderer-ui-boundaries && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app"
+"test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm lint:renderer-ui-boundaries && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app"
 ```
 
 - [ ] **Step 4: Run the boundary guard and verify it passes**

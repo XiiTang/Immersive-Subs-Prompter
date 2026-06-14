@@ -1,7 +1,14 @@
 <template>
   <UiSection v-if="section && plugin" :title="section.title">
     <div class="schema-fields">
-      <UiField v-for="field in section.schema" :id="`${plugin.pluginKey}-${field.id}`" :key="field.id" :label="field.label">
+      <UiSettingRow
+        v-for="field in section.schema"
+        :id="`${plugin.pluginKey}-${field.id}`"
+        :key="field.id"
+        :label="field.label"
+        control-width="editor"
+        stacked
+      >
         <UiSwitch
           v-if="field.type === 'boolean'"
           :label="field.label"
@@ -48,7 +55,6 @@
               @update:model-value="updateServer(field.id, server.id, { enabled: $event })"
             />
             <UiIconButton
-              class="plugin-server-list__delete"
               label="Delete server"
               variant="danger"
               size="sm"
@@ -73,7 +79,7 @@
           :type="field.type === 'number' ? 'number' : 'text'"
           @update:model-value="updateField(field.id, $event)"
         />
-      </UiField>
+      </UiSettingRow>
     </div>
   </UiSection>
 </template>
@@ -82,7 +88,7 @@
 import { computed } from "vue";
 import { IconAdd, IconDelete } from "../icons";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiButton, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSwitch, UiTextarea } from "../ui";
+import { UiButton, UiIconButton, UiInput, UiSection, UiSelect, UiSettingRow, UiSwitch, UiTextarea } from "../ui";
 import { decodePluginSettingsSectionKey } from "./pluginSettingsSectionKey";
 
 interface PluginServerConfig {
@@ -189,11 +195,7 @@ function updateField(fieldId: string, value: unknown) {
   gap: 8px;
   align-items: center;
   padding-block: 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-}
-
-.plugin-server-list__delete {
-  justify-self: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-border) 70%, transparent);
 }
 
 .plugin-server-list__add {

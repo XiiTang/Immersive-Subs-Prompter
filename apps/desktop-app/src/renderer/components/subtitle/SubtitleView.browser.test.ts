@@ -450,7 +450,7 @@ describe("SubtitleView", () => {
 
     expect(
       wrapper.findAll('[data-testid="cue-action-ab"]').some((button) =>
-        button.classes().includes("transcript-block__ab-btn--active")
+        button.classes().includes("is-active")
       )
     ).toBe(true);
 
@@ -470,7 +470,7 @@ describe("SubtitleView", () => {
 
     expect(
       wrapper.findAll('[data-testid="cue-action-ab"]').some((button) =>
-        button.classes().includes("transcript-block__ab-btn--active")
+        button.classes().includes("is-active")
       )
     ).toBe(true);
 
@@ -589,7 +589,7 @@ describe("SubtitleView", () => {
 
     expect(
       wrapper.findAll('[data-testid="cue-action-loop"]').some((button) =>
-        button.classes().includes("transcript-block__loop-btn--active")
+        button.classes().includes("is-active")
       )
     ).toBe(true);
 

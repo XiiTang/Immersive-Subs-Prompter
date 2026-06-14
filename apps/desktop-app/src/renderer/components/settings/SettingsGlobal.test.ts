@@ -92,14 +92,31 @@ describe("SettingsGlobal", () => {
     const shortcutsGroup = groups.find((group) => group.get(".global-settings__group-title").text() === "Shortcuts");
     expect(shortcutsGroup?.text()).toContain("Toggle Shortcut");
     expect(shortcutsGroup?.text()).toContain("Blocked Processes");
-    expect(wrapper.findAll(".global-settings__row").length).toBeGreaterThanOrEqual(6);
-    expect(wrapper.get("#language-label").element.closest(".ui-field")).not.toBeNull();
-    expect(wrapper.get("#language-label").element.closest(".ui-field")?.querySelector(".ui-select")).not.toBeNull();
+    expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(8);
+    expect(wrapper.find(".global-settings__row-meta").exists()).toBe(false);
+    expect(wrapper.find(".global-settings__control").exists()).toBe(false);
+    expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')).not.toBeNull();
+    expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')?.querySelector(".ui-select")).not.toBeNull();
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);
     expect(wrapper.find("#cache-path-label").exists()).toBe(true);
     expect(wrapper.text()).toContain("Endpoints");
     expect(wrapper.text()).toContain("Path");
     expect(wrapper.text()).toContain("Stats");
+  });
+
+  it("lets setting rows provide field ARIA without duplicate ids", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+
+    const wrapper = mount(SettingsGlobal);
+
+    expect(ariaIds(wrapper.get('[data-testid="toggle-shortcut-input"]').attributes("aria-describedby"))).toEqual([
+      "toggle-shortcut-hint"
+    ]);
+    expect(ariaIds(wrapper.get('input[aria-labelledby="cache-path-label"]').attributes("aria-describedby"))).toEqual([
+      "cache-path-hint"
+    ]);
+    expect(ariaIds(wrapper.get('input[aria-labelledby="cache-retention-label"]').attributes("aria-describedby"))).toEqual([]);
   });
 
   it("renders endpoint pills as extension URLs", () => {
@@ -145,7 +162,7 @@ describe("SettingsGlobal", () => {
     await wrapper.findAll('[role="switch"]')[0]!.trigger("click");
     expect(updateGlobalSpy).toHaveBeenCalledWith("autoLaunch", true);
 
-    const cacheRow = wrapper.get("#cache-enabled-label").element.closest(".global-settings__row");
+    const cacheRow = wrapper.get("#cache-enabled-label").element.closest('[data-slot="setting-row"]');
     const cacheSwitch = cacheRow?.querySelector<HTMLElement>('[role="switch"]');
     expect(cacheSwitch).toBeInstanceOf(HTMLElement);
     cacheSwitch!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -315,3 +332,7 @@ describe("SettingsGlobal", () => {
     expect(updateSpy).toHaveBeenCalledWith("toggleWindowShortcut", "");
   });
 });
+
+function ariaIds(value: string | undefined) {
+  return (value ?? "").split(/\s+/).filter(Boolean);
+}

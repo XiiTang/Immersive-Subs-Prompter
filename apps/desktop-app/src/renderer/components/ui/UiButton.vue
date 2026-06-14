@@ -19,7 +19,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: "primary" | "secondary" | "ghost" | "danger";
+    variant?: "primary" | "secondary" | "ghost" | "danger" | "editable";
     size?: "sm" | "md" | "lg";
     type?: "button" | "submit" | "reset";
     disabled?: boolean;

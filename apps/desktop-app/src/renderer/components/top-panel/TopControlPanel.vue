@@ -11,8 +11,11 @@
       data-testid="top-edge-trigger-zone"
       @pointerenter="enterExpanded"
     />
-    <section
-      ref="surfaceRef"
+    <UiSurface
+      :ref="setSurfaceRef"
+      as="section"
+      variant="floating"
+      :padded="false"
       class="top-control-panel__surface"
       data-testid="top-control-panel-surface"
     >
@@ -31,12 +34,17 @@
               data-testid="top-control-panel-header-labels"
             >
               <div class="top-control-panel__status" data-testid="top-control-panel-status">
-                {{ connectionText }}
+                <UiStatus :tone="connectionTone">{{ connectionText }}</UiStatus>
               </div>
             </div>
           </div>
         </div>
-        <div class="top-control-panel__actions" data-testid="top-control-panel-actions">
+        <UiToolbar
+          class="top-control-panel__actions"
+          data-testid="top-control-panel-actions"
+          label="Panel actions"
+          density="compact"
+        >
           <UiTooltip :text="backgroundOpacityLabel">
             <div class="transparency-inline">
               <UiSlider
@@ -77,7 +85,7 @@
               <IconSettings size="sm" />
             </UiIconButton>
           </UiTooltip>
-        </div>
+        </UiToolbar>
       </header>
       <div class="top-control-panel__body" data-testid="top-control-panel-body">
         <section class="top-control-panel__info">
@@ -137,7 +145,7 @@
           @toggle-auto-hide="$emit('toggle-auto-hide')"
         />
       </div>
-    </section>
+    </UiSurface>
   </section>
 </template>
 
@@ -148,7 +156,7 @@ import StatusBanner from "../subtitle/StatusBanner.vue";
 import TrackSelector from "../subtitle/TrackSelector.vue";
 import TranscriptionControls from "../subtitle/TranscriptionControls.vue";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiIconButton, UiSlider, UiTooltip } from "../ui";
+import { UiIconButton, UiSlider, UiStatus, UiSurface, UiToolbar, UiTooltip } from "../ui";
 import { IconFullscreen, IconLock, IconPin, IconSettings } from "../icons";
 
 interface SubtitleTrackOption {
@@ -237,7 +245,7 @@ let pointerStatePollTimerId: number | null = null;
 let pointerStateSyncInFlight = false;
 let panelStateVersion = 0;
 
-const surfaceRef = useTemplateRef<HTMLElement>("surfaceRef");
+const surfaceRef = ref<HTMLElement | null>(null);
 const headerRef = useTemplateRef<HTMLElement>("headerRef");
 const headerHeight = ref(0);
 const surfaceHeight = ref(0);
@@ -245,6 +253,15 @@ const surfaceHeight = ref(0);
 function syncPanelGeometry() {
   headerHeight.value = headerRef.value?.offsetHeight ?? 0;
   surfaceHeight.value = surfaceRef.value?.offsetHeight ?? 0;
+}
+
+function setSurfaceRef(value: Element | { $el?: unknown } | null) {
+  if (value instanceof HTMLElement) {
+    surfaceRef.value = value;
+    return;
+  }
+  const root = value && "$el" in value ? value.$el : null;
+  surfaceRef.value = root instanceof HTMLElement ? root : null;
 }
 
 const collapsedOffset = computed(() => Math.max(surfaceHeight.value, 0));
@@ -271,6 +288,15 @@ const connectionText = computed(() => {
     });
   }
   return t("connection-extension", { browser });
+});
+const connectionTone = computed<"neutral" | "success" | "warning" | "danger" | "info">(() => {
+  if (!hasActiveVideo) {
+    return "neutral";
+  }
+  if (statusBanner.tone === "danger" || statusBanner.tone === "warning") {
+    return statusBanner.tone;
+  }
+  return "success";
 });
 const alwaysOnTop = computed(() => store.settings?.global.alwaysOnTop ?? "off");
 const backgroundOpacityLabel = computed(() => t("panel-background-opacity"));

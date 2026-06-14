@@ -21,7 +21,7 @@ withDefaults(
     label: string;
     title?: string;
     variant?: "ghost" | "secondary" | "danger";
-    size?: "sm" | "md" | "lg";
+    size?: "chip" | "xs" | "compact" | "sm" | "md" | "lg";
     disabled?: boolean;
     active?: boolean;
     pressed?: boolean | "true" | "false" | "mixed";

@@ -1,5 +1,5 @@
 <template>
-  <div class="ui-color-input" data-slot="color-input">
+  <div class="ui-color-input" :class="`ui-color-input--${size}`" data-slot="color-input">
     <button
       ref="triggerEl"
       type="button"
@@ -98,11 +98,13 @@ const props = withDefaults(
     disabled?: boolean;
     readonly?: boolean;
     placeholder?: string;
+    size?: "default" | "compact";
   }>(),
   {
     disabled: false,
     readonly: false,
-    placeholder: "#ffffff"
+    placeholder: "#ffffff",
+    size: "default"
   }
 );
 

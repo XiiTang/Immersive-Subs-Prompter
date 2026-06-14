@@ -6,8 +6,9 @@
   "scripts": {
     "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app && pnpm build:plugins",
     "build:plugins": "node ./scripts/package-plugins.mjs",
-    "test": "pnpm test:release-scripts && node ./scripts/check-silent-catches.mjs && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
+    "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm lint:renderer-ui-boundaries && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
     "lint:silent-catches": "node ./scripts/check-silent-catches.mjs",
+    "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs",
     "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/contracts typecheck && pnpm --filter @immersive-subs/desktop-app typecheck:app && pnpm --filter @immersive-subs/extension typecheck:app",
     "build:desktop": "pnpm --filter @immersive-subs/desktop-app build",
     "build:extension": "pnpm --filter @immersive-subs/extension build",
@@ -18,6 +19,7 @@
     "release:collect-desktop": "node ./scripts/release/collect-desktop-artifact.mjs",
     "release:manifest": "node ./scripts/release/manifest.mjs",
     "release:zip-extension": "node ./scripts/release/zip-extension.mjs",
+    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-renderer-ui-boundaries.test.mjs",
     "test:release-scripts": "node --test scripts/release/release-scripts.test.mjs"
   }
 }

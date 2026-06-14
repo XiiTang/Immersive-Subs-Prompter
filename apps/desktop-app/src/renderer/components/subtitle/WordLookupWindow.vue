@@ -5,16 +5,23 @@
     @pointerenter="handlePointerEnter"
     @pointerleave="handlePointerLeave"
   >
-    <section class="word-lookup-popover word-lookup-popover--window">
+    <UiSurface
+      as="section"
+      variant="floating"
+      :padded="false"
+      class="word-lookup-window__surface"
+      data-testid="word-lookup-surface"
+    >
       <div
         ref="scrollArea"
-        class="word-lookup-popover__content-clip word-lookup-popover__content-clip--custom"
+        class="word-lookup-window__content-clip"
         data-testid="word-lookup-scroll-area"
         @scroll="handleScroll"
         @pointerenter="handleScrollAreaPointerEnter"
         @wheel="handleScrollAreaActivity"
       >
-        <div class="word-lookup-popover__content">
+        <div class="word-lookup-window__content">
+          <UiEmptyState v-if="!matches.length" message="No matches" />
           <article
             v-for="match in matches"
             :key="`${match.fileOrder}-${match.word}`"
@@ -54,7 +61,7 @@
       >
         <span aria-hidden="true" />
       </UiIconButton>
-    </section>
+    </UiSurface>
   </main>
 </template>
 
@@ -63,7 +70,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { renderWordLookupMarkdown } from "../../plugins/wordLookupMarkdown";
 import type { WordLookupResult } from "../../plugins/wordLookupTypes";
 import { clamp } from "../../utils/formatters";
-import { UiIconButton } from "../ui";
+import { UiEmptyState, UiIconButton, UiSurface } from "../ui";
 
 type WordLookupWindowPayload = {
   matches: WordLookupResult["matches"];

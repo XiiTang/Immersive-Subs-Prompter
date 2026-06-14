@@ -127,6 +127,10 @@ describe("WordLookupWindow", () => {
     const { wrapper, api } = await mountWithPayload();
 
     const panel = wrapper.get('[data-testid="word-lookup-floating-panel"]');
+    expect(wrapper.find('[data-slot="surface"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(1);
+    expect(wrapper.find(".word-lookup-popover--window").exists()).toBe(false);
+
     await panel.trigger("pointerenter");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     await panel.trigger("pointerleave");

@@ -61,6 +61,9 @@ describe("SettingsPlugins", () => {
 
     const wrapper = mount(SettingsPlugins);
 
+    expect(wrapper.findAll('[data-slot="surface"]').length).toBeGreaterThanOrEqual(1);
+    expect(wrapper.findAll('[data-slot="toolbar"]').length).toBeGreaterThanOrEqual(1);
+
     await wrapper.get('input[name="plugin-install-url"]').setValue("https://plugins.example.test/manifest.json");
     await wrapper.get("form").trigger("submit");
 

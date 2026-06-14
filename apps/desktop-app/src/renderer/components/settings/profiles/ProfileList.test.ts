@@ -65,6 +65,8 @@ describe("ProfileList", () => {
     expect(duplicate.classes()).toContain("ui-icon-button");
     expect(duplicate.text()).toBe("");
     expect(duplicate.find("svg").exists()).toBe(true);
+    expect(wrapper.findAll('[data-slot="toolbar"]').length).toBeGreaterThanOrEqual(1);
+    expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(3);
 
     await duplicate.trigger("click");
 

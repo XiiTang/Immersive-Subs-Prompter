@@ -1,5 +1,5 @@
 <template>
-  <span class="ui-status" :class="`ui-status--${tone}`">
+  <span class="ui-status" :class="`ui-status--${tone}`" data-slot="status">
     <span class="ui-status__dot" aria-hidden="true" />
     <span><slot /></span>
   </span>

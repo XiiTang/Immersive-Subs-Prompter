@@ -1,5 +1,5 @@
 <template>
-  <div class="ui-field" :class="{ 'ui-field--inline': inline }">
+  <div class="ui-field" :class="[`ui-field--${density}`, { 'ui-field--inline': inline }]">
     <span class="ui-field__label-row">
       <span class="ui-field__label-meta">
         <span :id="labelId" class="ui-field__label">{{ label }}</span>
@@ -26,12 +26,14 @@ const props = withDefaults(
     error?: string | null;
     value?: string;
     inline?: boolean;
+    density?: "default" | "compact";
   }>(),
   {
     hint: "",
     error: null,
     value: "",
-    inline: false
+    inline: false,
+    density: "default"
   }
 );
 

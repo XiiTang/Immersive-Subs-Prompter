@@ -17,13 +17,13 @@
     @remove="removeEndpoint"
   >
     <template #after-errors>
-      <div
+      <UiMessage
         v-for="status in errorStatuses"
         :key="status.endpointId"
-        class="settings-field__error"
+        tone="danger"
       >
         {{ status.host }}:{{ status.port }} - {{ status.error }}
-      </div>
+      </UiMessage>
     </template>
   </PillListEditor>
 </template>
@@ -38,6 +38,7 @@ import {
 } from "@immersive-subs/contracts";
 import PillListEditor from "./PillListEditor.vue";
 import type { PillListEditorItem } from "./pillListEditorTypes";
+import { UiMessage } from "../ui";
 
 const props = defineProps<{
   endpoints: NetworkEndpoint[];

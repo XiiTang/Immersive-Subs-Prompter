@@ -5,6 +5,7 @@
         <UiColorInput
           :model-value="swatch.value"
           class="color-swatch-input"
+          size="compact"
           :label="swatch.label"
           @change="updateColor(swatch.settingKey, $event)"
         />

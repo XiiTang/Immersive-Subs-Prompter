@@ -2,7 +2,6 @@
   <div class="playback-row">
     <UiTooltip :text="isPlaying ? t('pause-button') : t('play-button')">
       <UiIconButton
-        class="playback-toggle-btn"
         variant="secondary"
         size="sm"
         :disabled="!hasActiveVideo"
@@ -33,7 +32,6 @@
     </div>
     <UiTooltip :text="autoHideLabel">
       <UiIconButton
-        class="auto-hide-toggle"
         variant="secondary"
         size="sm"
         :pressed="autoHideEnabled"

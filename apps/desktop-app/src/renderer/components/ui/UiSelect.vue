@@ -3,6 +3,7 @@
     ref="triggerEl"
     v-bind="attrs"
     class="ui-select"
+    :class="`ui-select--${size}`"
     data-slot="select-trigger"
     type="button"
     role="combobox"
@@ -89,11 +90,13 @@ const props = withDefaults(
     disabled?: boolean;
     ariaLabel?: string;
     placeholder?: string;
+    size?: "default" | "compact";
   }>(),
   {
     disabled: false,
     ariaLabel: "",
-    placeholder: ""
+    placeholder: "",
+    size: "default"
   }
 );
 

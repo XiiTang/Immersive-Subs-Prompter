@@ -1,22 +1,27 @@
 <template>
   <UiSection :title="t('plugin-section-title')">
-    <form class="plugin-install" @submit.prevent="installFromInput">
-      <UiInput
-        v-model="installUrl"
-        name="plugin-install-url"
-        :placeholder="t('plugin-install-placeholder')"
-        aria-label="Plugin install link"
-      />
-      <UiButton
-        type="submit"
-        variant="primary"
-        data-testid="plugin-install-submit"
-        :disabled="!installUrl.trim() || busy"
-      >
-        {{ t("plugin-install") }}
-      </UiButton>
-    </form>
-    <p v-if="actionError" class="ui-field__error">{{ actionError }}</p>
+    <UiSurface class="plugin-install-surface" variant="muted">
+      <form class="plugin-install" @submit.prevent="installFromInput">
+        <UiInput
+          v-model="installUrl"
+          class="plugin-install__input"
+          name="plugin-install-url"
+          :placeholder="t('plugin-install-placeholder')"
+          aria-label="Plugin install link"
+        />
+        <UiToolbar :label="t('plugin-install')" density="compact">
+          <UiButton
+            type="submit"
+            variant="primary"
+            data-testid="plugin-install-submit"
+            :disabled="!installUrl.trim() || busy"
+          >
+            {{ t("plugin-install") }}
+          </UiButton>
+        </UiToolbar>
+      </form>
+    </UiSurface>
+    <UiMessage v-if="actionError" tone="danger">{{ actionError }}</UiMessage>
 
     <div class="plugin-group">
       <h3 class="plugin-group__title">{{ t("plugin-recommended-title") }}</h3>
@@ -56,10 +61,10 @@
             <p v-if="plugin.permissions.length" class="ui-list-item__meta">
               {{ t("plugin-permissions-label") }} {{ plugin.permissions.join(", ") }}
             </p>
-            <p v-if="plugin.error" class="ui-field__error">{{ plugin.error }}</p>
+            <UiMessage v-if="plugin.error" tone="danger">{{ plugin.error }}</UiMessage>
           </div>
 
-          <div class="plugin-actions">
+          <UiToolbar class="plugin-actions" :label="`${plugin.displayName} actions`" density="compact" wrap>
             <UiButton variant="secondary" :disabled="busy" @click="updateInstalled(plugin.pluginKey)">
               {{ t("plugin-update") }}
             </UiButton>
@@ -73,7 +78,7 @@
             <UiButton variant="danger" :disabled="busy" @click="deleteInstalled(plugin.pluginKey)">
               {{ t("button-delete") }}
             </UiButton>
-          </div>
+          </UiToolbar>
         </UiListItem>
       </div>
       <UiEmptyState v-else :message="t('plugin-empty')" />
@@ -87,7 +92,17 @@ import { RECOMMENDED_PLUGIN_INSTALL_LINKS } from "../../../common/recommendedPlu
 import type { PluginManifest } from "../../../main/plugins/pluginManifest";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiBadge, UiButton, UiEmptyState, UiInput, UiListItem, UiSection } from "../ui";
+import {
+  UiBadge,
+  UiButton,
+  UiEmptyState,
+  UiInput,
+  UiListItem,
+  UiMessage,
+  UiSection,
+  UiSurface,
+  UiToolbar
+} from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -196,7 +211,11 @@ function statusTone(status: string): "success" | "neutral" | "danger" {
   align-items: center;
 }
 
-.plugin-install :deep(.ui-input) {
+.plugin-install-surface {
+  margin-bottom: 12px;
+}
+
+.plugin-install__input {
   min-width: 0;
   flex: 1;
 }

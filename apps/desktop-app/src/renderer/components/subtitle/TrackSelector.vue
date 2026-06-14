@@ -4,6 +4,7 @@
       :model-value="selectValue"
       :options="options"
       :aria-label="ariaLabel"
+      size="compact"
       @update:model-value="handleSelectValue"
     />
   </div>

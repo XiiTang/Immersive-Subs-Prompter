@@ -44,18 +44,30 @@ function mountPlaybackControls(autoHideEnabled: boolean, attachTo?: Element) {
 describe("PlaybackControls", () => {
   it("renders auto-hide as a localized secondary state toggle", () => {
     const enabled = mountPlaybackControls(true);
-    const enabledToggle = enabled.get(".auto-hide-toggle");
+    const enabledToggle = enabled.get('[aria-label="Auto-hide on"]');
 
     expect(enabledToggle.attributes("aria-label")).toBe("Auto-hide on");
     expect(enabledToggle.attributes("data-variant")).toBe("secondary");
     expect(enabledToggle.classes()).toContain("is-active");
+    expect(enabled.find(".auto-hide-toggle").exists()).toBe(false);
 
     const disabled = mountPlaybackControls(false);
-    const disabledToggle = disabled.get(".auto-hide-toggle");
+    const disabledToggle = disabled.get('[aria-label="Auto-hide off"]');
 
     expect(disabledToggle.attributes("aria-label")).toBe("Auto-hide off");
     expect(disabledToggle.attributes("data-variant")).toBe("secondary");
     expect(disabledToggle.classes()).not.toContain("is-active");
+    expect(disabled.find(".auto-hide-toggle").exists()).toBe(false);
+  });
+
+  it("uses foundation icon buttons and slider for playback chrome", () => {
+    const wrapper = mountPlaybackControls(false, document.body);
+
+    expect(wrapper.find(".playback-toggle-btn").exists()).toBe(false);
+    expect(wrapper.findAll('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(2);
+    expect(wrapper.findAll('[data-slot="slider"]').length).toBe(1);
+
+    wrapper.unmount();
   });
 
   it("opens tooltips and passes slider input/change events through playback controls", async () => {

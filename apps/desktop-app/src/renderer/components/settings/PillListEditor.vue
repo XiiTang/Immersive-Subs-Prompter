@@ -2,7 +2,7 @@
   <div class="pill-list-editor">
     <div v-if="!hideHeader" class="priority-editor__header">
       <div class="priority-editor__label-row">
-        <span class="settings-field__label">{{ label }}</span>
+        <span class="ui-field__label">{{ label }}</span>
       </div>
       <span v-if="hint || $slots.hint" class="priority-editor__hint">
         <slot name="hint">{{ hint }}</slot>
@@ -45,7 +45,7 @@
         <UiIconButton
           v-if="item.removable !== false"
           class="pill-list-editor__remove"
-          size="sm"
+          size="chip"
           variant="ghost"
           :label="removeLabel"
           :data-testid="`${removeTestIdPrefix}-${item.id}`"
@@ -59,6 +59,8 @@
         <span class="pill-list-editor__draft-sizer" aria-hidden="true">{{ draftSizerText }}</span>
         <UiInput
           class="priority-editor__draft-input pill-list-editor__input"
+          size="chip"
+          variant="bare"
           :data-testid="draftTestId"
           :model-value="draftValue"
           :placeholder="placeholder"
@@ -69,7 +71,7 @@
       </span>
     </div>
 
-    <div v-if="error" class="settings-field__error">{{ error }}</div>
+    <UiMessage v-if="error" tone="danger">{{ error }}</UiMessage>
     <slot name="after-errors" />
   </div>
 </template>
@@ -77,7 +79,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { IconClose } from "../icons";
-import { UiIconButton, UiInput } from "../ui";
+import { UiIconButton, UiInput, UiMessage } from "../ui";
 import type { PillListEditorItem } from "./pillListEditorTypes";
 
 const props = withDefaults(

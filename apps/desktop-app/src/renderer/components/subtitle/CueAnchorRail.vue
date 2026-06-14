@@ -1,50 +1,49 @@
 <template>
-  <div
+  <UiToolbar
     class="transcript-block__cue-actions"
     :data-meta-state="state"
     data-testid="transcript-cue-actions"
+    :label="timeLabel"
+    density="compact"
   >
     <span class="transcript-block__cue-time">{{ timeLabel }}</span>
-    <button
-      class="transcript-block__play-btn"
-      :aria-label="playLabel"
+    <UiIconButton
+      :label="playLabel"
       data-testid="cue-action-play"
-      type="button"
+      size="xs"
       @click.stop="handleActionClick($event, 'play')"
     >
-      ▶
-    </button>
-    <button
-      class="transcript-block__ab-btn"
-      :class="{
-        'transcript-block__ab-btn--active': abLabel === 'A',
-        'transcript-block__ab-btn--pending-end': abLabel === 'B'
-      }"
-      :aria-label="abLoopLabel"
+      <IconPlay size="sm" />
+    </UiIconButton>
+    <UiIconButton
+      :label="abLoopLabel"
       data-testid="cue-action-ab"
-      type="button"
+      size="xs"
+      :active="abLabel === 'A' || abLabel === 'B'"
+      :pressed="abLabel === 'A' || abLabel === 'B'"
       @click.stop="handleActionClick($event, 'loop-range')"
     >
-      {{ abLabel }}
-    </button>
-    <button
-      class="transcript-block__loop-btn"
-      :class="{ 'transcript-block__loop-btn--active': isLooping }"
-      :aria-label="loopLabel"
-      :aria-pressed="isLooping"
+      <span class="transcript-block__cue-action-text">{{ abLabel }}</span>
+    </UiIconButton>
+    <UiIconButton
+      :label="loopLabel"
       data-testid="cue-action-loop"
-      type="button"
+      size="xs"
+      :active="isLooping"
+      :pressed="isLooping"
       @click.stop="handleActionClick($event, 'loop')"
     >
-      ↻
-    </button>
-  </div>
+      <span class="transcript-block__cue-action-text">↻</span>
+    </UiIconButton>
+  </UiToolbar>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import type { SubtitleTranslate } from "./transcript/translate";
 import { formatTime } from "../../utils/formatters";
+import { IconPlay } from "../icons";
+import { UiIconButton, UiToolbar } from "../ui";
 
 const {
   start,

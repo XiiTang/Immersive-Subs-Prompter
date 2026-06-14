@@ -8,17 +8,20 @@
         <UiField
           id="primary-subtitle-font"
           class="subtitle-style-fields__field subtitle-style-fields__field--font"
+          density="compact"
           :label="t('primary-subtitle-font-label')"
         >
           <UiSelect
             v-model="primarySubtitleFontFamily"
             data-testid="primary-subtitle-font-select"
+            size="compact"
             :options="subtitleFontOptions"
           />
         </UiField>
         <UiField
           id="primary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+          density="compact"
           :label="t('primary-subtitle-font-size-label')"
           :value="`${draft.primarySubtitleFontSize}px`"
         >
@@ -37,17 +40,20 @@
         <UiField
           id="secondary-subtitle-font"
           class="subtitle-style-fields__field subtitle-style-fields__field--font"
+          density="compact"
           :label="t('secondary-subtitle-font-label')"
         >
           <UiSelect
             v-model="secondarySubtitleFontFamily"
             data-testid="secondary-subtitle-font-select"
+            size="compact"
             :options="subtitleFontOptions"
           />
         </UiField>
         <UiField
           id="secondary-subtitle-font-size"
           class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+          density="compact"
           :label="t('secondary-subtitle-font-size-label')"
           :value="`${draft.secondarySubtitleFontSize}px`"
         >
@@ -71,6 +77,7 @@
       <UiField
         id="subtitle-scroll-position"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+        density="compact"
         :label="t('subtitle-scroll-position-label')"
         :value="`${draft.subtitleScrollPosition}%`"
       >
@@ -86,6 +93,7 @@
       <UiField
         id="subtitle-primary-secondary-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+        density="compact"
         :label="t('subtitle-primary-secondary-gap-label')"
         :value="`${draft.subtitlePrimarySecondaryGap}px`"
       >
@@ -101,6 +109,7 @@
       <UiField
         id="subtitle-line-height"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+        density="compact"
         :label="t('subtitle-line-height-label')"
         :value="String(draft.subtitleLineHeight)"
       >
@@ -116,6 +125,7 @@
       <UiField
         id="subtitle-block-gap"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider"
+        density="compact"
         :label="t('subtitle-block-gap-label')"
         :value="`${draft.subtitleBlockGap}px`"
       >
@@ -134,6 +144,7 @@
       <UiField
         id="subtitle-timestamp-font-size"
         class="subtitle-style-fields__field subtitle-style-fields__field--slider subtitle-style-fields__field--timestamp"
+        density="compact"
         :label="t('subtitle-timestamp-font-size-label')"
         :value="`${draft.subtitleTimestampFontSize}px`"
       >
@@ -149,6 +160,7 @@
       <UiField
         id="subtitle-meta-auto-hide"
         class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
+        density="compact"
         :label="t('subtitle-meta-auto-hide-label')"
         inline
       >
@@ -162,12 +174,14 @@
       <UiField
         id="subtitle-autoscroll"
         class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
+        density="compact"
         :label="t('subtitle-autoscroll-label')"
         inline
       >
         <UiInput
           v-model="subtitleAutoScrollTimeout"
           class="subtitle-style-fields__autoscroll-input"
+          size="compact"
           type="number"
           min="1"
           max="60"

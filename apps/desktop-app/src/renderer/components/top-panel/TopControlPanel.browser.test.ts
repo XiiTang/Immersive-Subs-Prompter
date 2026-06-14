@@ -39,14 +39,6 @@ async function nextFrame() {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
 
-function expectBorderless(element: HTMLElement) {
-  const style = getComputedStyle(element);
-  expect(style.borderTopWidth).toBe("0px");
-  expect(style.borderRightWidth).toBe("0px");
-  expect(style.borderBottomWidth).toBe("0px");
-  expect(style.borderLeftWidth).toBe("0px");
-}
-
 describe("TopControlPanel browser layout", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -165,7 +157,7 @@ describe("TopControlPanel browser layout", () => {
     host.remove();
   });
 
-  it("removes borders from the compact panel controls", async () => {
+  it("uses foundation controls for compact panel chrome", async () => {
     const { host, wrapper } = mountTopControlPanelInNarrowHost(520, {
       transcriptionEnabled: true,
       transcriptionConfigs: [{ id: "fast", name: "Fast local" }],
@@ -175,15 +167,10 @@ describe("TopControlPanel browser layout", () => {
 
     await nextFrame();
 
-    const borderedControls = Array.from(
-      host.querySelectorAll<HTMLElement>(
-        ".control-panel .ui-select, .status-banner, .top-control-panel__actions .ui-icon-button, .playback-row .ui-icon-button, .transcription-controls .ui-icon-button"
-      )
-    );
-    expect(borderedControls.length).toBeGreaterThan(0);
-    for (const control of borderedControls) {
-      expectBorderless(control);
-    }
+    expect(host.querySelectorAll<HTMLElement>('[data-slot="toolbar"]').length).toBeGreaterThanOrEqual(1);
+    expect(host.querySelectorAll<HTMLElement>('[data-slot="icon-button"]').length).toBeGreaterThanOrEqual(3);
+    expect(host.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]').length).toBeGreaterThanOrEqual(1);
+    expect(host.querySelectorAll<HTMLElement>('[data-slot="slider"]').length).toBeGreaterThanOrEqual(1);
 
     wrapper.unmount();
     host.remove();

@@ -1,13 +1,13 @@
 <template>
   <section class="profile-url-rules" data-testid="profile-url-rules">
-    <header v-if="isDefaultProfile" class="profile-url-rules__header">
-      <div class="profile-url-rules__label-row">
-        <span class="settings-field__label">{{ t("profile-url-rules-label") }}</span>
-        <span class="profile-url-rules__hint">
-          {{ t("profile-url-default-hint") }}
-        </span>
-      </div>
-    </header>
+    <UiSettingRow
+      v-if="isDefaultProfile"
+      id="profile-url-rules"
+      class="profile-url-rules__header"
+      :label="t('profile-url-rules-label')"
+      :hint="t('profile-url-default-hint')"
+      control-width="editor"
+    />
     <PillListEditor
       v-else
       class="profile-url-rules__editor"
@@ -38,6 +38,7 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { useDesktopStore } from "../../../stores/desktop";
 import PillListEditor from "../PillListEditor.vue";
 import type { PillListEditorItem } from "../pillListEditorTypes";
+import { UiSettingRow } from "../../ui";
 
 const props = defineProps<{
   profileId: string;

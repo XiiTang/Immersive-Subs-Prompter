@@ -5,11 +5,11 @@
         :model-value="activeId"
         :options="configOptions"
         :aria-label="t('transcription-config-select')"
+        size="compact"
         @update:model-value="$emit('update:activeId', $event)"
       />
     </div>
     <UiIconButton
-      class="transcription-btn"
       size="sm"
       :disabled="!canTranscribe || isTranscribing"
       :label="

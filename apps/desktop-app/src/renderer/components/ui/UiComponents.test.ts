@@ -10,14 +10,18 @@ import {
   UiIconButton,
   UiInput,
   UiListItem,
+  UiMessage,
   UiProgress,
   UiSection,
   UiSelect,
   UiSegmentedControl,
+  UiSettingRow,
   UiSlider,
   UiStatus,
+  UiSurface,
   UiSwitch,
   UiTextarea,
+  UiToolbar,
   UiTooltip
 } from "./index";
 
@@ -90,6 +94,57 @@ describe("UI primitives", () => {
     expect(wrapper.get(".ui-field__label-row .ui-field__hint").text()).toBe("Used by the provider");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-hint");
     expect(wrapper.get(".ui-field__control").attributes("aria-describedby")).toContain("api-key-error");
+  });
+
+  it("renders setting rows with shared label, hint, value, error, and control slots", () => {
+    const wrapper = mount(UiSettingRow, {
+      props: {
+        id: "cache-path",
+        label: "Cache path",
+        hint: "Folder for cached subtitles",
+        value: "Enabled",
+        error: "Folder is not writable",
+        controlWidth: "wide"
+      },
+      slots: {
+        default: '<input class="ui-input" />'
+      }
+    });
+
+    expect(wrapper.classes()).toContain("ui-setting-row");
+    expect(wrapper.classes()).toContain("ui-setting-row--wide");
+    expect(wrapper.get(".ui-setting-row__label").attributes("id")).toBe("cache-path-label");
+    expect(wrapper.get(".ui-setting-row__hint").attributes("id")).toBe("cache-path-hint");
+    expect(wrapper.get(".ui-setting-row__error").attributes("id")).toBe("cache-path-error");
+    expect(wrapper.get(".ui-setting-row__value").text()).toBe("Enabled");
+    expect(wrapper.get(".ui-setting-row__control").attributes("aria-describedby")).toContain("cache-path-hint");
+    expect(wrapper.get(".ui-setting-row__control").attributes("aria-describedby")).toContain("cache-path-error");
+  });
+
+  it("renders shared toolbar, surface, and message primitives", () => {
+    const toolbar = mount(UiToolbar, {
+      props: { label: "Panel actions", density: "compact" },
+      slots: { default: "<button>Pin</button>" }
+    });
+    expect(toolbar.classes()).toContain("ui-toolbar");
+    expect(toolbar.classes()).toContain("ui-toolbar--compact");
+    expect(toolbar.attributes("aria-label")).toBe("Panel actions");
+
+    const surface = mount(UiSurface, {
+      props: { variant: "floating", padded: false },
+      slots: { default: "Surface" }
+    });
+    expect(surface.classes()).toContain("ui-surface");
+    expect(surface.classes()).toContain("ui-surface--floating");
+    expect(surface.classes()).toContain("ui-surface--flush");
+
+    const message = mount(UiMessage, {
+      props: { tone: "warning" },
+      slots: { default: "Check settings" }
+    });
+    expect(message.classes()).toContain("ui-message");
+    expect(message.classes()).toContain("ui-message--warning");
+    expect(message.attributes("role")).toBe("status");
   });
 
   it("labels composite field controls without wrapping button-like primitives in a label", () => {

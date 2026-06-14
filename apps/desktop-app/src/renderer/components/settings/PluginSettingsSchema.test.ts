@@ -71,6 +71,8 @@ describe("PluginSettingsSchema", () => {
     });
 
     expect(wrapper.find('input[value="[]"]').exists()).toBe(false);
+    expect(wrapper.find(".plugin-server-list__delete").exists()).toBe(false);
+    expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(1);
 
     await wrapper.get('[data-testid="plugin-server-list-add-servers"]').trigger("click");
 

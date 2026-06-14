@@ -206,8 +206,11 @@ describe("TopControlPanel", () => {
 
     const surface = wrapper.get('[data-testid="top-control-panel-surface"]');
 
+    expect(surface.attributes("data-slot")).toBe("surface");
     expect(surface.find('[data-testid="top-control-panel-header"]').exists()).toBe(true);
     expect(surface.find('[data-testid="top-control-panel-body"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="top-control-panel-actions"]').attributes("data-slot")).toBe("toolbar");
+    expect(wrapper.find(".top-control-panel__status [data-slot='status']").exists()).toBe(true);
   });
 
   it("cancels collapse when the pointer re-enters the unified surface before the timer fires", async () => {
