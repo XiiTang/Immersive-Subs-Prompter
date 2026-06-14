@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopControlPanel from "./TopControlPanel.vue";
 import { createTopControlPanelProps, createTopPanelDesktopState, createTopPanelSettings } from "../../test/topPanelTestData";
@@ -90,6 +91,35 @@ describe("TopControlPanel browser layout", () => {
       expect(rect.width).toBeLessThanOrEqual(28);
       expect(rect.height).toBeLessThanOrEqual(28);
     }
+
+    wrapper.unmount();
+    host.remove();
+  });
+
+  it("opens header tooltips and updates opacity through the header slider", async () => {
+    const { host, wrapper } = mountTopControlPanelInNarrowHost(480);
+    const store = useDesktopStore();
+    const updateGlobalSpy = vi.spyOn(store, "updateGlobalSetting").mockImplementation(() => undefined);
+
+    await nextFrame();
+
+    const opacityTooltipTrigger = host.querySelector<HTMLElement>(
+      '[data-testid="top-control-panel-actions"] .ui-tooltip-trigger'
+    );
+    expect(opacityTooltipTrigger).not.toBeNull();
+    opacityTooltipTrigger!.dispatchEvent(new PointerEvent("pointerenter", { pointerId: 1, pointerType: "mouse" }));
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+    await nextTick();
+
+    expect(document.body.querySelector('[role="tooltip"]')?.textContent).toBe("panel-background-opacity");
+
+    const opacitySlider = host.querySelector<HTMLInputElement>(".header-slider");
+    expect(opacitySlider).not.toBeNull();
+    opacitySlider!.value = "64";
+    opacitySlider!.dispatchEvent(new Event("input", { bubbles: true }));
+    await nextTick();
+
+    expect(updateGlobalSpy).toHaveBeenCalledWith("panelOpacity", 64);
 
     wrapper.unmount();
     host.remove();

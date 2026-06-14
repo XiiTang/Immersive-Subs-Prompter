@@ -1,8 +1,20 @@
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import { describe, expect, it } from "vitest";
 import PlaybackControls from "./PlaybackControls.vue";
 
-function mountPlaybackControls(autoHideEnabled: boolean) {
+function createPointerEvent(type: string, init: Partial<PointerEvent>) {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
+  for (const [key, value] of Object.entries(init)) {
+    Object.defineProperty(event, key, {
+      configurable: true,
+      value
+    });
+  }
+  return event;
+}
+
+function mountPlaybackControls(autoHideEnabled: boolean, attachTo?: Element) {
   return mount(PlaybackControls, {
     props: {
       isPlaying: false,
@@ -24,7 +36,8 @@ function mountPlaybackControls(autoHideEnabled: boolean) {
         };
         return labels[key] ?? key;
       }
-    }
+    },
+    attachTo
   });
 }
 
@@ -43,5 +56,27 @@ describe("PlaybackControls", () => {
     expect(disabledToggle.attributes("aria-label")).toBe("Auto-hide off");
     expect(disabledToggle.attributes("data-variant")).toBe("secondary");
     expect(disabledToggle.classes()).not.toContain("is-active");
+  });
+
+  it("opens tooltips and passes slider input/change events through playback controls", async () => {
+    const wrapper = mountPlaybackControls(false, document.body);
+
+    wrapper.findAll(".ui-tooltip-trigger")[0]!.element.dispatchEvent(
+      createPointerEvent("pointerenter", { pointerId: 1, pointerType: "mouse" })
+    );
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+    await nextTick();
+
+    expect(document.body.querySelector('[role="tooltip"]')?.textContent).toBe("Play");
+
+    const slider = wrapper.get<HTMLInputElement>(".playback-slider");
+    slider.element.value = "2500";
+    await slider.trigger("input");
+    await slider.trigger("change");
+
+    expect(wrapper.emitted("scrub-input")?.[0]?.[0]).toBeInstanceOf(Event);
+    expect(wrapper.emitted("scrub-end")?.[0]?.[0]).toBeInstanceOf(Event);
+
+    wrapper.unmount();
   });
 });

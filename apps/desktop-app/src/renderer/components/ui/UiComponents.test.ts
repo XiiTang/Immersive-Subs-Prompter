@@ -1,11 +1,10 @@
 import { mount } from "@vue/test-utils";
-import { defineComponent, nextTick } from "vue";
+import { defineComponent, nextTick, ref } from "vue";
 import { describe, expect, it } from "vitest";
 import {
   UiBadge,
   UiButton,
   UiColorInput,
-  UiCheckIndicator,
   UiEmptyState,
   UiField,
   UiIconButton,
@@ -31,6 +30,25 @@ function createPointerEvent(type: string, init: Partial<PointerEvent>) {
     });
   }
   return event;
+}
+
+function stubRect(element: Element, rect: Partial<DOMRect>) {
+  const fullRect = {
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    top: 0,
+    right: 100,
+    bottom: 100,
+    left: 0,
+    toJSON: () => ({})
+  };
+
+  Object.defineProperty(element, "getBoundingClientRect", {
+    configurable: true,
+    value: () => ({ ...fullRect, ...rect })
+  });
 }
 
 describe("UI primitives", () => {
@@ -186,6 +204,48 @@ describe("UI primitives", () => {
     select.unmount();
   });
 
+  it("focuses the select trigger after pointer open so keyboard selection continues", async () => {
+    const beforeSelectButton = document.createElement("button");
+    beforeSelectButton.type = "button";
+    beforeSelectButton.textContent = "Before";
+    document.body.append(beforeSelectButton);
+    beforeSelectButton.focus();
+
+    const select = mount(UiSelect, {
+      props: {
+        modelValue: "system",
+        ariaLabel: "Theme",
+        options: [
+          { value: "system", label: "System" },
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" }
+        ]
+      },
+      attachTo: document.body
+    });
+
+    const trigger = select.get<HTMLElement>('[role="combobox"]');
+    trigger.element.dispatchEvent(
+      createPointerEvent("pointerdown", {
+        button: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
+    await nextTick();
+
+    expect(document.activeElement).toBe(trigger.element);
+
+    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    await nextTick();
+
+    expect(select.emitted("update:modelValue")?.[0]).toEqual(["light"]);
+
+    select.unmount();
+    beforeSelectButton.remove();
+  });
+
   it("renders color input through the shared color primitive", async () => {
     const colorInput = mount(UiColorInput, {
       props: {
@@ -221,15 +281,30 @@ describe("UI primitives", () => {
     expect(paletteField).toBeInstanceOf(HTMLInputElement);
     expect((paletteField as HTMLInputElement).classList.contains("ui-input")).toBe(true);
 
-    const colorAreaRoot = colorInput.findComponent({ name: "ColorAreaRoot" });
-    expect(colorAreaRoot.exists()).toBe(true);
-    colorAreaRoot.vm.$emit("update:modelValue", "#ffffff");
+    const colorArea = palette?.querySelector<HTMLElement>('[data-testid="color-area"]');
+    stubRect(colorArea!, { left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 });
+    colorArea?.dispatchEvent(
+      createPointerEvent("pointerdown", {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
     await nextTick();
-    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#ffffff"]);
-    colorAreaRoot.vm.$emit("changeEnd", "#ffffff");
+    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#0080ff"]);
+
+    colorArea?.dispatchEvent(
+      createPointerEvent("pointerup", {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
     await nextTick();
     expect(colorInput.emitted("update:modelValue")).toHaveLength(1);
-    expect(colorInput.emitted("change")?.[0]).toEqual(["#ffffff"]);
+    expect(colorInput.emitted("change")?.[0]).toEqual(["#0080ff"]);
 
     const redField = palette?.querySelector('[data-testid="color-channel-red"]');
     (redField as HTMLInputElement).value = "68";
@@ -237,8 +312,8 @@ describe("UI primitives", () => {
     redField?.dispatchEvent(new Event("blur", { bubbles: true }));
     await nextTick();
 
-    expect(colorInput.emitted("update:modelValue")?.[1]).toEqual(["#44ffff"]);
-    expect(colorInput.emitted("change")?.[1]).toEqual(["#44ffff"]);
+    expect(colorInput.emitted("update:modelValue")?.[1]).toEqual(["#4480ff"]);
+    expect(colorInput.emitted("change")?.[1]).toEqual(["#4480ff"]);
 
     (paletteField as HTMLInputElement).value = "#445566";
     paletteField?.dispatchEvent(new Event("input", { bubbles: true }));
@@ -249,6 +324,99 @@ describe("UI primitives", () => {
     expect(colorInput.emitted("change")?.[2]).toEqual(["#445566"]);
 
     colorInput.unmount();
+  });
+
+  it("keeps partial hex input local until a complete six-digit color is entered", async () => {
+    const colorInput = mount(UiColorInput, {
+      props: {
+        modelValue: "#112233",
+        label: "Primary Text"
+      },
+      attachTo: document.body
+    });
+
+    await colorInput.get('[data-testid="color-label-trigger"]').trigger("click");
+    await nextTick();
+
+    const paletteField = document.body.querySelector<HTMLInputElement>(".ui-color-input__field");
+    expect(paletteField).toBeInstanceOf(HTMLInputElement);
+
+    for (const value of ["#", "#4", "#44", "#445", "#4455", "#44556"]) {
+      paletteField!.value = value;
+      paletteField!.dispatchEvent(new Event("input", { bubbles: true }));
+      await nextTick();
+
+      expect(paletteField!.value).toBe(value);
+      expect(colorInput.emitted("update:modelValue")).toBeUndefined();
+    }
+
+    paletteField!.value = "#445566";
+    paletteField!.dispatchEvent(new Event("input", { bubbles: true }));
+    await nextTick();
+
+    expect(paletteField!.value).toBe("#445566");
+    expect(colorInput.emitted("update:modelValue")?.[0]).toEqual(["#445566"]);
+
+    colorInput.unmount();
+  });
+
+  it("emits a committed color change after the parent syncs live v-model updates", async () => {
+    const wrapper = mount(defineComponent({
+      components: { UiColorInput },
+      setup() {
+        const color = ref("#112233");
+        const changes = ref<string[]>([]);
+        return {
+          changes,
+          color,
+          recordChange(value: string) {
+            changes.value.push(value);
+          }
+        };
+      },
+      template: `
+        <UiColorInput
+          v-model="color"
+          label="Primary Text"
+          @change="recordChange"
+        />
+      `
+    }), {
+      attachTo: document.body
+    });
+
+    await wrapper.get('[data-testid="color-label-trigger"]').trigger("click");
+    await nextTick();
+
+    const colorArea = document.body.querySelector<HTMLElement>('[data-testid="color-area"]');
+    expect(colorArea).toBeInstanceOf(HTMLElement);
+    stubRect(colorArea!, { left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 });
+    colorArea!.dispatchEvent(
+      createPointerEvent("pointerdown", {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
+    await nextTick();
+
+    expect((wrapper.vm as unknown as { color: string }).color).toBe("#0080ff");
+    expect((wrapper.vm as unknown as { changes: string[] }).changes).toEqual([]);
+
+    document.dispatchEvent(
+      createPointerEvent("pointerup", {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: "mouse"
+      })
+    );
+    await nextTick();
+
+    expect((wrapper.vm as unknown as { changes: string[] }).changes).toEqual(["#0080ff"]);
+
+    wrapper.unmount();
   });
 
   it("renders slider with native event passthrough for playback scrubbing", async () => {
@@ -271,35 +439,62 @@ describe("UI primitives", () => {
     expect(slider.emitted("input")?.[0]?.[0]).toBeInstanceOf(Event);
   });
 
-  it("renders tooltip primitives with stable slots", () => {
+  it("opens tooltip content for keyboard focus and closes it with Escape", async () => {
     const tooltip = mount(UiTooltip, {
       props: { text: "Refresh cache" },
       slots: { default: "<button>Refresh</button>" },
       attachTo: document.body
     });
 
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
     expect(tooltip.get("button").text()).toBe("Refresh");
+
+    await tooltip.get("button").trigger("focusin");
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+    await nextTick();
+
+    const content = document.body.querySelector('[role="tooltip"]');
+    expect(content).toBeInstanceOf(HTMLElement);
+    expect(content?.textContent).toBe("Refresh cache");
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await nextTick();
+
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
+
+    tooltip.unmount();
   });
 
-  it("renders section, list item, badge, status, check indicator, and empty state classes", () => {
+  it("keeps tooltip open while pointer movement stays inside the slotted trigger", async () => {
+    const tooltip = mount(UiTooltip, {
+      props: { text: "Refresh cache", delayDuration: 0 },
+      slots: { default: '<button><span class="tooltip-icon">R</span>Refresh</button>' },
+      attachTo: document.body
+    });
+
+    const trigger = tooltip.get(".ui-tooltip-trigger").element;
+    const button = tooltip.get("button").element;
+    const icon = tooltip.get(".tooltip-icon").element;
+    trigger.dispatchEvent(createPointerEvent("pointerenter", { pointerId: 1, pointerType: "mouse" }));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    await nextTick();
+
+    expect(document.body.querySelector('[role="tooltip"]')).toBeInstanceOf(HTMLElement);
+
+    button.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: icon }));
+    await nextTick();
+
+    expect(document.body.querySelector('[role="tooltip"]')).toBeInstanceOf(HTMLElement);
+
+    tooltip.unmount();
+  });
+
+  it("renders section, list item, badge, status, and empty state classes", () => {
     expect(mount(UiSection, { props: { title: "General" } }).classes()).toContain("ui-section");
     expect(mount(UiListItem, { props: { selected: true } }).classes()).toContain("is-selected");
     expect(mount(UiBadge, { props: { tone: "success" }, slots: { default: "Ready" } }).classes()).toContain("ui-badge--success");
     expect(mount(UiStatus, { props: { tone: "danger" }, slots: { default: "Error" } }).classes()).toContain("ui-status--danger");
-    const indicator = mount(UiCheckIndicator, { props: { checked: true, label: "Enabled" } });
-    expect(indicator.classes()).toContain("ui-check-indicator");
-    expect(indicator.classes()).toContain("ui-check-indicator--sm");
-    expect(indicator.attributes("data-state")).toBe("checked");
-    expect(indicator.get(".ui-check-indicator__check").exists()).toBe(true);
     expect(mount(UiEmptyState, { props: { message: "No items" } }).text()).toBe("No items");
-  });
-
-  it("emits check indicator state changes from the circular control", async () => {
-    const indicator = mount(UiCheckIndicator, { props: { checked: false, label: "Enable" } });
-
-    await indicator.trigger("click");
-
-    expect(indicator.emitted("update:checked")?.[0]).toEqual([true]);
   });
 
   it("renders segmented controls and emits selected values", async () => {

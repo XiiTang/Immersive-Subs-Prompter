@@ -593,20 +593,32 @@ describe("SettingsProfiles", () => {
     await primaryColorTrigger.trigger("click");
     await nextTick();
 
-    const colorAreaRoot = wrapper.findComponent({ name: "ColorAreaRoot" });
-    expect(colorAreaRoot.exists()).toBe(true);
-
-    colorAreaRoot.vm.$emit("update:modelValue", "#112233");
+    const colorArea = document.body.querySelector<HTMLElement>('[data-testid="color-area"]');
+    expect(colorArea).toBeInstanceOf(HTMLElement);
+    const rect = colorArea!.getBoundingClientRect();
+    colorArea!.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      clientX: rect.left + rect.width * 0.6,
+      clientY: rect.top + rect.height * 0.8,
+      pointerId: 1,
+      pointerType: "mouse"
+    }));
     await nextTick();
 
     expect(store.editingProfileSettings.subtitlePrimaryColor).toBe("#f5f5f5");
     expect(updateSettings).not.toHaveBeenCalled();
 
-    colorAreaRoot.vm.$emit("changeEnd", "#112233");
+    colorArea!.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      clientX: rect.left + rect.width * 0.6,
+      clientY: rect.top + rect.height * 0.8,
+      pointerId: 1,
+      pointerType: "mouse"
+    }));
     await nextTick();
 
     expect(updateSettings).toHaveBeenCalledTimes(1);
-    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitlePrimaryColor).toBe("#112233");
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.subtitlePrimaryColor).toBe("#331414");
   });
 
   it("updates subtitle preview styles from the edited profile settings", async () => {

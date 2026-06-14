@@ -49,6 +49,7 @@ Final behavior:
 - custom dropdown chrome matching the current UI
 - outside click closes the dropdown
 - Escape closes the dropdown
+- pointer opening focuses the trigger so keyboard navigation continues immediately
 - Enter or Space selects the highlighted option
 - ArrowUp, ArrowDown, Home, and End move highlight
 - trigger exposes combobox-style accessibility state
@@ -95,13 +96,14 @@ Final behavior:
 - hue slider
 - RGB channel inputs
 - hex input
+- partial hex text remains local while typing
 - normalized lowercase `#rrggbb` values
 - emits `update:modelValue` for live edits
-- emits `change` for committed edits
+- emits `change` for committed edits, even when the parent has already synced the live `update:modelValue`
 - disabled and readonly states
 - outside click and Escape close the palette
 
-Color handling is local and limited to the formats used by this app. The component does not become a general color library.
+Color handling is local and limited to the formats used by this app. Pointer-drag calculations use the owned color-area and hue-slider elements directly, not runtime DOM queries through test selectors. The component does not become a general color library.
 
 ### UiSegmentedControl
 
@@ -135,7 +137,7 @@ No settings schema, persisted settings data, IPC contract, or extension contract
 Invalid UI input is normalized locally:
 
 - unknown select values render the placeholder or empty selected label
-- invalid color strings normalize to the component placeholder color
+- partial hex color strings remain local while editing, and invalid or incomplete hex text reverts to the current draft color on blur
 - disabled controls ignore pointer and keyboard activation
 - panel positioning falls back to the trigger's left edge and below-trigger placement when viewport calculations are unavailable
 
@@ -148,6 +150,7 @@ The final controls must preserve keyboard and assistive-technology usability for
 Minimum requirements:
 
 - select trigger is keyboard operable and exposes expanded state
+- select trigger receives focus when a pointer opens the list
 - select options expose selected and disabled state
 - switch exposes `role="switch"` and `aria-checked`
 - segmented control exposes radiogroup/radio semantics

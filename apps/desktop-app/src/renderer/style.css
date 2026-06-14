@@ -242,7 +242,8 @@ textarea {
 }
 
 .ui-select-content {
-  min-width: max(180px, var(--reka-select-trigger-width));
+  position: fixed;
+  min-width: max(180px, var(--ui-select-trigger-width));
   max-height: 260px;
   overflow: hidden;
   padding: 4px;
@@ -301,8 +302,13 @@ textarea {
 }
 
 .ui-tooltip {
+  position: fixed;
   padding: 4px 8px;
   font-size: var(--ui-font-sm);
+}
+
+.ui-tooltip-trigger {
+  display: contents;
 }
 
 .ui-slider {
@@ -411,6 +417,7 @@ textarea {
 }
 
 .ui-color-input__palette {
+  position: fixed;
   z-index: 10000;
   width: 228px;
   border: 1px solid var(--ui-border);
@@ -434,12 +441,15 @@ textarea {
 
 .ui-color-input__area-thumb,
 .ui-color-input__slider-thumb {
+  position: absolute;
   width: 14px;
   height: 14px;
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: transparent;
   outline: 1px solid rgb(0 0 0 / 0.42);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .ui-color-input__slider {
@@ -461,7 +471,7 @@ textarea {
 }
 
 .ui-color-input__slider-thumb {
-  top: 1px;
+  top: 50%;
 }
 
 .ui-color-input__channels {
@@ -803,64 +813,6 @@ button.ui-list-item {
 
 .ui-status--info {
   color: var(--ui-info);
-}
-
-.ui-check-indicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ui-border);
-  border-radius: 999px;
-  color: transparent;
-  background: var(--ui-surface);
-  cursor: pointer;
-  opacity: 1;
-}
-
-.ui-check-indicator--sm {
-  width: 16px;
-  height: 16px;
-}
-
-.ui-check-indicator--md {
-  width: 20px;
-  height: 20px;
-}
-
-.ui-check-indicator[data-state="checked"] {
-  color: var(--ui-bg);
-  border-color: var(--ui-accent);
-  background: var(--ui-accent);
-}
-
-.ui-check-indicator--success[data-state="checked"] {
-  border-color: var(--ui-success);
-  background: var(--ui-success);
-}
-
-.ui-check-indicator--info[data-state="checked"] {
-  border-color: var(--ui-info);
-  background: var(--ui-info);
-}
-
-.ui-check-indicator__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ui-check-indicator--sm .icon {
-  width: 11px;
-  height: 11px;
-}
-
-.ui-check-indicator--md .icon {
-  width: 13px;
-  height: 13px;
-}
-
-.ui-check-indicator:disabled {
-  cursor: default;
 }
 
 .ui-empty-state {

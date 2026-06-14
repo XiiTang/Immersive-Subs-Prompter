@@ -6,6 +6,35 @@ import type { AppSettings } from "../../../main/types";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
+function createPointerEvent(type: string, init: Partial<PointerEvent>) {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
+  for (const [key, value] of Object.entries(init)) {
+    Object.defineProperty(event, key, {
+      configurable: true,
+      value
+    });
+  }
+  return event;
+}
+
+async function selectOption(trigger: HTMLElement, value: string) {
+  trigger.dispatchEvent(
+    createPointerEvent("pointerdown", {
+      button: 0,
+      pointerId: 1,
+      pointerType: "mouse"
+    })
+  );
+  await nextTick();
+
+  const option = Array.from(document.body.querySelectorAll<HTMLElement>("[data-value]"))
+    .find((element) => element.dataset.value === value);
+  expect(option).toBeInstanceOf(HTMLElement);
+  option!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  await nextTick();
+  await nextTick();
+}
+
 function createSettings(): AppSettings {
   return {
     global: {
@@ -81,6 +110,49 @@ describe("SettingsGlobal", () => {
 
     expect(wrapper.text()).toContain("ws://127.0.0.1:44501/");
     expect(wrapper.text()).toContain("ws://192.168.1.2:44502/?token=0123456789abcdef0123456789abcdef");
+  });
+
+  it("updates language, theme, auto-launch, and cache through local UI primitives", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateGlobalSpy = vi.spyOn(store, "updateGlobalSetting").mockImplementation((key, value) => {
+      if (!store.settings) {
+        return;
+      }
+      store.settings.global = {
+        ...store.settings.global,
+        [key]: value
+      };
+    });
+    const updateCacheSpy = vi.spyOn(store, "updateCacheSetting").mockImplementation((key, value) => {
+      if (!store.settings) {
+        return;
+      }
+      store.settings.cache = {
+        ...store.settings.cache,
+        [key]: value
+      };
+    });
+
+    const wrapper = mount(SettingsGlobal, { attachTo: document.body });
+
+    await selectOption(wrapper.get<HTMLElement>('[role="combobox"]').element, "zh");
+    expect(updateGlobalSpy).toHaveBeenCalledWith("language", "zh");
+
+    await wrapper.get('[role="radiogroup"] [aria-checked="false"]:last-child').trigger("click");
+    expect(updateGlobalSpy).toHaveBeenCalledWith("appearance", { theme: "dark" });
+
+    await wrapper.findAll('[role="switch"]')[0]!.trigger("click");
+    expect(updateGlobalSpy).toHaveBeenCalledWith("autoLaunch", true);
+
+    const cacheRow = wrapper.get("#cache-enabled-label").element.closest(".global-settings__row");
+    const cacheSwitch = cacheRow?.querySelector<HTMLElement>('[role="switch"]');
+    expect(cacheSwitch).toBeInstanceOf(HTMLElement);
+    cacheSwitch!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await nextTick();
+    expect(updateCacheSpy).toHaveBeenCalledWith("enabled", false);
+
+    wrapper.unmount();
   });
 
   it("adds a draft endpoint from host:port input", async () => {
