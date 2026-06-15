@@ -37,7 +37,7 @@ describe("NetworkEndpointEditor browser layout", () => {
       .get('[data-testid="network-endpoint-display-lan"]')
       .element.closest(".pill-list-editor__item");
 
-    expect(lanPill?.classList.contains("pill-list-editor__item--error")).toBe(true);
+    expect(lanPill?.classList.contains("ui-chip--danger")).toBe(true);
     expect(wrapper.text()).toContain("192.168.1.2:44502 - listen EADDRNOTAVAIL");
   });
 });

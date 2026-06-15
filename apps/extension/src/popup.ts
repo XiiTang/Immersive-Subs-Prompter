@@ -163,10 +163,17 @@ function connectionStatusLabel(state: PopupConnection["state"], hasError: boolea
 }
 
 function connectionPillClass(state: PopupConnection["state"], hasError: boolean) {
-  if (hasError) return "server-pill--error";
-  if (state === "connected") return "server-pill--connected";
-  if (state === "connecting") return "server-pill--connecting";
-  return "server-pill--disconnected";
+  if (hasError) return "ui-chip--danger";
+  if (state === "connected") return "ui-chip--success";
+  if (state === "connecting") return "ui-chip--warning";
+  return "";
+}
+
+function connectionStatusDotClass(state: PopupConnection["state"], hasError: boolean) {
+  if (hasError) return "server-status-dot--error";
+  if (state === "connected") return "server-status-dot--connected";
+  if (state === "connecting") return "server-status-dot--connecting";
+  return "server-status-dot--disconnected";
 }
 
 function setServerError(message = "") {
@@ -241,7 +248,7 @@ function renderServers() {
     pill.dataset.endpoint = endpoint;
 
     const statusDot = document.createElement("span");
-    statusDot.className = "server-status-dot";
+    statusDot.className = `server-status-dot ${connectionStatusDotClass(state, hasError)}`;
     statusDot.title = info?.lastError || label;
     statusDot.setAttribute("aria-label", label);
 
@@ -253,7 +260,7 @@ function renderServers() {
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove server-remove";
+    removeBtn.className = "ui-icon-button ui-icon-button--chip pill-list-editor__remove server-remove";
     removeBtn.title = t("actionRemove");
     removeBtn.setAttribute("aria-label", t("actionRemove"));
     removeBtn.dataset.testid = `server-endpoint-remove-${endpoint}`;
@@ -280,7 +287,7 @@ function renderServers() {
 
 function createServerDraftItem() {
   const draft = document.createElement("span");
-  draft.className = "priority-editor__item priority-editor__draft pill-list-editor__draft server-draft";
+  draft.className = "ui-chip priority-editor__item priority-editor__draft pill-list-editor__draft server-draft";
 
   const sizer = document.createElement("span");
   sizer.className = "pill-list-editor__draft-sizer";
@@ -289,7 +296,7 @@ function createServerDraftItem() {
 
   serverDraftInputEl = document.createElement("input");
   serverDraftInputEl.type = "text";
-  serverDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
+  serverDraftInputEl.className = "ui-input ui-input--chip ui-input--bare priority-editor__draft-input pill-list-editor__input";
   serverDraftInputEl.dataset.testid = "server-draft-input";
   serverDraftInputEl.placeholder = serverEndpointPlaceholder();
   serverDraftInputEl.value = serverDraftValue;
@@ -365,10 +372,11 @@ function formatRelative(delta: number | null | undefined) {
 function renderEmptyState() {
   if (!mediaRoot) return;
   const empty = document.createElement("div");
-  empty.className = "ui-empty-state empty-state";
+  empty.className = "empty-state";
   const title = document.createElement("strong");
   title.textContent = t("popupNoMediaTitle");
   const description = document.createElement("p");
+  description.className = "ui-empty-state";
   description.textContent = t("popupNoMediaDescription");
   empty.append(title, description);
   mediaRoot.replaceChildren(empty);
@@ -414,7 +422,7 @@ function renderBlacklistRules() {
     const item = document.createElement("span");
     item.className = "ui-chip priority-editor__item pill-list-editor__item pill-list-editor__item--removable";
     if (parseUrlRulePattern(rule.value).error) {
-      item.classList.add("pill-list-editor__item--error");
+      item.classList.add("ui-chip--danger");
     }
     item.dataset.id = rule.id;
 
@@ -426,7 +434,7 @@ function renderBlacklistRules() {
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
-    removeButton.className = "ui-icon-button ui-icon-button--sm ui-icon-button--ghost pill-list-editor__remove";
+    removeButton.className = "ui-icon-button ui-icon-button--chip pill-list-editor__remove";
     removeButton.title = t("actionRemove");
     removeButton.setAttribute("aria-label", t("actionRemove"));
     removeButton.dataset.testid = `blacklist-rule-remove-${rule.id}`;
@@ -466,7 +474,7 @@ function addBlacklistDraft() {
 
 function createBlacklistDraftItem() {
   const draft = document.createElement("span");
-  draft.className = "priority-editor__item priority-editor__draft pill-list-editor__draft";
+  draft.className = "ui-chip priority-editor__item priority-editor__draft pill-list-editor__draft";
 
   const sizer = document.createElement("span");
   sizer.className = "pill-list-editor__draft-sizer";
@@ -475,7 +483,7 @@ function createBlacklistDraftItem() {
 
   blacklistDraftInputEl = document.createElement("input");
   blacklistDraftInputEl.type = "text";
-  blacklistDraftInputEl.className = "ui-input priority-editor__draft-input pill-list-editor__input";
+  blacklistDraftInputEl.className = "ui-input ui-input--chip ui-input--bare priority-editor__draft-input pill-list-editor__input";
   blacklistDraftInputEl.dataset.testid = "blacklist-draft-input";
   blacklistDraftInputEl.placeholder = blacklistRulePlaceholder();
   blacklistDraftInputEl.value = blacklistDraftValue;
@@ -557,11 +565,11 @@ function renderCards(items: MediaInfo[]) {
     const linkEl = clone.querySelector(".media-row__link") as HTMLAnchorElement | null;
     const progressBar = clone.querySelector(".media-row__progress-bar") as HTMLElement | null;
 
-    clone.classList.toggle("playing", !!item.isPlaying);
-    clone.classList.toggle("paused", !item.isPlaying);
-
     if (!titleEl || !statusEl || !subtitleEl || !metaEl || !timeEl || !progressBar) return;
 
+    clone.classList.toggle("is-selected", !!item.isPlaying);
+    statusEl.className = "ui-badge media-row__status";
+    statusEl.classList.toggle("ui-badge--success", !!item.isPlaying);
     titleEl.textContent = item.title || item.pageUrl || t("mediaUnknownTitle");
     statusEl.textContent = item.isPlaying
       ? t("mediaStatusPlaying")

@@ -334,7 +334,7 @@ describe("UI primitives", () => {
 
     const paletteField = palette?.querySelector(".ui-color-input__field");
     expect(paletteField).toBeInstanceOf(HTMLInputElement);
-    expect((paletteField as HTMLInputElement).classList.contains("ui-input")).toBe(true);
+    expect((paletteField as HTMLInputElement).classList.contains("ui-input")).toBe(false);
 
     const colorArea = palette?.querySelector<HTMLElement>('[data-testid="color-area"]');
     stubRect(colorArea!, { left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 });
@@ -559,6 +559,9 @@ describe("UI primitives", () => {
   it("renders section, list item, badge, status, and empty state classes", () => {
     expect(mount(UiSection, { props: { title: "General" } }).classes()).toContain("ui-section");
     expect(mount(UiListItem, { props: { selected: true } }).classes()).toContain("is-selected");
+    expect(mount(UiListItem, { props: { density: "compact", highlighted: true } }).classes()).toEqual(
+      expect.arrayContaining(["ui-list-item--compact", "is-highlighted"])
+    );
     expect(mount(UiBadge, { props: { tone: "success" }, slots: { default: "Ready" } }).classes()).toContain("ui-badge--success");
     expect(mount(UiStatus, { props: { tone: "danger" }, slots: { default: "Error" } }).classes()).toContain("ui-status--danger");
     expect(mount(UiEmptyState, { props: { message: "No items" } }).text()).toBe("No items");

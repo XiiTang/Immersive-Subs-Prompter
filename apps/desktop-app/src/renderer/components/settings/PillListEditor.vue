@@ -15,9 +15,9 @@
         :key="item.id"
         class="ui-chip priority-editor__item pill-list-editor__item"
         :class="{
-          'pill-list-editor__item--error': item.error,
+          'ui-chip--danger': item.error,
           'pill-list-editor__item--removable': item.removable !== false,
-          'priority-editor__item--dragover': isDragOver(index)
+          'is-highlighted': isDragOver(index)
         }"
         :draggable="sortable"
         @dragstart.self="onDragStart(index, $event)"
@@ -55,7 +55,7 @@
         </UiIconButton>
       </span>
 
-      <span class="priority-editor__item priority-editor__draft pill-list-editor__draft">
+      <span class="ui-chip priority-editor__item priority-editor__draft pill-list-editor__draft">
         <span class="pill-list-editor__draft-sizer" aria-hidden="true">{{ draftSizerText }}</span>
         <UiInput
           class="priority-editor__draft-input pill-list-editor__input"

@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildExtensionManifest, isExtensionBuildTarget, type ExtensionBuildTarget } from "./src/manifest";
+import { writePopupStylesheet } from "./src/build-tools/popupStylesheet";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +55,7 @@ async function copyStaticAssets({
   await Promise.all([
     writeManifest(targetName, outDir, version),
     fs.copyFile(path.join(__dirname, "popup.html"), path.join(outDir, "popup.html")),
-    fs.copyFile(path.join(__dirname, "popup.css"), path.join(outDir, "popup.css")),
+    writePopupStylesheet(outDir, { popupLayoutPath: path.join(__dirname, "src", "popup-layout.css") }),
     copyDirectory(path.join(__dirname, "icons"), path.join(outDir, "icons")),
     copyDirectory(path.join(__dirname, "_locales"), path.join(outDir, "_locales")),
   ]);

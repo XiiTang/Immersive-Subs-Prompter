@@ -72,6 +72,7 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.find('[data-testid="settings-nav-item-feature-wordLookup"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="settings-nav-item-feature-transcription"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="settings-nav-item-feature-jellyfinEmby"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="settings-nav-item-general"]').classes()).toContain("ui-button--nav");
 
     await wrapper.get('[data-testid="settings-nav-item-features"]').trigger("click");
 

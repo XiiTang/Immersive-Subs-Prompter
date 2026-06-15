@@ -1,0 +1,17 @@
+{
+  "name": "@immersive-subs/ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./index.css": "./src/index.css",
+    "./tokens.css": "./src/tokens.css",
+    "./base.css": "./src/base.css",
+    "./primitives.css": "./src/primitives.css"
+  },
+  "scripts": {
+    "build": "pnpm run test",
+    "typecheck": "pnpm run test",
+    "test": "node --test tests/ui-css-contract.test.mjs"
+  }
+}

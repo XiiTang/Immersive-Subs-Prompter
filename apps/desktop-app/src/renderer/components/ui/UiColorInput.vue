@@ -50,7 +50,7 @@
           >
             <span class="ui-color-input__channel-label">{{ channel.label }}</span>
             <input
-              class="ui-input ui-color-input__channel-input"
+              class="ui-color-input__channel-input"
               :data-testid="channel.testId"
               :aria-label="`${label} ${channel.label} channel`"
               inputmode="numeric"
@@ -65,7 +65,7 @@
         </div>
 
         <input
-          class="ui-input ui-color-input__field"
+          class="ui-color-input__field"
           :aria-label="`${label} color code`"
           spellcheck="false"
           :disabled="disabled"

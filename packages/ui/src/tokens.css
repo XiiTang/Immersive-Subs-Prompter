@@ -1,0 +1,44 @@
+/* Shared UI tokens */
+:root {
+  color-scheme: light dark;
+  font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  --ui-radius: 8px;
+  --ui-radius-sm: 6px;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-6: 24px;
+  --ui-font-sm: 12px;
+  --ui-font-md: 13px;
+  --ui-font-lg: 16px;
+  --ui-bg: #f6f7f9;
+  --ui-surface: #ffffff;
+  --ui-surface-muted: #eef1f4;
+  --ui-text: #101418;
+  --ui-text-muted: #66707c;
+  --ui-border: #d8dee6;
+  --ui-accent: #2563eb;
+  --ui-success: #16803c;
+  --ui-warning: #b45309;
+  --ui-danger: #dc2626;
+  --ui-info: #2563eb;
+  --ui-shadow-floating: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ui-bg: #141414;
+  --ui-surface: #181818;
+  --ui-surface-muted: #242424;
+  --ui-text: #f2f2f2;
+  --ui-text-muted: #a6a6a6;
+  --ui-border: #363636;
+  --ui-accent: #d6d6d6;
+  --ui-success: #c7c7c7;
+  --ui-warning: #b8b8b8;
+  --ui-danger: #e0e0e0;
+  --ui-info: #cfcfcf;
+  --ui-shadow-floating: 0 12px 32px rgb(0 0 0 / 0.42);
+}

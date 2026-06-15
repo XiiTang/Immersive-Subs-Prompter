@@ -4,7 +4,7 @@
 
 Establish one project-level frontend style foundation shared by the desktop renderer and the browser extension popup.
 
-The final project has a single source of truth for shared design tokens, base CSS, and primitive `.ui-*` chrome. The desktop renderer continues to use Vue components for behavior and accessibility. The extension popup continues to use native HTML and TypeScript. Both surfaces consume the same CSS foundation.
+The final project has a single source of truth for shared design tokens, base CSS, and cross-surface primitive `.ui-*` chrome. The desktop renderer continues to use Vue components for behavior and accessibility. The extension popup continues to use native HTML and TypeScript. Both surfaces consume the same CSS foundation.
 
 The project has not launched. The final state does not preserve duplicate local style systems, compatibility aliases, transitional shims, or old unpublished UI contracts.
 
@@ -43,8 +43,8 @@ Application-specific styles load after `@immersive-subs/ui/index.css`. Product s
 - shared `--ui-*` design tokens
 - global box sizing and form-control font inheritance
 - shared focus-visible and disabled-state treatment
-- base primitive classes under `.ui-*`
-- primitive variants that are used by more than one frontend surface or belong to the project UI language
+- cross-surface primitive classes under `.ui-*`
+- primitive variants that are used by more than one frontend surface or intentionally belong to the shared project UI language
 
 The shared package does not own product state, settings data, IPC contracts, browser-extension contracts, subtitle rendering logic, popup messaging, or Vue component behavior.
 
@@ -59,8 +59,9 @@ The shared package does not own product state, settings data, IPC contracts, bro
 - subtitle projection and transcript layout
 - word lookup window layout
 - desktop-only CSS variables such as panel opacity and window geometry controls
+- desktop-only `.ui-*` component internals for select popovers, tooltips, color input, fields, sections, surfaces, toolbars, setting rows, stats, groups, scrollbars, and resize handles
 
-Desktop Vue components use shared `.ui-*` class names from `@immersive-subs/ui` instead of owning the corresponding visual chrome in renderer product CSS.
+Desktop Vue components use shared primitive `.ui-*` class names from `@immersive-subs/ui` for cross-surface controls and feedback. Desktop-only component internals keep their CSS in the renderer instead of becoming shared package primitives.
 
 ### Extension Popup
 
@@ -101,7 +102,6 @@ Dark theme token values are defined by the shared package through `:root[data-th
 - `.ui-switch`
 - `.ui-slider`
 - `.ui-segmented`
-- `.ui-color-input`
 - `.ui-status`
 - `.ui-badge`
 - `.ui-message`
@@ -109,12 +109,13 @@ Dark theme token values are defined by the shared package through `:root[data-th
 - `.ui-progress`
 - `.ui-list-item`
 - `.ui-chip`
-- `.ui-group`
 - `.icon`
 
 The package also owns primitive density and intent variants such as `sm`, `md`, `lg`, `xs`, `compact`, `chip`, `bare`, `block`, `editable`, `primary`, `secondary`, `ghost`, `danger`, `success`, `warning`, `info`, and `neutral` where those variants are part of the shared UI language.
 
-Product styles may compose these classes with product layout classes. Product styles do not set primitive border, background, color, padding, radius, focus outline, font size, line height, width, height, or disabled chrome for the shared primitive selectors.
+Desktop-only `.ui-*` classes such as `.ui-select-content`, `.ui-tooltip`, `.ui-color-input`, `.ui-field`, `.ui-section`, `.ui-surface`, `.ui-toolbar`, `.ui-setting-row`, `.ui-inline-control`, `.ui-stat`, `.ui-group`, `.ui-scrollbar`, and `.ui-resize-handle` are renderer component internals, not shared primitives.
+
+Product styles may compose shared primitive classes with product layout classes. Product styles do not set primitive border, background, color, radius, focus outline, font size, line height, or disabled chrome for product classes that are composed with shared primitives. Direct shared primitive selectors also do not receive product-owned padding, width, or height rules.
 
 ## Build Shape
 
@@ -124,7 +125,7 @@ Root scripts include the UI package in build, typecheck, and test flows. The UI 
 
 The desktop renderer loads `@immersive-subs/ui/index.css` before desktop product CSS.
 
-The extension build emits one final `popup.css` per browser target. That output contains shared UI CSS first and popup-specific layout CSS second. The extension source tree does not keep a second token or primitive stylesheet.
+The extension build resolves `@immersive-subs/ui/index.css`, expands that entrypoint's CSS imports, and emits one final `popup.css` per browser target. That output contains shared UI CSS first and popup-specific layout CSS second. The extension source tree does not keep a second token or primitive stylesheet.
 
 ## Boundary Enforcement
 
@@ -135,11 +136,13 @@ The boundary check passes only when:
 - `packages/ui` is the only source that defines shared `--ui-*` tokens
 - `packages/ui` is the only source that defines shared primitive `.ui-*` chrome
 - desktop product CSS does not override shared primitive chrome
+- desktop product CSS does not redefine shared primitive chrome through product classes composed with shared primitives
 - extension popup layout CSS does not define shared tokens or primitive chrome
+- extension popup layout CSS does not redefine shared primitive chrome through product classes composed with shared primitives
 - desktop and extension source do not import external UI or style frameworks
 - built extension popup CSS includes the shared UI foundation before popup layout CSS
 
-The boundary check is part of the root test command.
+The root test command builds the extension popup CSS for both browser targets before running the boundary check.
 
 ## Error Handling
 
@@ -154,6 +157,7 @@ No fallback CSS is shipped for missing shared UI styles.
 The final verification surface includes:
 
 - `packages/ui` CSS contract tests for token, base, primitive, and import-order presence
+- `packages/ui` CSS contract tests proving desktop-only component internals are not shared primitives
 - project UI boundary tests for allowed and blocked ownership patterns
 - existing desktop renderer component tests for Vue component DOM, ARIA, events, and class contracts
 - existing extension popup tests for i18n and DOM behavior
@@ -162,7 +166,7 @@ The final verification surface includes:
 - root `pnpm typecheck`
 - root `pnpm build`
 
-Broad build and test success is not the only proof of completion. Source checks must show that shared UI chrome lives in `packages/ui` and product surfaces only own product layout.
+Broad build and test success is not the only proof of completion. Source checks must show that cross-surface shared UI chrome lives in `packages/ui`, desktop-only component internals live in the renderer, and product surfaces do not override shared primitive chrome.
 
 ## Explicit Non-Goals
 
@@ -171,7 +175,7 @@ This design does not:
 - move the extension popup to Vue
 - introduce Tailwind CSS, UnoCSS, Reka UI, Radix UI, Ant Design, Arco Design, Element Plus, Naive UI, Vuetify, Material UI, Chakra UI, Mantine, Fluent UI, or another runtime UI/style framework
 - create compatibility layers for old unpublished styles
-- preserve duplicate desktop or extension primitive CSS
+- preserve duplicate desktop or extension shared primitive CSS
 - design future content-script injected UI
 - change browser-extension messaging, manifest semantics, release artifacts, IPC contracts, settings storage, subtitle logic, or media detection behavior
 
@@ -179,8 +183,9 @@ This design does not:
 
 The final project-level UI foundation is complete when:
 
-- `packages/ui` is the only owner of shared tokens, base CSS, and primitive CSS
+- `packages/ui` is the only owner of shared tokens, base CSS, and cross-surface primitive CSS
 - desktop renderer components consume shared primitive CSS while preserving their current behavior and accessibility contracts
+- desktop-only component internals stay in renderer CSS rather than the shared package
 - extension popup consumes the shared CSS foundation without adopting Vue
 - desktop and extension product styles contain only product layout and domain rendering rules
 - project UI boundary checks are enforced by root tests

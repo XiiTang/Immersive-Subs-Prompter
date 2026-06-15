@@ -1,0 +1,378 @@
+.popup-main,
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --server-status-connected: #16803c;
+  --server-status-connecting: #b45309;
+  --server-status-error: #dc2626;
+}
+
+:root[data-theme="dark"] {
+  --server-status-connected: #22c55e;
+  --server-status-connecting: #f59e0b;
+  --server-status-error: #ef4444;
+}
+
+body {
+  width: 380px;
+  height: 600px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+.popup-main {
+  flex: 1;
+  overflow: hidden;
+}
+
+.popup-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.popup-header__meta {
+  min-width: 0;
+}
+
+.popup-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popup-status {
+  white-space: nowrap;
+}
+
+.media-root {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+body.drawer-open .popup-main {
+  display: none;
+}
+
+.empty-state {
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.empty-state strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ui-text);
+  font-size: 14px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: var(--ui-font-sm);
+}
+
+.media-row.ui-list-item {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.media-row__header,
+.popup-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.media-row__title {
+  min-width: 0;
+  color: var(--ui-text);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.popup-section__subtitle,
+.media-row__subtitle,
+.media-row__meta,
+.media-row__time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-sm);
+}
+
+.media-row__status {
+  flex: 0 0 auto;
+}
+
+.media-row__progress-bar {
+  width: 0%;
+}
+
+.media-row__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: var(--ui-font-sm);
+}
+
+.media-row__link {
+  color: var(--ui-accent);
+  text-decoration: none;
+}
+
+.media-row__link:hover {
+  text-decoration: underline;
+}
+
+.media-row__error {
+  color: var(--ui-danger);
+  font-size: var(--ui-font-sm);
+}
+
+.drawer-panel {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--ui-bg);
+}
+
+body.settings-open .settings-panel {
+  display: flex;
+}
+
+.drawer-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.drawer-panel__header h2 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.drawer-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-panel__body {
+  gap: 18px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.settings-section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.settings-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-section__header h3 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 14px;
+  font-weight: 650;
+  flex: 0 0 auto;
+}
+
+.server-root {
+  padding: 0;
+}
+
+.server-endpoint {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-pill-list-editor {
+  gap: 8px;
+}
+
+.server-summary {
+  min-height: 16px;
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-pill {
+  gap: 6px;
+}
+
+.server-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ui-text-muted);
+  flex: 0 0 auto;
+}
+
+.server-draft {
+  max-width: min(100%, 320px);
+}
+
+.server-remove {
+  flex: 0 0 auto;
+}
+
+.server-error {
+  font-size: var(--ui-font-sm);
+  color: var(--ui-danger);
+}
+
+.blacklist-editor,
+.pill-list-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priority-editor__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.pill-list-editor__list {
+  align-items: center;
+}
+
+.priority-editor__item {
+  max-width: 100%;
+  min-height: 28px;
+  user-select: none;
+}
+
+.pill-list-editor__item {
+  position: relative;
+  max-width: 100%;
+  cursor: default;
+}
+
+.server-status-dot--connected {
+  background: var(--server-status-connected);
+}
+
+.server-status-dot--connecting {
+  background: var(--server-status-connecting);
+}
+
+.server-status-dot--error {
+  background: var(--server-status-error);
+}
+
+.server-status-dot--disconnected {
+  background: var(--ui-text-muted);
+}
+
+.pill-list-editor__display {
+  min-width: 0;
+  max-width: min(100%, 300px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: text;
+  user-select: text;
+}
+
+.pill-list-editor__remove.ui-icon-button {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pill-list-editor__item:hover .pill-list-editor__remove,
+.pill-list-editor__item:focus-within .pill-list-editor__remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pill-list-editor__draft {
+  position: relative;
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: calc(3ch + 24px);
+  max-width: min(100%, 300px);
+  cursor: text;
+}
+
+.pill-list-editor__draft-sizer {
+  visibility: hidden;
+  overflow: hidden;
+  white-space: pre;
+  font: inherit;
+  min-width: 3ch;
+}
+
+.pill-list-editor__input {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  min-width: 0;
+}
+
+.settings-field__error {
+  color: var(--ui-danger);
+  font-size: var(--ui-font-sm);
+}
+
+.appearance-options {
+  max-width: 100%;
+}
+
+@media (max-width: 360px) {
+  body {
+    width: 340px;
+  }
+}

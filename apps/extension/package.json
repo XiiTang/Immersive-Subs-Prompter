@@ -18,7 +18,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@immersive-subs/contracts": "workspace:*"
+    "@immersive-subs/contracts": "workspace:*",
+    "@immersive-subs/ui": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "0.1.42",

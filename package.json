@@ -4,11 +4,11 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app",
-    "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm lint:renderer-ui-boundaries && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/ui build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app",
+    "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm --filter @immersive-subs/extension build && pnpm lint:ui-boundaries && pnpm --filter @immersive-subs/ui test && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
     "lint:silent-catches": "node ./scripts/check-silent-catches.mjs",
-    "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs",
-    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/contracts typecheck && pnpm --filter @immersive-subs/desktop-app typecheck:app && pnpm --filter @immersive-subs/extension typecheck:app",
+    "lint:ui-boundaries": "node ./scripts/check-ui-boundaries.mjs",
+    "typecheck": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/contracts typecheck && pnpm --filter @immersive-subs/ui typecheck && pnpm --filter @immersive-subs/desktop-app typecheck:app && pnpm --filter @immersive-subs/extension typecheck:app",
     "build:desktop": "pnpm --filter @immersive-subs/desktop-app build",
     "build:extension": "pnpm --filter @immersive-subs/extension build",
     "test:desktop": "pnpm --filter @immersive-subs/desktop-app test:desktop",
@@ -18,7 +18,7 @@
     "release:collect-desktop": "node ./scripts/release/collect-desktop-artifact.mjs",
     "release:manifest": "node ./scripts/release/manifest.mjs",
     "release:zip-extension": "node ./scripts/release/zip-extension.mjs",
-    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-renderer-ui-boundaries.test.mjs",
+    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-ui-boundaries.test.mjs",
     "test:release-scripts": "node --test scripts/release/release-scripts.test.mjs"
   }
 }

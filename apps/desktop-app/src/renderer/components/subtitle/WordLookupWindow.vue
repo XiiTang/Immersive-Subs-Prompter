@@ -53,14 +53,15 @@
           @pointerdown="beginScrollbarDrag"
         />
       </div>
-      <UiIconButton
+      <button
+        type="button"
         class="word-lookup-resize-handle ui-resize-handle"
-        label="调整单词面板尺寸"
+        aria-label="调整单词面板尺寸"
         data-testid="word-lookup-resize-handle"
         @pointerdown="beginResizeDrag"
       >
         <span aria-hidden="true" />
-      </UiIconButton>
+      </button>
     </UiSurface>
   </main>
 </template>
@@ -70,7 +71,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { renderWordLookupMarkdown } from "../../features/wordLookup/wordLookupMarkdown";
 import type { WordLookupResult } from "../../features/wordLookup/wordLookupTypes";
 import { clamp } from "../../utils/formatters";
-import { UiEmptyState, UiIconButton, UiSurface } from "../ui";
+import { UiEmptyState, UiSurface } from "../ui";
 
 type WordLookupWindowPayload = {
   matches: WordLookupResult["matches"];
