@@ -1,5 +1,7 @@
 # Release Update System Implementation Plan
 
+> Historical note, 2026-06-15: Plugin-distribution references in this plan predate the built-in Features replacement. Current release checks do not build plugin artifacts and do not check `plugin-repository`; treat any plugin-distribution references below as implementation history, not current release guidance.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the release, version, manifest, and update-check system described in `docs/superpowers/specs/2026-06-10-release-update-system-design.md`.
@@ -1321,8 +1323,6 @@ Create `scripts/release/check.mjs`. It must:
 
 - verify the three package versions match
 - verify the version matches `--tag` when a tag is provided
-- run `pnpm build:plugins`
-- fail if `git diff --exit-code -- plugin-repository` reports stale generated plugin artifacts
 - validate `releases/latest.json` when it exists
 
 - [ ] **Step 8: Wire root package scripts**

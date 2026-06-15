@@ -3,6 +3,11 @@
 This directory persists the full Codex Security repository-wide scan bundle for
 Immersive Subs Prompter.
 
+This is a historical scan snapshot from before the built-in Features replacement.
+References inside the generated report and artifacts to plugin installation,
+plugin repositories, plugin runtime hosting, or plugin sandboxing describe the
+old repository state and are not current architecture guidance.
+
 ## Entry Points
 
 - `report.html`: rendered readable report.

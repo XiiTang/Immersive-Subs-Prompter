@@ -176,7 +176,7 @@ The word lookup window reads its panel size and trigger key from `settings.featu
 
 `TranscriptionFeatureService` owns feature-level enablement and config conversion for the existing desktop `TranscriptionService`.
 
-The start-transcription IPC handler checks `settings.features.transcription.enabled`. If disabled, the handler returns a disabled-feature error. If enabled, it builds a typed `TranscriptionConfig` from the complete sanitized `settings.features.transcription.config` and runs the desktop transcription pipeline. It does not apply compatibility defaults for missing or stale config fields.
+The start-transcription IPC handler checks `settings.features.transcription.enabled`. If disabled, the handler returns a disabled-feature error. If enabled, it builds a typed `TranscriptionConfig` from the complete sanitized `settings.features.transcription.config` and runs the desktop transcription pipeline. It does not apply compatibility defaults for missing or stale config fields. Provider-specific required values are validated before runtime work starts: Whisper API requires a non-empty HTTP(S) base URL and model, and Faster-Whisper requires a non-empty model. Invalid transcription config fails before `yt-dlp` downloads audio.
 
 Transcription cache variants are derived from the built-in feature ID and typed transcription config. They are not derived from plugin keys.
 
@@ -206,6 +206,8 @@ The renderer does not need a plugin catalog. Subtitle and control components use
 - word lookup interaction is available when `settings.features.wordLookup.enabled` is true
 - Jellyfin / Emby media-source behavior is represented through existing desktop state and media-server state
 
+Feature settings labels are localized through the renderer locale dictionaries. Built-in transcription controls do not hardcode English field labels in the Vue component.
+
 Feature settings are updated through normal settings updates. There are no install, preview, update, delete, enable-plugin, disable-plugin, or plugin-catalog IPC routes.
 
 The preload bridge exposes only first-party feature operations that the renderer needs, such as word lookup and start transcription. It does not expose generic plugin lifecycle methods.
@@ -234,11 +236,11 @@ Final behavior:
 - disabled `Word Lookup` rejects lookup requests with a clear disabled-feature message
 - missing or invalid word-list files produce word-list errors
 - disabled `Speech Transcription` rejects transcription requests with a clear disabled-feature message
-- invalid transcription config produces transcription config errors
+- invalid transcription config produces transcription config errors before audio download or provider invocation
 - transcription runtime failures continue to use the existing transcription state
 - disabled `Jellyfin / Emby` does not claim media-source messages and clears any currently active Jellyfin / Emby media-source state when the setting changes
 - invalid Jellyfin / Emby server rows are reported in the feature settings UI and are not used by media-source runtime code
-- Jellyfin / Emby request failures update media-source error state without affecting browser-extension connectivity
+- Jellyfin / Emby request failures, including subtitle stream HTTP failures, update media-source error state without affecting browser-extension connectivity
 
 There are no plugin statuses such as `installed`, `updating`, `broken`, or `deleted`.
 

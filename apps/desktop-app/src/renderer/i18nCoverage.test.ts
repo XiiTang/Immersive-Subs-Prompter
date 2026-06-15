@@ -24,6 +24,21 @@ const requiredKeys = [
   "features-section-title",
   "feature-word-lookup-title",
   "feature-transcription-title",
+  "feature-transcription-provider",
+  "feature-transcription-base-url",
+  "feature-transcription-api-key",
+  "feature-transcription-model",
+  "feature-transcription-language",
+  "feature-transcription-prompt",
+  "feature-transcription-word-timestamps",
+  "feature-transcription-extra-params",
+  "feature-transcription-faster-whisper-model",
+  "feature-transcription-model-directory",
+  "feature-transcription-device",
+  "feature-transcription-vad-filter",
+  "feature-transcription-vad-threshold",
+  "feature-transcription-vad-method",
+  "feature-transcription-kim2",
   "feature-jellyfin-emby-title"
 ];
 

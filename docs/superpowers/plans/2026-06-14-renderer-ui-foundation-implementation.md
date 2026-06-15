@@ -1,5 +1,7 @@
 # Renderer UI Foundation Implementation Plan
 
+> Historical note, 2026-06-15: Plugin-related settings tasks in this plan predate the built-in Features replacement. Current source no longer has `SettingsPlugins`, `PluginSettingsSchema`, plugin catalog UI, or plugin runtime settings; treat plugin-specific references below as implementation history, not current architecture guidance.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the project-owned desktop renderer UI foundation and express all current renderer surfaces through it.
@@ -190,8 +192,7 @@ Modify the root `package.json` scripts so the relevant entries are:
 ```json
 {
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app && pnpm build:plugins",
-    "build:plugins": "node ./scripts/package-plugins.mjs",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app",
     "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
     "lint:silent-catches": "node ./scripts/check-silent-catches.mjs",
     "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs",

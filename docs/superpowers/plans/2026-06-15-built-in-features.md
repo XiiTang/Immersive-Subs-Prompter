@@ -13,6 +13,7 @@ Final state:
 - No compatibility, migration, fallback, or transitional plugin data path is retained.
 - Review follow-up tightened the final state: Jellyfin / Emby settings changes immediately clear active media-source runtime state, fixed feature settings reject invalid ranges and non-HTTP(S) server URLs, incomplete Jellyfin / Emby server rows show inline settings errors and are ignored by runtime matching, Word Lookup runtime errors surface in the subtitle status banner, and transcription config conversion no longer applies implicit defaults for incomplete settings.
 - Second review follow-up removed the remaining active plugin-distribution documentation, makes enabled Word Lookup fail fast when no word list path is configured, selects Jellyfin / Emby sessions from hash item routes, removes unused transcription runtime fields, and labels feature switches by current state.
+- Third review follow-up closes the remaining final-state gaps: provider-specific transcription config validation now fails before audio download, `TranscriptionService` no longer fills missing model or VAD values with runtime defaults, Jellyfin / Emby subtitle stream HTTP failures surface as media-source errors, and transcription setting labels are localized.
 
 Final verification passed:
 
@@ -28,7 +29,19 @@ pnpm build
 git diff --check
 ```
 
-Boundary scans leave only negative tests and this design documentation explicitly naming the removed plugin model.
+Active source, scripts, release docs, and current built-in feature docs leave only negative tests and final-state design documentation explicitly naming the removed plugin model. Historical security scan artifacts and pre-built-in-features implementation plans are marked as historical output instead of current architecture guidance.
+
+Third review follow-up verification passed:
+
+```bash
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/main/transcriptionService.test.ts src/main/features/transcriptionFeatureService.test.ts src/main/features/jellyfinEmbyMediaSource.test.ts --project main
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/renderer/components/settings/SettingsFeatures.test.ts src/renderer/i18nCoverage.test.ts --project jsdom
+pnpm --filter @immersive-subs/desktop-app typecheck:app
+pnpm lint:silent-catches && pnpm test:release-scripts
+pnpm build
+pnpm test
+git diff --check
+```
 
 Second review follow-up verification passed:
 

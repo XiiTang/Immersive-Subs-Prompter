@@ -133,7 +133,7 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
         }
       });
       if (!response.ok) {
-        continue;
+        throw new Error(formatSubtitleRequestError(response));
       }
       const cues = parseSubtitle(await response.text(), extension);
       if (cues.length) {
@@ -151,6 +151,13 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     this.sessionsByServer.clear();
     this.lastFetchByServer.clear();
   }
+}
+
+function formatSubtitleRequestError(response: Response): string {
+  const statusText = "statusText" in response && typeof response.statusText === "string"
+    ? response.statusText.trim()
+    : "";
+  return `Jellyfin / Emby subtitle request failed: HTTP ${response.status}${statusText ? ` ${statusText}` : ""}`;
 }
 
 function getPayload(envelope: Record<string, unknown>): Record<string, unknown> {

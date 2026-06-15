@@ -97,4 +97,16 @@ describe("SettingsFeatures", () => {
     expect(wrapper.text()).toContain("Server URL must be HTTP(S)");
     expect(wrapper.text()).toContain("API key is required");
   });
+
+  it("localizes transcription settings labels", () => {
+    seedStore("zh");
+    const wrapper = mount(SettingsFeatures);
+
+    expect(wrapper.text()).toContain("提供方");
+    expect(wrapper.text()).toContain("基础 URL");
+    expect(wrapper.text()).toContain("API 密钥");
+    expect(wrapper.text()).toContain("单词时间戳");
+    expect(wrapper.text()).not.toContain("Provider");
+    expect(wrapper.text()).not.toContain("Word timestamps");
+  });
 });

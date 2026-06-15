@@ -12,6 +12,28 @@ function stringField(
   return value;
 }
 
+function requiredTrimmedString(
+  config: TranscriptionFeatureConfig,
+  key: keyof TranscriptionFeatureConfig,
+  fieldName: string
+): string {
+  const value = stringField(config, key, fieldName).trim();
+  if (!value) {
+    throw new Error(`Transcription ${fieldName} is required.`);
+  }
+  return value;
+}
+
+function requireHttpUrl(value: string, fieldName: string): void {
+  if (!URL.canParse(value)) {
+    throw new Error(`Transcription ${fieldName} must be a valid HTTP(S) URL.`);
+  }
+  const parsed = new URL(value);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`Transcription ${fieldName} must be a valid HTTP(S) URL.`);
+  }
+}
+
 function booleanField(
   config: TranscriptionFeatureConfig,
   key: keyof TranscriptionFeatureConfig,
@@ -81,18 +103,32 @@ function parseExtraParamsJson(config: TranscriptionFeatureConfig): Record<string
 }
 
 export function buildFeatureTranscriptionConfig(config: TranscriptionFeatureConfig): TranscriptionConfig {
+  const provider = providerValue(config);
+  const baseUrl = provider === "whisper-api"
+    ? requiredTrimmedString(config, "baseUrl", "API base URL")
+    : stringField(config, "baseUrl", "API base URL").trim();
+  if (provider === "whisper-api") {
+    requireHttpUrl(baseUrl, "API base URL");
+  }
+  const model = provider === "whisper-api"
+    ? requiredTrimmedString(config, "model", "model")
+    : stringField(config, "model", "model").trim();
+  const fasterWhisperModel = provider === "faster-whisper"
+    ? requiredTrimmedString(config, "fasterWhisperModel", "faster-whisper model")
+    : stringField(config, "fasterWhisperModel", "faster-whisper model").trim();
+
   return {
     id: "feature-transcription",
     name: "Speech Transcription",
-    provider: providerValue(config),
-    baseUrl: stringField(config, "baseUrl", "API base URL"),
+    provider,
+    baseUrl,
     apiKey: stringField(config, "apiKey", "API key"),
-    model: stringField(config, "model", "model"),
+    model,
     language: stringField(config, "language", "language"),
     prompt: stringField(config, "prompt", "prompt"),
     enableWordTimestamps: booleanField(config, "enableWordTimestamps", "word timestamps"),
     extraParams: parseExtraParamsJson(config),
-    fasterWhisperModel: stringField(config, "fasterWhisperModel", "faster-whisper model"),
+    fasterWhisperModel,
     fasterWhisperModelDir: stringField(config, "fasterWhisperModelDir", "faster-whisper model directory"),
     fasterWhisperDevice: deviceValue(config),
     fasterWhisperVadFilter: booleanField(config, "fasterWhisperVadFilter", "faster-whisper VAD filter"),

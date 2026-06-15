@@ -69,6 +69,37 @@ describe("buildFeatureTranscriptionConfig", () => {
       } as never)
     ).toThrow("Transcription faster-whisper VAD threshold must be a finite number.");
   });
+
+  it("rejects provider-specific empty values before runtime transcription", () => {
+    expect(() =>
+      buildFeatureTranscriptionConfig({
+        ...createFeatureConfig(),
+        baseUrl: ""
+      })
+    ).toThrow("Transcription API base URL is required.");
+
+    expect(() =>
+      buildFeatureTranscriptionConfig({
+        ...createFeatureConfig(),
+        baseUrl: "ftp://api.example.test"
+      })
+    ).toThrow("Transcription API base URL must be a valid HTTP(S) URL.");
+
+    expect(() =>
+      buildFeatureTranscriptionConfig({
+        ...createFeatureConfig(),
+        model: " "
+      })
+    ).toThrow("Transcription model is required.");
+
+    expect(() =>
+      buildFeatureTranscriptionConfig({
+        ...createFeatureConfig(),
+        provider: "faster-whisper",
+        fasterWhisperModel: ""
+      })
+    ).toThrow("Transcription faster-whisper model is required.");
+  });
 });
 
 describe("startFeatureTranscription", () => {
@@ -103,7 +134,6 @@ describe("startFeatureTranscription", () => {
         enabled: true,
         config: {
           ...createFeatureConfig(),
-          baseUrl: "",
           apiKey: "",
           language: "",
           prompt: "",

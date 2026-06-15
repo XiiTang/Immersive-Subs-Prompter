@@ -228,4 +228,48 @@ describe("JellyfinEmbyMediaSource", () => {
       ])
     );
   });
+
+  it("surfaces subtitle stream request failures instead of reporting empty subtitles", async () => {
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes("/Sessions")) {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              Id: "session-1",
+              DeviceName: "Chrome",
+              Client: "Jellyfin Web",
+              UserName: "cq",
+              NowPlayingItem: {
+                Id: "item-1",
+                Name: "Episode",
+                RunTimeTicks: 10_000_000,
+                MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
+              },
+              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+            }
+          ]
+        };
+      }
+      return {
+        ok: false,
+        status: 503,
+        statusText: "Unavailable"
+      };
+    });
+    const source = new JellyfinEmbyMediaSource({ getSettings: () => createSettings(), fetch: fetch as never });
+
+    await expect(
+      source.handleConnectionMessage({
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Episode",
+          site: "Jellyfin"
+        }
+      })
+    ).rejects.toThrow("Jellyfin / Emby subtitle request failed: HTTP 503 Unavailable");
+  });
 });

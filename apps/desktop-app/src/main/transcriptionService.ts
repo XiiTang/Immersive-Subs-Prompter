@@ -39,16 +39,16 @@ export class TranscriptionService {
       this.log.info("Audio download completed");
 
       const audioFile = await this.pickAudioFile(workingDir);
-      const provider = config.provider === "faster-whisper" ? "faster-whisper" : "whisper-api";
+      const provider = config.provider;
 
       if (provider === "faster-whisper") {
-        this.log.info(`Running Faster-Whisper transcription (${config.name || config.fasterWhisperModel})`);
+        this.log.info(`Running Faster-Whisper transcription (${config.fasterWhisperModel})`);
         const track = await this.submitToFasterWhisper(audioFile, config);
         this.log.info(`Transcription received with ${track.cues.length} cue(s)`);
         return track;
       }
 
-      this.log.info(`Sending audio to Whisper API (${config.name || config.model})`);
+      this.log.info(`Sending audio to Whisper API (${config.model})`);
       const track = await this.submitToWhisperApi(audioFile, config);
       this.log.info(`Transcription received with ${track.cues.length} cue(s)`);
       return track;
@@ -103,7 +103,11 @@ export class TranscriptionService {
     const fileName = path.basename(audioPath);
 
     form.append("file", new Blob([audioBuffer]), fileName);
-    form.append("model", config.model || "whisper-1");
+    const model = config.model.trim();
+    if (!model) {
+      throw new Error("Whisper API model is not set.");
+    }
+    form.append("model", model);
 
     if (config.prompt) {
       form.append("prompt", config.prompt);
@@ -116,7 +120,7 @@ export class TranscriptionService {
       form.append("timestamp_granularities[]", "segment");
     }
 
-    const extraParams = config.extraParams ?? {};
+    const extraParams = config.extraParams;
     const hasCustomResponseFormat = "response_format" in extraParams;
     for (const [key, value] of Object.entries(extraParams)) {
       if (value === undefined || value === null) {
@@ -161,7 +165,7 @@ export class TranscriptionService {
 
   private async submitToFasterWhisper(audioPath: string, config: TranscriptionConfig): Promise<SubtitleTrack> {
     const binary = config.fasterWhisperDevice === "cuda" ? "faster-whisper-xxl" : "faster-whisper";
-    const model = (config.fasterWhisperModel || "").trim();
+    const model = config.fasterWhisperModel.trim();
     if (!binary) {
       throw new Error("Faster-Whisper executable is not set.");
     }
@@ -204,13 +208,13 @@ export class TranscriptionService {
     model: string
   ): string[] {
     const args: string[] = ["-m", model, "--print_progress"];
-    const modelDir = (config.fasterWhisperModelDir || "").trim();
+    const modelDir = config.fasterWhisperModelDir.trim();
     if (modelDir) {
       args.push("--model_dir", modelDir);
     }
 
     const language = (config.language || "auto").trim() || "auto";
-    const device = config.fasterWhisperDevice === "cuda" ? "cuda" : "cpu";
+    const device = config.fasterWhisperDevice;
     args.push(
       audioPath,
       "-l",
@@ -224,11 +228,9 @@ export class TranscriptionService {
     );
 
     if (config.fasterWhisperVadFilter) {
-      const threshold = Number.isFinite(config.fasterWhisperVadThreshold)
-        ? config.fasterWhisperVadThreshold
-        : 0.5;
+      const threshold = config.fasterWhisperVadThreshold;
       args.push("--vad_filter", "true", "--vad_threshold", threshold.toFixed(2));
-      const vadMethod = (config.fasterWhisperVadMethod || "").trim();
+      const vadMethod = config.fasterWhisperVadMethod.trim();
       if (vadMethod) {
         args.push("--vad_method", vadMethod);
       }
@@ -242,7 +244,7 @@ export class TranscriptionService {
 
     args.push("--sentence");
 
-    const prompt = (config.prompt || "").trim();
+    const prompt = config.prompt.trim();
     if (prompt) {
       args.push("--initial_prompt", prompt);
     }
@@ -279,15 +281,15 @@ export class TranscriptionService {
 
   private composeSourceFileName(audioPath: string, config: TranscriptionConfig, modelOverride?: string): string {
     const baseFile = path.basename(audioPath);
-    const providerName =
-      (config.name || (config.provider === "faster-whisper" ? "Faster-Whisper" : "Whisper API")).trim() || "Transcription";
-    const modelName =
-      (modelOverride ||
-        (config.provider === "faster-whisper" ? config.fasterWhisperModel : config.model) ||
-        "model")
-        .trim() || "model";
-    const language = (config.language || "unknown").trim() || "unknown";
-    return `${baseFile}.${providerName}.${modelName}.${language}`;
+    const providerName = config.name.trim();
+    const modelName = (modelOverride === undefined
+      ? config.provider === "faster-whisper"
+        ? config.fasterWhisperModel
+        : config.model
+      : modelOverride).trim();
+    const language = config.language.trim();
+    const languageSegment = language ? language : "auto";
+    return `${baseFile}.${providerName}.${modelName}.${languageSegment}`;
   }
 
   private buildTrackFromJson(payload: any, sourceFile: string): SubtitleTrack {
@@ -322,7 +324,7 @@ export class TranscriptionService {
   }
 
   private buildTrackFromText(content: string, sourceFile: string): SubtitleTrack {
-    const trimmed = content?.trim() ?? "";
+    const trimmed = content.trim();
     if (!trimmed) {
       throw new Error("Empty subtitle content returned by transcription service.");
     }
