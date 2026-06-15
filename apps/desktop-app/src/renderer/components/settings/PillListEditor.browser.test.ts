@@ -84,4 +84,23 @@ describe("PillListEditor browser layout", () => {
 
     expect(longWidth).toBeGreaterThan(shortWidth + 60);
   });
+
+  it("draws focus interaction on the draft pill instead of a nested input ring", async () => {
+    const wrapper = mountEditor();
+    const draftPill = wrapper.get(".pill-list-editor__draft").element as HTMLElement;
+    const draftInput = wrapper.get<HTMLInputElement>('[data-testid="pill-draft-input"]').element;
+
+    await userEvent.click(draftInput);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const draftPillStyle = getComputedStyle(draftPill);
+    const draftInputStyle = getComputedStyle(draftInput);
+
+    expect(document.activeElement).toBe(draftInput);
+    expect(draftPill.matches(":focus-within")).toBe(true);
+    expect(draftPillStyle.borderRadius).toBe("999px");
+    expect(draftPillStyle.outlineStyle).toBe("solid");
+    expect(draftPillStyle.outlineOffset).toBe("2px");
+    expect(draftInputStyle.outlineStyle).toBe("none");
+  });
 });
