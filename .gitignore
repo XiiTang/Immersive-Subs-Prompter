@@ -105,6 +105,7 @@ Thumbs.db
 
 # Electron specific
 /release/
+desktop-app/release/
 /release-artifacts/
 *.exe
 *.dmg
