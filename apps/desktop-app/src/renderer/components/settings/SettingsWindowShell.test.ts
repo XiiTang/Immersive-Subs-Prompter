@@ -52,7 +52,7 @@ describe("SettingsWindowShell", () => {
     expect(shellHeaderText).toBe("设置");
   });
 
-  it("routes the fixed Features section without dynamic sections", async () => {
+  it("keeps feature settings pages out of the nav until each feature is enabled", async () => {
     seedSettings("en");
 
     const wrapper = mount(SettingsWindowShell, {
@@ -69,10 +69,76 @@ describe("SettingsWindowShell", () => {
     expect(wrapper.get('[data-testid="settings-nav-item-general"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-nav-item-profiles"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="settings-nav-item-features"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid*="transcription.settings"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-feature-wordLookup"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-feature-transcription"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="settings-nav-item-feature-jellyfinEmby"]').exists()).toBe(false);
 
     await wrapper.get('[data-testid="settings-nav-item-features"]').trigger("click");
 
+    expect(wrapper.get('[data-testid="settings-section-features-content"]').exists()).toBe(true);
+  });
+
+  it("adds enabled features as independent settings pages", async () => {
+    const store = seedSettings("en");
+    store.settings!.features.wordLookup.enabled = true;
+    store.settings!.features.jellyfinEmby.enabled = true;
+
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsFeatures: sectionStub("settings-section-features-content"),
+          WordLookupFeatureSettings: sectionStub("settings-section-feature-wordLookup-content"),
+          JellyfinEmbyFeatureSettings: sectionStub("settings-section-feature-jellyfinEmby-content")
+        }
+      }
+    });
+
+    expect(wrapper.get('[data-testid="settings-nav-item-feature-wordLookup"]').text()).toContain("Word Lookup");
+    expect(wrapper.get('[data-testid="settings-nav-item-feature-jellyfinEmby"]').text()).toContain("Jellyfin / Emby");
+    expect(wrapper.find('[data-testid="settings-nav-item-feature-transcription"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="settings-nav-item-feature-wordLookup"]').trigger("click");
+    expect(wrapper.get('[data-testid="settings-section-feature-wordLookup-content"]').exists()).toBe(true);
+
+    await wrapper.get('[data-testid="settings-nav-item-feature-jellyfinEmby"]').trigger("click");
+    expect(wrapper.get('[data-testid="settings-section-feature-jellyfinEmby-content"]').exists()).toBe(true);
+  });
+
+  it("returns to feature enablement when the active feature settings page is disabled", async () => {
+    const store = seedSettings("en");
+    store.settings!.features.transcription.enabled = true;
+
+    const wrapper = mount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsFeatures: sectionStub("settings-section-features-content"),
+          TranscriptionFeatureSettings: sectionStub("settings-section-feature-transcription-content")
+        }
+      }
+    });
+
+    await wrapper.get('[data-testid="settings-nav-item-feature-transcription"]').trigger("click");
+    expect(wrapper.get('[data-testid="settings-section-feature-transcription-content"]').exists()).toBe(true);
+
+    store.settings = {
+      ...store.settings!,
+      features: {
+        ...store.settings!.features,
+        transcription: {
+          ...store.settings!.features.transcription,
+          enabled: false
+        }
+      }
+    };
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="settings-nav-item-feature-transcription"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="settings-section-features-content"]').exists()).toBe(true);
   });
 

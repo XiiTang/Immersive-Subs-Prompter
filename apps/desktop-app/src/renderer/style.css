@@ -1308,6 +1308,7 @@ body.main-window-body,
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--ui-border);
+  border-radius: 0;
   background: var(--ui-surface);
   overflow: hidden;
   transform: translate3d(0, 0, 0);

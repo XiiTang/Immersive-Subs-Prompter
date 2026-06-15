@@ -3,6 +3,9 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultAppSettings } from "../../../common/defaultSettings";
 import SettingsFeatures from "./SettingsFeatures.vue";
+import JellyfinEmbyFeatureSettings from "./JellyfinEmbyFeatureSettings.vue";
+import TranscriptionFeatureSettings from "./TranscriptionFeatureSettings.vue";
+import WordLookupFeatureSettings from "./WordLookupFeatureSettings.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
 function seedStore(language = "en") {
@@ -51,9 +54,19 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get('[data-testid="feature-enabled-wordLookup"]').attributes("aria-label")).toBe("Enabled");
   });
 
+  it("renders feature enablement only without feature configuration controls", () => {
+    seedStore();
+    const wrapper = mount(SettingsFeatures);
+
+    expect(wrapper.find('[data-testid^="feature-detail-"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="feature-word-lookup-path"]').exists()).toBe(false);
+    expect(wrapper.find("#feature-transcription-provider-label").exists()).toBe(false);
+    expect(wrapper.find('[data-testid="feature-jellyfin-emby-add-server"]').exists()).toBe(false);
+  });
+
   it("updates Word Lookup config through explicit controls", async () => {
     const store = seedStore();
-    const wrapper = mount(SettingsFeatures);
+    const wrapper = mount(WordLookupFeatureSettings);
 
     await wrapper.get('[data-testid="feature-word-lookup-path"]').setValue("/tmp/words.jsonl");
 
@@ -62,7 +75,7 @@ describe("SettingsFeatures", () => {
 
   it("adds Jellyfin / Emby server rows", async () => {
     const store = seedStore();
-    const wrapper = mount(SettingsFeatures);
+    const wrapper = mount(JellyfinEmbyFeatureSettings);
 
     await wrapper.get('[data-testid="feature-jellyfin-emby-add-server"]').trigger("click");
 
@@ -91,7 +104,7 @@ describe("SettingsFeatures", () => {
       }
     ];
 
-    const wrapper = mount(SettingsFeatures);
+    const wrapper = mount(JellyfinEmbyFeatureSettings);
 
     expect(wrapper.text()).toContain("Name is required");
     expect(wrapper.text()).toContain("Server URL must be HTTP(S)");
@@ -100,7 +113,7 @@ describe("SettingsFeatures", () => {
 
   it("localizes transcription settings labels", () => {
     seedStore("zh");
-    const wrapper = mount(SettingsFeatures);
+    const wrapper = mount(TranscriptionFeatureSettings);
 
     expect(wrapper.text()).toContain("提供方");
     expect(wrapper.text()).toContain("基础 URL");

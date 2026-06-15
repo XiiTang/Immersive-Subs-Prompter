@@ -241,6 +241,10 @@ describe("TopControlPanel", () => {
     expect(rendererStylesheet).toContain(".top-control-panel--collapsed .top-control-panel__surface");
   });
 
+  it("keeps the top control panel border square", () => {
+    expect(rendererStylesheet).toMatch(/\.top-control-panel__surface\s*\{[^}]*border-radius:\s*0;/);
+  });
+
   it("enables the Electron drag region while the panel is expanded", async () => {
     mockPanelGeometry(28, 112);
     const { wrapper, setPointerState } = mountTopControlPanel({ autoHidePanels: true });
