@@ -13,9 +13,9 @@ const SETTINGS_SECTION_DEFS = [
     icon: "profiles"
   },
   {
-    id: "plugins",
-    labelKey: "section-plugins",
-    icon: "plugins"
+    id: "features",
+    labelKey: "section-features",
+    icon: "features"
   }
 ] as const;
 
@@ -27,11 +27,11 @@ export function buildSettingsSections(language: SupportedLanguage) {
   }));
 }
 
-export type SettingsSectionId = string;
+export type SettingsSectionId = (typeof SETTINGS_SECTION_DEFS)[number]["id"];
 export type SettingsNavIconKey =
   | "settings"
   | "profiles"
-  | "plugins"
+  | "features"
   | "transcription"
   | "wordLookup"
   | "mediaServer";

@@ -1,6 +1,6 @@
-import type { WordLookupPluginConfig } from "./wordLookupTypes.js";
+import type { WordLookupFeatureConfig } from "./wordLookupTypes.js";
 
-export const DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG: WordLookupPluginConfig = {
+export const DEFAULT_WORD_LOOKUP_FEATURE_CONFIG: WordLookupFeatureConfig = {
   wordListPath: "",
   modifierKey: "alt",
   panelWidth: 360,

@@ -12,11 +12,11 @@ import {
   Pause,
   Pin,
   Play,
-  Plug,
   Plus,
   RefreshCw,
   Server,
   Settings,
+  SlidersHorizontal,
   Trash2,
   User,
   X,
@@ -64,7 +64,7 @@ export const IconMic = icon(Mic);
 export const IconPause = icon(Pause);
 export const IconPin = icon(Pin);
 export const IconPlay = icon(Play);
-export const IconPlug = icon(Plug);
+export const IconFeatures = icon(SlidersHorizontal);
 export const IconRefresh = icon(RefreshCw);
 export const IconServer = icon(Server);
 export const IconSettings = icon(Settings);

@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
+import { cloneFeatureSettings } from "../common/featureDefaults.js";
 import { AppEventBus } from "./appEventBus.js";
 import { ConnectionManager } from "./connectionManager.js";
 import type { AppSettings, DesktopState, NetworkSettings, SubtitleTrack } from "./types.js";
@@ -63,7 +64,7 @@ function makeSettings(network: NetworkSettings): AppSettings {
     profiles: [],
     defaultProfileId: "",
     rules: [],
-    plugins: {},
+    features: cloneFeatureSettings(),
     cache: {} as never
   };
 }

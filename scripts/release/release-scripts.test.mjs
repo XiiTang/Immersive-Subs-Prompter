@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   buildReleaseManifest,
@@ -88,4 +89,14 @@ test("buildReleaseManifest rejects missing desktop platform families", () => {
       }),
     /Missing desktop release artifact for win32/
   );
+});
+
+test("release scripts do not reference removed plugin artifacts", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+  const releaseCheckSource = readFileSync(new URL("./check.mjs", import.meta.url), "utf8");
+
+  assert.equal(packageJson.scripts["build:plugins"], undefined);
+  assert.equal(packageJson.scripts.build.includes("build:plugins"), false);
+  assert.equal(releaseCheckSource.includes("build:plugins"), false);
+  assert.equal(releaseCheckSource.includes("plugin-repository"), false);
 });

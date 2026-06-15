@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { shallowMount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultAppSettings } from "../../../common/defaultSettings";
 import SettingsWindowShell from "./SettingsWindowShell.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import "../../style.css";
@@ -14,46 +15,32 @@ const sectionStub = (testId: string) =>
     }
   });
 
+function seedStore() {
+  const store = useDesktopStore();
+  store.settings = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+  store.settings.global.language = "en";
+}
+
 describe("SettingsWindowShell browser layout", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     document.body.innerHTML = "";
     document.body.style.margin = "0";
     document.body.style.padding = "0";
-    const store = useDesktopStore();
-    store.settings = {
-      global: {
-        autoLaunch: false,
-        toggleWindowShortcut: "CommandOrControl+Shift+S",
-        gameProcessBlacklist: [],
-        autoHidePanels: false,
-        alwaysOnTop: "off",
-        panelOpacity: 100,
-        language: "en",
-        appearance: { theme: "system" }
-      },
-      network: {
-        endpoints: [{ id: "default", host: "127.0.0.1", port: 4312 }],
-        authToken: "0123456789abcdef0123456789abcdef"
-      },
-      profiles: [],
-      defaultProfileId: "",
-      rules: [],
-      plugins: {},
-      cache: { enabled: false, path: "", retentionDays: 30 }
-    } as never;
+    seedStore();
   });
 
-  it("keeps a fixed nav and one active section column", async () => {
+  it("keeps a fixed nav and one active section column", () => {
     const wrapper = shallowMount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
-        plugins: [createPinia()],
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
+          SettingsFeatures: sectionStub("settings-section-features-content")
         }
       }
     });
@@ -78,12 +65,11 @@ describe("SettingsWindowShell browser layout", () => {
     const wrapper = shallowMount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
-        plugins: [createPinia()],
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: tallSectionStub("settings-section-general-content"),
           SettingsProfiles: tallSectionStub("settings-section-profiles-content"),
-          SettingsPlugins: tallSectionStub("settings-section-plugins-content")
+          SettingsFeatures: tallSectionStub("settings-section-features-content")
         }
       }
     });
@@ -103,12 +89,11 @@ describe("SettingsWindowShell browser layout", () => {
     const wrapper = shallowMount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
-        plugins: [createPinia()],
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
+          SettingsFeatures: sectionStub("settings-section-features-content")
         }
       }
     });
@@ -123,12 +108,11 @@ describe("SettingsWindowShell browser layout", () => {
     const wrapper = shallowMount(SettingsWindowShell, {
       attachTo: document.body,
       global: {
-        plugins: [createPinia()],
         stubs: {
           SettingsNav: sectionStub("settings-nav-content"),
           SettingsGlobal: sectionStub("settings-section-general-content"),
           SettingsProfiles: sectionStub("settings-section-profiles-content"),
-          SettingsPlugins: sectionStub("settings-section-plugins-content")
+          SettingsFeatures: sectionStub("settings-section-features-content")
         }
       }
     });

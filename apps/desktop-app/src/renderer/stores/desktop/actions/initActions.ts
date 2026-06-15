@@ -16,7 +16,6 @@ export async function initialize(this: DesktopStoreThis) {
     this.editingProfileId = state.appliedProfileId ?? settings.defaultProfileId;
     this.attachIpcListeners();
     await this.refreshCacheStats();
-    await this.refreshPluginCatalog();
   } catch (error) {
     this.initError = error instanceof Error ? error.message : String(error);
   } finally {
@@ -41,9 +40,6 @@ export function attachIpcListeners(this: DesktopStoreThis) {
       this.editingProfileId = this.desktopState?.appliedProfileId ?? settings.defaultProfileId;
     }
     this.refreshCacheStats();
-  });
-  window.usp.onPluginCatalogChange((catalog) => {
-    this.pluginCatalog = catalog;
   });
   window.usp.onReleaseStateChange((state) => {
     this.releaseState = state;

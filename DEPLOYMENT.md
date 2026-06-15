@@ -99,22 +99,16 @@ The extension popup stores one or more `ws://host:port` desktop app URLs. Non-lo
 
 The desktop app downloads and updates the platform-specific `yt-dlp` binary in the user data directory when needed. If the download fails, the user must place the executable in the `yt-dlp` subdirectory of the user data directory.
 
-## Plugin Packages
+## Built-In Features
 
-Plugin package artifacts are not bundled as privileged desktop code. Generate downloadable plugin packages and their remote manifests with:
-
-```bash
-pnpm build:plugins
-```
-
-The command writes `plugin-repository/<plugin-folder>/<version>.usp-plugin` and `plugin-repository/<plugin-folder>/manifest.json`. The default package URL base is `https://raw.githubusercontent.com/XiiTang/Immersive-Subs-Prompter/main/plugin-repository`; set `USP_PLUGIN_BASE_URL` only when generating manifests for another HTTPS host. Commit `plugin-repository/*` with the plugin source changes. GitHub Releases are not used for plugin packages. The manifest includes package URL, sha256, app compatibility, path-safe short plugin ID, author metadata, path-safe version, entry file, contribution declarations, and permissions. The desktop app installs plugins into the user data directory at runtime and rejects non-HTTPS install or package URLs.
+Word Lookup, Speech Transcription, and Jellyfin / Emby ship inside the desktop app as first-party features. They do not produce separate package artifacts, repository manifests, install URLs, update channels, or runtime install flows.
 
 ## Pre-Release Checklist
 
 - Run `pnpm typecheck`.
 - Run `pnpm test`.
-- Run `pnpm build:plugins` and commit the generated `plugin-repository/*` artifacts.
 - Build extension artifacts and load them in Chrome/Edge and Firefox.
 - Package the desktop app on each target platform.
 - Verify extension endpoint setup, subtitle download, track switching, A-B loop, and browser control commands.
+- Verify built-in Features settings for Word Lookup, Speech Transcription, and Jellyfin / Emby.
 - Confirm privacy policy and store listing describe LAN endpoints and optional configured transcription API usage accurately.

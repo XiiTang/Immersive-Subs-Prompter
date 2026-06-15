@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
 import type { ReleaseState } from "../../../main/releases/releaseManifest";
+import { cloneFeatureSettings } from "../../../common/featureDefaults";
 import { useDesktopStore } from "../../stores/desktop";
 import SettingsReleaseUpdate from "./SettingsReleaseUpdate.vue";
 
@@ -26,7 +27,7 @@ function settings(): AppSettings {
     profiles: [],
     defaultProfileId: "",
     rules: [],
-    plugins: {},
+    features: cloneFeatureSettings(),
     cache: { enabled: true, path: "", retentionDays: 7 }
   };
 }

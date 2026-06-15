@@ -4,8 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app && pnpm build:plugins",
-    "build:plugins": "node ./scripts/package-plugins.mjs",
+    "build": "pnpm --filter @immersive-subs/contracts build && pnpm --filter @immersive-subs/desktop-app build:app && pnpm --filter @immersive-subs/extension build:app",
     "test": "pnpm test:scripts && node ./scripts/check-silent-catches.mjs && pnpm lint:renderer-ui-boundaries && pnpm --filter @immersive-subs/contracts test && pnpm --filter @immersive-subs/desktop-app test:app && pnpm --filter @immersive-subs/extension test:app",
     "lint:silent-catches": "node ./scripts/check-silent-catches.mjs",
     "lint:renderer-ui-boundaries": "node ./scripts/check-renderer-ui-boundaries.mjs",

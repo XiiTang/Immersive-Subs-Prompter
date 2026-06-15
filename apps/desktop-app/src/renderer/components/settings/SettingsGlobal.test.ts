@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
+import { cloneFeatureSettings } from "../../../common/featureDefaults";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
@@ -59,7 +60,7 @@ function createSettings(): AppSettings {
     profiles: [],
     defaultProfileId: "",
     rules: [],
-    plugins: {},
+    features: cloneFeatureSettings(),
     cache: {
       enabled: true,
       path: "",

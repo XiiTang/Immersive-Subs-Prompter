@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS_FACTORY,
+  mergeSettings,
   sanitizeSettings,
   validateSettingsForUpdate
 } from "./appSettingsSanitizer.js";
-import type { AppSettings } from "../types.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "../../common/subtitleFonts.js";
 import {
   DEFAULT_GLOBAL_SETTINGS,
@@ -35,26 +35,143 @@ describe("appSettingsSanitizer", () => {
       );
     });
 
-    it("keeps saved dynamic plugin records without pruning by plugin key", () => {
-      const settings = DEFAULT_SETTINGS_FACTORY() as AppSettings & {
-        plugins: AppSettings["plugins"] & Record<string, { config: Record<string, unknown> }>;
-      };
-      settings.plugins["custom/lookup"] = { config: { enabled: true } };
+    it("keeps fixed built-in feature settings", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
 
-      expect(sanitizeSettings(settings).plugins["custom/lookup"]).toEqual({
-        config: { enabled: true }
+      expect(sanitizeSettings(settings).features).toEqual({
+        wordLookup: {
+          enabled: false,
+          config: {
+            wordListPath: "",
+            modifierKey: "alt",
+            panelWidth: 360,
+            panelHeight: 300
+          }
+        },
+        transcription: {
+          enabled: false,
+          config: expect.objectContaining({
+            provider: "whisper-api",
+            baseUrl: "",
+            model: "whisper-1",
+            extraParamsJson: "{}"
+          })
+        },
+        jellyfinEmby: {
+          enabled: false,
+          config: { servers: [] }
+        }
       });
     });
 
-    it("allows settings updates for dynamic plugin config records", () => {
+    it("rejects removed plugin settings", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const input = {
+        ...settings,
+        plugins: {}
+      };
+
+      expect(() => sanitizeSettings(input)).toThrow("settings contains unknown setting: plugins");
+    });
+
+    it("rejects arbitrary feature keys", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
 
       expect(() =>
         validateSettingsForUpdate(
-          { plugins: { "xiitang/word-lookup": { config: { wordListPath: "/tmp/words.jsonl" } } } },
+          {
+            features: {
+              ...settings.features,
+              customFeature: { enabled: true, config: {} }
+            } as never
+          },
           settings
         )
-      ).not.toThrow();
+      ).toThrow("features contains unknown setting: customFeature");
+    });
+
+    it("rejects invalid Jellyfin / Emby server URLs in feature settings", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [
+                    {
+                      id: "server-1",
+                      name: "Home",
+                      serverUrl: "not a url",
+                      apiKey: "token",
+                      enabled: true
+                    }
+                  ]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrl must be a valid HTTP(S) URL");
+    });
+
+    it("rejects out-of-range feature numbers before runtime use", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              wordLookup: {
+                enabled: true,
+                config: {
+                  panelWidth: 0
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.wordLookup.config.panelWidth must be between 260 and 720");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                config: {
+                  fasterWhisperVadThreshold: 2
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.config.fasterWhisperVadThreshold must be between 0 and 1");
+    });
+
+    it("merges fixed feature config patches", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const next = mergeSettings(settings, {
+        features: {
+          wordLookup: {
+            enabled: true,
+            config: { wordListPath: "/tmp/words.jsonl" }
+          }
+        }
+      } as never);
+
+      expect(next.features.wordLookup.enabled).toBe(true);
+      expect(next.features.wordLookup.config).toEqual({
+        wordListPath: "/tmp/words.jsonl",
+        modifierKey: "alt",
+        panelWidth: 360,
+        panelHeight: 300
+      });
     });
 
     it("uses explicit product defaults from the factory", () => {
@@ -91,7 +208,9 @@ describe("appSettingsSanitizer", () => {
       expect(settings.ytDlpArgs).toBe(DEFAULT_YTDLP_ARGS);
       expect(result.cache.enabled).toBe(true);
       expect(result.cache.retentionDays).toBe(7);
-      expect(result.plugins).toEqual({});
+      expect(result.features.wordLookup.enabled).toBe(false);
+      expect(result.features.transcription.enabled).toBe(false);
+      expect(result.features.jellyfinEmby.enabled).toBe(false);
     });
 
     it("returns a fresh object on each factory invocation", () => {
@@ -99,8 +218,8 @@ describe("appSettingsSanitizer", () => {
       const b = DEFAULT_SETTINGS_FACTORY();
       expect(a).not.toBe(b);
       expect(a.profiles).not.toBe(b.profiles);
-      a.plugins["xiitang/word-lookup"] = { config: { wordListPath: "a" } };
-      expect(b.plugins["xiitang/word-lookup"]).toBeUndefined();
+      a.features.wordLookup.config.wordListPath = "a";
+      expect(b.features.wordLookup.config.wordListPath).toBe("");
     });
   });
 });

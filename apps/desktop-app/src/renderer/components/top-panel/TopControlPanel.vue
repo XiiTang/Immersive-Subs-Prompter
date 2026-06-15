@@ -275,9 +275,7 @@ const connectionText = computed(() => {
     return t("connection-connecting");
   }
   const browser = store.desktopState.connectionCount;
-  const mediaSourceEnabled = store.pluginCatalog.some(
-    (plugin) => plugin.enabled && plugin.contributions?.mediaSource
-  );
+  const mediaSourceEnabled = store.settings?.features.jellyfinEmby.enabled ?? false;
   if (mediaSourceEnabled) {
     const mediaServer = store.desktopState.mediaServer.connected
       ? Math.max(1, store.desktopState.mediaServer.sessions.length)

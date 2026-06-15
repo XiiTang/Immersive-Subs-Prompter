@@ -9,14 +9,13 @@ import type {
   ProfileSettings,
   SubtitleCacheSettings,
   SubtitleTrack,
-  PluginSettingsRecord,
+  FeatureSettings,
   TranscriptionState,
   VideoControlCommand
 } from "../../../main/types";
-import type { PluginCatalogRow } from "../../../main/plugins/pluginTypes";
+import type { FeatureId } from "../../../common/featureDefaults";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { RendererApi } from "../../../preload.cts";
-import type { PluginManifest } from "../../../main/plugins/pluginManifest";
 import type { ReleaseState } from "../../../main/releases/releaseManifest";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
@@ -29,7 +28,6 @@ interface DesktopStoreState {
   initError: string | null;
   editingProfileId: string | null;
   cacheStats: CacheStats | null;
-  pluginCatalog: PluginCatalogRow[];
   releaseState: ReleaseState | null;
 }
 
@@ -74,16 +72,12 @@ interface DesktopStoreActions {
   deleteRule(ruleId: string): void;
   reorderProfileRule(profileId: string, fromIndex: number, toIndex: number): void;
 
-  // plugins
-  refreshPluginCatalog(): Promise<void>;
-  previewPluginInstall(sourceUrl: string): Promise<PluginManifest>;
-  installPlugin(sourceUrl: string, confirmedManifest: PluginManifest): Promise<void>;
-  updatePlugin(pluginKey: string): Promise<void>;
-  deletePlugin(pluginKey: string): Promise<void>;
-  enablePlugin(pluginKey: string): Promise<void>;
-  disablePlugin(pluginKey: string): Promise<void>;
-  setPluginConfig(pluginKey: string, config: PluginSettingsRecord["config"]): void;
-  isPluginEnabled(pluginKey: string): boolean;
+  // features
+  setFeatureEnabled(featureId: FeatureId, enabled: boolean): Promise<void>;
+  setFeatureConfig<FeatureKey extends FeatureId>(
+    featureId: FeatureKey,
+    config: Partial<FeatureSettings[FeatureKey]["config"]>
+  ): Promise<void>;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

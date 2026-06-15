@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cloneFeatureSettings } from "../common/featureDefaults.js";
 import { AppReleaseService } from "./appReleaseService.js";
 import type { AppSettings } from "./types.js";
 
@@ -23,7 +24,7 @@ function settings(overrides: Partial<AppSettings["global"]> = {}): AppSettings {
     profiles: [],
     defaultProfileId: "",
     rules: [],
-    plugins: {},
+    features: cloneFeatureSettings(),
     cache: { enabled: true, path: "", retentionDays: 7 }
   };
 }

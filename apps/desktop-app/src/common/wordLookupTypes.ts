@@ -1,15 +1,10 @@
-export type WordLookupModifierKey = "alt" | "ctrl" | "shift";
+import type { WordLookupFeatureConfig, WordLookupModifierKey } from "../main/types.js";
+
+export type { WordLookupFeatureConfig, WordLookupModifierKey };
 
 export interface WordLookupPanelSize {
   width: number;
   height: number;
-}
-
-export interface WordLookupPluginConfig {
-  wordListPath: string;
-  modifierKey: WordLookupModifierKey;
-  panelWidth: number;
-  panelHeight: number;
 }
 
 export interface WordLookupMatch {

@@ -64,45 +64,43 @@ function createStateManager() {
 }
 
 describe("MediaSourceController", () => {
-  it("projects adapter source, subtitle, session, and playback events into host state", async () => {
+  it("projects source, subtitle, session, and playback events into host state", async () => {
     const bus = new AppEventBus();
     const stateManager = createStateManager();
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [
+      getSources: () => [
         {
-          pluginKey: "xiitang/media-source",
-          adapter: {
-            handleConnectionMessage: vi.fn(async () => [
-              {
-                type: "sourceMatched",
-                tabId: 7,
-                pageUrl: "https://media.example.test/watch/1",
-                videoUrl: "https://media.example.test/items/1",
-                title: "Episode 1",
-                site: "community-media",
-                selectedSessionId: "session-1"
-              },
-              {
-                type: "sessionsChanged",
-                sessions: [{ id: "session-1", serverConfigId: "server-1" }]
-              },
-              {
-                type: "subtitleTracksLoaded",
-                sessionId: "session-1",
-                tracks: [{ id: "track-1", sourceFile: "en.srt", cues: [] }]
-              },
-              {
-                type: "playbackSnapshot",
-                sessionId: "session-1",
-                positionMs: 5000,
-                durationMs: 10000,
-                playbackRate: 1,
-                paused: false
-              }
-            ])
-          }
+          sourceId: "jellyfinEmby",
+          handleConnectionMessage: vi.fn(async () => [
+            {
+              type: "sourceMatched",
+              tabId: 7,
+              pageUrl: "https://media.example.test/watch/1",
+              videoUrl: "https://media.example.test/items/1",
+              title: "Episode 1",
+              site: "community-media",
+              selectedSessionId: "session-1"
+            },
+            {
+              type: "sessionsChanged",
+              sessions: [{ id: "session-1", serverConfigId: "server-1" }]
+            },
+            {
+              type: "subtitleTracksLoaded",
+              sessionId: "session-1",
+              tracks: [{ id: "track-1", sourceFile: "en.srt", cues: [] }]
+            },
+            {
+              type: "playbackSnapshot",
+              sessionId: "session-1",
+              positionMs: 5000,
+              durationMs: 10000,
+              playbackRate: 1,
+              paused: false
+            }
+          ])
         }
       ]
     });
@@ -155,7 +153,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getSources: () => [{ sourceId: "jellyfinEmby", handleConnectionMessage }]
     });
     controller.start();
 
@@ -188,7 +186,7 @@ describe("MediaSourceController", () => {
     });
   });
 
-  it("clears a stale selected session when the same adapter matches a source without a selected session", async () => {
+  it("clears a stale selected session when the same source matches media without a selected session", async () => {
     const bus = new AppEventBus();
     const stateManager = createStateManager();
     const handleConnectionMessage = vi
@@ -223,7 +221,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getSources: () => [{ sourceId: "jellyfinEmby", handleConnectionMessage }]
     });
     controller.start();
 
@@ -255,7 +253,7 @@ describe("MediaSourceController", () => {
     });
   });
 
-  it("clears active media-source state when a video context no longer matches any adapter", async () => {
+  it("clears active media-source state when a video context no longer matches any source", async () => {
     const bus = new AppEventBus();
     const stateManager = createStateManager();
     const handleConnectionMessage = vi
@@ -275,7 +273,7 @@ describe("MediaSourceController", () => {
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [{ pluginKey: "xiitang/media-source", adapter: { handleConnectionMessage } }]
+      getSources: () => [{ sourceId: "jellyfinEmby", handleConnectionMessage }]
     });
     controller.start();
 
@@ -310,32 +308,30 @@ describe("MediaSourceController", () => {
     });
   });
 
-  it("clears media-source state when the owning adapter is removed", async () => {
+  it("clears media-source state when the owning source settings change", async () => {
     const bus = new AppEventBus();
     const stateManager = createStateManager();
     const controller = new MediaSourceController({
       bus,
       stateManager: stateManager as never,
-      getAdapters: () => [
+      getSources: () => [
         {
-          pluginKey: "xiitang/media-source",
-          adapter: {
-            handleConnectionMessage: vi.fn(async () => [
-              {
-                type: "sourceMatched",
-                tabId: 7,
-                pageUrl: "https://media.example.test/watch/1",
-                videoUrl: "https://media.example.test/items/1",
-                title: "Episode 1",
-                site: "community-media",
-                selectedSessionId: "session-1"
-              },
-              {
-                type: "sessionsChanged",
-                sessions: [{ id: "session-1", serverConfigId: "server-1" }]
-              }
-            ])
-          }
+          sourceId: "jellyfinEmby",
+          handleConnectionMessage: vi.fn(async () => [
+            {
+              type: "sourceMatched",
+              tabId: 7,
+              pageUrl: "https://media.example.test/watch/1",
+              videoUrl: "https://media.example.test/items/1",
+              title: "Episode 1",
+              site: "community-media",
+              selectedSessionId: "session-1"
+            },
+            {
+              type: "sessionsChanged",
+              sessions: [{ id: "session-1", serverConfigId: "server-1" }]
+            }
+          ])
         }
       ]
     });
@@ -351,14 +347,15 @@ describe("MediaSourceController", () => {
       expect(stateManager.state.mediaServer.sessions).toHaveLength(1);
     });
 
-    (controller as any).handlePluginRemoved("other.media");
+    controller.handleSourceSettingsChanged("other.media");
     expect(stateManager.state.activeSource).toBe("mediaserver");
 
-    (controller as any).handlePluginRemoved("xiitang/media-source");
+    controller.handleSourceSettingsChanged("jellyfinEmby");
 
     expect(stateManager.state.activeSource).toBe("extension");
     expect(stateManager.state.videoUrl).toBeNull();
     expect(stateManager.state.mediaServer.sessions).toEqual([]);
     expect(stateManager.resetSubtitleState).toHaveBeenCalled();
   });
+
 });

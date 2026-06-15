@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import type { Component } from "vue";
-import { IconBookOpen, IconMic, IconPlug, IconServer, IconSettings, IconUser } from "../icons";
+import { IconBookOpen, IconFeatures, IconMic, IconServer, IconSettings, IconUser } from "../icons";
 import { UiButton } from "../ui";
 import type { SettingsNavIconKey, SettingsSectionId } from "./settingsSections";
 
@@ -40,8 +40,8 @@ defineEmits<{
 }>();
 
 const navIconComponents: Partial<Record<SettingsNavIconKey, Component>> = {
+  features: IconFeatures,
   mediaServer: IconServer,
-  plugins: IconPlug,
   profiles: IconUser,
   settings: IconSettings,
   transcription: IconMic,

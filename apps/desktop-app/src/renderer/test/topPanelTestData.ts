@@ -59,7 +59,43 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
     profiles: [createTopPanelProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    plugins: {},
+    features: {
+      wordLookup: {
+        enabled: false,
+        config: {
+          wordListPath: "",
+          modifierKey: "alt",
+          panelWidth: 360,
+          panelHeight: 300
+        }
+      },
+      transcription: {
+        enabled: false,
+        config: {
+          provider: "whisper-api",
+          baseUrl: "",
+          apiKey: "",
+          model: "whisper-1",
+          language: "",
+          prompt: "",
+          enableWordTimestamps: false,
+          extraParamsJson: "{}",
+          fasterWhisperModel: "base",
+          fasterWhisperModelDir: "",
+          fasterWhisperDevice: "cpu",
+          fasterWhisperVadFilter: true,
+          fasterWhisperVadThreshold: 0.5,
+          fasterWhisperVadMethod: "",
+          fasterWhisperUseKim2: false
+        }
+      },
+      jellyfinEmby: {
+        enabled: false,
+        config: {
+          servers: []
+        }
+      }
+    },
     cache: {
       enabled: false,
       path: "",

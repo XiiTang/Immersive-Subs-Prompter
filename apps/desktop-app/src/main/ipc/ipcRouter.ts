@@ -5,17 +5,17 @@ import { SettingsStore } from "../settings/SettingsStore.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { AppSettings } from "../types.js";
 import { DisplayManager } from "../window/displayManager.js";
-import { PluginManager } from "../plugins/pluginManager.js";
 import { createLogger } from "../logger.js";
 import { WordLookupWindowManager } from "../window/wordLookupWindowManager.js";
 import { AppReleaseService } from "../appReleaseService.js";
+import type { WordLookupService } from "../features/wordLookupService.js";
+import type { TranscriptionFeatureServiceOptions } from "../features/transcriptionFeatureService.js";
 import { registerStateHandlers } from "./handlers/stateHandlers.js";
 import { registerSettingsHandlers } from "./handlers/settingsHandlers.js";
 import { registerSubtitleHandlers } from "./handlers/subtitleHandlers.js";
 import { registerTranscriptionHandlers } from "./handlers/transcriptionHandlers.js";
 import { registerCacheHandlers } from "./handlers/cacheHandlers.js";
 import { registerWindowHandlers } from "./handlers/windowHandlers.js";
-import { registerPluginHandlers } from "./handlers/pluginHandlers.js";
 import { registerReleaseHandlers } from "./handlers/releaseHandlers.js";
 
 export type IpcContext = {
@@ -23,12 +23,12 @@ export type IpcContext = {
   connectionManager: ConnectionManager;
   settingsStore: SettingsStore;
   cacheManager: SubtitleCacheManager;
-  pluginManager: PluginManager;
   releaseService: AppReleaseService;
+  wordLookupService: WordLookupService;
+  transcriptionFeature: TranscriptionFeatureServiceOptions;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
   updateAppSettings: (partial: Partial<AppSettings>) => AppSettings;
-  pushPluginCatalog: () => Promise<void>;
   displayManager: DisplayManager;
   wordLookupWindowManager: WordLookupWindowManager;
   getMainWindow: () => BrowserWindow | null;
@@ -46,7 +46,6 @@ export class IpcRouter {
     registerTranscriptionHandlers(this.context);
     registerCacheHandlers(this.context);
     registerWindowHandlers(this.context);
-    registerPluginHandlers(this.context);
     registerReleaseHandlers(this.context);
   }
 }

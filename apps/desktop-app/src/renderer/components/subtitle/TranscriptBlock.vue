@@ -58,8 +58,8 @@ import { computed, ref } from "vue";
 import CueAnchorRail from "./CueAnchorRail.vue";
 import type { TranscriptLayoutLineKind } from "./transcript/types";
 import type { SubtitleTranslate } from "./transcript/translate";
-import { tokenizeWordLookupText } from "../../plugins/wordLookupTokenize";
-import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
+import { tokenizeWordLookupText } from "../../features/wordLookup/wordLookupTokenize";
+import type { WordHoverPayload, WordLeavePayload } from "../../features/wordLookup/wordLookupTypes";
 
 const {
   blockId,

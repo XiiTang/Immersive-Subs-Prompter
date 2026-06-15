@@ -139,7 +139,7 @@ interface JellyfinEmbyFeatureSettingsRecord {
 
 Default settings include all three feature records. A fresh desktop settings object always has a complete `settings.features` object.
 
-The final settings sanitizer validates the fixed feature settings shape. It does not accept arbitrary feature IDs or dynamic plugin config records.
+The final settings sanitizer validates the fixed feature settings shape, including bounded numeric values and HTTP(S) Jellyfin / Emby server URLs when present. It does not accept arbitrary feature IDs or dynamic plugin config records.
 
 ## Main Process Architecture
 
@@ -168,7 +168,7 @@ There is no runtime loading of first-party feature code from user data directori
 - lookup ranking
 - cache refresh when the configured word-list path changes
 
-The word lookup IPC handler calls the service directly. If the feature is disabled, lookup requests return a disabled-feature error. If the word list is missing or invalid, the feature reports a word-list error without affecting other desktop features.
+The word lookup IPC handler calls the service directly. If the feature is disabled, lookup requests return a disabled-feature error. If the word list is missing or invalid, the feature reports a word-list error without affecting other desktop features, and the renderer surfaces that error through the existing subtitle status banner.
 
 The word lookup window reads its panel size and trigger key from `settings.features.wordLookup.config`.
 
@@ -176,7 +176,7 @@ The word lookup window reads its panel size and trigger key from `settings.featu
 
 `TranscriptionFeatureService` owns feature-level enablement and config conversion for the existing desktop `TranscriptionService`.
 
-The start-transcription IPC handler checks `settings.features.transcription.enabled`. If disabled, the handler returns a disabled-feature error. If enabled, it builds a typed `TranscriptionConfig` from `settings.features.transcription.config` and runs the desktop transcription pipeline.
+The start-transcription IPC handler checks `settings.features.transcription.enabled`. If disabled, the handler returns a disabled-feature error. If enabled, it builds a typed `TranscriptionConfig` from the complete sanitized `settings.features.transcription.config` and runs the desktop transcription pipeline. It does not apply compatibility defaults for missing or stale config fields.
 
 Transcription cache variants are derived from the built-in feature ID and typed transcription config. They are not derived from plugin keys.
 
@@ -192,7 +192,7 @@ Transcription cache variants are derived from the built-in feature ID and typed 
 - playback snapshot handling
 - source disconnect handling
 
-The media-source controller calls the built-in Jellyfin / Emby source directly when `settings.features.jellyfinEmby.enabled` is true.
+The media-source controller calls the built-in Jellyfin / Emby source directly when `settings.features.jellyfinEmby.enabled` is true. Changing or disabling Jellyfin / Emby settings clears any active Jellyfin / Emby media-source runtime state immediately.
 
 The final media-source code does not enumerate dynamic plugin adapters. Internal first-party interfaces may exist where they clarify media-source behavior, but they are not public extension points and are not manifest-driven contribution APIs.
 
@@ -236,7 +236,7 @@ Final behavior:
 - disabled `Speech Transcription` rejects transcription requests with a clear disabled-feature message
 - invalid transcription config produces transcription config errors
 - transcription runtime failures continue to use the existing transcription state
-- disabled `Jellyfin / Emby` does not claim media-source messages
+- disabled `Jellyfin / Emby` does not claim media-source messages and clears any currently active Jellyfin / Emby media-source state when the setting changes
 - invalid Jellyfin / Emby server rows are reported in the feature settings UI and are not used by media-source runtime code
 - Jellyfin / Emby request failures update media-source error state without affecting browser-extension connectivity
 

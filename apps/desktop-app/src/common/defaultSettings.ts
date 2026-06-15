@@ -7,6 +7,7 @@ import type {
   ProfileSettings,
   SubtitleCacheSettings
 } from "../main/types.js";
+import { cloneFeatureSettings } from "./featureDefaults.js";
 import { DEFAULT_SUBTITLE_FONT_FAMILY } from "./subtitleFonts.js";
 import { DEFAULT_YTDLP_ARGS } from "./ytdlpDefaults.js";
 
@@ -116,7 +117,7 @@ export function createDefaultAppSettings(options: DefaultAppSettingsOptions): Ap
     profiles: createDefaultProfiles(),
     defaultProfileId: DEFAULT_PROFILE_ID,
     rules: createDefaultRules(),
-    plugins: {},
+    features: cloneFeatureSettings(),
     cache: { ...DEFAULT_CACHE_SETTINGS }
   };
 }

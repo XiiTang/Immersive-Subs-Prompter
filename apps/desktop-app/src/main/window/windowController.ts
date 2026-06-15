@@ -5,9 +5,8 @@ import { ConnectionManager } from "../connectionManager.js";
 import { SettingsStore } from "../settings/SettingsStore.js";
 import { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import { createLogger } from "../logger.js";
-import { AppSettings, DesktopState, PlaybackState } from "../types.js";
+import { AppSettings, DesktopState, JellyfinEmbyFeatureSettings, PlaybackState } from "../types.js";
 import { TranscriptionService } from "../transcriptionService.js";
-import { buildPluginTranscriptionConfig } from "../pluginTranscriptionConfig.js";
 import { AutoLaunchManager } from "./autoLaunchManager.js";
 import { DisplayManager } from "./displayManager.js";
 import { GameProcessMonitor } from "./gameProcessMonitor.js";
@@ -18,12 +17,11 @@ import { SettingsWindowManager } from "./settingsWindowManager.js";
 import { WordLookupWindowManager } from "./wordLookupWindowManager.js";
 import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
-import { PluginRegistryStore } from "../plugins/pluginRegistryStore.js";
-import { getPluginRootPath, getRegistryPath } from "../plugins/pluginPaths.js";
-import { PluginManager } from "../plugins/pluginManager.js";
 import { areNetworkSettingsEqual } from "../networkSettings.js";
 import { MediaSourceController } from "../mediaSources/mediaSourceController.js";
 import { AppReleaseService } from "../appReleaseService.js";
+import { WordLookupService } from "../features/wordLookupService.js";
+import { JellyfinEmbyMediaSource } from "../features/jellyfinEmbyMediaSource.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -47,7 +45,8 @@ export class WindowController {
   private readonly wordLookupWindowManager: WordLookupWindowManager;
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
-  private readonly pluginManager: PluginManager;
+  private readonly wordLookupService: WordLookupService;
+  private readonly jellyfinEmbyMediaSource: JellyfinEmbyMediaSource;
   private readonly mediaSourceController: MediaSourceController;
   private readonly releaseService: AppReleaseService;
 
@@ -95,28 +94,14 @@ export class WindowController {
       onUnblocked: () => this.shortcutManager.unblockAfterGame()
     });
 
-    const pluginRoot = getPluginRootPath();
-    const registryStore = new PluginRegistryStore(getRegistryPath(pluginRoot));
-    this.pluginManager = new PluginManager({
-      rootDir: pluginRoot,
-      registryStore,
-      appVersion: app.getVersion(),
-      getSettings: this.options.getSettings,
-      replaceSettings: (settings) => this.replaceAppSettings(settings),
-      transcriptionRuntime: {
-        transcribe: (pluginKey, videoUrl) =>
-          this.options.transcriptionService.transcribe(
-            videoUrl,
-            buildPluginTranscriptionConfig(this.options.getSettings().plugins[pluginKey]?.config ?? {})
-          )
-      },
-      onCatalogChanged: () => this.pushPluginCatalog(),
-      onPluginContributionsRemoved: (pluginKey) => this.mediaSourceController.handlePluginRemoved(pluginKey)
+    this.wordLookupService = new WordLookupService(() => this.options.getSettings().features.wordLookup);
+    this.jellyfinEmbyMediaSource = new JellyfinEmbyMediaSource({
+      getSettings: () => this.options.getSettings().features.jellyfinEmby
     });
     this.mediaSourceController = new MediaSourceController({
       bus: this.options.bus,
       stateManager: this.options.stateManager,
-      getAdapters: () => this.pluginManager.getMediaSourceAdapters()
+      getSources: () => [this.jellyfinEmbyMediaSource]
     });
     this.releaseService = new AppReleaseService({
       getCurrentVersion: () => app.getVersion(),
@@ -131,12 +116,17 @@ export class WindowController {
       connectionManager: this.options.connectionManager,
       settingsStore: this.options.settingsStore,
       cacheManager: this.options.cacheManager,
-      pluginManager: this.pluginManager,
       releaseService: this.releaseService,
+      wordLookupService: this.wordLookupService,
+      transcriptionFeature: {
+        stateManager: this.options.stateManager,
+        cacheManager: this.options.cacheManager,
+        transcriptionService: this.options.transcriptionService,
+        getSettings: () => this.options.getSettings().features.transcription
+      },
       getSettings: this.options.getSettings,
       setSettings: this.options.setSettings,
       updateAppSettings: (partial) => this.updateAppSettings(partial),
-      pushPluginCatalog: () => this.pushPluginCatalog(),
       displayManager: this.displayManager,
       wordLookupWindowManager: this.wordLookupWindowManager,
       getMainWindow: () => this.windowManager.getWindow(),
@@ -160,9 +150,6 @@ export class WindowController {
     this.mediaSourceController.start();
     this.setupBusListeners();
     this.ipcRouter.register();
-    this.pluginManager.loadEnabledPlugins().catch((err) => {
-      this.log.error("Failed to load enabled plugins", err);
-    });
     this.windowManager.createWindow();
     setTimeout(() => {
       void this.releaseService.maybeCheckAutomatically();
@@ -173,8 +160,8 @@ export class WindowController {
     this.gameProcessMonitor.stop();
     this.shortcutManager.clearRegistration();
     this.options.cacheManager.stop();
-    void Promise.all([this.pluginManager.shutdown(), this.mediaSourceController.stop()]).catch((error) => {
-      this.log.error("Failed to stop plugin runtime", error);
+    void this.mediaSourceController.stop().catch((error) => {
+      this.log.error("Failed to stop media source runtime", error);
     });
     this.options.connectionManager.stop();
     this.trayManager.destroy();
@@ -252,12 +239,6 @@ export class WindowController {
     this.settingsWindowManager.getWindow()?.webContents.send("usp:release-state", state);
   }
 
-  private async pushPluginCatalog() {
-    const catalog = await this.pluginManager.listCatalog();
-    this.windowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
-    this.settingsWindowManager.getWindow()?.webContents.send("usp:plugin-catalog", catalog);
-  }
-
   private applyGlobalShortcut() {
     const shortcut = this.options.getSettings().global.toggleWindowShortcut.trim();
     this.shortcutManager.applyShortcut(shortcut, () => this.toggleMainWindow());
@@ -291,7 +272,7 @@ export class WindowController {
     if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
       this.options.connectionManager.applyNetworkSettings();
     }
-    this.refreshPluginRuntimeSettings();
+    this.handleFeatureSettingsUpdated(previous);
 
     this.options.bus.emit("state:changed", this.options.stateManager.getState());
     this.pushSettings();
@@ -323,7 +304,7 @@ export class WindowController {
     if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
       this.options.connectionManager.applyNetworkSettings();
     }
-    this.refreshPluginRuntimeSettings();
+    this.handleFeatureSettingsUpdated(previous);
 
     this.options.bus.emit("state:changed", this.options.stateManager.getState());
     this.pushSettings();
@@ -331,30 +312,32 @@ export class WindowController {
     return appSettings;
   }
 
-  private refreshPluginRuntimeSettings() {
-    void this.pluginManager.refreshRuntimeConfigs()
-      .catch((error) => {
-        this.log.error("Failed to refresh plugin runtime settings", error);
-      });
+  private handleFeatureSettingsUpdated(previous: AppSettings) {
+    const current = this.options.getSettings();
+    if (areJellyfinEmbyFeatureSettingsEqual(previous.features.jellyfinEmby, current.features.jellyfinEmby)) {
+      return;
+    }
+
+    void this.jellyfinEmbyMediaSource.handleSettingsUpdated().catch((error) => {
+      this.log.error("Failed to refresh Jellyfin / Emby settings", error);
+    });
+    this.mediaSourceController.handleSourceSettingsChanged(this.jellyfinEmbyMediaSource.sourceId);
   }
 
   private updateWordLookupPanelSize(size: { width: number; height: number }) {
-    const pluginKey = this.pluginManager.getWordLookupProvider()?.pluginKey;
-    if (!pluginKey) {
-      return;
-    }
-    const currentConfig = this.options.getSettings().plugins[pluginKey]?.config;
+    const currentFeature = this.options.getSettings().features.wordLookup;
     this.updateAppSettings({
-      plugins: {
-        [pluginKey]: {
+      features: {
+        wordLookup: {
+          enabled: currentFeature.enabled,
           config: {
-            ...(currentConfig && typeof currentConfig === "object" ? currentConfig : {}),
+            ...currentFeature.config,
             panelWidth: size.width,
             panelHeight: size.height
           }
         }
       }
-    });
+    } as Partial<AppSettings>);
   }
 
   private getWindowIconPath(): string {
@@ -384,4 +367,29 @@ export class WindowController {
         return "icon.png";
     }
   }
+}
+
+function areJellyfinEmbyFeatureSettingsEqual(
+  left: JellyfinEmbyFeatureSettings,
+  right: JellyfinEmbyFeatureSettings
+): boolean {
+  if (left.enabled !== right.enabled) {
+    return false;
+  }
+  const leftServers = left.config.servers;
+  const rightServers = right.config.servers;
+  if (leftServers.length !== rightServers.length) {
+    return false;
+  }
+  return leftServers.every((server, index) => {
+    const other = rightServers[index];
+    return Boolean(
+      other &&
+      server.id === other.id &&
+      server.name === other.name &&
+      server.serverUrl === other.serverUrl &&
+      server.apiKey === other.apiKey &&
+      server.enabled === other.enabled
+    );
+  });
 }

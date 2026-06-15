@@ -62,7 +62,7 @@ import type {
   TranscriptViewportAnchor
 } from "./transcript/types";
 import type { SubtitleTranslate } from "./transcript/translate";
-import type { WordHoverPayload, WordLeavePayload } from "../../plugins/wordLookupTypes";
+import type { WordHoverPayload, WordLeavePayload } from "../../features/wordLookup/wordLookupTypes";
 
 const {
   blocks,

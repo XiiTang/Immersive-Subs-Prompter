@@ -1,5 +1,46 @@
 # Built-In Features Implementation Plan
 
+## Implementation Result
+
+Implemented on 2026-06-15.
+
+Final state:
+
+- `settings.features.wordLookup`, `settings.features.transcription`, and `settings.features.jellyfinEmby` are fixed first-party settings.
+- The desktop app ships Word Lookup, Speech Transcription, and Jellyfin / Emby as built-in features.
+- The renderer settings window has a single `Features` section with explicit per-feature settings components.
+- The plugin manager, plugin IPC routes, plugin catalog store, plugin settings UI, plugin package installer/runtime, plugin source manifests, plugin repository artifacts, and plugin build script are removed.
+- No compatibility, migration, fallback, or transitional plugin data path is retained.
+- Review follow-up tightened the final state: Jellyfin / Emby settings changes immediately clear active media-source runtime state, fixed feature settings reject invalid ranges and non-HTTP(S) server URLs, incomplete Jellyfin / Emby server rows show inline settings errors and are ignored by runtime matching, Word Lookup runtime errors surface in the subtitle status banner, and transcription config conversion no longer applies implicit defaults for incomplete settings.
+- Second review follow-up removed the remaining active plugin-distribution documentation, makes enabled Word Lookup fail fast when no word list path is configured, selects Jellyfin / Emby sessions from hash item routes, removes unused transcription runtime fields, and labels feature switches by current state.
+
+Final verification passed:
+
+```bash
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/main/settings/appSettingsSanitizer.test.ts src/main/features/wordLookupService.test.ts src/main/features/transcriptionFeatureService.test.ts src/main/features/jellyfinEmbyMediaSource.test.ts src/main/mediaSources/mediaSourceController.test.ts --project main
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/renderer/stores/desktop.test.ts src/renderer/components/settings/SettingsFeatures.test.ts src/renderer/components/settings/SettingsWindowShell.test.ts src/renderer/features/wordLookup/wordLookupMarkdown.test.ts --project jsdom
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/renderer/components/settings/SettingsWindowShell.browser.test.ts src/renderer/components/subtitle/SubtitleView.browser.test.ts --project browser
+pnpm test:release-scripts
+pnpm lint:silent-catches
+pnpm typecheck
+pnpm test
+pnpm build
+git diff --check
+```
+
+Boundary scans leave only negative tests and this design documentation explicitly naming the removed plugin model.
+
+Second review follow-up verification passed:
+
+```bash
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/main/features/wordLookupService.test.ts src/main/features/jellyfinEmbyMediaSource.test.ts src/main/features/transcriptionFeatureService.test.ts src/main/mediaSources/mediaSourceController.test.ts --project main
+pnpm --filter @immersive-subs/desktop-app exec vitest run src/renderer/components/settings/SettingsFeatures.test.ts --project jsdom
+pnpm test:release-scripts
+pnpm --filter @immersive-subs/desktop-app typecheck:app
+pnpm lint:silent-catches
+git diff --check
+```
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the desktop app's downloadable plugin platform with first-party built-in Features released with the desktop app.
@@ -476,7 +517,7 @@ git commit -m "feat: add fixed built-in feature settings"
 **Files:**
 - Create: `apps/desktop-app/src/main/features/wordLookupService.ts`
 - Create: `apps/desktop-app/src/main/features/wordLookupService.test.ts`
-- Modify: `apps/desktop-app/src/renderer/plugins/wordLookupTypes.ts`
+- Modify: `apps/desktop-app/src/renderer/features/wordLookup/wordLookupTypes.ts`
 
 - [ ] **Step 1: Write failing word lookup service tests**
 
@@ -678,7 +719,7 @@ Add the same helper functions and error messages from the current plugin source:
 
 - [ ] **Step 4: Update renderer word lookup type exports**
 
-In `apps/desktop-app/src/renderer/plugins/wordLookupTypes.ts`, change the import/export from `WordLookupPluginConfig` to `WordLookupFeatureConfig`.
+In `apps/desktop-app/src/renderer/features/wordLookup/wordLookupTypes.ts`, change the import/export from `WordLookupPluginConfig` to `WordLookupFeatureConfig`.
 
 ```ts
 import type {
@@ -706,7 +747,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add apps/desktop-app/src/main/features/wordLookupService.ts apps/desktop-app/src/main/features/wordLookupService.test.ts apps/desktop-app/src/renderer/plugins/wordLookupTypes.ts
+git add apps/desktop-app/src/main/features/wordLookupService.ts apps/desktop-app/src/main/features/wordLookupService.test.ts apps/desktop-app/src/renderer/features/wordLookup/wordLookupTypes.ts
 git commit -m "feat: add built-in word lookup service"
 ```
 
@@ -768,9 +809,7 @@ describe("buildFeatureTranscriptionConfig", () => {
       id: "feature-transcription",
       name: "Speech Transcription",
       provider: "whisper-api",
-      extraParams: { temperature: "0" },
-      ytDlpArgs: "",
-      fasterWhisperBinary: ""
+      extraParams: { temperature: "0" }
     });
   });
 
@@ -887,8 +926,6 @@ export function buildFeatureTranscriptionConfig(config: TranscriptionFeatureConf
     prompt: stringField(config, "prompt", "", "prompt"),
     enableWordTimestamps: booleanField(config, "enableWordTimestamps", false, "word timestamps"),
     extraParams: parseExtraParamsJson(config),
-    ytDlpArgs: "",
-    fasterWhisperBinary: "",
     fasterWhisperModel: stringField(config, "fasterWhisperModel", "base", "faster-whisper model"),
     fasterWhisperModelDir: stringField(config, "fasterWhisperModelDir", "", "faster-whisper model directory"),
     fasterWhisperDevice: deviceValue(config),
@@ -1342,7 +1379,7 @@ const getSources = () => [
 ];
 ```
 
-Update assertions from `"xiitang/media-source"` to `"jellyfinEmby"` and from `handlePluginRemoved` to `handleSourceRemoved`.
+Update assertions from `"xiitang/media-source"` to `"jellyfinEmby"` and from removed-plugin handling to `handleSourceSettingsChanged`.
 
 - [ ] **Step 6: Run focused tests**
 
@@ -1884,8 +1921,8 @@ In `en.json`, replace plugin strings with feature strings:
 ```json
 "section-features": "Features",
 "features-section-title": "Features",
-"feature-enable": "Enable",
-"feature-disable": "Disable",
+"feature-enabled": "Enabled",
+"feature-disabled": "Disabled",
 "feature-word-lookup-title": "Word Lookup",
 "feature-word-lookup-description": "Look up subtitle words from a JSONL word list.",
 "feature-word-lookup-path": "Word List Path",
@@ -1903,8 +1940,8 @@ In `zh.json`, add matching Chinese strings:
 ```json
 "section-features": "功能",
 "features-section-title": "功能",
-"feature-enable": "启用",
-"feature-disable": "禁用",
+"feature-enabled": "已启用",
+"feature-disabled": "已禁用",
 "feature-word-lookup-title": "Word Lookup",
 "feature-word-lookup-description": "从 JSONL 词库查询字幕单词。",
 "feature-word-lookup-path": "词库路径",

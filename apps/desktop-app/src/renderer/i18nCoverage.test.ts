@@ -20,13 +20,11 @@ const requiredKeys = [
   "cue-ab-pending-label",
   "cue-ab-a-label",
   "cue-ab-b-label",
-  "plugin-install",
-  "plugin-update",
-  "plugin-install-placeholder",
-  "plugin-recommended-title",
-  "plugin-installed-title",
-  "plugin-permissions-label",
-  "plugin-status-updating"
+  "section-features",
+  "features-section-title",
+  "feature-word-lookup-title",
+  "feature-transcription-title",
+  "feature-jellyfin-emby-title"
 ];
 
 function readLocale(name: "en" | "zh") {

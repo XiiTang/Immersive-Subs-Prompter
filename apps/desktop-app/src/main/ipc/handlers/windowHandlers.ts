@@ -39,6 +39,10 @@ export function registerWindowHandlers(context: IpcContext) {
     };
   });
 
+  ipcMain.handle("usp:word-lookup", async (_event, token: string) => {
+    return context.wordLookupService.lookup(token);
+  });
+
   ipcMain.handle("usp:word-lookup-window-open", (_event, payload) => {
     return context.wordLookupWindowManager.open(payload);
   });

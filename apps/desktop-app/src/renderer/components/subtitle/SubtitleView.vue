@@ -86,8 +86,8 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../i18n.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../stores/desktop";
 import { getLoopWindow, keepTimeInsideLoopWindow } from "./loopPlayback";
 import type { TranscriptBlock, TranscriptSeekRequest } from "./transcript/types";
-import type { WordHoverPayload, WordLeavePayload, WordLookupResult } from "../../plugins/wordLookupTypes";
-import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "../../../common/wordLookupDefaults.js";
+import type { WordHoverPayload, WordLeavePayload, WordLookupResult } from "../../features/wordLookup/wordLookupTypes";
+import { DEFAULT_WORD_LOOKUP_FEATURE_CONFIG } from "../../../common/wordLookupDefaults.js";
 
 const store = useDesktopStore();
 const EMPTY_CUES: ReadonlyArray<{ start: number; end: number; text: string }> = [];
@@ -96,32 +96,23 @@ const { t } = useI18n(language);
 
 const subtitleTracks = computed(() => store.subtitleTracks);
 const transcriptionState = computed(() => store.transcriptionState);
-const transcriptionProviderPlugin = computed(() =>
-  store.pluginCatalog.find((plugin) => plugin.enabled && plugin.contributions?.transcription) ?? null
-);
-const wordLookupProviderPlugin = computed(() =>
-  store.pluginCatalog.find((plugin) => plugin.enabled && plugin.contributions?.wordLookup) ?? null
-);
-const transcriptionEnabled = computed(() => Boolean(transcriptionProviderPlugin.value));
-const wordLookupEnabled = computed(() => Boolean(wordLookupProviderPlugin.value));
+const transcriptionFeature = computed(() => store.settings?.features.transcription ?? null);
+const wordLookupFeature = computed(() => store.settings?.features.wordLookup ?? null);
+const transcriptionEnabled = computed(() => Boolean(transcriptionFeature.value?.enabled));
+const wordLookupEnabled = computed(() => Boolean(wordLookupFeature.value?.enabled));
 const wordLookupConfig = computed(() => {
-  const pluginKey = wordLookupProviderPlugin.value?.pluginKey;
-  const rawConfig = pluginKey ? store.settings?.plugins[pluginKey]?.config ?? {} : {};
-  const modifierKey = rawConfig.modifierKey === "ctrl" || rawConfig.modifierKey === "shift"
-    ? rawConfig.modifierKey
-    : "alt";
+  const config = wordLookupFeature.value?.config ?? DEFAULT_WORD_LOOKUP_FEATURE_CONFIG;
   return {
-    wordListPath: typeof rawConfig.wordListPath === "string" ? rawConfig.wordListPath : "",
-    modifierKey,
+    modifierKey: config.modifierKey,
     panelSize: {
-      width: typeof rawConfig.panelWidth === "number" ? rawConfig.panelWidth : DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelWidth,
-      height: typeof rawConfig.panelHeight === "number" ? rawConfig.panelHeight : DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelHeight
+      width: config.panelWidth,
+      height: config.panelHeight
     }
   };
 });
 const transcriptionConfigs = computed(() => (
-  transcriptionProviderPlugin.value
-    ? [{ id: transcriptionProviderPlugin.value.pluginKey, name: transcriptionProviderPlugin.value.displayName }]
+  transcriptionEnabled.value
+    ? [{ id: "feature-transcription", name: "Speech Transcription" }]
     : []
 ));
 const transcriptionConfigNames = computed(() =>
@@ -214,6 +205,7 @@ const wordLookupRequestToken = ref(0);
 const wordLookupOpenedRequestToken = ref(0);
 const wordLookupTriggerLeftRequestToken = ref<number | null>(null);
 const hoveredWordPayload = ref<WordHoverPayload | null>(null);
+const wordLookupError = ref<string | null>(null);
 
 watch([
   () => store.desktopState?.selectedPrimarySubtitleId,
@@ -233,6 +225,11 @@ watch(playbackLoop, (loop) => {
     abLoopSelectionState.value = createAbLoopSelectionState();
   }
 }, { immediate: true });
+watch(wordLookupEnabled, (enabled) => {
+  if (!enabled) {
+    wordLookupError.value = null;
+  }
+});
 const hasActiveVideo = computed(() => Boolean(store.desktopState?.videoUrl));
 const isPlaying = computed(() => Math.abs(playback.value?.playbackRate ?? 0) > 0);
 const autoHideEnabled = computed(() => store.settings?.global.autoHidePanels ?? false);
@@ -324,9 +321,9 @@ const sliderFillStyle = computed(() => {
 });
 
 const activeTranscriptionId = computed({
-  get: () => transcriptionProviderPlugin.value?.pluginKey ?? "",
+  get: () => (transcriptionEnabled.value ? "feature-transcription" : ""),
   set: (value: string) => {
-    if (value !== transcriptionProviderPlugin.value?.pluginKey) {
+    if (value !== "feature-transcription") {
       return;
     }
   }
@@ -369,6 +366,12 @@ const statusBanner = computed(() => {
         tone: "danger" as const
       };
     }
+  }
+  if (wordLookupError.value) {
+    return {
+      text: wordLookupError.value,
+      tone: "danger" as const
+    };
   }
 
   const state = store.desktopState;
@@ -518,18 +521,34 @@ async function openWordLookupWindow(payload: WordHoverPayload) {
   wordLookupRequestToken.value = requestId;
   wordLookupOpenedRequestToken.value = 0;
   wordLookupTriggerLeftRequestToken.value = null;
-  const result = await window.usp.lookupWord(payload.token) as WordLookupResult;
+  wordLookupError.value = null;
+  let result: WordLookupResult;
+  try {
+    result = await window.usp.lookupWord(payload.token) as WordLookupResult;
+  } catch (error) {
+    if (requestId === wordLookupRequestToken.value) {
+      wordLookupError.value = error instanceof Error ? error.message : String(error);
+    }
+    return;
+  }
   if (requestId !== wordLookupRequestToken.value) {
     return;
   }
   if (!result.matches.length) {
     return;
   }
-  await window.usp.openWordLookupWindow({
-    anchorRect: payload.anchorRect,
-    panelSize: wordLookupConfig.value.panelSize,
-    matches: result.matches
-  });
+  try {
+    await window.usp.openWordLookupWindow({
+      anchorRect: payload.anchorRect,
+      panelSize: wordLookupConfig.value.panelSize,
+      matches: result.matches
+    });
+  } catch (error) {
+    if (requestId === wordLookupRequestToken.value) {
+      wordLookupError.value = error instanceof Error ? error.message : String(error);
+    }
+    return;
+  }
   wordLookupOpenedRequestToken.value = requestId;
   if (
     wordLookupTriggerLeftRequestToken.value === requestId ||

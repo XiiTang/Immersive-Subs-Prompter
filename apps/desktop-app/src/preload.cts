@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 import type { AppSettings } from "./main/types.js" with { "resolution-mode": "import" };
 import type { CacheStats } from "./main/subtitleCacheManager.js" with { "resolution-mode": "import" };
-import type { PluginManifest } from "./main/plugins/pluginManifest.js" with { "resolution-mode": "import" };
 import type { ReleaseState } from "./main/releases/releaseManifest.js" with { "resolution-mode": "import" };
 
 type Listener<T> = (payload: T) => void;
@@ -29,7 +28,6 @@ const api = {
   openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-release-download", { url }),
   onReleaseStateChange: (listener: Listener<ReleaseState>) => subscribe("usp:release-state", listener),
-  onPluginCatalogChange: (listener: Listener<any[]>) => subscribe("usp:plugin-catalog", listener),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
   openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
@@ -43,20 +41,6 @@ const api = {
     ipcRenderer.invoke("usp:start-transcription"),
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-settings-window"),
-  getPluginCatalog: (): Promise<any[]> =>
-    ipcRenderer.invoke("usp:get-plugin-catalog"),
-  previewPluginInstall: (sourceUrl: string): Promise<any> =>
-    ipcRenderer.invoke("usp:preview-plugin-install", sourceUrl),
-  installPlugin: (sourceUrl: string, confirmedManifest: PluginManifest): Promise<any[]> =>
-    ipcRenderer.invoke("usp:install-plugin", sourceUrl, confirmedManifest),
-  updatePlugin: (pluginKey: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:update-plugin", pluginKey),
-  deletePlugin: (pluginKey: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:delete-plugin", pluginKey),
-  enablePlugin: (pluginKey: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:enable-plugin", pluginKey),
-  disablePlugin: (pluginKey: string): Promise<any[]> =>
-    ipcRenderer.invoke("usp:disable-plugin", pluginKey),
   lookupWord: (token: string): Promise<any> => ipcRenderer.invoke("usp:word-lookup", token),
   openWordLookupWindow: (payload: any): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:word-lookup-window-open", payload),

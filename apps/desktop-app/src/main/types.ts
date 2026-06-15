@@ -77,8 +77,9 @@ interface AppearanceSettings {
   theme: AppearanceTheme;
 }
 
-type TranscriptionProvider = "whisper-api" | "faster-whisper";
-type FasterWhisperDevice = "cpu" | "cuda";
+export type WordLookupModifierKey = "alt" | "ctrl" | "shift";
+export type TranscriptionProvider = "whisper-api" | "faster-whisper";
+export type FasterWhisperDevice = "cpu" | "cuda";
 
 export interface GlobalSettings {
   autoLaunch: boolean;
@@ -104,8 +105,6 @@ export interface TranscriptionConfig {
   prompt: string;
   enableWordTimestamps: boolean;
   extraParams: Record<string, string>;
-  ytDlpArgs: string;
-  fasterWhisperBinary: string;
   fasterWhisperModel: string;
   fasterWhisperModelDir: string;
   fasterWhisperDevice: FasterWhisperDevice;
@@ -119,6 +118,62 @@ export interface SubtitleCacheSettings {
   enabled: boolean;
   path: string;
   retentionDays: number;
+}
+
+export interface WordLookupFeatureConfig {
+  wordListPath: string;
+  modifierKey: WordLookupModifierKey;
+  panelWidth: number;
+  panelHeight: number;
+}
+
+export interface WordLookupFeatureSettings {
+  enabled: boolean;
+  config: WordLookupFeatureConfig;
+}
+
+export interface TranscriptionFeatureConfig {
+  provider: TranscriptionProvider;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  language: string;
+  prompt: string;
+  enableWordTimestamps: boolean;
+  extraParamsJson: string;
+  fasterWhisperModel: string;
+  fasterWhisperModelDir: string;
+  fasterWhisperDevice: FasterWhisperDevice;
+  fasterWhisperVadFilter: boolean;
+  fasterWhisperVadThreshold: number;
+  fasterWhisperVadMethod: string;
+  fasterWhisperUseKim2: boolean;
+}
+
+export interface TranscriptionFeatureSettings {
+  enabled: boolean;
+  config: TranscriptionFeatureConfig;
+}
+
+export interface JellyfinEmbyServerConfig {
+  id: string;
+  name: string;
+  serverUrl: string;
+  apiKey: string;
+  enabled: boolean;
+}
+
+export interface JellyfinEmbyFeatureSettings {
+  enabled: boolean;
+  config: {
+    servers: JellyfinEmbyServerConfig[];
+  };
+}
+
+export interface FeatureSettings {
+  wordLookup: WordLookupFeatureSettings;
+  transcription: TranscriptionFeatureSettings;
+  jellyfinEmby: JellyfinEmbyFeatureSettings;
 }
 
 export interface NetworkSettings {
@@ -175,17 +230,13 @@ export interface ProfileRule {
   profileId: string;
 }
 
-export interface PluginSettingsRecord {
-  config: Record<string, unknown>;
-}
-
 export interface AppSettings {
   global: GlobalSettings;
   network: NetworkSettings;
   profiles: ProfileDefinition[];
   defaultProfileId: string;
   rules: ProfileRule[];
-  plugins: Record<string, PluginSettingsRecord>;
+  features: FeatureSettings;
   cache: SubtitleCacheSettings;
 }
 

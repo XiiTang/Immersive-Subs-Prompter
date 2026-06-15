@@ -104,7 +104,7 @@ function createSettings(): AppSettings {
     profiles: [createProfile()],
     defaultProfileId: DEFAULT_PROFILE_ID,
     rules: [],
-    plugins: base.plugins,
+    features: base.features,
     cache: {
       enabled: false,
       path: "",

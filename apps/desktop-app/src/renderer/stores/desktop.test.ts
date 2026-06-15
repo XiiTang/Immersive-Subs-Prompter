@@ -102,7 +102,7 @@ function createSettings(): AppSettings {
         profileId: "profile-bilibili"
       }
     ],
-    plugins: base.plugins,
+    features: base.features,
     cache: {
       enabled: false,
       path: "",
@@ -162,7 +162,6 @@ function createDesktopState(): DesktopState {
 }
 
 function installRendererApi(state: DesktopState, settings: AppSettings) {
-  let pluginCatalogListener: ((catalog: unknown[]) => void) | null = null;
   let releaseStateListener: ((state: unknown) => void) | null = null;
   const api: Partial<RendererApi> = {
     getInitialState: vi.fn().mockResolvedValue(state),
@@ -173,7 +172,6 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       oldestEntry: null,
       newestEntry: null
     }),
-    getPluginCatalog: vi.fn().mockResolvedValue([]),
     getReleaseState: vi.fn().mockResolvedValue({
       status: "idle",
       currentVersion: "1.0.0",
@@ -194,9 +192,6 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
     onPlayback: vi.fn(),
     onLoopCleared: vi.fn(),
     onSettingsChange: vi.fn(),
-    onPluginCatalogChange: vi.fn((listener: (catalog: unknown[]) => void) => {
-      pluginCatalogListener = listener;
-    }),
     onReleaseStateChange: vi.fn((listener: (state: unknown) => void) => {
       releaseStateListener = listener;
     }),
@@ -209,9 +204,6 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
   });
 
   return {
-    emitPluginCatalog(catalog: unknown[]) {
-      pluginCatalogListener?.(catalog);
-    },
     emitReleaseState(state: unknown) {
       releaseStateListener?.(state);
     }
@@ -267,40 +259,34 @@ describe("desktop store profile selection", () => {
     expect(store.transcriptBlocks).toBe(initialBlocks);
   });
 
-  it("updates plugin catalog from main-process broadcasts", async () => {
-    const bridge = installRendererApi(createDesktopState(), createSettings());
+  it("initializes without requesting a plugin catalog", async () => {
+    installRendererApi(createDesktopState(), createSettings());
 
     const store = useDesktopStore();
     await store.initialize();
 
-    expect(store.pluginCatalog).toEqual([]);
+    expect(store.initError).toBeNull();
+    expect(store.settings?.features.wordLookup.enabled).toBe(false);
+    expect("pluginCatalog" in store).toBe(false);
+  });
 
-    bridge.emitPluginCatalog([
-      {
-        pluginKey: "xiitang/transcription",
-        id: "transcription",
-        author: { id: "xiitang", name: "XiiTang" },
-        version: "1.0.0",
-        displayName: "Speech Transcription",
-        description: "Transcribe video audio.",
-        sourceUrl: "https://plugins.example.test/transcription.json",
-        enabled: true,
-        status: "enabled",
-        error: null,
-        permissions: ["settingsSchema", "transcriptionProvider"],
-        contributions: { transcription: true },
-        settings: [
-          {
-            id: "transcription.settings",
-            title: "Speech Transcription",
-            schema: []
-          }
-        ]
+  it("updates feature enabled state through settings", async () => {
+    const settings = createSettings();
+    installRendererApi(createDesktopState(), settings);
+
+    const store = useDesktopStore();
+    await store.initialize();
+
+    await store.setFeatureEnabled("wordLookup", true);
+
+    expect(window.usp.updateSettings).toHaveBeenCalledWith({
+      features: {
+        wordLookup: {
+          enabled: true,
+          config: settings.features.wordLookup.config
+        }
       }
-    ]);
-
-    expect(store.pluginCatalog).toHaveLength(1);
-    expect(store.pluginCatalog[0]?.enabled).toBe(true);
+    });
   });
 
   it("keeps renderer settings unchanged when main rejects a settings update", async () => {

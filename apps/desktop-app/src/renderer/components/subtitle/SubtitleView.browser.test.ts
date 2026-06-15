@@ -6,13 +6,9 @@ import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from
 import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
-import type { WordLookupResult } from "../../plugins/wordLookupTypes";
-import { DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG } from "../../../common/wordLookupDefaults.js";
-
-const TEST_AUTHOR = { id: "test", name: "Test" };
-const TRANSCRIPTION_PLUGIN_KEY = "test/transcription";
-const WORD_LOOKUP_PLUGIN_KEY = "test/word-lookup";
-const JELLYFINEMBY_PLUGIN_KEY = "test/jellyfinemby";
+import type { WordLookupResult } from "../../features/wordLookup/wordLookupTypes";
+import { DEFAULT_WORD_LOOKUP_FEATURE_CONFIG } from "../../../common/wordLookupDefaults.js";
+import { cloneFeatureSettings } from "../../../common/featureDefaults.js";
 
 const topControlPanelStub = defineComponent({
   name: "TopControlPanelStub",
@@ -83,28 +79,6 @@ function createProfile(): ProfileDefinition {
   };
 }
 
-function createTranscriptionPluginConfig(): Record<string, unknown> {
-  return {
-    provider: "whisper-api",
-    baseUrl: "https://api.openai.com/v1",
-    apiKey: "",
-    model: "whisper-1",
-    language: "",
-    prompt: "",
-    enableWordTimestamps: false,
-    extraParamsJson: "{}",
-    ytDlpArgs: "",
-    fasterWhisperBinary: "faster-whisper",
-    fasterWhisperModel: "base",
-    fasterWhisperModelDir: "",
-    fasterWhisperDevice: "cpu",
-    fasterWhisperVadFilter: true,
-    fasterWhisperVadThreshold: 0.5,
-    fasterWhisperVadMethod: "",
-    fasterWhisperUseKim2: false
-  };
-}
-
 function createSettings(): AppSettings {
   return {
     global: {
@@ -126,19 +100,7 @@ function createSettings(): AppSettings {
     profiles: [createProfile()],
     defaultProfileId: "profile-1",
     rules: [],
-    plugins: {
-      [JELLYFINEMBY_PLUGIN_KEY]: { config: { servers: [] } },
-      [TRANSCRIPTION_PLUGIN_KEY]: {
-        config: createTranscriptionPluginConfig()
-      },
-      [WORD_LOOKUP_PLUGIN_KEY]: {
-        config: {
-          ...DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG,
-          panelWidth: DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelWidth,
-          panelHeight: DEFAULT_WORD_LOOKUP_PLUGIN_CONFIG.panelHeight
-        } as unknown as Record<string, unknown>
-      }
-    },
+    features: cloneFeatureSettings(),
     cache: {
       enabled: false,
       path: "",
@@ -770,28 +732,12 @@ describe("SubtitleView", () => {
     wrapper.unmount();
   });
 
-  it("hides transcription controls when the transcription plugin is not enabled", async () => {
+  it("hides transcription controls when the transcription feature is disabled", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
     store.editingProfileId = "profile-1";
-    store.pluginCatalog = [
-      {
-        pluginKey: TRANSCRIPTION_PLUGIN_KEY,
-        id: "transcription",
-        author: TEST_AUTHOR,
-        version: "1.0.0",
-        displayName: "Speech Transcription",
-        description: "Transcribe video audio.",
-        sourceUrl: "https://plugins.example.test/transcription.json",
-        status: "disabled",
-        enabled: false,
-        error: null,
-        permissions: ["transcriptionProvider"],
-        contributions: { transcription: true }
-      }
-    ];
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -807,17 +753,12 @@ describe("SubtitleView", () => {
     expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("false");
     expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("0");
 
-    store.pluginCatalog = [
-      {
-        ...store.pluginCatalog[0]!,
-        status: "enabled",
-        enabled: true
-      }
-    ];
+    store.settings.features.transcription.enabled = true;
 
     await nextTick();
 
     expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("true");
+    expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("1");
   });
 
   it("opens word lookup when the trigger key is pressed after hovering a token", async () => {
@@ -856,14 +797,13 @@ describe("SubtitleView", () => {
     const settings = createSettings();
     store.settings = {
       ...settings,
-      plugins: {
-        ...settings.plugins,
-        [WORD_LOOKUP_PLUGIN_KEY]: {
+      features: {
+        ...settings.features,
+        wordLookup: {
+          enabled: true,
           config: {
-            wordListPath: "/tmp/words.jsonl",
-            modifierKey: "alt",
-            panelWidth: 360,
-            panelHeight: 300
+            ...DEFAULT_WORD_LOOKUP_FEATURE_CONFIG,
+            wordListPath: "/tmp/words.jsonl"
           }
         }
       }
@@ -871,22 +811,6 @@ describe("SubtitleView", () => {
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
     store.editingProfileId = "profile-1";
-    store.pluginCatalog = [
-      {
-        pluginKey: WORD_LOOKUP_PLUGIN_KEY,
-        id: "word-lookup",
-        author: TEST_AUTHOR,
-        version: "1.0.0",
-        displayName: "Word Lookup",
-        description: "Look up words.",
-        sourceUrl: "https://plugins.example.test/word-lookup.json",
-        status: "enabled",
-        enabled: true,
-        error: null,
-        permissions: ["wordLookupProvider"],
-        contributions: { wordLookup: true }
-      }
-    ];
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -946,6 +870,70 @@ describe("SubtitleView", () => {
     });
   });
 
+  it("shows word lookup errors in the status banner", async () => {
+    const lookupWord = vi.fn().mockRejectedValue(new Error("Invalid word list row at line 2"));
+    const openWordLookupWindow = vi.fn().mockResolvedValue({ success: true });
+    const originalUsp = window.usp;
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        ...originalUsp,
+        lookupWord,
+        openWordLookupWindow,
+        openExternal: vi.fn()
+      }
+    });
+
+    const store = useDesktopStore();
+    const settings = createSettings();
+    store.settings = {
+      ...settings,
+      features: {
+        ...settings.features,
+        wordLookup: {
+          enabled: true,
+          config: {
+            ...DEFAULT_WORD_LOOKUP_FEATURE_CONFIG,
+            wordListPath: "/tmp/words.jsonl"
+          }
+        }
+      }
+    };
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    const alphaToken = wrapper.findAll('[data-testid="word-lookup-token"]').find((token) => token.text() === "alpha");
+    expect(alphaToken).toBeTruthy();
+
+    await alphaToken!.trigger("mouseenter", { clientX: 120, clientY: 140, altKey: true });
+    await flushPromises();
+    await nextTick();
+
+    expect(lookupWord).toHaveBeenCalledWith("alpha");
+    expect(openWordLookupWindow).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="status-banner-tone"]').text()).toBe("danger");
+    expect(wrapper.get('[data-testid="status-banner-text"]').text()).toBe("Invalid word list row at line 2");
+
+    wrapper.unmount();
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: originalUsp
+    });
+  });
+
   it("does not treat leaving a previous duplicate token as leaving the current hovered token", async () => {
     const lookupResolvers: Array<(result: WordLookupResult) => void> = [];
     const lookupWord = vi.fn().mockImplementation((token: string) => new Promise<WordLookupResult>((resolve) => {
@@ -984,14 +972,13 @@ describe("SubtitleView", () => {
     const settings = createSettings();
     store.settings = {
       ...settings,
-      plugins: {
-        ...settings.plugins,
-        [WORD_LOOKUP_PLUGIN_KEY]: {
+      features: {
+        ...settings.features,
+        wordLookup: {
+          enabled: true,
           config: {
-            wordListPath: "/tmp/words.jsonl",
-            modifierKey: "alt",
-            panelWidth: 360,
-            panelHeight: 300
+            ...DEFAULT_WORD_LOOKUP_FEATURE_CONFIG,
+            wordListPath: "/tmp/words.jsonl"
           }
         }
       }
@@ -999,22 +986,6 @@ describe("SubtitleView", () => {
     store.desktopState = desktopState;
     store.playback = store.desktopState.playback;
     store.editingProfileId = "profile-1";
-    store.pluginCatalog = [
-      {
-        pluginKey: WORD_LOOKUP_PLUGIN_KEY,
-        id: "word-lookup",
-        author: TEST_AUTHOR,
-        version: "1.0.0",
-        displayName: "Word Lookup",
-        description: "Look up words.",
-        sourceUrl: "https://plugins.example.test/word-lookup.json",
-        status: "enabled",
-        enabled: true,
-        error: null,
-        permissions: ["wordLookupProvider"],
-        contributions: { wordLookup: true }
-      }
-    ];
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,

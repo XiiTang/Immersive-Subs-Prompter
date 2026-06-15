@@ -67,8 +67,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { renderWordLookupMarkdown } from "../../plugins/wordLookupMarkdown";
-import type { WordLookupResult } from "../../plugins/wordLookupTypes";
+import { renderWordLookupMarkdown } from "../../features/wordLookup/wordLookupMarkdown";
+import type { WordLookupResult } from "../../features/wordLookup/wordLookupTypes";
 import { clamp } from "../../utils/formatters";
 import { UiEmptyState, UiIconButton, UiSurface } from "../ui";
 

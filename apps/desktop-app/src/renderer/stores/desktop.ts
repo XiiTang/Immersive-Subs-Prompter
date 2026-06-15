@@ -8,7 +8,6 @@ import type {
   SubtitleTrack,
   TranscriptionState
 } from "../../main/types";
-import type { PluginCatalogRow } from "../../main/plugins/pluginTypes";
 import type { TranscriptBlock } from "../components/subtitle/transcript/types";
 import { createTranscriptBlocksCache } from "./desktop/transcriptBlocksCache";
 import { DEFAULT_PANEL_OPACITY, DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
@@ -16,7 +15,7 @@ import type { RendererApi } from "../../preload.cts";
 import { settingsActions } from "./desktop/actions/settingsActions";
 import { profileActions } from "./desktop/actions/profileActions";
 import { ruleActions } from "./desktop/actions/ruleActions";
-import { pluginActions } from "./desktop/actions/pluginActions";
+import { featureActions } from "./desktop/actions/featureActions";
 import { cacheActions } from "./desktop/actions/cacheActions";
 import { gameBlacklistActions } from "./desktop/actions/gameBlacklistActions";
 import { playbackActions } from "./desktop/actions/playbackActions";
@@ -39,7 +38,6 @@ export const useDesktopStore = defineStore("desktop", {
     initError: null as string | null,
     editingProfileId: null as string | null,
     cacheStats: null as CacheStats | null,
-    pluginCatalog: [] as PluginCatalogRow[],
     releaseState: null as ReleaseState | null
   }),
   getters: {
@@ -83,7 +81,7 @@ export const useDesktopStore = defineStore("desktop", {
     ...settingsActions,
     ...profileActions,
     ...ruleActions,
-    ...pluginActions,
+    ...featureActions,
     ...cacheActions,
     ...gameBlacklistActions,
     ...playbackActions,
