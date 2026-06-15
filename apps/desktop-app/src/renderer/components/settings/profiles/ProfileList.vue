@@ -19,7 +19,7 @@
         </UiIconButton>
       </UiToolbar>
     </div>
-    <div class="profile-list ui-list">
+    <div class="profile-list">
       <template v-if="profiles.length">
         <UiListItem
           v-for="(profile, index) in profiles"

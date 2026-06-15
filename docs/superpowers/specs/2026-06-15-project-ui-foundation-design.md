@@ -59,7 +59,7 @@ The shared package does not own product state, settings data, IPC contracts, bro
 - subtitle projection and transcript layout
 - word lookup window layout
 - desktop-only CSS variables such as panel opacity and window geometry controls
-- desktop-only `.ui-*` component internals for select popovers, tooltips, color input, fields, sections, surfaces, toolbars, setting rows, stats, groups, scrollbars, and resize handles
+- desktop-only `.ui-*` component internals for select popovers, tooltips, color input, fields, sections, surfaces, toolbars, setting rows, stats, groups, scrollbars, resize handles, and desktop-only Vue component variants
 
 Desktop Vue components use shared primitive `.ui-*` class names from `@immersive-subs/ui` for cross-surface controls and feedback. Desktop-only component internals keep their CSS in the renderer instead of becoming shared package primitives.
 
@@ -72,6 +72,7 @@ Desktop Vue components use shared primitive `.ui-*` class names from `@immersive
 - media row layout
 - server endpoint editor layout
 - blacklist editor layout
+- popup list-container layout
 - popup-specific i18n hooks and DOM generation
 
 The extension popup remains native `popup.html` plus `src/popup.ts`. It does not use Vue, does not import desktop renderer components, and does not define its own shared primitive chrome.
@@ -111,9 +112,9 @@ Dark theme token values are defined by the shared package through `:root[data-th
 - `.ui-chip`
 - `.icon`
 
-The package also owns primitive density and intent variants such as `sm`, `md`, `lg`, `xs`, `compact`, `chip`, `bare`, `block`, `editable`, `primary`, `secondary`, `ghost`, `danger`, `success`, `warning`, `info`, and `neutral` where those variants are part of the shared UI language.
+The package also owns primitive density and intent variants such as `sm`, `md`, `xs`, `compact`, `chip`, `bare`, `block`, `primary`, `secondary`, `ghost`, `danger`, `success`, `warning`, `info`, and `neutral` where those variants are part of the shared UI language.
 
-Desktop-only `.ui-*` classes such as `.ui-select-content`, `.ui-tooltip`, `.ui-color-input`, `.ui-field`, `.ui-section`, `.ui-surface`, `.ui-toolbar`, `.ui-setting-row`, `.ui-inline-control`, `.ui-stat`, `.ui-group`, `.ui-scrollbar`, and `.ui-resize-handle` are renderer component internals, not shared primitives.
+Desktop-only `.ui-*` classes such as `.ui-button--editable`, `.ui-button--nav`, `.ui-select-content`, `.ui-tooltip`, `.ui-color-input`, `.ui-field`, `.ui-section`, `.ui-surface`, `.ui-toolbar`, `.ui-setting-row`, `.ui-inline-control`, `.ui-stat`, `.ui-group`, `.ui-scrollbar`, and `.ui-resize-handle` are renderer component internals, not shared primitives. Product list containers such as the desktop profile list and extension media root use product classes, not a shared `.ui-list` helper.
 
 Product styles may compose shared primitive classes with product layout classes. Product styles do not set primitive border, background, color, radius, focus outline, font size, line height, or disabled chrome for product classes that are composed with shared primitives. Direct shared primitive selectors also do not receive product-owned padding, width, or height rules.
 
@@ -140,7 +141,7 @@ The boundary check passes only when:
 - extension popup layout CSS does not define shared tokens or primitive chrome
 - extension popup layout CSS does not redefine shared primitive chrome through product classes composed with shared primitives
 - desktop and extension source do not import external UI or style frameworks
-- built extension popup CSS includes the shared UI foundation before popup layout CSS
+- built extension popup CSS includes required shared token and primitive markers before popup layout CSS
 
 The root test command builds the extension popup CSS for both browser targets before running the boundary check.
 
@@ -157,11 +158,11 @@ No fallback CSS is shipped for missing shared UI styles.
 The final verification surface includes:
 
 - `packages/ui` CSS contract tests for token, base, primitive, and import-order presence
-- `packages/ui` CSS contract tests proving desktop-only component internals are not shared primitives
+- `packages/ui` CSS contract tests proving desktop-only component internals, product list containers, and desktop-only variants are not shared primitives
 - project UI boundary tests for allowed and blocked ownership patterns
 - existing desktop renderer component tests for Vue component DOM, ARIA, events, and class contracts
 - existing extension popup tests for i18n and DOM behavior
-- root script tests proving built `popup.css` contains shared CSS plus popup layout
+- root script tests proving built `popup.css` contains required shared token and primitive markers before popup layout
 - root `pnpm test`
 - root `pnpm typecheck`
 - root `pnpm build`

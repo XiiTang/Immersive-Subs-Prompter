@@ -20,7 +20,7 @@
 withDefaults(
   defineProps<{
     variant?: "primary" | "secondary" | "ghost" | "danger" | "editable" | "nav";
-    size?: "sm" | "md" | "lg";
+    size?: "sm" | "md";
     type?: "button" | "submit" | "reset";
     disabled?: boolean;
     block?: boolean;

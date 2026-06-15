@@ -147,7 +147,7 @@ for (const file of generatedPopupCssFiles) {
     continue;
   }
   const text = readFileSync(file, "utf8");
-  const sharedIndex = firstIndexOfAny(text, [":root", ".ui-button"]);
+  const sharedIndex = lastRequiredIndex(text, ["--ui-bg", ".ui-button"]);
   const popupIndex = text.indexOf(".popup-main");
   if (sharedIndex < 0 || popupIndex < 0 || sharedIndex > popupIndex) {
     failures.push(`${rel}: built extension popup CSS must include shared UI before popup layout`);
@@ -249,12 +249,16 @@ function extractStyleBlocks(text) {
   return blocks;
 }
 
-function firstIndexOfAny(text, patterns) {
-  return patterns.reduce((lowest, pattern) => {
+function lastRequiredIndex(text, patterns) {
+  let highest = -1;
+  for (const pattern of patterns) {
     const index = text.indexOf(pattern);
-    if (index < 0) return lowest;
-    return lowest < 0 ? index : Math.min(lowest, index);
-  }, -1);
+    if (index < 0) {
+      return -1;
+    }
+    highest = Math.max(highest, index);
+  }
+  return highest;
 }
 
 function findProductClassesComposedWithSharedPrimitives(paths) {

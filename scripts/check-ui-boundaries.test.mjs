@@ -187,6 +187,24 @@ test("fails when built extension popup CSS does not include shared CSS before po
   assert.match(result.stderr, /built extension popup CSS must include shared UI before popup layout/);
 });
 
+test("fails when built extension popup CSS only contains product root variables before popup layout", () => {
+  const cwd = createFixture({
+    "packages/ui/src/index.css": '@import "./tokens.css";\n@import "./base.css";\n@import "./primitives.css";\n',
+    "packages/ui/src/tokens.css": ":root { --ui-bg: #fff; }\n",
+    "packages/ui/src/base.css": "*, *::before, *::after { box-sizing: border-box; }\n",
+    "packages/ui/src/primitives.css": ".ui-button { border: 1px solid var(--ui-border); }\n",
+    "apps/desktop-app/src/renderer/style.css": "/* Product surfaces */\n.window { display: flex; }\n",
+    "apps/extension/src/popup-layout.css": ":root { --server-status-connected: green; }\n.popup-main { display: flex; }\n",
+    "apps/extension/dist/chrome/popup.css": ":root { --server-status-connected: green; }\n.popup-main { display: flex; }\n",
+    "apps/extension/dist/firefox/popup.css": ":root { --server-status-connected: green; }\n.popup-main { display: flex; }\n"
+  });
+
+  const result = runBoundaryCheck(cwd);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /built extension popup CSS must include shared UI before popup layout/);
+});
+
 function createFixture(files) {
   const cwd = mkdtempSync(path.join(tmpdir(), "project-ui-boundary-"));
   for (const directory of [

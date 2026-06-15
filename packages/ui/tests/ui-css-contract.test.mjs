@@ -68,6 +68,20 @@ test("primitives.css owns shared primitive chrome", () => {
   }
 });
 
+test("primitives.css does not own product list containers or desktop-only button variants", () => {
+  const css = readCss("primitives.css");
+
+  for (const selector of [
+    ".ui-list",
+    ".ui-button--editable",
+    ".ui-button--nav",
+    ".ui-button--lg",
+    ".ui-icon-button--lg"
+  ]) {
+    assert.doesNotMatch(css, new RegExp(`${escapeRegExp(selector)}(?:$|[\\s,{:.#\\[])`));
+  }
+});
+
 test("primitives.css does not own desktop Vue component internals", () => {
   const css = readCss("primitives.css");
 
