@@ -985,6 +985,12 @@ body.main-window-body {
   justify-content: space-between;
 }
 
+.settings-split__label {
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-sm);
+  font-weight: 650;
+}
+
 .settings-split__sidebar-buttons {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -1065,7 +1071,7 @@ body.main-window-body {
 }
 
 .profile-list__item {
-  align-items: flex-start;
+  align-items: center;
 }
 
 .profile-list__content {
@@ -1106,6 +1112,34 @@ body.main-window-body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profile-list__status-action {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--ui-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-list__status-action:hover,
+.profile-list__status-action:focus-visible {
+  border-color: var(--ui-accent);
+  color: var(--ui-accent);
+  outline: none;
+}
+
+.profile-list__status-action.is-active {
+  border-color: var(--ui-accent);
+  color: #ffffff;
+  background: var(--ui-accent);
 }
 
 .profile-url-rules,

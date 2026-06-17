@@ -66,6 +66,19 @@
             </UiButton>
             <span class="profile-list__meta">{{ profileRuleSummary(profile.id) }}</span>
           </span>
+          <button
+            type="button"
+            class="profile-list__status-action"
+            :class="{ 'is-active': profile.id === editingProfileId }"
+            :aria-label="t('profile-current')"
+            :aria-pressed="profile.id === editingProfileId ? 'true' : 'false'"
+            :data-testid="`profile-list-current-${profile.id}`"
+            @click.stop="$emit('select', profile.id)"
+            @mousedown.stop
+            @dragstart.stop
+          >
+            <IconCheck v-if="profile.id === editingProfileId" size="sm" />
+          </button>
         </UiListItem>
       </template>
       <UiEmptyState v-else :message="t('profile-empty')" />
@@ -75,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
-import { IconAdd, IconCopy, IconDelete } from "../../icons";
+import { IconAdd, IconCheck, IconCopy, IconDelete } from "../../icons";
 import { useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import type { ProfileDefinition, ProfileRule } from "../../../../main/types.js";

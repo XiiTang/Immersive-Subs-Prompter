@@ -13,7 +13,10 @@ const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", 
 const FEATURE_SETTINGS_KEYS = ["wordLookup", "transcription", "jellyfinEmby"] as const;
 const FEATURE_RECORD_KEYS = ["enabled", "config"] as const;
 const WORD_LOOKUP_CONFIG_KEYS = ["wordListPath", "modifierKey", "panelWidth", "panelHeight"] as const;
+const TRANSCRIPTION_FEATURE_KEYS = ["enabled", "activeConfigId", "configs"] as const;
 const TRANSCRIPTION_CONFIG_KEYS = [
+  "id",
+  "name",
   "provider",
   "baseUrl",
   "apiKey",
@@ -21,7 +24,9 @@ const TRANSCRIPTION_CONFIG_KEYS = [
   "language",
   "prompt",
   "enableWordTimestamps",
-  "extraParamsJson",
+  "extraParams",
+  "ytDlpArgs",
+  "fasterWhisperBinary",
   "fasterWhisperModel",
   "fasterWhisperModelDir",
   "fasterWhisperDevice",
@@ -162,55 +167,104 @@ function validateWordLookupFeature(input: unknown, requireAllKeys: boolean): voi
 }
 
 function validateTranscriptionFeature(input: unknown, requireAllKeys: boolean): void {
-  const config = validateFeatureRecord(input, "features.transcription", requireAllKeys);
-  validateConfigObject(config, TRANSCRIPTION_CONFIG_KEYS, "features.transcription.config", requireAllKeys);
-  if (
-    Object.prototype.hasOwnProperty.call(config, "provider") &&
-    config.provider !== "whisper-api" &&
-    config.provider !== "faster-whisper"
-  ) {
-    throw new Error("features.transcription.config.provider must be whisper-api or faster-whisper");
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("features.transcription must use the current object setting");
+  }
+  const record = input as Record<string, unknown>;
+  assertNoUnknownKeys(record, TRANSCRIPTION_FEATURE_KEYS, "features.transcription");
+  if (requireAllKeys && !hasRequiredKeys(record, TRANSCRIPTION_FEATURE_KEYS)) {
+    throw new Error("features.transcription must include current settings");
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "enabled")) {
+    requireBoolean(record, "enabled", "features.transcription");
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "activeConfigId")) {
+    if (typeof record.activeConfigId !== "string" || !record.activeConfigId.trim()) {
+      throw new Error("features.transcription.activeConfigId must reference an existing config");
+    }
+  }
+  if (!Object.prototype.hasOwnProperty.call(record, "configs")) {
+    if (requireAllKeys) {
+      throw new Error("features.transcription.configs must use the current array setting");
+    }
+    return;
+  }
+  if (!Array.isArray(record.configs)) {
+    throw new Error("features.transcription.configs must use the current array setting");
+  }
+  if (!record.configs.length) {
+    throw new Error("features.transcription.configs must include at least one config");
+  }
+  const seenIds = new Set<string>();
+  record.configs.forEach((config, index) => {
+    validateTranscriptionConfigRecord(config, `features.transcription.configs.${index}`, seenIds);
+  });
+  if (typeof record.activeConfigId === "string" && !seenIds.has(record.activeConfigId)) {
+    throw new Error("features.transcription.activeConfigId must reference an existing config");
+  }
+}
+
+function validateTranscriptionConfigRecord(input: unknown, context: string, seenIds: Set<string>): void {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error(`${context} must use the current object setting`);
+  }
+  const config = input as Record<string, unknown>;
+  assertNoUnknownKeys(config, TRANSCRIPTION_CONFIG_KEYS, context);
+  if (!hasRequiredKeys(config, TRANSCRIPTION_CONFIG_KEYS)) {
+    throw new Error(`${context} must include current settings`);
   }
   for (const key of [
+    "id",
+    "name",
     "baseUrl",
     "apiKey",
     "model",
     "language",
     "prompt",
-    "extraParamsJson",
+    "ytDlpArgs",
+    "fasterWhisperBinary",
     "fasterWhisperModel",
     "fasterWhisperModelDir",
     "fasterWhisperVadMethod"
   ] as const) {
-    if (Object.prototype.hasOwnProperty.call(config, key)) {
-      requireString(config, key, "features.transcription.config");
-    }
+    requireString(config, key, context);
+  }
+  if (!(config.id as string).trim()) {
+    throw new Error(`${context}.id must be a non-empty string`);
+  }
+  if (!(config.name as string).trim()) {
+    throw new Error(`${context}.name must be a non-empty string`);
+  }
+  if (seenIds.has(config.id as string)) {
+    throw new Error(`${context}.id must be unique`);
+  }
+  seenIds.add(config.id as string);
+  if (config.provider !== "whisper-api" && config.provider !== "faster-whisper") {
+    throw new Error(`${context}.provider must be whisper-api or faster-whisper`);
+  }
+  if (config.fasterWhisperDevice !== "cpu" && config.fasterWhisperDevice !== "cuda") {
+    throw new Error(`${context}.fasterWhisperDevice must be cpu or cuda`);
   }
   for (const key of [
     "enableWordTimestamps",
     "fasterWhisperVadFilter",
     "fasterWhisperUseKim2"
   ] as const) {
-    if (Object.prototype.hasOwnProperty.call(config, key)) {
-      requireBoolean(config, key, "features.transcription.config");
+    requireBoolean(config, key, context);
+  }
+  if (!config.extraParams || typeof config.extraParams !== "object" || Array.isArray(config.extraParams)) {
+    throw new Error(`${context}.extraParams must use the current object setting`);
+  }
+  for (const [key, value] of Object.entries(config.extraParams as Record<string, unknown>)) {
+    if (!key.trim() || key !== key.trim()) {
+      throw new Error(`${context}.extraParams keys must be non-empty strings without edge whitespace`);
+    }
+    if (typeof value !== "string") {
+      throw new Error(`${context}.extraParams.${key} must use the current string setting`);
     }
   }
-  if (
-    Object.prototype.hasOwnProperty.call(config, "fasterWhisperDevice") &&
-    config.fasterWhisperDevice !== "cpu" &&
-    config.fasterWhisperDevice !== "cuda"
-  ) {
-    throw new Error("features.transcription.config.fasterWhisperDevice must be cpu or cuda");
-  }
-  if (Object.prototype.hasOwnProperty.call(config, "fasterWhisperVadThreshold")) {
-    requireNumber(config, "fasterWhisperVadThreshold", "features.transcription.config");
-    requireNumberRange(
-      config.fasterWhisperVadThreshold,
-      "features.transcription.config.fasterWhisperVadThreshold",
-      0,
-      1
-    );
-  }
+  requireNumber(config, "fasterWhisperVadThreshold", context);
+  requireNumberRange(config.fasterWhisperVadThreshold, `${context}.fasterWhisperVadThreshold`, 0, 1);
 }
 
 function validateJellyfinEmbyFeature(input: unknown, requireAllKeys: boolean): void {
@@ -328,6 +382,7 @@ export function validateSettingsForUpdate(
   if (Object.prototype.hasOwnProperty.call(input, "cache")) {
     validateCacheSettingsForUpdate((input as { cache?: unknown }).cache);
   }
+  validateSettingsSnapshot(mergeSettings(current, input));
 }
 
 export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSettings {
@@ -377,7 +432,16 @@ function mergeFeatureSettings(base: FeatureSettings, patch: Partial<FeatureSetti
     transcription: patch.transcription
       ? {
           enabled: patch.transcription.enabled ?? base.transcription.enabled,
-          config: { ...base.transcription.config, ...patch.transcription.config }
+          activeConfigId: patch.transcription.activeConfigId ?? base.transcription.activeConfigId,
+          configs: patch.transcription.configs
+            ? patch.transcription.configs.map((config) => ({
+                ...config,
+                extraParams: { ...config.extraParams }
+              }))
+            : base.transcription.configs.map((config) => ({
+                ...config,
+                extraParams: { ...config.extraParams }
+              }))
         }
       : base.transcription,
     jellyfinEmby: patch.jellyfinEmby

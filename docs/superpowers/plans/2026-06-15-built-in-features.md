@@ -2012,9 +2012,9 @@ If creating a local `FeatureSection` component inside this file, make it render 
 ```ts
 store.setFeatureConfig("wordLookup", { wordListPath: String(value) });
 store.setFeatureConfig("wordLookup", { modifierKey: value as "alt" | "ctrl" | "shift" });
-store.setFeatureConfig("wordLookup", { panelWidth: Number(value) });
-store.setFeatureConfig("wordLookup", { panelHeight: Number(value) });
 ```
+
+Panel width and height use local numeric drafts and persist only valid bounded values. Do not coerce empty input with `Number(value)`.
 
 `TranscriptionFeatureSettings.vue` uses explicit controls for provider, base URL, API key, model, language, prompt, word timestamps, extra params JSON, Faster-Whisper model fields, device, VAD filter, VAD threshold, VAD method, and Kim2.
 

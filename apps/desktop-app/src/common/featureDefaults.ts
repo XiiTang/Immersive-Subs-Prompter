@@ -1,4 +1,5 @@
 import type { FeatureSettings } from "../main/types.js";
+import { createDefaultTranscriptionConfig, DEFAULT_TRANSCRIPTION_CONFIG_ID } from "./transcriptionDefaults.js";
 
 export const FEATURE_IDS = ["wordLookup", "transcription", "jellyfinEmby"] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
@@ -15,23 +16,8 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
   },
   transcription: {
     enabled: false,
-    config: {
-      provider: "whisper-api",
-      baseUrl: "",
-      apiKey: "",
-      model: "whisper-1",
-      language: "",
-      prompt: "",
-      enableWordTimestamps: false,
-      extraParamsJson: "{}",
-      fasterWhisperModel: "base",
-      fasterWhisperModelDir: "",
-      fasterWhisperDevice: "cpu",
-      fasterWhisperVadFilter: true,
-      fasterWhisperVadThreshold: 0.5,
-      fasterWhisperVadMethod: "",
-      fasterWhisperUseKim2: false
-    }
+    activeConfigId: DEFAULT_TRANSCRIPTION_CONFIG_ID,
+    configs: [createDefaultTranscriptionConfig()]
   },
   jellyfinEmby: {
     enabled: false,
@@ -49,7 +35,11 @@ export function cloneFeatureSettings(settings: FeatureSettings = DEFAULT_FEATURE
     },
     transcription: {
       enabled: settings.transcription.enabled,
-      config: { ...settings.transcription.config }
+      activeConfigId: settings.transcription.activeConfigId,
+      configs: settings.transcription.configs.map((config) => ({
+        ...config,
+        extraParams: { ...config.extraParams }
+      }))
     },
     jellyfinEmby: {
       enabled: settings.jellyfinEmby.enabled,

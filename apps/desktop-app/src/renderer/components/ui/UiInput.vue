@@ -61,6 +61,6 @@ const { fieldLabelledBy, fieldDescribedBy } = useUiFieldControl({
 
 function handleInput(event: Event) {
   const value = (event.target as HTMLInputElement).value;
-  emit("update:modelValue", props.type === "number" ? Number(value) : value);
+  emit("update:modelValue", value);
 }
 </script>

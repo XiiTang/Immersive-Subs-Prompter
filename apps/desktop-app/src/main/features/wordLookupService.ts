@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import type { WordLookupFeatureSettings } from "../types.js";
-import type { WordLookupMatch, WordLookupResult } from "../../common/wordLookupTypes.js";
+import type { WordLookupMatch, WordLookupResult, WordLookupStatus } from "../../common/wordLookupTypes.js";
 
 type GetSettings = () => WordLookupFeatureSettings;
 
@@ -36,6 +36,14 @@ interface LoadedWordList {
 
 export class WordLookupService {
   private loaded: LoadedWordList | null = null;
+  private status: WordLookupStatus = {
+    ok: false,
+    wordListPath: "",
+    entryCount: 0,
+    fileMtimeMs: null,
+    loadedAt: null,
+    error: null
+  };
 
   constructor(private readonly getSettings: GetSettings) {}
 
@@ -44,8 +52,11 @@ export class WordLookupService {
     if (!settings.enabled) {
       throw new Error("Word Lookup feature is disabled.");
     }
-    const wordListPath = normalizeSurface(settings.config.wordListPath);
-    const loaded = await this.ensureLoaded(wordListPath);
+    await this.load(false);
+    if (!this.loaded || !this.status.ok) {
+      throw new Error(this.status.error ?? "Word Lookup word list is not loaded.");
+    }
+    const loaded = this.loaded;
     const surface = normalizeTokenSurface(token);
     const caseToken = normalizeCase(surface);
     const normalizedToken = normalizeLookupKey(surface);
@@ -63,26 +74,89 @@ export class WordLookupService {
     return { token: surface, normalizedToken, matches };
   }
 
-  clear(): void {
-    this.loaded = null;
+  async refresh(): Promise<WordLookupStatus> {
+    return this.load(true);
   }
 
-  private async ensureLoaded(wordListPath: string): Promise<LoadedWordList> {
-    if (this.loaded?.wordListPath === wordListPath) {
-      return this.loaded;
+  getStatus(): WordLookupStatus {
+    const wordListPath = normalizeSurface(this.getSettings().config.wordListPath);
+    if (wordListPath !== this.status.wordListPath) {
+      return {
+        ok: false,
+        wordListPath,
+        entryCount: 0,
+        fileMtimeMs: null,
+        loadedAt: null,
+        error: wordListPath ? "Word list path changed. Refresh to load it." : null
+      };
     }
-    if (!wordListPath) {
-      throw new Error("Word Lookup word list path is not configured.");
-    }
-    const raw = await fs.readFile(wordListPath, "utf-8");
-    const entries = parseWordList(raw);
-    this.loaded = {
-      wordListPath,
-      entries,
-      index: buildIndex(entries),
-      loadedAt: Date.now()
+    return this.status;
+  }
+
+  clear(): void {
+    this.loaded = null;
+    this.status = {
+      ok: false,
+      wordListPath: "",
+      entryCount: 0,
+      fileMtimeMs: null,
+      loadedAt: null,
+      error: null
     };
-    return this.loaded;
+  }
+
+  private async load(force: boolean): Promise<WordLookupStatus> {
+    const wordListPath = normalizeSurface(this.getSettings().config.wordListPath);
+    if (!wordListPath) {
+      this.loaded = null;
+      this.status = {
+        ok: false,
+        wordListPath: "",
+        entryCount: 0,
+        fileMtimeMs: null,
+        loadedAt: null,
+        error: "Word Lookup word list path is not configured."
+      };
+      return this.status;
+    }
+    if (!force && this.loaded?.wordListPath === wordListPath) {
+      return this.status;
+    }
+    try {
+      const stat = await fs.stat(wordListPath);
+      if (!stat.isFile()) {
+        throw new Error("Configured word list path is not a file.");
+      }
+      const raw = await fs.readFile(wordListPath, "utf-8");
+      const entries = parseWordList(raw);
+      this.loaded = {
+        wordListPath,
+        entries,
+        index: buildIndex(entries),
+        loadedAt: Date.now()
+      };
+      this.status = {
+        ok: true,
+        wordListPath,
+        entryCount: entries.length,
+        fileMtimeMs: stat.mtimeMs,
+        loadedAt: this.loaded.loadedAt,
+        error: null
+      };
+      return this.status;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.loaded = null;
+      this.status = {
+        ok: false,
+        wordListPath,
+        entryCount: 0,
+        fileMtimeMs: null,
+        loadedAt: null,
+        error: message
+      };
+      return this.status;
+    }
   }
 }
 

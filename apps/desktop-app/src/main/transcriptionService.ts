@@ -28,7 +28,7 @@ export class TranscriptionService {
     const safeVideoUrl = assertPublicHttpUrl(videoUrl, "Transcription video URL");
     const workingDir = await fs.mkdtemp(path.join(tmpdir(), "usp-transcribe-"));
     const baseOutput = path.join(workingDir, randomUUID());
-    const args = this.buildArgs(safeVideoUrl, baseOutput);
+    const args = this.buildArgs(config, safeVideoUrl, baseOutput);
     let commandLine = "";
 
     try {
@@ -65,9 +65,16 @@ export class TranscriptionService {
     }
   }
 
-  private buildArgs(videoUrl: string, baseOutput: string): string[] {
-    const args = splitArgs(DEFAULT_TRANSCRIPTION_YTDLP_ARGS);
+  private buildArgs(config: Pick<TranscriptionConfig, "ytDlpArgs">, videoUrl: string, baseOutput: string): string[] {
+    const customLine = config.ytDlpArgs.trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
+    const args = splitArgs(customLine);
     return [...args, "-o", baseOutput, videoUrl];
+  }
+
+  private resolveFasterWhisperBinary(
+    config: Pick<TranscriptionConfig, "fasterWhisperBinary">
+  ): string {
+    return config.fasterWhisperBinary.trim();
   }
 
   private async pickAudioFile(workingDir: string): Promise<string> {
@@ -164,7 +171,7 @@ export class TranscriptionService {
   }
 
   private async submitToFasterWhisper(audioPath: string, config: TranscriptionConfig): Promise<SubtitleTrack> {
-    const binary = config.fasterWhisperDevice === "cuda" ? "faster-whisper-xxl" : "faster-whisper";
+    const binary = this.resolveFasterWhisperBinary(config);
     const model = config.fasterWhisperModel.trim();
     if (!binary) {
       throw new Error("Faster-Whisper executable is not set.");

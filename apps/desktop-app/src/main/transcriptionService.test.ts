@@ -3,6 +3,48 @@ import { TranscriptionService } from "./transcriptionService.js";
 import type { SubtitleTrack } from "./types.js";
 
 describe("TranscriptionService", () => {
+  it("uses transcription config yt-dlp args when provided", () => {
+    const service = new TranscriptionService(async () => "yt-dlp");
+    const buildArgs = (service as unknown as {
+      buildArgs(config: { ytDlpArgs: string }, videoUrl: string, baseOutput: string): string[];
+    }).buildArgs.bind(service);
+
+    expect(buildArgs(
+      { ytDlpArgs: "--extract-audio --audio-format mp3" },
+      "https://video.example.test/watch",
+      "/tmp/out"
+    )).toEqual([
+      "--extract-audio",
+      "--audio-format",
+      "mp3",
+      "-o",
+      "/tmp/out",
+      "https://video.example.test/watch"
+    ]);
+  });
+
+  it("uses configured Faster-Whisper executable path", () => {
+    const service = new TranscriptionService(async () => "yt-dlp");
+    const resolveFasterWhisperBinary = (service as unknown as {
+      resolveFasterWhisperBinary(config: { fasterWhisperBinary: string }): string;
+    }).resolveFasterWhisperBinary.bind(service);
+
+    expect(resolveFasterWhisperBinary({
+      fasterWhisperBinary: "/app/bin/faster-whisper"
+    })).toBe("/app/bin/faster-whisper");
+  });
+
+  it("does not invent a Faster-Whisper executable path", () => {
+    const service = new TranscriptionService(async () => "yt-dlp");
+    const resolveFasterWhisperBinary = (service as unknown as {
+      resolveFasterWhisperBinary(config: { fasterWhisperBinary: string }): string;
+    }).resolveFasterWhisperBinary.bind(service);
+
+    expect(resolveFasterWhisperBinary({
+      fasterWhisperBinary: " "
+    })).toBe("");
+  });
+
   it("rejects Whisper JSON without timestamped segments", () => {
     const service = new TranscriptionService(async () => "yt-dlp");
     const buildTrackFromJson = (service as unknown as {

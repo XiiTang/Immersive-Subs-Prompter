@@ -72,4 +72,31 @@ describe("ProfileList", () => {
 
     expect(wrapper.emitted("duplicate")).toHaveLength(1);
   });
+
+  it("marks the selected settings profile with a right-side circle and uses it to switch editing", async () => {
+    const otherProfile = {
+      ...profile,
+      id: "profile-other",
+      name: "Other"
+    };
+    const wrapper = mount(ProfileList, {
+      props: {
+        profiles: [profile, otherProfile],
+        rules: [],
+        editingProfileId: profile.id,
+        defaultProfileId: profile.id,
+        canDelete: false
+      }
+    });
+
+    const fallbackCurrent = wrapper.get('[data-testid="profile-list-current-default-profile"]');
+    const otherCurrent = wrapper.get('[data-testid="profile-list-current-profile-other"]');
+    expect(fallbackCurrent.attributes("aria-pressed")).toBe("true");
+    expect(otherCurrent.attributes("aria-pressed")).toBe("false");
+    expect(fallbackCurrent.find("svg").exists()).toBe(true);
+
+    await otherCurrent.trigger("click");
+
+    expect(wrapper.emitted("select")).toEqual([[otherProfile.id]]);
+  });
 });

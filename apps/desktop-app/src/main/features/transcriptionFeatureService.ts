@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { StateManager } from "../stateManager.js";
 import type { SubtitleCacheManager } from "../subtitleCacheManager.js";
 import type { TranscriptionService } from "../transcriptionService.js";
-import type { SubtitleTrack, TranscriptionFeatureSettings } from "../types.js";
+import type { SubtitleTrack, TranscriptionConfig, TranscriptionFeatureSettings } from "../types.js";
 import { buildFeatureTranscriptionConfig } from "./transcriptionFeatureConfig.js";
 
 export interface TranscriptionFeatureServiceOptions {
@@ -43,15 +43,23 @@ export async function startFeatureTranscription(
   }
 
   const targetVideoUrl = state.videoUrl;
-  const runtimeConfig = buildFeatureTranscriptionConfig(settings.config);
-  const cacheVariant = buildFeatureTranscriptionCacheVariant(settings.config);
+  let runtimeConfig: TranscriptionConfig;
+  try {
+    runtimeConfig = buildFeatureTranscriptionConfig(settings);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    options.stateManager.setTranscriptionStatus("error", message, TRANSCRIPTION_FEATURE_NAME);
+    return { ok: false, error: message };
+  }
+
+  const cacheVariant = buildFeatureTranscriptionCacheVariant(runtimeConfig);
   isTranscribing = true;
   try {
-    options.stateManager.setTranscriptionStatus("running", null, TRANSCRIPTION_FEATURE_NAME);
+    options.stateManager.setTranscriptionStatus("running", null, runtimeConfig.name);
     const cached = await options.cacheManager.get(targetVideoUrl, "transcription", cacheVariant);
     if (cached?.tracks?.length) {
       const cachedTrack = cached.tracks[0];
-      applyTrackToState(options.stateManager, cachedTrack, TRANSCRIPTION_FEATURE_NAME);
+      applyTrackToState(options.stateManager, cachedTrack, runtimeConfig.name);
       return { ok: true, trackId: cachedTrack.id, cached: true };
     }
 
@@ -63,16 +71,16 @@ export async function startFeatureTranscription(
       options.stateManager.setTranscriptionStatus(
         "success",
         "Transcription cached for previous video.",
-        TRANSCRIPTION_FEATURE_NAME
+        runtimeConfig.name
       );
       return { ok: true, trackId: track.id, cached: true };
     }
 
-    applyTrackToState(options.stateManager, track, TRANSCRIPTION_FEATURE_NAME);
+    applyTrackToState(options.stateManager, track, runtimeConfig.name);
     return { ok: true, trackId: track.id };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    options.stateManager.setTranscriptionStatus("error", message, TRANSCRIPTION_FEATURE_NAME);
+    options.stateManager.setTranscriptionStatus("error", message, runtimeConfig.name);
     return { ok: false, error: message };
   } finally {
     isTranscribing = false;
@@ -92,7 +100,7 @@ function applyTrackToState(stateManager: StateManager, track: SubtitleTrack, con
   );
 }
 
-function buildFeatureTranscriptionCacheVariant(config: TranscriptionFeatureSettings["config"]): string {
+function buildFeatureTranscriptionCacheVariant(config: TranscriptionConfig): string {
   const hash = createHash("sha256").update(JSON.stringify(config)).digest("hex");
   return `feature-transcription:${hash}`;
 }

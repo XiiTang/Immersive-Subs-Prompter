@@ -30,6 +30,26 @@ test("fails when desktop product CSS defines shared tokens", () => {
   assert.match(result.stderr, /apps\/desktop-app\/src\/renderer\/style\.css/);
 });
 
+test("fails when desktop product CSS uses stale renderer tokens", () => {
+  const cwd = createFixture({
+    "packages/ui/src/index.css": '@import "./tokens.css";\n@import "./base.css";\n@import "./primitives.css";\n',
+    "packages/ui/src/tokens.css": ":root { --ui-bg: #fff; }\n",
+    "packages/ui/src/base.css": "*, *::before, *::after { box-sizing: border-box; }\n",
+    "packages/ui/src/primitives.css": ".ui-button { border: 1px solid var(--ui-border); }\n",
+    "apps/desktop-app/src/renderer/style.css": ".feature-card { color: var(--text-muted); border-color: var(--color-border); }\n",
+    "apps/extension/src/popup-layout.css": ".popup-main { display: flex; }\n",
+    "apps/extension/dist/chrome/popup.css": ":root { --ui-bg: #fff; }\n.ui-button { border: 1px solid var(--ui-border); }\n.popup-main { display: flex; }\n",
+    "apps/extension/dist/firefox/popup.css": ":root { --ui-bg: #fff; }\n.ui-button { border: 1px solid var(--ui-border); }\n.popup-main { display: flex; }\n"
+  });
+
+  const result = runBoundaryCheck(cwd);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /uses legacy renderer token/);
+  assert.match(result.stderr, /--text-muted/);
+  assert.match(result.stderr, /--color-border/);
+});
+
 test("fails when extension popup layout defines primitive chrome", () => {
   const cwd = createFixture({
     "packages/ui/src/index.css": '@import "./tokens.css";\n@import "./base.css";\n@import "./primitives.css";\n',

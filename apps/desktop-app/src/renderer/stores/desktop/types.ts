@@ -19,6 +19,7 @@ import type { RendererApi } from "../../../preload.cts";
 import type { ReleaseState } from "../../../main/releases/releaseManifest";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
+type ConfigurableFeatureId = Exclude<FeatureId, "transcription">;
 
 interface DesktopStoreState {
   desktopState: DesktopState | null;
@@ -74,10 +75,22 @@ interface DesktopStoreActions {
 
   // features
   setFeatureEnabled(featureId: FeatureId, enabled: boolean): Promise<void>;
-  setFeatureConfig<FeatureKey extends FeatureId>(
+  setFeatureConfig<FeatureKey extends ConfigurableFeatureId>(
     featureId: FeatureKey,
     config: Partial<FeatureSettings[FeatureKey]["config"]>
   ): Promise<void>;
+  setActiveTranscriptionConfig(configId: string): Promise<void>;
+  setTranscriptionConfigs(
+    configs: FeatureSettings["transcription"]["configs"],
+    activeConfigId: string
+  ): Promise<void>;
+  addJellyfinEmbyServer(): Promise<string | null>;
+  duplicateJellyfinEmbyServer(serverId: string): Promise<string | null>;
+  updateJellyfinEmbyServer(
+    serverId: string,
+    patch: Partial<FeatureSettings["jellyfinEmby"]["config"]["servers"][number]>
+  ): Promise<void>;
+  deleteJellyfinEmbyServer(serverId: string): Promise<void>;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

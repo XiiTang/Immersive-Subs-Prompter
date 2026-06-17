@@ -23,6 +23,8 @@ const api = {
   updateSettings: (changes: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("usp:update-settings", changes),
   onSettingsChange: (listener: Listener<AppSettings>) => subscribe("usp:settings", listener),
+  selectWordListFile: (): Promise<{ canceled: boolean; path: string | null }> =>
+    ipcRenderer.invoke("usp:select-word-list-file"),
   getReleaseState: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:get-release-state"),
   checkForUpdates: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:check-for-updates"),
   openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
@@ -39,9 +41,27 @@ const api = {
     ipcRenderer.invoke("usp:get-window-pointer-state"),
   startTranscription: (): Promise<{ ok: boolean; error?: string; trackId?: string }> =>
     ipcRenderer.invoke("usp:start-transcription"),
+  getFasterWhisperPaths: (): Promise<{
+    binaryDir: string;
+    modelsDir: string;
+    cpuBinaryPath: string;
+    gpuBinaryPath: string;
+  }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
+  getFasterWhisperStatus: (modelDir?: string): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
+  listFasterWhisperModels: (modelDir?: string): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-list-models", modelDir),
+  downloadFasterWhisperBinary: (payload: { variant: "cpu" | "gpu"; jobId?: string }): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-binary", payload),
+  downloadFasterWhisperModel: (payload: { model: string; modelDir?: string; jobId?: string }): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
+  onFasterWhisperDownloadProgress: (listener: Listener<any>) =>
+    subscribe("usp:faster-whisper-download-progress", listener),
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-settings-window"),
   lookupWord: (token: string): Promise<any> => ipcRenderer.invoke("usp:word-lookup", token),
+  refreshWordLookup: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-refresh"),
+  getWordLookupStatus: (): Promise<any> => ipcRenderer.invoke("usp:word-lookup-status"),
   openWordLookupWindow: (payload: any): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:word-lookup-window-open", payload),
   notifyWordLookupWindowPointerEnter: (): Promise<void> =>

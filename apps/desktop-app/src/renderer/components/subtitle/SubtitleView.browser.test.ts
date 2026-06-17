@@ -21,6 +21,10 @@ const topControlPanelStub = defineComponent({
       type: Array,
       default: () => []
     },
+    activeTranscriptionId: {
+      type: String,
+      default: ""
+    },
     statusBanner: {
       type: Object,
       default: () => ({ text: "", tone: "info" })
@@ -30,6 +34,10 @@ const topControlPanelStub = defineComponent({
     return h("div", { class: "top-control-panel-stub" }, [
       h("div", { "data-testid": "transcription-enabled" }, String(this.transcriptionEnabled)),
       h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length)),
+      h("div", { "data-testid": "transcription-active-id" }, String(this.activeTranscriptionId)),
+      h("div", { "data-testid": "transcription-config-names" }, (this.transcriptionConfigs as any[])
+        .map((config) => config.name)
+        .join(",")),
       h("div", { "data-testid": "status-banner-tone" }, String((this.statusBanner as any).tone)),
       h("div", { "data-testid": "status-banner-text" }, String((this.statusBanner as any).text))
     ]);
@@ -759,6 +767,46 @@ describe("SubtitleView", () => {
 
     expect(wrapper.get('[data-testid="transcription-enabled"]').text()).toBe("true");
     expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("1");
+  });
+
+  it("shows transcription configs from feature settings", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const defaultConfig = store.settings.features.transcription.configs[0]!;
+    store.settings.features.transcription = {
+      enabled: true,
+      activeConfigId: "fast-local",
+      configs: [
+        {
+          ...defaultConfig,
+          id: "fast-local",
+          name: "Fast local",
+          provider: "faster-whisper",
+          baseUrl: "",
+          model: "",
+          fasterWhisperModel: "base",
+          fasterWhisperBinary: "faster-whisper"
+        }
+      ]
+    };
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = "profile-1";
+    vi.spyOn(store, "setActiveTranscriptionConfig").mockResolvedValue();
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="transcription-config-names"]').text()).toContain("Fast local");
+    expect(wrapper.get('[data-testid="transcription-active-id"]').text()).toBe("fast-local");
   });
 
   it("opens word lookup when the trigger key is pressed after hovering a token", async () => {

@@ -80,6 +80,7 @@ const foundationChromeSelectorGroups = sharedPrimitiveGroups.map(({ kind, classN
 const chromeDeclarationPattern = /(?:^|[;\s])(?:width|height|min-height|border|border-color|border-radius|background|color|padding|outline|font-size|line-height)\s*:/;
 const composedChromeDeclarationPattern = /(?:^|[;\s])(?:border|border-color|border-radius|background|color|outline|font-size|line-height)\s*:/;
 const tokenDefinitionPattern = /(?:^|[{\s;])(--ui-[\w-]+)\s*:/g;
+const legacyRendererTokenPattern = /--(?:color|text)-[\w-]+/g;
 
 const failures = [];
 const productPrimitiveClasses = findProductClassesComposedWithSharedPrimitives([
@@ -112,6 +113,9 @@ for (const file of productCssFiles) {
   for (const token of findSharedTokenDefinitions(text)) {
     failures.push(`${rel}: defines shared UI token (${token})`);
   }
+  for (const token of findLegacyRendererTokens(text)) {
+    failures.push(`${rel}: uses legacy renderer token (${token}); use --ui-* tokens`);
+  }
   for (const failure of findProductUiChromeOverrides(text, { fullCss: true })) {
     failures.push(`${rel}: overrides shared UI ${failure.kind} chrome (${failure.selector})`);
   }
@@ -128,6 +132,9 @@ for (const root of desktopProductRoots) {
     const rel = path.relative(repoRoot, file);
     for (const token of findSharedTokenDefinitions(text)) {
       failures.push(`${rel}: defines shared UI token (${token})`);
+    }
+    for (const token of findLegacyRendererTokens(text)) {
+      failures.push(`${rel}: uses legacy renderer token (${token}); use --ui-* tokens`);
     }
     for (const failure of findProductUiChromeOverrides(text)) {
       failures.push(`${rel}: overrides shared UI ${failure.kind} chrome (${failure.selector})`);
@@ -213,6 +220,10 @@ function isSourceFile(file) {
 
 function findSharedTokenDefinitions(text) {
   return [...cssBlocksFor(text)].flatMap((css) => [...css.matchAll(tokenDefinitionPattern)].map((match) => match[1]));
+}
+
+function findLegacyRendererTokens(text) {
+  return [...new Set(cssBlocksFor(text).flatMap((css) => [...css.matchAll(legacyRendererTokenPattern)].map((match) => match[0])))];
 }
 
 function findProductUiChromeOverrides(text, options = {}) {

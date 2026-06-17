@@ -105,6 +105,8 @@ export interface TranscriptionConfig {
   prompt: string;
   enableWordTimestamps: boolean;
   extraParams: Record<string, string>;
+  ytDlpArgs: string;
+  fasterWhisperBinary: string;
   fasterWhisperModel: string;
   fasterWhisperModelDir: string;
   fasterWhisperDevice: FasterWhisperDevice;
@@ -132,27 +134,10 @@ export interface WordLookupFeatureSettings {
   config: WordLookupFeatureConfig;
 }
 
-export interface TranscriptionFeatureConfig {
-  provider: TranscriptionProvider;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  language: string;
-  prompt: string;
-  enableWordTimestamps: boolean;
-  extraParamsJson: string;
-  fasterWhisperModel: string;
-  fasterWhisperModelDir: string;
-  fasterWhisperDevice: FasterWhisperDevice;
-  fasterWhisperVadFilter: boolean;
-  fasterWhisperVadThreshold: number;
-  fasterWhisperVadMethod: string;
-  fasterWhisperUseKim2: boolean;
-}
-
 export interface TranscriptionFeatureSettings {
   enabled: boolean;
-  config: TranscriptionFeatureConfig;
+  activeConfigId: string;
+  configs: TranscriptionConfig[];
 }
 
 export interface JellyfinEmbyServerConfig {

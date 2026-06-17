@@ -61,6 +61,76 @@ describe("WordLookupService", () => {
     });
   });
 
+  it("reports status after refresh", async () => {
+    const filePath = await writeWords(JSON.stringify({ word: "test", content: "A test entry" }));
+    const service = new WordLookupService(() => ({
+      enabled: true,
+      config: {
+        wordListPath: filePath,
+        modifierKey: "alt",
+        panelWidth: 360,
+        panelHeight: 300
+      }
+    }));
+
+    const status = await service.refresh();
+
+    expect(status.ok).toBe(true);
+    expect(status.wordListPath).toBe(filePath);
+    expect(status.entryCount).toBe(1);
+    expect(status.fileMtimeMs).toEqual(expect.any(Number));
+    expect(status.loadedAt).toEqual(expect.any(Number));
+    expect(status.error).toBeNull();
+    expect(service.getStatus()).toEqual(status);
+  });
+
+  it("reports the current path without stale load metadata after the configured path changes", async () => {
+    const first = await writeWords(JSON.stringify({ word: "alpha", content: "A" }));
+    const second = path.join(tempDir, "second.jsonl");
+    await fs.writeFile(second, JSON.stringify({ word: "beta", content: "B" }), "utf-8");
+    let wordListPath = first;
+    const service = new WordLookupService(() => ({
+      enabled: true,
+      config: {
+        wordListPath,
+        modifierKey: "alt",
+        panelWidth: 360,
+        panelHeight: 300
+      }
+    }));
+
+    await service.refresh();
+    wordListPath = second;
+    const status = service.getStatus();
+
+    expect(status).toEqual({
+      ok: false,
+      wordListPath: second,
+      entryCount: 0,
+      fileMtimeMs: null,
+      loadedAt: null,
+      error: "Word list path changed. Refresh to load it."
+    });
+  });
+
+  it("reports refresh errors without throwing", async () => {
+    const service = new WordLookupService(() => ({
+      enabled: true,
+      config: {
+        wordListPath: "/path/that/does/not/exist.jsonl",
+        modifierKey: "alt",
+        panelWidth: 360,
+        panelHeight: 300
+      }
+    }));
+
+    const status = await service.refresh();
+
+    expect(status.ok).toBe(false);
+    expect(status.wordListPath).toBe("/path/that/does/not/exist.jsonl");
+    expect(status.error).toBeTruthy();
+  });
+
   it("reports invalid JSONL rows", async () => {
     const filePath = await writeWords("{not-json}");
     const service = new WordLookupService(() => ({

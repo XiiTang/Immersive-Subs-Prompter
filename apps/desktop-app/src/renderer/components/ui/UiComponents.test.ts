@@ -176,6 +176,10 @@ describe("UI primitives", () => {
     await input.get("input").setValue("two");
     expect(input.emitted("update:modelValue")?.[0]).toEqual(["two"]);
 
+    const numberInput = mount(UiInput, { props: { modelValue: 0, type: "number" } });
+    await numberInput.get("input").setValue("");
+    expect(numberInput.emitted("update:modelValue")?.[0]).toEqual([""]);
+
     const textarea = mount(UiTextarea, { props: { modelValue: "a" } });
     await textarea.get("textarea").setValue("b");
     expect(textarea.emitted("update:modelValue")?.[0]).toEqual(["b"]);

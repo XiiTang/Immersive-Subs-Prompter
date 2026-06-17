@@ -50,18 +50,47 @@ describe("appSettingsSanitizer", () => {
         },
         transcription: {
           enabled: false,
-          config: expect.objectContaining({
-            provider: "whisper-api",
-            baseUrl: "",
-            model: "whisper-1",
-            extraParamsJson: "{}"
-          })
+          activeConfigId: "default-transcription",
+          configs: [
+            expect.objectContaining({
+              id: "default-transcription",
+              name: "Default Whisper API",
+              provider: "whisper-api",
+              baseUrl: "https://api.openai.com/v1",
+              model: "whisper-1",
+              extraParams: {},
+              ytDlpArgs: expect.stringContaining("--extract-audio"),
+              fasterWhisperBinary: "faster-whisper"
+            })
+          ]
         },
         jellyfinEmby: {
           enabled: false,
           config: { servers: [] }
         }
       });
+    });
+
+    it("keeps multi-config transcription feature settings", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(settings.features.transcription).toEqual({
+        enabled: false,
+        activeConfigId: "default-transcription",
+        configs: [
+          expect.objectContaining({
+            id: "default-transcription",
+            name: "Default Whisper API",
+            provider: "whisper-api",
+            baseUrl: "https://api.openai.com/v1",
+            model: "whisper-1",
+            extraParams: {},
+            ytDlpArgs: expect.stringContaining("--extract-audio"),
+            fasterWhisperBinary: "faster-whisper"
+          })
+        ]
+      });
+      expect(sanitizeSettings(settings).features.transcription).toEqual(settings.features.transcription);
     });
 
     it("rejects removed plugin settings", () => {
@@ -143,15 +172,142 @@ describe("appSettingsSanitizer", () => {
             features: {
               transcription: {
                 enabled: true,
-                config: {
-                  fasterWhisperVadThreshold: 2
-                }
+                activeConfigId: settings.features.transcription.activeConfigId,
+                configs: []
               }
             }
           } as never,
           settings
         )
-      ).toThrow("features.transcription.config.fasterWhisperVadThreshold must be between 0 and 1");
+      ).toThrow("features.transcription.configs must include at least one config");
+    });
+
+    it("rejects a transcription active config id that does not exist", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                activeConfigId: "missing-config",
+                configs: settings.features.transcription.configs
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.activeConfigId must reference an existing config");
+    });
+
+    it("rejects missing or invalid active transcription config ids after merging partial updates", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const config = settings.features.transcription.configs[0]!;
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                activeConfigId: null
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.activeConfigId must reference an existing config");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                activeConfigId: "missing-config"
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.activeConfigId must reference an existing config");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                configs: [{ ...config, id: "replacement-config" }]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.activeConfigId must reference an existing config");
+    });
+
+    it("rejects invalid transcription config fields in the final settings model", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const config = settings.features.transcription.configs[0]!;
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    extraParams: []
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.configs.0.extraParams must use the current object setting");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    name: "   "
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.configs.0.name must be a non-empty string");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    fasterWhisperVadThreshold: 2
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.configs.0.fasterWhisperVadThreshold must be between 0 and 1");
     });
 
     it("merges fixed feature config patches", () => {

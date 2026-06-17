@@ -112,7 +112,7 @@ const wordLookupConfig = computed(() => {
 });
 const transcriptionConfigs = computed(() => (
   transcriptionEnabled.value
-    ? [{ id: "feature-transcription", name: "Speech Transcription" }]
+    ? transcriptionFeature.value?.configs.map((config) => ({ id: config.id, name: config.name })) ?? []
     : []
 ));
 const transcriptionConfigNames = computed(() =>
@@ -321,11 +321,12 @@ const sliderFillStyle = computed(() => {
 });
 
 const activeTranscriptionId = computed({
-  get: () => (transcriptionEnabled.value ? "feature-transcription" : ""),
+  get: () => transcriptionFeature.value?.activeConfigId ?? "",
   set: (value: string) => {
-    if (value !== "feature-transcription") {
+    if (!transcriptionConfigs.value.some((config) => config.id === value)) {
       return;
     }
+    void store.setActiveTranscriptionConfig(value);
   }
 });
 const isTranscribing = computed(() => transcriptionState.value?.status === "running");

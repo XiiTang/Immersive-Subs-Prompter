@@ -10,6 +10,7 @@ import { WordLookupWindowManager } from "../window/wordLookupWindowManager.js";
 import { AppReleaseService } from "../appReleaseService.js";
 import type { WordLookupService } from "../features/wordLookupService.js";
 import type { TranscriptionFeatureServiceOptions } from "../features/transcriptionFeatureService.js";
+import type { FasterWhisperManager } from "../fasterWhisperManager.js";
 import { registerStateHandlers } from "./handlers/stateHandlers.js";
 import { registerSettingsHandlers } from "./handlers/settingsHandlers.js";
 import { registerSubtitleHandlers } from "./handlers/subtitleHandlers.js";
@@ -17,6 +18,7 @@ import { registerTranscriptionHandlers } from "./handlers/transcriptionHandlers.
 import { registerCacheHandlers } from "./handlers/cacheHandlers.js";
 import { registerWindowHandlers } from "./handlers/windowHandlers.js";
 import { registerReleaseHandlers } from "./handlers/releaseHandlers.js";
+import { registerFasterWhisperHandlers } from "./handlers/fasterWhisperHandlers.js";
 
 export type IpcContext = {
   stateManager: StateManager;
@@ -25,6 +27,7 @@ export type IpcContext = {
   cacheManager: SubtitleCacheManager;
   releaseService: AppReleaseService;
   wordLookupService: WordLookupService;
+  fasterWhisperManager: FasterWhisperManager;
   transcriptionFeature: TranscriptionFeatureServiceOptions;
   getSettings: () => AppSettings;
   setSettings: (settings: AppSettings) => void;
@@ -47,5 +50,6 @@ export class IpcRouter {
     registerCacheHandlers(this.context);
     registerWindowHandlers(this.context);
     registerReleaseHandlers(this.context);
+    registerFasterWhisperHandlers(this.context);
   }
 }

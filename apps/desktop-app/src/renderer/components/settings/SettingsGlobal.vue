@@ -112,11 +112,12 @@
 
           <UiSettingRow id="cache-retention" :label="t('cache-retention-label')" control-width="compact">
             <UiInput
-              v-model="cacheRetentionDays"
+              :model-value="cacheRetentionDaysDraft"
               type="number"
               min="1"
               max="9999"
               step="1"
+              @update:model-value="updateCacheRetentionDaysDraft(String($event))"
             />
           </UiSettingRow>
 
@@ -152,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type { AppearanceTheme, NetworkEndpoint } from "../../../main/types";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
@@ -173,6 +174,7 @@ import PillListEditor from "./PillListEditor.vue";
 import SettingsReleaseUpdate from "./SettingsReleaseUpdate.vue";
 import ShortcutInput from "./ShortcutInput.vue";
 import type { PillListEditorItem } from "./pillListEditorTypes";
+import { parseBoundedNumberDraft } from "./numericDraft";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -240,6 +242,7 @@ function removeGameProcess(name: string) {
 }
 
 const cacheBusy = ref(false);
+const cacheRetentionDaysDraft = ref("");
 
 const cacheEnabled = computed({
   get: () => store.settings?.cache.enabled ?? true,
@@ -249,11 +252,6 @@ const cacheEnabled = computed({
 const cachePath = computed({
   get: () => store.settings?.cache.path ?? "",
   set: (value: string) => store.updateCacheSetting("path", value)
-});
-
-const cacheRetentionDays = computed({
-  get: () => store.settings?.cache.retentionDays ?? DEFAULT_CACHE_SETTINGS.retentionDays,
-  set: (value: number) => store.updateCacheSetting("retentionDays", value)
 });
 
 const cacheStatsDisplay = computed(() => {
@@ -269,6 +267,14 @@ const cacheStatsDisplay = computed(() => {
     oldest: oldestDate
   };
 });
+
+function updateCacheRetentionDaysDraft(value: string) {
+  cacheRetentionDaysDraft.value = value;
+  const retentionDays = parseBoundedNumberDraft(value, 1, 9999);
+  if (retentionDays !== null) {
+    store.updateCacheSetting("retentionDays", retentionDays);
+  }
+}
 
 async function refreshCacheStats() {
   cacheBusy.value = true;
@@ -286,4 +292,12 @@ function openCacheFolder() {
 function statLabel(key: string): string {
   return t(key).replace(/[：:]\s*$/, "");
 }
+
+watch(
+  () => store.settings?.cache.retentionDays ?? DEFAULT_CACHE_SETTINGS.retentionDays,
+  (retentionDays) => {
+    cacheRetentionDaysDraft.value = String(retentionDays);
+  },
+  { immediate: true }
+);
 </script>

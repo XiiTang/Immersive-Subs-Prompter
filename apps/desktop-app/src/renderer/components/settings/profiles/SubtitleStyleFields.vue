@@ -179,13 +179,14 @@
         inline
       >
         <UiInput
-          v-model="subtitleAutoScrollTimeout"
+          :model-value="subtitleAutoScrollTimeoutDraft"
           class="subtitle-style-fields__autoscroll-input"
           size="compact"
           type="number"
           min="1"
           max="60"
           step="1"
+          @update:model-value="updateSubtitleAutoScrollTimeoutDraft(String($event))"
         />
       </UiField>
     </div>
@@ -193,13 +194,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import type { ProfileSettings } from "../../../../main/types";
 import { SUBTITLE_FONT_OPTIONS } from "../../../../common/subtitleFonts.js";
 import { DEFAULT_PROFILE_TEMPLATE, useDesktopStore } from "../../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { UiField, UiInput, UiSelect, UiSlider, UiSwitch } from "../../ui";
 import ColorSchemeGrid from "./ColorSchemeGrid.vue";
+import { parseBoundedNumberDraft } from "../numericDraft";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -228,6 +230,7 @@ const draft = reactive<Record<DraftProfileSettingKey, number>>({
   subtitleLineHeight: 0,
   subtitleBlockGap: 0
 });
+const subtitleAutoScrollTimeoutDraft = ref("");
 
 function syncDraftFromStore() {
   const settings = store.editingProfileSettings;
@@ -243,6 +246,14 @@ function syncDraftFromStore() {
 
 function commitDraftProfileSetting<Key extends DraftProfileSettingKey>(key: Key) {
   store.updateProfileSetting(key, draft[key] as ProfileSettings[Key]);
+}
+
+function updateSubtitleAutoScrollTimeoutDraft(value: string) {
+  subtitleAutoScrollTimeoutDraft.value = value;
+  const timeout = parseBoundedNumberDraft(value, 1, 60);
+  if (timeout !== null) {
+    store.updateProfileSetting("subtitleAutoScrollTimeout", timeout);
+  }
 }
 
 watch(
@@ -266,8 +277,11 @@ const subtitleAutoHideMetaRow = computed({
   set: (value: boolean) => store.updateProfileSetting("subtitleAutoHideMetaRow", value)
 });
 
-const subtitleAutoScrollTimeout = computed({
-  get: () => store.editingProfileSettings.subtitleAutoScrollTimeout,
-  set: (value: number) => store.updateProfileSetting("subtitleAutoScrollTimeout", value)
-});
+watch(
+  () => store.editingProfileSettings.subtitleAutoScrollTimeout,
+  (timeout) => {
+    subtitleAutoScrollTimeoutDraft.value = String(timeout);
+  },
+  { immediate: true }
+);
 </script>

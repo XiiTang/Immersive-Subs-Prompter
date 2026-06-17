@@ -289,6 +289,141 @@ describe("desktop store profile selection", () => {
     });
   });
 
+  it("sets active transcription config", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.setActiveTranscriptionConfig("config-b");
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        transcription: {
+          ...store.settings!.features.transcription,
+          activeConfigId: "config-b"
+        }
+      }
+    });
+  });
+
+  it("updates transcription configs as a complete list", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+    const nextConfig = {
+      ...store.settings!.features.transcription.configs[0]!,
+      name: "Updated"
+    };
+
+    await store.setTranscriptionConfigs([nextConfig], nextConfig.id);
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        transcription: {
+          enabled: store.settings!.features.transcription.enabled,
+          activeConfigId: nextConfig.id,
+          configs: [nextConfig]
+        }
+      }
+    });
+  });
+
+  it("adds Jellyfin / Emby server configs", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    const id = await store.addJellyfinEmbyServer();
+
+    expect(id).toMatch(/^jellyfin-emby-/);
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        jellyfinEmby: {
+          enabled: store.settings!.features.jellyfinEmby.enabled,
+          config: {
+            servers: [
+              {
+                id,
+                name: "Server 1",
+                serverUrl: "",
+                apiKey: "",
+                enabled: true
+              }
+            ]
+          }
+        }
+      }
+    });
+  });
+
+  it("updates Jellyfin / Emby server configs", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.settings.features.jellyfinEmby.config.servers = [
+      { id: "server-1", name: "Home", serverUrl: "", apiKey: "", enabled: true }
+    ];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.updateJellyfinEmbyServer("server-1", { serverUrl: "https://media.example.test" });
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        jellyfinEmby: {
+          enabled: store.settings.features.jellyfinEmby.enabled,
+          config: {
+            servers: [
+              { id: "server-1", name: "Home", serverUrl: "https://media.example.test", apiKey: "", enabled: true }
+            ]
+          }
+        }
+      }
+    });
+  });
+
+  it("duplicates Jellyfin / Emby server configs", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.settings.features.jellyfinEmby.config.servers = [
+      {
+        id: "server-1",
+        name: "Home",
+        serverUrl: "https://home.example.test",
+        apiKey: "token",
+        enabled: true
+      }
+    ];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    const id = await store.duplicateJellyfinEmbyServer("server-1");
+
+    expect(id).toMatch(/^jellyfin-emby-/);
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        jellyfinEmby: {
+          enabled: store.settings.features.jellyfinEmby.enabled,
+          config: {
+            servers: [
+              {
+                id: "server-1",
+                name: "Home",
+                serverUrl: "https://home.example.test",
+                apiKey: "token",
+                enabled: true
+              },
+              {
+                id,
+                name: "Home Copy",
+                serverUrl: "https://home.example.test",
+                apiKey: "token",
+                enabled: true
+              }
+            ]
+          }
+        }
+      }
+    });
+  });
+
   it("keeps renderer settings unchanged when main rejects a settings update", async () => {
     const store = useDesktopStore();
     const original = createSettings();

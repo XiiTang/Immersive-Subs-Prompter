@@ -22,6 +22,7 @@ import { MediaSourceController } from "../mediaSources/mediaSourceController.js"
 import { AppReleaseService } from "../appReleaseService.js";
 import { WordLookupService } from "../features/wordLookupService.js";
 import { JellyfinEmbyMediaSource } from "../features/jellyfinEmbyMediaSource.js";
+import { FasterWhisperManager } from "../fasterWhisperManager.js";
 
 type WindowControllerOptions = {
   bus: AppEventBus;
@@ -46,6 +47,7 @@ export class WindowController {
   private readonly gameProcessMonitor: GameProcessMonitor;
   private readonly ipcRouter: IpcRouter;
   private readonly wordLookupService: WordLookupService;
+  private readonly fasterWhisperManager: FasterWhisperManager;
   private readonly jellyfinEmbyMediaSource: JellyfinEmbyMediaSource;
   private readonly mediaSourceController: MediaSourceController;
   private readonly releaseService: AppReleaseService;
@@ -95,6 +97,7 @@ export class WindowController {
     });
 
     this.wordLookupService = new WordLookupService(() => this.options.getSettings().features.wordLookup);
+    this.fasterWhisperManager = new FasterWhisperManager();
     this.jellyfinEmbyMediaSource = new JellyfinEmbyMediaSource({
       getSettings: () => this.options.getSettings().features.jellyfinEmby
     });
@@ -118,6 +121,7 @@ export class WindowController {
       cacheManager: this.options.cacheManager,
       releaseService: this.releaseService,
       wordLookupService: this.wordLookupService,
+      fasterWhisperManager: this.fasterWhisperManager,
       transcriptionFeature: {
         stateManager: this.options.stateManager,
         cacheManager: this.options.cacheManager,

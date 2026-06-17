@@ -43,6 +43,10 @@ export function registerWindowHandlers(context: IpcContext) {
     return context.wordLookupService.lookup(token);
   });
 
+  ipcMain.handle("usp:word-lookup-refresh", () => context.wordLookupService.refresh());
+
+  ipcMain.handle("usp:word-lookup-status", () => context.wordLookupService.getStatus());
+
   ipcMain.handle("usp:word-lookup-window-open", (_event, payload) => {
     return context.wordLookupWindowManager.open(payload);
   });
