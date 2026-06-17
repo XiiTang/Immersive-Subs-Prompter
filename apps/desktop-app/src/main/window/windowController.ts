@@ -1,4 +1,5 @@
-import { app, shell } from "electron";
+import { app } from "electron";
+import { autoUpdater } from "electron-updater";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
@@ -107,10 +108,12 @@ export class WindowController {
       getSources: () => [this.jellyfinEmbyMediaSource]
     });
     this.releaseService = new AppReleaseService({
+      updater: autoUpdater,
       getCurrentVersion: () => app.getVersion(),
       getSettings: this.options.getSettings,
       updateSettings: (partial) => this.updateAppSettings(partial),
-      openExternal: (url) => shell.openExternal(url),
+      isPackaged: app.isPackaged,
+      logger: this.log,
       onStateChange: (state) => this.pushReleaseState(state)
     });
 

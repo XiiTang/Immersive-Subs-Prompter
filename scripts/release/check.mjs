@@ -1,13 +1,9 @@
-import { fileExists, normalizeVersion, assertUnifiedPackageVersions, readJson, validateReleaseManifest } from "./utils.mjs";
+import { normalizeVersion, assertUnifiedPackageVersions } from "./utils.mjs";
 
 const args = parseArgs(process.argv.slice(2).filter((arg) => arg !== "--"));
 const expectedVersion = args.tag ? normalizeVersion(args.tag) : null;
 
 const version = assertUnifiedPackageVersions(process.cwd(), expectedVersion);
-
-if (fileExists("releases/latest.json")) {
-  validateReleaseManifest(readJson("releases/latest.json"));
-}
 
 console.log(`Release preflight passed for ${version}`);
 

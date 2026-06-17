@@ -2,12 +2,10 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
-import type { ReleaseState } from "../../../main/releases/releaseManifest";
+import type { ReleaseState } from "../../../main/releases/releaseState";
 import { cloneFeatureSettings } from "../../../common/featureDefaults";
 import { useDesktopStore } from "../../stores/desktop";
 import SettingsReleaseUpdate from "./SettingsReleaseUpdate.vue";
-
-const checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 function settings(): AppSettings {
   return {
@@ -32,56 +30,16 @@ function settings(): AppSettings {
   };
 }
 
-function idleState(): ReleaseState {
+function state(status: ReleaseState["status"], patch: Partial<ReleaseState> = {}): ReleaseState {
   return {
-    status: "idle",
+    status,
     currentVersion: "1.0.0",
     latestVersion: null,
     checkedAt: null,
-    manifest: null,
-    platformKey: "darwin-arm64",
-    platformArtifact: null,
-    error: null
-  };
-}
-
-function availableState(): ReleaseState {
-  return {
-    status: "available",
-    currentVersion: "1.0.0",
-    latestVersion: "1.2.0",
-    checkedAt: Date.UTC(2026, 5, 10),
-    platformKey: "darwin-arm64",
-    platformArtifact: {
-      fileName: "Immersive-Subs-Prompter-1.2.0-darwin-arm64.dmg",
-      url: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/mac.dmg",
-      sha256: checksum,
-      signed: false
-    },
-    manifest: {
-      schemaVersion: 1,
-      version: "1.2.0",
-      releasedAt: "2026-06-10T12:00:00Z",
-      releaseUrl: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/tag/v1.2.0",
-      minimumSupportedVersion: "1.0.0",
-      notes: { en: "English notes", zh: "中文说明" },
-      desktop: {},
-      extension: {
-        chrome: {
-          version: "1.2.0",
-          artifactUrl: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/chrome.zip",
-          sha256: checksum,
-          storeStatus: "manual-review"
-        },
-        firefox: {
-          version: "1.2.0",
-          artifactUrl: "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/firefox.zip",
-          sha256: checksum,
-          storeStatus: "manual-review"
-        }
-      }
-    },
-    error: null
+    updateInfo: null,
+    progress: null,
+    error: null,
+    ...patch
   };
 }
 
@@ -93,7 +51,7 @@ describe("SettingsReleaseUpdate", () => {
   it("shows current version and manual check action", () => {
     const store = useDesktopStore();
     store.settings = settings();
-    store.releaseState = idleState();
+    store.releaseState = state("idle");
     vi.spyOn(store, "checkForUpdates").mockResolvedValue();
 
     const wrapper = mount(SettingsReleaseUpdate);
@@ -102,23 +60,84 @@ describe("SettingsReleaseUpdate", () => {
     expect(wrapper.text()).toContain("Current version");
     expect(wrapper.text()).toContain("1.0.0");
     expect(wrapper.find('[data-testid="release-check"]').exists()).toBe(true);
-    expect(wrapper.findAll('[data-slot="setting-row"]').length).toBeGreaterThanOrEqual(2);
   });
 
-  it("shows available release notes and opens the download page", async () => {
+  it("shows available update and starts download", async () => {
     const store = useDesktopStore();
     store.settings = settings();
-    store.releaseState = availableState();
-    const openSpy = vi.spyOn(store, "openReleaseDownload").mockResolvedValue();
+    store.releaseState = state("available", {
+      latestVersion: "1.2.0",
+      updateInfo: {
+        version: "1.2.0",
+        releaseName: "Version 1.2.0",
+        releaseDate: "2026-06-17T12:00:00Z",
+        releaseNotes: "English notes"
+      }
+    });
+    const downloadSpy = vi.spyOn(store, "downloadReleaseUpdate").mockResolvedValue();
 
     const wrapper = mount(SettingsReleaseUpdate);
-    await wrapper.get('[data-testid="release-open-download"]').trigger("click");
+    await wrapper.get('[data-testid="release-download"]').trigger("click");
 
     expect(wrapper.text()).toContain("1.2.0");
     expect(wrapper.text()).toContain("English notes");
-    expect(wrapper.text()).toContain("2026-06-10");
-    expect(wrapper.text()).toContain("Immersive-Subs-Prompter-1.2.0-darwin-arm64.dmg");
-    expect(wrapper.text()).toContain(`SHA-256 ${checksum}`);
-    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain("2026-06-17");
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows download progress", () => {
+    const store = useDesktopStore();
+    store.settings = settings();
+    store.releaseState = state("downloading", {
+      latestVersion: "1.2.0",
+      progress: {
+        percent: 42,
+        bytesPerSecond: 1024,
+        transferred: 420,
+        total: 1000
+      }
+    });
+
+    const wrapper = mount(SettingsReleaseUpdate);
+
+    expect(wrapper.text()).toContain("Downloading");
+    expect(wrapper.text()).toContain("42%");
+  });
+
+  it("installs downloaded updates", async () => {
+    const store = useDesktopStore();
+    store.settings = settings();
+    store.releaseState = state("downloaded", {
+      latestVersion: "1.2.0",
+      updateInfo: {
+        version: "1.2.0",
+        releaseName: "Version 1.2.0",
+        releaseDate: "2026-06-17T12:00:00Z",
+        releaseNotes: "English notes"
+      }
+    });
+    const installSpy = vi.spyOn(store, "installReleaseUpdate").mockResolvedValue();
+
+    const wrapper = mount(SettingsReleaseUpdate);
+    await wrapper.get('[data-testid="release-install"]').trigger("click");
+
+    expect(wrapper.text()).toContain("Ready to install");
+    expect(installSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows update errors", () => {
+    const store = useDesktopStore();
+    store.settings = settings();
+    store.releaseState = state("error", {
+      error: {
+        code: "check-failed",
+        message: "feed unavailable"
+      }
+    });
+
+    const wrapper = mount(SettingsReleaseUpdate);
+
+    expect(wrapper.text()).toContain("Update check failed");
+    expect(wrapper.text()).toContain("feed unavailable");
   });
 });

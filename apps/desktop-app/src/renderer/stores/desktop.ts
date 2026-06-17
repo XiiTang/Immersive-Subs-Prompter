@@ -21,7 +21,7 @@ import { gameBlacklistActions } from "./desktop/actions/gameBlacklistActions";
 import { playbackActions } from "./desktop/actions/playbackActions";
 import { initActions } from "./desktop/actions/initActions";
 import { releaseActions } from "./desktop/actions/releaseActions";
-import type { ReleaseState } from "../../main/releases/releaseManifest";
+import type { ReleaseState } from "../../main/releases/releaseState";
 
 export { DEFAULT_PROFILE_TEMPLATE } from "./desktop/defaults";
 

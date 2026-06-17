@@ -16,7 +16,7 @@ import type {
 import type { FeatureId } from "../../../common/featureDefaults";
 import type { TranscriptBlock } from "../../components/subtitle/transcript/types";
 import type { RendererApi } from "../../../preload.cts";
-import type { ReleaseState } from "../../../main/releases/releaseManifest";
+import type { ReleaseState } from "../../../main/releases/releaseState";
 
 type CacheStats = Awaited<ReturnType<RendererApi["getCacheStats"]>>;
 type ConfigurableFeatureId = Exclude<FeatureId, "transcription">;
@@ -100,7 +100,8 @@ interface DesktopStoreActions {
 
   // release
   checkForUpdates(): Promise<void>;
-  openReleaseDownload(): Promise<void>;
+  downloadReleaseUpdate(): Promise<void>;
+  installReleaseUpdate(): Promise<void>;
 
   // game blacklist
   addGameProcess(processName: string): void;

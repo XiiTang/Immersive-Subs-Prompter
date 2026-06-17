@@ -8,7 +8,7 @@
       :hint="currentVersion"
       control-width="compact"
     >
-      <UiButton data-testid="release-check" :disabled="checking" @click="check">
+      <UiButton data-testid="release-check" :disabled="busy" @click="check">
         <IconRefresh size="sm" :class="{ 'icon--spinning': checking }" />
         {{ checking ? t("release-checking") : t("release-check") }}
       </UiButton>
@@ -27,19 +27,43 @@
       v-if="state?.status === 'available'"
       id="release-available"
       :label="t('release-update-available', { version: state.latestVersion })"
-      :hint="localizedNotes"
+      :hint="releaseNotes"
       control-width="editor"
     >
       <div class="ui-group">
-        <UiButton data-testid="release-open-download" variant="primary" @click="openDownload">
-          <IconExternalLink size="sm" />
-          {{ t("release-open-download") }}
+        <UiButton data-testid="release-download" variant="primary" @click="download">
+          <IconDownload size="sm" />
+          {{ t("release-download-update") }}
         </UiButton>
         <span v-if="releaseDate" class="ui-field__hint">{{ t("release-date") }} {{ releaseDate }}</span>
-        <span v-if="state.error" class="ui-field__hint">{{ state.error.message }}</span>
-        <span v-if="state.platformArtifact" class="ui-field__hint">
-          {{ state.platformArtifact.fileName }} · SHA-256 {{ artifactHash }}
-        </span>
+      </div>
+    </UiSettingRow>
+
+    <UiSettingRow
+      v-else-if="state?.status === 'downloading'"
+      id="release-downloading"
+      :label="t('release-downloading')"
+      :hint="downloadHint"
+      control-width="editor"
+    >
+      <div class="ui-group">
+        <UiProgress :value="downloadPercent" :label="t('release-downloading')" />
+        <span class="ui-field__hint">{{ downloadPercent }}%</span>
+      </div>
+    </UiSettingRow>
+
+    <UiSettingRow
+      v-else-if="state?.status === 'downloaded'"
+      id="release-downloaded"
+      :label="t('release-ready-to-install')"
+      :hint="releaseNotes"
+      control-width="editor"
+    >
+      <div class="ui-group">
+        <UiButton data-testid="release-install" variant="primary" @click="install">
+          {{ t("release-install-restart") }}
+        </UiButton>
+        <span v-if="releaseDate" class="ui-field__hint">{{ t("release-date") }} {{ releaseDate }}</span>
       </div>
     </UiSettingRow>
 
@@ -67,9 +91,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
-import { DEFAULT_LANGUAGE, normalizeLanguage, useI18n } from "../../i18n";
-import { IconExternalLink, IconRefresh } from "../icons";
-import { UiButton, UiSettingRow, UiStatus, UiSwitch } from "../ui";
+import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
+import { IconDownload, IconRefresh } from "../icons";
+import { UiButton, UiProgress, UiSettingRow, UiStatus, UiSwitch } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -77,26 +101,42 @@ const { t } = useI18n(language);
 
 const state = computed(() => store.releaseState);
 const checking = computed(() => state.value?.status === "checking");
+const busy = computed(() => state.value?.status === "checking" || state.value?.status === "downloading");
 const currentVersion = computed(() => state.value?.currentVersion ?? "-");
 const autoCheckUpdates = computed({
   get: () => store.settings?.global.autoCheckUpdates ?? true,
   set: (value: boolean) => store.updateGlobalSetting("autoCheckUpdates", value)
 });
-const localizedNotes = computed(() => {
-  const notes = state.value?.manifest?.notes;
-  if (!notes) {
+const releaseNotes = computed(() => state.value?.updateInfo?.releaseNotes ?? "");
+const releaseDate = computed(() => state.value?.updateInfo?.releaseDate?.slice(0, 10) ?? "");
+const downloadPercent = computed(() => Math.round(state.value?.progress?.percent ?? 0));
+const downloadHint = computed(() => {
+  const progress = state.value?.progress;
+  if (!progress) {
     return "";
   }
-  return normalizeLanguage(language.value) === "zh" ? notes.zh : notes.en;
+  return `${formatBytes(progress.transferred)} / ${formatBytes(progress.total)}`;
 });
-const releaseDate = computed(() => state.value?.manifest?.releasedAt.slice(0, 10) ?? "");
-const artifactHash = computed(() => state.value?.platformArtifact?.sha256 ?? "");
 
 function check() {
   void store.checkForUpdates();
 }
 
-function openDownload() {
-  void store.openReleaseDownload();
+function download() {
+  void store.downloadReleaseUpdate();
+}
+
+function install() {
+  void store.installReleaseUpdate();
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${Math.round(value / 1024)} KB`;
+  }
+  return `${Math.round(value / 1024 / 1024)} MB`;
 }
 </script>

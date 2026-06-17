@@ -15,8 +15,7 @@
     "test:extension": "pnpm --filter @immersive-subs/extension test",
     "release:prepare": "node ./scripts/release/prepare.mjs",
     "release:check": "node ./scripts/release/check.mjs",
-    "release:collect-desktop": "node ./scripts/release/collect-desktop-artifact.mjs",
-    "release:manifest": "node ./scripts/release/manifest.mjs",
+    "release:check-builder-artifacts": "node ./scripts/release/check-builder-artifacts.mjs",
     "release:zip-extension": "node ./scripts/release/zip-extension.mjs",
     "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-ui-boundaries.test.mjs",
     "test:release-scripts": "node --test scripts/release/release-scripts.test.mjs"

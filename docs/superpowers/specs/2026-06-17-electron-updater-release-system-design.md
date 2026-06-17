@@ -78,6 +78,7 @@ Final desktop packaging characteristics:
 - `apps/desktop-app` has an `electron-builder` configuration as the only desktop release packaging contract.
 - The app keeps the existing built output contract: main, preload, and renderer bundles are produced before packaging.
 - The packaged app identity uses the existing product name, bundle identifier, executable name, icons, resources, and fuse hardening expectations.
+- Release artifact filenames use the stable `Immersive-Subs-Prompter` slug so updater metadata and uploaded assets use the same names.
 - Native and runtime resources that must exist on disk are placed in `asarUnpack` or `extraResources`.
 - Electron Forge makers, Forge release collection scripts, and Forge-only output assumptions are not part of the final release system.
 
@@ -113,6 +114,8 @@ https://raw.githubusercontent.com/XiiTang/Immersive-Subs-Prompter/main/releases/
 
 There is no app-side static release manifest. The update feed is the builder-generated updater metadata hosted with GitHub Release assets.
 
+The release artifact check verifies every `url` and `path` reference in the builder-generated updater metadata points to a desktop asset uploaded with the release.
+
 Local updater testing uses a `dev-app-update.yml` equivalent that points `electron-updater` at an explicit test feed. Production code does not infer update feeds from renderer state.
 
 ## Main-Process Update Service
@@ -122,12 +125,11 @@ The main process owns the updater service.
 Responsibilities:
 
 - configure `autoUpdater` request behavior and logger
-- set `autoUpdater.autoDownload` from the user's update setting
+- set `autoUpdater.autoDownload = false`
 - set `autoUpdater.autoInstallOnAppQuit = false`
 - call `autoUpdater.checkForUpdates()` for manual and automatic checks
-- call `autoUpdater.downloadUpdate()` when a user starts download or when auto-download is enabled
+- call `autoUpdater.downloadUpdate()` only when the user starts download
 - call `autoUpdater.quitAndInstall(true, true)` only after an update is downloaded and the user chooses install
-- cancel any in-flight download when update settings make the current operation invalid
 - translate `electron-updater` events into a stable app release state
 - broadcast release state to the main window and settings window
 
@@ -212,6 +214,8 @@ The workflow validates:
 - extension build and tests
 - generated updater metadata is present for each updater-supported platform
 - release assets use expected names
+- updater metadata references only release assets that exist
+- macOS release signing and notarization secrets are configured before macOS packaging starts
 
 The workflow does not open a pull request for `releases/latest.json`. That file is not part of the final desktop update system.
 
@@ -221,12 +225,12 @@ The updater path is designed around platform-native installation trust.
 
 Final expectations:
 
-- macOS release artifacts are signed for updater-compatible installation.
+- macOS release artifacts are signed and notarized for updater-compatible installation.
 - Windows NSIS artifacts use the configured signing path when signing credentials are present.
 - Linux AppImage update delivery relies on the AppImage updater path produced by `electron-builder`.
 - Release metadata does not claim an artifact is signed when it is not.
 
-Unsigned local builds may be used for development feed testing. Production update behavior is validated with release-shaped artifacts.
+Unsigned local builds may be used for development feed testing. Production macOS releases fail before packaging if signing or notarization secrets are missing.
 
 ## Error Handling
 
@@ -239,7 +243,6 @@ Handled error classes:
 - updater metadata invalid or incomplete
 - unsupported platform updater target
 - download failure
-- canceled download
 - install failure
 
 Errors are reported in the update settings surface and logged in the main process. The app does not fall back to parsing GitHub pages, raw JSON manifests, or renderer-provided download URLs.

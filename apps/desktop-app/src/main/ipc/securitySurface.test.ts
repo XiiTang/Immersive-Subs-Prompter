@@ -7,17 +7,21 @@ function readSource(path: string): string {
 }
 
 describe("renderer-to-main security surface", () => {
-  it("does not expose a generic external opener or renderer-controlled release URL", () => {
+  it("exposes updater commands without renderer-controlled payloads", () => {
     const preload = readSource("src/preload.cts");
     const settingsHandlers = readSource("src/main/ipc/handlers/settingsHandlers.ts");
     const releaseHandlers = readSource("src/main/ipc/handlers/releaseHandlers.ts");
 
     expect(preload).not.toContain("openExternal");
-    expect(preload).toContain("openReleaseDownload: ()");
-    expect(preload).toContain('ipcRenderer.invoke("usp:open-release-download")');
-    expect(preload).not.toContain('ipcRenderer.invoke("usp:open-release-download",');
+    expect(preload).toContain("downloadReleaseUpdate: ()");
+    expect(preload).toContain("installReleaseUpdate: ()");
+    expect(preload).toContain('ipcRenderer.invoke("usp:download-release-update")');
+    expect(preload).toContain('ipcRenderer.invoke("usp:install-release-update")');
+    expect(preload).not.toContain('ipcRenderer.invoke("usp:download-release-update",');
+    expect(preload).not.toContain('ipcRenderer.invoke("usp:install-release-update",');
     expect(settingsHandlers).not.toContain("usp:open-external");
     expect(releaseHandlers).not.toContain("payload");
-    expect(releaseHandlers).toContain("context.releaseService.openDownload()");
+    expect(releaseHandlers).toContain("context.releaseService.downloadUpdate()");
+    expect(releaseHandlers).toContain("context.releaseService.installDownloadedUpdate()");
   });
 });

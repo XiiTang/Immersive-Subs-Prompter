@@ -13,15 +13,24 @@ export async function checkForUpdates(this: DesktopStoreThis) {
   }
 }
 
-export async function openReleaseDownload(this: DesktopStoreThis) {
-  const result = await window.usp.openReleaseDownload();
+export async function downloadReleaseUpdate(this: DesktopStoreThis) {
+  try {
+    this.releaseState = await window.usp.downloadReleaseUpdate();
+  } catch (error) {
+    reportError(error, "release.download");
+  }
+}
+
+export async function installReleaseUpdate(this: DesktopStoreThis) {
+  const result = await window.usp.installReleaseUpdate();
   if (!result.ok) {
-    reportError(new Error(result.error ?? "Failed to open release download"), "release.open-download");
+    reportError(new Error(result.error ?? "Failed to install release update"), "release.install");
   }
 }
 
 export const releaseActions = {
   refreshReleaseState,
   checkForUpdates,
-  openReleaseDownload
+  downloadReleaseUpdate,
+  installReleaseUpdate
 };

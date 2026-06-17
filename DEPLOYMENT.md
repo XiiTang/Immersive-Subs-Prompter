@@ -24,6 +24,14 @@ pnpm typecheck
 pnpm test
 ```
 
+Configure these GitHub Actions secrets before publishing macOS desktop releases:
+
+- `CSC_LINK`
+- `CSC_KEY_PASSWORD`
+- `APPLE_API_KEY`
+- `APPLE_API_KEY_ID`
+- `APPLE_API_ISSUER`
+
 Create and push a release tag:
 
 ```bash
@@ -31,11 +39,11 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-The release workflow builds desktop installers on macOS, Windows, and Linux, builds Chrome and Firefox extension ZIP files, creates a draft GitHub Release, uploads release assets and checksums, and opens a pull request updating `releases/latest.json`.
+The release workflow builds desktop packages with electron-builder, uploads updater metadata such as `latest.yml`, `latest-mac.yml`, and `latest-linux.yml`, uploads platform release assets, builds Chrome and Firefox extension ZIP files, creates a checksum file, and creates or updates the GitHub Release for the tag. The macOS release job fails before packaging if signing or notarization secrets are missing.
 
-The desktop app reads `releases/latest.json` for update checks. The manifest becomes active only after the release-manifest pull request is reviewed and merged.
+The desktop app uses electron-updater in the main process. It checks the GitHub Release updater feed, downloads updates only after the user clicks "Download update", reports progress to Settings, and installs only after the user clicks "Install and restart".
 
-Chrome Web Store and Firefox AMO submission remain manual. Update `extension.chrome.storeStatus` and `extension.firefox.storeStatus` in a follow-up manifest pull request when store review status changes.
+Chrome Web Store and Firefox AMO submission remain manual. Extension store updates are handled by the browser stores, not by the desktop updater.
 
 ## Browser Extension
 
@@ -78,7 +86,7 @@ Run the app from source:
 pnpm --filter @immersive-subs/desktop-app start
 ```
 
-Create Electron Forge packages:
+Create desktop packages:
 
 ```bash
 pnpm --filter @immersive-subs/desktop-app package
@@ -87,7 +95,7 @@ pnpm --filter @immersive-subs/desktop-app dist:win
 pnpm --filter @immersive-subs/desktop-app dist:linux
 ```
 
-Build each target on its matching host platform. Forge configuration lives at `apps/desktop-app/forge.config.mjs`; app resources live in `apps/desktop-app/resources`.
+Build each target on its matching host platform. Electron-builder configuration lives at `apps/desktop-app/electron-builder.yml`. Desktop artifact filenames use the `Immersive-Subs-Prompter` slug; updater metadata must reference files present in the release upload set. Local updater feed testing can use `apps/desktop-app/dev-app-update.yml`.
 
 ## Network Endpoints
 

@@ -1,45 +1,63 @@
+import type { ProgressInfo, UpdateInfo } from "builder-util-runtime";
 import type { AppSettings } from "./types.js";
 import {
-  compareReleaseVersions,
-  getDesktopPlatformKey,
-  RELEASE_MANIFEST_URL,
-  selectDesktopArtifact,
-  validateReleaseManifest,
+  createInitialReleaseState,
+  normalizeProgress,
+  normalizeUpdateInfo,
+  type ReleaseErrorCode,
   type ReleaseState
-} from "./releases/releaseManifest.js";
+} from "./releases/releaseState.js";
 
 const UPDATE_AUTO_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+type CheckForUpdatesResult = {
+  updateInfo: UpdateInfo;
+};
+
+export interface UpdaterLike {
+  autoDownload: boolean;
+  autoInstallOnAppQuit: boolean;
+  forceDevUpdateConfig?: boolean;
+  logger?: unknown;
+  checkForUpdates(): Promise<CheckForUpdatesResult | null>;
+  downloadUpdate(): Promise<string[]>;
+  quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
+  on(event: "error", listener: (error: Error) => void): this;
+  on(event: "update-available", listener: (info: UpdateInfo) => void): this;
+  on(event: "update-not-available", listener: (info: UpdateInfo) => void): this;
+  on(event: "download-progress", listener: (progress: ProgressInfo) => void): this;
+  on(event: "update-downloaded", listener: (info: UpdateInfo) => void): this;
+}
+
+type ActiveOperation = "check" | "download" | "install" | null;
+
 type AppReleaseServiceOptions = {
+  updater: UpdaterLike;
   getCurrentVersion: () => string;
   getSettings: () => AppSettings;
   updateSettings: (partial: Partial<AppSettings>) => AppSettings;
-  fetchManifest?: () => Promise<unknown>;
-  openExternal: (url: string) => Promise<void>;
-  platform?: NodeJS.Platform;
-  arch?: NodeJS.Architecture;
   now?: () => number;
+  isPackaged?: boolean;
+  logger?: unknown;
   onStateChange?: (state: ReleaseState) => void;
 };
 
 export class AppReleaseService {
-  private readonly fetchManifest: () => Promise<unknown>;
   private readonly now: () => number;
   private state: ReleaseState;
+  private activeOperation: ActiveOperation = null;
+  private hasDownloadedUpdate = false;
 
   constructor(private readonly options: AppReleaseServiceOptions) {
-    this.fetchManifest = options.fetchManifest ?? fetchReleaseManifest;
     this.now = options.now ?? Date.now;
-    this.state = {
-      status: "idle",
-      currentVersion: options.getCurrentVersion(),
-      latestVersion: null,
-      checkedAt: null,
-      manifest: null,
-      platformKey: getDesktopPlatformKey(options.platform, options.arch),
-      platformArtifact: null,
-      error: null
-    };
+    this.state = createInitialReleaseState(options.getCurrentVersion());
+    this.options.updater.autoDownload = false;
+    this.options.updater.autoInstallOnAppQuit = false;
+    this.options.updater.logger = options.logger ?? this.options.updater.logger ?? null;
+    if (this.options.updater.forceDevUpdateConfig !== undefined) {
+      this.options.updater.forceDevUpdateConfig = !options.isPackaged;
+    }
+    this.registerUpdaterListeners();
   }
 
   getState(): ReleaseState {
@@ -58,122 +76,201 @@ export class AppReleaseService {
   }
 
   async checkForUpdates(): Promise<ReleaseState> {
+    this.hasDownloadedUpdate = false;
     const currentVersion = this.options.getCurrentVersion();
     this.setState({
+      ...createInitialReleaseState(currentVersion),
       status: "checking",
-      currentVersion,
-      latestVersion: this.state.latestVersion,
-      checkedAt: this.state.checkedAt,
-      manifest: this.state.manifest,
-      platformKey: this.state.platformKey,
-      platformArtifact: this.state.platformArtifact,
-      error: null
+      checkedAt: this.state.checkedAt
     });
-    const checkedAt = this.now();
-    const updatedSettings = this.options.updateSettings({
-      global: {
-        ...this.options.getSettings().global,
-        lastUpdateCheckAt: checkedAt
+    const updatedSettings = this.recordCheckAttempt();
+
+    try {
+      this.activeOperation = "check";
+      const result = await this.options.updater.checkForUpdates();
+      this.activeOperation = null;
+      if (!result?.updateInfo) {
+        this.setState({
+          ...this.state,
+          status: "unavailable",
+          currentVersion,
+          latestVersion: null,
+          checkedAt: updatedSettings.global.lastUpdateCheckAt,
+          updateInfo: null,
+          progress: null,
+          error: null
+        });
+        return this.state;
       }
-    });
+
+      const updateInfo = normalizeUpdateInfo(result.updateInfo);
+      this.setState({
+        ...this.state,
+        status: "available",
+        currentVersion,
+        latestVersion: updateInfo.version,
+        checkedAt: updatedSettings.global.lastUpdateCheckAt,
+        updateInfo,
+        progress: null,
+        error: null
+      });
+      return this.state;
+    } catch (error) {
+      this.activeOperation = null;
+      return this.recordError("check-failed", error);
+    }
+  }
+
+  async downloadUpdate(): Promise<ReleaseState> {
+    if (this.hasDownloadedUpdate) {
+      return this.state;
+    }
+    if (!this.state.updateInfo) {
+      this.setState({
+        ...this.state,
+        status: "error",
+        error: {
+          code: "download-unavailable",
+          message: "No update is available to download"
+        }
+      });
+      return this.state;
+    }
+
     this.setState({
       ...this.state,
-      checkedAt: updatedSettings.global.lastUpdateCheckAt
+      status: "downloading",
+      progress: this.state.progress ?? {
+        percent: 0,
+        bytesPerSecond: 0,
+        transferred: 0,
+        total: 0
+      },
+      error: null
     });
 
-    let payload;
     try {
-      payload = await this.fetchManifest();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.setState({
-        ...this.state,
-        status: "error",
-        error: {
-          code: "network-error",
-          message
-        }
-      });
+      this.activeOperation = "download";
+      await this.options.updater.downloadUpdate();
+      this.activeOperation = null;
       return this.state;
-    }
-
-    let manifest;
-    try {
-      manifest = validateReleaseManifest(payload);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.setState({
-        ...this.state,
-        status: "error",
-        error: {
-          code: message.includes("Unsupported release manifest schema") ? "unsupported-schema" : "invalid-manifest",
-          message
-        }
-      });
-      return this.state;
+      this.activeOperation = null;
+      return this.recordError("download-failed", error);
     }
-
-    const platformArtifact = selectDesktopArtifact(manifest, this.state.platformKey);
-    const newer = compareReleaseVersions(manifest.version, currentVersion) > 0;
-
-    this.setState({
-      status: newer ? "available" : "unavailable",
-      currentVersion,
-      latestVersion: manifest.version,
-      checkedAt: updatedSettings.global.lastUpdateCheckAt,
-      manifest,
-      platformKey: this.state.platformKey,
-      platformArtifact,
-      error: newer && !platformArtifact
-        ? {
-            code: "platform-artifact-missing",
-            message: `No desktop artifact is published for ${this.state.platformKey}`
-          }
-        : null
-    });
-    return this.state;
   }
 
-  async openDownload(): Promise<{ ok: boolean; error?: string }> {
-    const targetUrl = this.state.platformArtifact?.url ?? this.state.manifest?.releaseUrl;
-    if (!targetUrl) {
-      return this.recordOpenFailure("No release download URL is available");
+  async installDownloadedUpdate(): Promise<{ ok: boolean; error?: string }> {
+    if (!this.hasDownloadedUpdate) {
+      const message = "No downloaded update is ready to install";
+      this.setState({
+        ...this.state,
+        status: "error",
+        error: {
+          code: "install-unavailable",
+          message
+        }
+      });
+      return { ok: false, error: message };
     }
-    if (!targetUrl.startsWith("https://")) {
-      return this.recordOpenFailure("Release download URL must use HTTPS");
-    }
+
     try {
-      await this.options.openExternal(targetUrl);
+      this.activeOperation = "install";
+      this.setState({
+        ...this.state,
+        status: "installing",
+        error: null
+      });
+      this.options.updater.quitAndInstall(true, true);
+      this.activeOperation = null;
       return { ok: true };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return this.recordOpenFailure(message);
+      this.activeOperation = null;
+      const state = this.recordError("install-failed", error);
+      return { ok: false, error: state.error?.message ?? "Install failed" };
     }
   }
 
-  private recordOpenFailure(message: string): { ok: false; error: string } {
+  private recordCheckAttempt(): AppSettings {
+    return this.options.updateSettings({
+      global: {
+        ...this.options.getSettings().global,
+        lastUpdateCheckAt: this.now()
+      }
+    });
+  }
+
+  private registerUpdaterListeners(): void {
+    this.options.updater.on("error", (error) => {
+      this.recordError(this.errorCodeForActiveOperation(), error);
+    });
+    this.options.updater.on("update-available", (info) => {
+      const updateInfo = normalizeUpdateInfo(info);
+      this.setState({
+        ...this.state,
+        status: "available",
+        latestVersion: updateInfo.version,
+        updateInfo,
+        error: null
+      });
+    });
+    this.options.updater.on("update-not-available", () => {
+      this.setState({
+        ...this.state,
+        status: "unavailable",
+        latestVersion: null,
+        updateInfo: null,
+        progress: null,
+        error: null
+      });
+    });
+    this.options.updater.on("download-progress", (progress) => {
+      this.setState({
+        ...this.state,
+        status: "downloading",
+        progress: normalizeProgress(progress),
+        error: null
+      });
+    });
+    this.options.updater.on("update-downloaded", (info) => {
+      this.hasDownloadedUpdate = true;
+      const updateInfo = normalizeUpdateInfo(info);
+      this.setState({
+        ...this.state,
+        status: "downloaded",
+        latestVersion: updateInfo.version,
+        updateInfo,
+        progress: this.state.progress,
+        error: null
+      });
+    });
+  }
+
+  private errorCodeForActiveOperation(): ReleaseErrorCode {
+    if (this.activeOperation === "download") {
+      return "download-failed";
+    }
+    if (this.activeOperation === "install") {
+      return "install-failed";
+    }
+    return "check-failed";
+  }
+
+  private recordError(code: ReleaseErrorCode, error: unknown): ReleaseState {
+    const message = error instanceof Error ? error.message : String(error);
     this.setState({
       ...this.state,
       status: "error",
       error: {
-        code: "open-url-failed",
+        code,
         message
       }
     });
-    return { ok: false, error: message };
+    return this.state;
   }
 
   private setState(state: ReleaseState): void {
     this.state = state;
     this.options.onStateChange?.(this.state);
   }
-}
-
-async function fetchReleaseManifest(): Promise<unknown> {
-  const { net } = await import("electron");
-  const response = await net.fetch(RELEASE_MANIFEST_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Release manifest request failed with HTTP ${response.status}`);
-  }
-  return response.json();
 }

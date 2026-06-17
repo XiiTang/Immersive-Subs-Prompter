@@ -1,0 +1,65 @@
+appId: com.sheixunixitang3.immersivesubsprompter
+productName: Immersive Subs Prompter
+directories:
+  output: out
+  buildResources: resources
+files:
+  - dist/**/*
+  - package.json
+asar: true
+asarUnpack:
+  - node_modules/get-windows/**
+extraResources:
+  - from: resources/icon.ico
+    to: icon.ico
+  - from: resources/icon.icns
+    to: icon.icns
+  - from: resources/icon.png
+    to: icon.png
+  - from: resources/trayTemplate.png
+    to: trayTemplate.png
+  - from: resources/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+mac:
+  category: public.app-category.utilities
+  icon: resources/icon.icns
+  artifactName: Immersive-Subs-Prompter-${version}-darwin-${arch}.${ext}
+  target:
+    - target: dmg
+    - target: zip
+dmg:
+  artifactName: Immersive-Subs-Prompter-${version}-darwin-${arch}.${ext}
+win:
+  icon: resources/icon.ico
+  executableName: Immersive Subs Prompter
+  artifactName: Immersive-Subs-Prompter-${version}-win32-${arch}-setup.${ext}
+  target:
+    - target: nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+linux:
+  icon: resources/icon.png
+  executableName: immersive-subs-prompter
+  artifactName: Immersive-Subs-Prompter-${version}-linux-${arch}.${ext}
+  category: Utility
+  maintainer: sheixunixitang3@gmail.com
+  target:
+    - target: AppImage
+    - target: deb
+    - target: rpm
+publish:
+  provider: github
+  owner: XiiTang
+  repo: Immersive-Subs-Prompter
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true

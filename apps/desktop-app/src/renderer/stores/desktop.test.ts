@@ -178,13 +178,21 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       currentVersion: "1.0.0",
       latestVersion: null,
       checkedAt: null,
-      manifest: null,
-      platformKey: "darwin-arm64",
-      platformArtifact: null,
+      updateInfo: null,
+      progress: null,
       error: null
     }),
     checkForUpdates: vi.fn(),
-    openReleaseDownload: vi.fn().mockResolvedValue({ ok: true }),
+    downloadReleaseUpdate: vi.fn().mockResolvedValue({
+      status: "downloaded",
+      currentVersion: "1.0.0",
+      latestVersion: "1.2.0",
+      checkedAt: Date.now(),
+      updateInfo: null,
+      progress: null,
+      error: null
+    }),
+    installReleaseUpdate: vi.fn().mockResolvedValue({ ok: true }),
     updateSettings: vi.fn(async (partial: Partial<AppSettings>) => ({
       ...settings,
       ...partial
@@ -238,13 +246,15 @@ describe("desktop store profile selection", () => {
     expect(typeof window.usp.openSettingsWindow).toBe("function");
   });
 
-  it("does not forward renderer-supplied URLs to the release download bridge", async () => {
+  it("does not forward renderer-supplied URLs or paths to release updater bridges", async () => {
     installRendererApi(createDesktopState(), createSettings());
     const store = useDesktopStore();
 
-    await Reflect.apply(store.openReleaseDownload, store, ["https://attacker.example/app.dmg"]);
+    await Reflect.apply(store.downloadReleaseUpdate, store, ["https://attacker.example/app.dmg"]);
+    await Reflect.apply(store.installReleaseUpdate, store, ["/tmp/attacker-installer"]);
 
-    expect(window.usp.openReleaseDownload).toHaveBeenCalledWith();
+    expect(window.usp.downloadReleaseUpdate).toHaveBeenCalledWith();
+    expect(window.usp.installReleaseUpdate).toHaveBeenCalledWith();
   });
 
   it("reuses transcript blocks across pure playback updates", () => {
