@@ -67,17 +67,18 @@
             <span class="profile-list__meta">{{ profileRuleSummary(profile.id) }}</span>
           </span>
           <button
+            v-if="!isFallbackProfile(profile.id)"
             type="button"
             class="profile-list__status-action"
-            :class="{ 'is-active': profile.id === editingProfileId }"
-            :aria-label="t('profile-current')"
-            :aria-pressed="profile.id === editingProfileId ? 'true' : 'false'"
-            :data-testid="`profile-list-current-${profile.id}`"
-            @click.stop="$emit('select', profile.id)"
+            :class="{ 'is-active': profile.enabled }"
+            :aria-label="profile.enabled ? t('profile-enabled') : t('profile-enable')"
+            :aria-pressed="profile.enabled ? 'true' : 'false'"
+            :data-testid="`profile-list-enabled-${profile.id}`"
+            @click.stop="$emit('toggle-enabled', profile.id, !profile.enabled)"
             @mousedown.stop
             @dragstart.stop
           >
-            <IconCheck v-if="profile.id === editingProfileId" size="sm" />
+            <IconCheck v-if="profile.enabled" size="sm" />
           </button>
         </UiListItem>
       </template>
@@ -119,6 +120,7 @@ const emit = defineEmits<{
   (e: "select", profileId: string): void;
   (e: "reorder", fromIndex: number, toIndex: number): void;
   (e: "rename", profileId: string, name: string): void;
+  (e: "toggle-enabled", profileId: string, enabled: boolean): void;
 }>();
 
 function isFallbackProfile(profileId: string): boolean {

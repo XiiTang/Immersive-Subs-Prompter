@@ -13,6 +13,7 @@
         @select="(id) => store.setEditingProfile(id)"
         @reorder="(fromIndex, toIndex) => store.reorderProfile(fromIndex, toIndex)"
         @rename="updateProfileName"
+        @toggle-enabled="(id, enabled) => store.toggleProfileEnabled(id, enabled)"
       />
       <div class="settings-split__editor" v-if="editingProfile">
         <ProfileUrlRules

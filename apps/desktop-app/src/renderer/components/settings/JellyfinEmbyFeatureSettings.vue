@@ -87,14 +87,24 @@
     </aside>
 
     <section v-if="editableServer" class="settings-split__editor">
-      <UiSettingRow id="feature-jellyfin-emby-server-url-row" :label="t('feature-jellyfin-emby-server-url')" control-width="wide">
+      <UiSettingRow
+        id="feature-jellyfin-emby-server-url-row"
+        :label="t('feature-jellyfin-emby-server-url')"
+        :error="serverUrlError(editableServer)"
+        control-width="wide"
+      >
         <UiInput
           id="feature-jellyfin-emby-server-url"
           :model-value="editableServer.serverUrl"
           @update:model-value="updateSelectedServer({ serverUrl: String($event) })"
         />
       </UiSettingRow>
-      <UiSettingRow id="feature-jellyfin-emby-api-key-row" :label="t('feature-jellyfin-emby-api-key')" control-width="wide">
+      <UiSettingRow
+        id="feature-jellyfin-emby-api-key-row"
+        :label="t('feature-jellyfin-emby-api-key')"
+        :error="serverApiKeyError(editableServer)"
+        control-width="wide"
+      >
         <UiInput
           id="feature-jellyfin-emby-api-key"
           :model-value="editableServer.apiKey"
@@ -102,9 +112,6 @@
           @update:model-value="updateSelectedServer({ apiKey: String($event) })"
         />
       </UiSettingRow>
-      <div v-if="serverErrors(editableServer).length" class="server-errors" role="status">
-        <p v-for="error in serverErrors(editableServer)" :key="error" class="server-errors__item">{{ error }}</p>
-      </div>
     </section>
     <section v-else class="settings-split__editor">
       <UiEmptyState :message="t('feature-jellyfin-emby-empty')" />
@@ -192,7 +199,7 @@ async function removeSelectedServer() {
 }
 
 function serverMeta(server: JellyfinEmbyServerConfig): string {
-  return server.serverUrl || t("feature-jellyfin-emby-untitled");
+  return server.serverUrl.trim() || t("feature-jellyfin-emby-no-url");
 }
 
 async function startServerNameEdit(server: JellyfinEmbyServerConfig) {
@@ -245,23 +252,24 @@ function isHttpUrl(value: string) {
   return parsed.protocol === "http:" || parsed.protocol === "https:";
 }
 
-function serverErrors(server: JellyfinEmbyServerConfig): string[] {
+function serverUrlError(server: JellyfinEmbyServerConfig): string | null {
   if (!server.enabled) {
-    return [];
-  }
-  const errors: string[] = [];
-  if (!server.name.trim()) {
-    errors.push(t("feature-jellyfin-emby-name-required"));
+    return null;
   }
   if (!server.serverUrl.trim()) {
-    errors.push(t("feature-jellyfin-emby-url-required"));
-  } else if (!isHttpUrl(server.serverUrl)) {
-    errors.push(t("feature-jellyfin-emby-url-http"));
+    return t("feature-jellyfin-emby-url-required");
   }
-  if (!server.apiKey.trim()) {
-    errors.push(t("feature-jellyfin-emby-api-key-required"));
+  if (!isHttpUrl(server.serverUrl)) {
+    return t("feature-jellyfin-emby-url-http");
   }
-  return errors;
+  return null;
+}
+
+function serverApiKeyError(server: JellyfinEmbyServerConfig): string | null {
+  if (!server.enabled || server.apiKey.trim()) {
+    return null;
+  }
+  return t("feature-jellyfin-emby-api-key-required");
 }
 
 function canPersistServerDraft(server: JellyfinEmbyServerConfig): boolean {
@@ -270,17 +278,6 @@ function canPersistServerDraft(server: JellyfinEmbyServerConfig): boolean {
 </script>
 
 <style scoped>
-.server-errors {
-  display: grid;
-  gap: 4px;
-  color: var(--ui-danger);
-  font-size: var(--ui-font-sm);
-}
-
-.server-errors__item {
-  margin: 0;
-}
-
 @media (max-width: 760px) {
   .jellyfin-emby-settings {
     grid-template-columns: 1fr;

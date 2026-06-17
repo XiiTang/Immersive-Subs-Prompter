@@ -51,7 +51,7 @@ async function flushPreviewSurface() {
 }
 
 function createProfile(id = DEFAULT_PROFILE_ID, name = "Default"): ProfileDefinition {
-  return {
+  const profile = {
     id,
     name,
     description: null,
@@ -76,6 +76,7 @@ function createProfile(id = DEFAULT_PROFILE_ID, name = "Default"): ProfileDefini
       secondarySubtitlePriority: []
     }
   };
+  return id === DEFAULT_PROFILE_ID ? profile : { ...profile, enabled: true };
 }
 
 function createSettings(): AppSettings {
@@ -803,6 +804,11 @@ describe("SettingsProfiles", () => {
     expect(items[0]?.attributes("draggable")).toBe("true");
     expect(items[1]?.attributes("draggable")).toBe("false");
     expect(items[1]?.text()).toContain("Fallback");
+    expect(wrapper.find('[data-testid="profile-list-enabled-default-profile"]').exists()).toBe(false);
+
+    const enabledAction = wrapper.get<HTMLElement>('[data-testid="profile-list-enabled-profile-youtube"]');
+    expect(Math.round(enabledAction.element.getBoundingClientRect().width)).toBe(16);
+    expect(Math.round(enabledAction.element.getBoundingClientRect().height)).toBe(16);
   });
 
   it("renders URL rules as sortable pill chips", () => {

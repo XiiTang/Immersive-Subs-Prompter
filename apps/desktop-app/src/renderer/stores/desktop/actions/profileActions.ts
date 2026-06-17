@@ -40,6 +40,7 @@ export function addProfile(this: DesktopStoreThis) {
   const newProfile: ProfileDefinition = {
     id: createId("profile"),
     name: `Profile ${this.settings.profiles.length + 1}`,
+    enabled: true,
     description: null,
     settings: toPlain(DEFAULT_PROFILE_TEMPLATE)
   };
@@ -66,6 +67,7 @@ export function duplicateProfile(this: DesktopStoreThis) {
     ...existing,
     id: createId("profile"),
     name: `${existing.name} Copy`,
+    enabled: existing.id === this.settings.defaultProfileId ? true : existing.enabled === true,
     settings: toPlain(existing.settings)
   };
   this.editingProfileId = copy.id;
@@ -124,6 +126,27 @@ export function reorderProfile(this: DesktopStoreThis, fromIndex: number, toInde
   });
 }
 
+export function toggleProfileEnabled(this: DesktopStoreThis, profileId: string, enabled: boolean) {
+  if (!this.settings || profileId === this.settings.defaultProfileId) {
+    return;
+  }
+  let changed = false;
+  const profiles = this.settings.profiles.map((profile) => {
+    if (profile.id !== profileId || profile.enabled === enabled) {
+      return profile;
+    }
+    changed = true;
+    return {
+      ...profile,
+      enabled
+    };
+  });
+  if (!changed) {
+    return;
+  }
+  this.updateSettings({ profiles });
+}
+
 export function addPriority(this: DesktopStoreThis, role: "primary" | "secondary", value: string) {
   const normalized = value.trim();
   if (!this.settings || !this.editingProfileId || !normalized) {
@@ -180,6 +203,7 @@ export const profileActions = {
   duplicateProfile,
   deleteProfile,
   reorderProfile,
+  toggleProfileEnabled,
   addPriority,
   removePriority,
   reorderPriority

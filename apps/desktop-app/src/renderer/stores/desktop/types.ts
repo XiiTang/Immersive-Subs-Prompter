@@ -64,6 +64,7 @@ interface DesktopStoreActions {
   duplicateProfile(): void;
   deleteProfile(profileId: string): void;
   reorderProfile(fromIndex: number, toIndex: number): void;
+  toggleProfileEnabled(profileId: string, enabled: boolean): void;
   addPriority(role: "primary" | "secondary", value: string): void;
   removePriority(role: "primary" | "secondary", value: string): void;
   reorderPriority(role: "primary" | "secondary", fromIndex: number, toIndex: number): void;

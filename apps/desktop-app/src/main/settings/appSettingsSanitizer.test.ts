@@ -71,6 +71,37 @@ describe("appSettingsSanitizer", () => {
       });
     });
 
+    it("requires enablement only on non-fallback profiles", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const fallbackProfile = settings.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID);
+      const ruleProfile = settings.profiles.find((profile) => profile.id !== DEFAULT_PROFILE_ID);
+
+      expect(ruleProfile?.enabled).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(fallbackProfile ?? {}, "enabled")).toBe(false);
+
+      expect(() =>
+        sanitizeSettings({
+          ...settings,
+          profiles: settings.profiles.map((profile) => {
+            if (profile.id === ruleProfile?.id) {
+              const { enabled: _enabled, ...withoutEnabled } = profile;
+              return withoutEnabled;
+            }
+            return profile;
+          })
+        })
+      ).toThrow("profile.enabled must use the current boolean setting");
+
+      expect(() =>
+        sanitizeSettings({
+          ...settings,
+          profiles: settings.profiles.map((profile) =>
+            profile.id === DEFAULT_PROFILE_ID ? { ...profile, enabled: true } : profile
+          )
+        })
+      ).toThrow("fallback profile must not include enabled setting");
+    });
+
     it("keeps multi-config transcription feature settings", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
 

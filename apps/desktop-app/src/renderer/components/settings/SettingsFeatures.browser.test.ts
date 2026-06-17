@@ -100,8 +100,8 @@ describe("SettingsFeatures browser layout", () => {
     const statusActions = wrapper.findAll<HTMLElement>(".profile-list__status-action");
     expect(statusActions).toHaveLength(2);
     expect(statusActions[1]!.text()).toBe("");
-    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().width)).toBe(24);
-    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().height)).toBe(24);
+    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().width)).toBe(16);
+    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().height)).toBe(16);
 
     const nameActionStyle = getComputedStyle(nameActions[1]!.element);
     const actionTextLeftOffset =
@@ -166,8 +166,8 @@ describe("SettingsFeatures browser layout", () => {
     const statusActions = wrapper.findAll<HTMLElement>(".profile-list__status-action");
     expect(statusActions).toHaveLength(2);
     expect(statusActions[1]!.text()).toBe("");
-    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().width)).toBe(24);
-    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().height)).toBe(24);
+    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().width)).toBe(16);
+    expect(Math.round(statusActions[1]!.element.getBoundingClientRect().height)).toBe(16);
 
     const nameActionStyle = getComputedStyle(nameActions[1]!.element);
     const actionTextLeftOffset =
@@ -175,6 +175,7 @@ describe("SettingsFeatures browser layout", () => {
     const actionTextTopOffset =
       Number.parseFloat(nameActionStyle.borderTopWidth) + Number.parseFloat(nameActionStyle.paddingTop);
     const serverMeta = wrapper.findAll<HTMLElement>(".profile-list__meta")[1]!;
+    expect(serverMeta.text()).toBe("No server URL");
     expect(serverMeta.element.getBoundingClientRect().left - nameActions[1]!.element.getBoundingClientRect().left).toBe(
       actionTextLeftOffset
     );

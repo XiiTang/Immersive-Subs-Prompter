@@ -73,11 +73,12 @@ describe("ProfileList", () => {
     expect(wrapper.emitted("duplicate")).toHaveLength(1);
   });
 
-  it("marks the selected settings profile with a right-side circle and uses it to switch editing", async () => {
+  it("uses the right-side circle as non-fallback profile enablement", async () => {
     const otherProfile = {
       ...profile,
       id: "profile-other",
-      name: "Other"
+      name: "Other",
+      enabled: false
     };
     const wrapper = mount(ProfileList, {
       props: {
@@ -89,14 +90,14 @@ describe("ProfileList", () => {
       }
     });
 
-    const fallbackCurrent = wrapper.get('[data-testid="profile-list-current-default-profile"]');
-    const otherCurrent = wrapper.get('[data-testid="profile-list-current-profile-other"]');
-    expect(fallbackCurrent.attributes("aria-pressed")).toBe("true");
-    expect(otherCurrent.attributes("aria-pressed")).toBe("false");
-    expect(fallbackCurrent.find("svg").exists()).toBe(true);
+    expect(wrapper.find('[data-testid="profile-list-enabled-default-profile"]').exists()).toBe(false);
+    const otherEnabled = wrapper.get('[data-testid="profile-list-enabled-profile-other"]');
+    expect(otherEnabled.attributes("aria-pressed")).toBe("false");
+    expect(otherEnabled.find("svg").exists()).toBe(false);
 
-    await otherCurrent.trigger("click");
+    await otherEnabled.trigger("click");
 
-    expect(wrapper.emitted("select")).toEqual([[otherProfile.id]]);
+    expect(wrapper.emitted("toggle-enabled")).toEqual([[otherProfile.id, true]]);
+    expect(wrapper.emitted("select")).toBeUndefined();
   });
 });

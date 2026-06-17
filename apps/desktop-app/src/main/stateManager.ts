@@ -269,7 +269,7 @@ export class StateManager {
       }
 
       for (const profile of settings.profiles) {
-        if (profile.id === settings.defaultProfileId) {
+        if (profile.id === settings.defaultProfileId || !profile.enabled) {
           continue;
         }
         for (const rule of rulesByProfile.get(profile.id) ?? []) {

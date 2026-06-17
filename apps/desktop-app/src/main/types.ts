@@ -204,6 +204,7 @@ export interface ProfileSettings {
 export interface ProfileDefinition {
   id: string;
   name: string;
+  enabled?: boolean;
   description?: string | null;
   settings: ProfileSettings;
 }

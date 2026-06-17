@@ -13,7 +13,8 @@ const requiredKeys = [
   "connection-connecting",
   "connection-extension",
   "connection-extension-mediaserver",
-  "profile-current",
+  "profile-enable",
+  "profile-enabled",
   "profile-rule-label",
   "cue-play-label",
   "cue-loop-label",
@@ -58,7 +59,8 @@ const requiredKeys = [
   "feature-transcription-kim2",
   "feature-jellyfin-emby-title",
   "feature-jellyfin-emby-server-list",
-  "feature-jellyfin-emby-untitled"
+  "feature-jellyfin-emby-untitled",
+  "feature-jellyfin-emby-no-url"
 ];
 
 function readLocale(name: "en" | "zh") {

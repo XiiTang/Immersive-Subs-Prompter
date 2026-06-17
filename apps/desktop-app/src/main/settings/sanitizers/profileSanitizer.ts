@@ -8,7 +8,7 @@ import {
 } from "../../../common/subtitleSizing.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
-const PROFILE_KEYS = ["id", "name", "description", "settings"] as const;
+const PROFILE_KEYS = ["id", "name", "enabled", "description", "settings"] as const;
 const PROFILE_SETTINGS_KEYS = [
   "primarySubtitleFontFamily",
   "primarySubtitleFontSize",
@@ -143,6 +143,13 @@ export function validateProfilesForUpdate(input: unknown, fallbackProfileId: str
       typeof source.description !== "string"
     ) {
       throw new Error("profile.description must use the current string or null setting");
+    }
+    if (id === fallbackProfileId) {
+      if (Object.prototype.hasOwnProperty.call(source, "enabled")) {
+        throw new Error("fallback profile must not include enabled setting");
+      }
+    } else if (typeof source.enabled !== "boolean") {
+      throw new Error("profile.enabled must use the current boolean setting");
     }
     validateProfileSettingsForUpdate(source.settings);
     profiles.push(source as unknown as ProfileDefinition);

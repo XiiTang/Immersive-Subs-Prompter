@@ -1,5 +1,6 @@
 <template>
   <div
+    :id="id"
     class="ui-setting-row"
     :class="[`ui-setting-row--${controlWidth}`, { 'ui-setting-row--stacked': stacked }]"
     data-slot="setting-row"

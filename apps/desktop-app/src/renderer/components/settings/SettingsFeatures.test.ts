@@ -257,6 +257,8 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get(".profile-list-sidebar").exists()).toBe(true);
     expect(wrapper.findAll(".profile-list__item")).toHaveLength(2);
     expect(wrapper.find("#feature-jellyfin-emby-server-name").exists()).toBe(false);
+    expect(wrapper.findAll(".profile-list__meta")[0]!.text()).toBe("https://home.example.test");
+    expect(wrapper.findAll(".profile-list__meta")[1]!.text()).toBe("No server URL");
 
     await wrapper.findAll('[data-testid="feature-jellyfin-emby-server-name-action"]')[1]!.trigger("click");
     let nameInput = wrapper.get<HTMLInputElement>('[data-testid="feature-jellyfin-emby-server-name"]');
@@ -351,7 +353,7 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get('[data-testid="feature-jellyfin-emby-server-server-b"]').classes()).not.toContain("is-selected");
   });
 
-  it("shows Jellyfin / Emby server validation errors inline", () => {
+  it("shows Jellyfin / Emby server validation errors under their fields", () => {
     const store = seedStore();
     store.settings!.features.jellyfinEmby.config.servers = [
       {
@@ -365,9 +367,13 @@ describe("SettingsFeatures", () => {
 
     const wrapper = mount(JellyfinEmbyFeatureSettings);
 
-    expect(wrapper.text()).toContain("Name is required");
-    expect(wrapper.text()).toContain("Server URL must be HTTP(S)");
-    expect(wrapper.text()).toContain("API key is required");
+    expect(wrapper.find(".server-errors").exists()).toBe(false);
+    expect(wrapper.get("#feature-jellyfin-emby-server-url-row .ui-setting-row__error").text()).toBe(
+      "Server URL must be HTTP(S)"
+    );
+    expect(wrapper.get("#feature-jellyfin-emby-api-key-row .ui-setting-row__error").text()).toBe(
+      "API key is required"
+    );
   });
 
   it("localizes transcription settings labels", () => {

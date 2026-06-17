@@ -127,18 +127,21 @@ function createDefaultProfiles(): ProfileDefinition[] {
     {
       id: YOUTUBE_PROFILE_ID,
       name: "Youtube",
+      enabled: true,
       description: null,
       settings: cloneProfileSettings(YOUTUBE_PROFILE_SETTINGS)
     },
     {
       id: TIKTOK_PROFILE_ID,
       name: "tiktok",
+      enabled: true,
       description: null,
       settings: cloneProfileSettings(TIKTOK_PROFILE_SETTINGS)
     },
     {
       id: BILIBILI_PROFILE_ID,
       name: "Bilibili",
+      enabled: true,
       description: null,
       settings: cloneProfileSettings(BILIBILI_PROFILE_SETTINGS)
     },

@@ -292,7 +292,7 @@ Required-field and HTTP(S) URL validation appear inline. Empty server lists show
 
 ### Profile List
 
-The profile list keeps URL-rule-driven runtime profile application separate from settings editing. The right-side hollow circle marks the profile currently selected in the settings editor. Clicking that circle selects the profile for editing; it does not introduce a manual runtime profile override or change `defaultProfileId`.
+The profile list keeps URL-rule-driven runtime profile application separate from settings editing. Clicking a profile row selects that profile for editing. The right-side small hollow circle appears only on non-fallback profiles and toggles that profile's `enabled` state without changing the selected-for-editing row. Disabled profiles keep their URL rules but do not participate in runtime URL-rule matching. The fallback profile stays last, has no enablement control, and remains the runtime fallback when no enabled profile rule matches. This does not introduce a manual runtime profile override or change `defaultProfileId`.
 
 ## Renderer Data Flow
 

@@ -1115,9 +1115,9 @@ body.main-window-body {
 }
 
 .profile-list__status-action {
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
   border: 1px solid var(--ui-border);
   border-radius: 999px;
   display: inline-flex;
@@ -1129,6 +1129,11 @@ body.main-window-body {
   cursor: pointer;
 }
 
+.profile-list__status-action .icon {
+  width: 10px;
+  height: 10px;
+}
+
 .profile-list__status-action:hover,
 .profile-list__status-action:focus-visible {
   border-color: var(--ui-accent);
@@ -1138,8 +1143,8 @@ body.main-window-body {
 
 .profile-list__status-action.is-active {
   border-color: var(--ui-accent);
-  color: #ffffff;
-  background: var(--ui-accent);
+  color: var(--ui-accent);
+  background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
 }
 
 .profile-url-rules,

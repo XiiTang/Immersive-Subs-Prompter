@@ -7,11 +7,19 @@ import type { AppSettings } from "./types.js";
 
 function createProfile(base: AppSettings, id: string, name: string) {
   const template = base.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!;
-  return {
+  const profile = {
     ...template,
     id,
     name
   };
+  if (id !== DEFAULT_PROFILE_ID) {
+    return {
+      ...profile,
+      enabled: true
+    };
+  }
+  const { enabled: _enabled, ...fallbackProfile } = profile;
+  return fallbackProfile;
 }
 
 function makeSettings(): AppSettings {
@@ -60,6 +68,19 @@ describe("StateManager profile URL matching", () => {
 
     expect(selection.profile.id).toBe(DEFAULT_PROFILE_ID);
     expect(selection.rule).toBeNull();
+  });
+
+  it("skips disabled URL-rule profiles and uses the fallback profile", () => {
+    const settings = makeSettings();
+    settings.profiles = settings.profiles.map((profile) =>
+      profile.id === "profile-music-youtube" ? { ...profile, enabled: false } : profile
+    );
+    const manager = new StateManager(new AppEventBus(), () => settings);
+
+    const selection = manager.selectProfileForUrl("https://music.youtube.com/watch?v=demo");
+
+    expect(selection.profile.id).toBe("profile-youtube");
+    expect(selection.rule?.id).toBe("rule-youtube");
   });
 
   it("matches plain host rules against URL hosts instead of arbitrary URL text", () => {

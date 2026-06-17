@@ -70,6 +70,7 @@ function createSettings(): AppSettings {
       {
         id: "profile-bilibili",
         name: "Bilibili",
+        enabled: true,
         description: null,
         settings: {
           primarySubtitleFontFamily: '"PingFang SC", sans-serif',
@@ -522,6 +523,19 @@ describe("desktop store profile selection", () => {
 
     expect(store.settings?.profiles.at(-1)?.id).toBe(DEFAULT_PROFILE_ID);
     expect(store.settings?.profiles.map((profile) => profile.id)).toContain("profile-bilibili");
+  });
+
+  it("toggles non-fallback profile enablement without adding enablement to the fallback profile", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+
+    store.toggleProfileEnabled("profile-bilibili", false);
+
+    expect(store.settings?.profiles.find((profile) => profile.id === "profile-bilibili")?.enabled).toBe(false);
+
+    store.toggleProfileEnabled(DEFAULT_PROFILE_ID, false);
+
+    expect(Object.prototype.hasOwnProperty.call(store.settings?.profiles[0] ?? {}, "enabled")).toBe(false);
   });
 
   it("reorders URL rules within one profile without moving other profile rules", () => {
