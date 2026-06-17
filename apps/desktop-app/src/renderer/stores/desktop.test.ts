@@ -238,6 +238,15 @@ describe("desktop store profile selection", () => {
     expect(typeof window.usp.openSettingsWindow).toBe("function");
   });
 
+  it("does not forward renderer-supplied URLs to the release download bridge", async () => {
+    installRendererApi(createDesktopState(), createSettings());
+    const store = useDesktopStore();
+
+    await Reflect.apply(store.openReleaseDownload, store, ["https://attacker.example/app.dmg"]);
+
+    expect(window.usp.openReleaseDownload).toHaveBeenCalledWith();
+  });
+
   it("reuses transcript blocks across pure playback updates", () => {
     const store = useDesktopStore();
     store.settings = createSettings();

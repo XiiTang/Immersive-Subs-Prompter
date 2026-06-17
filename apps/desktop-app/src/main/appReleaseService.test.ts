@@ -201,4 +201,48 @@ describe("AppReleaseService", () => {
       "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/mac.dmg"
     );
   });
+
+  it("does not open renderer-supplied release URLs", async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const service = new AppReleaseService({
+      getCurrentVersion: () => "1.0.0",
+      getSettings: () => settings(),
+      updateSettings: () => settings(),
+      fetchManifest: vi.fn().mockResolvedValue(remoteManifest("1.2.0")),
+      openExternal,
+      platform: "darwin",
+      arch: "arm64",
+      now: () => Date.now()
+    });
+
+    await service.checkForUpdates();
+    await Reflect.apply(service.openDownload, service, ["https://attacker.example/download.dmg"]);
+
+    expect(openExternal).toHaveBeenCalledTimes(1);
+    expect(openExternal).toHaveBeenCalledWith(
+      "https://github.com/XiiTang/Immersive-Subs-Prompter/releases/download/v1.2.0/mac.dmg"
+    );
+  });
+
+  it("rejects renderer-supplied release URLs when no release state has been checked", async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const service = new AppReleaseService({
+      getCurrentVersion: () => "1.0.0",
+      getSettings: () => settings(),
+      updateSettings: () => settings(),
+      fetchManifest: vi.fn().mockResolvedValue(remoteManifest("1.2.0")),
+      openExternal,
+      platform: "darwin",
+      arch: "arm64",
+      now: () => Date.now()
+    });
+
+    const result = await Reflect.apply(service.openDownload, service, ["https://attacker.example/download.dmg"]);
+
+    expect(result).toEqual({
+      ok: false,
+      error: "No release download URL is available"
+    });
+    expect(openExternal).not.toHaveBeenCalled();
+  });
 });

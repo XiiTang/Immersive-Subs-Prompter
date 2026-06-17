@@ -143,10 +143,6 @@ function handleContentClick(event: MouseEvent) {
   const target = event.target instanceof Element ? event.target.closest("a") : null;
   if (!target) return;
   event.preventDefault();
-  const href = target.getAttribute("href");
-  if (href) {
-    void window.usp.openExternal(href);
-  }
 }
 
 function updateScrollbarMetrics() {

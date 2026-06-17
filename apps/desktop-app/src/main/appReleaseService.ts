@@ -134,8 +134,8 @@ export class AppReleaseService {
     return this.state;
   }
 
-  async openDownload(url?: string): Promise<{ ok: boolean; error?: string }> {
-    const targetUrl = url ?? this.state.platformArtifact?.url ?? this.state.manifest?.releaseUrl;
+  async openDownload(): Promise<{ ok: boolean; error?: string }> {
+    const targetUrl = this.state.platformArtifact?.url ?? this.state.manifest?.releaseUrl;
     if (!targetUrl) {
       return this.recordOpenFailure("No release download URL is available");
     }

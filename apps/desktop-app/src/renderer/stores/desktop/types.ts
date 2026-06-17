@@ -100,7 +100,7 @@ interface DesktopStoreActions {
 
   // release
   checkForUpdates(): Promise<void>;
-  openReleaseDownload(url?: string): Promise<void>;
+  openReleaseDownload(): Promise<void>;
 
   // game blacklist
   addGameProcess(processName: string): void;

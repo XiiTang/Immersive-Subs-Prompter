@@ -5,8 +5,9 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
-import { SubtitleService, splitArgs } from "./subtitleService.js";
+import { SubtitleService } from "./subtitleService.js";
 import type { SubtitleLoadResult } from "./types.js";
+import { splitArgs } from "./ytDlpArgPolicy.js";
 
 let tempDir: string;
 let manager: SubtitleCacheManager | null = null;
@@ -31,10 +32,6 @@ function makeSettings(enabled = true) {
   };
 }
 
-function quoteArg(value: string): string {
-  return `"${value.replace(/(["\\])/g, "\\$1")}"`;
-}
-
 function expectedVariant(argLine: string): string {
   return createHash("sha256").update(JSON.stringify(splitArgs(argLine))).digest("hex");
 }
@@ -44,7 +41,7 @@ async function createFakeYtDlpScript(): Promise<{ scriptPath: string; logPath: s
   const logPath = path.join(tempDir, "fake-ytdlp.log");
   await fsp.writeFile(
     scriptPath,
-    `
+    `#!/usr/bin/env node
 const fs = require("node:fs");
 const logPath = ${JSON.stringify(logPath)};
 
@@ -59,7 +56,6 @@ if (!output) {
 }
 
 const lang = argValue("--sub-lang", "default");
-const delayMs = Number(argValue("--delay-ms", "0"));
 const safeLang = lang.replace(/[^a-zA-Z0-9_-]/g, "_");
 fs.appendFileSync(logPath, lang + "\\n", "utf-8");
 
@@ -69,10 +65,11 @@ setTimeout(() => {
     "1\\n00:00:00,000 --> 00:00:01,000\\n" + lang + "\\n",
     "utf-8"
   );
-}, delayMs);
+}, 20);
 `,
     "utf-8"
   );
+  await fsp.chmod(scriptPath, 0o755);
   return { scriptPath, logPath };
 }
 
@@ -123,6 +120,20 @@ describe("SubtitleService ytdlp cache identity", () => {
     );
   });
 
+  it("rejects unsafe ytdlp args before resolving or invoking yt-dlp", async () => {
+    const binaryResolver = vi.fn(async () => {
+      throw new Error("binary resolver reached");
+    });
+    const service = new SubtitleService(binaryResolver, () => ({
+      ytDlpArgs: '--skip-download --exec "sh -c whoami"'
+    }));
+
+    await expect(service.getSubtitles("https://video.example.test/watch")).rejects.toThrow(
+      "Subtitle yt-dlp args cannot use yt-dlp option --exec"
+    );
+    expect(binaryResolver).not.toHaveBeenCalled();
+  });
+
   it("normalizes ytdlp args before building the cache variant", async () => {
     let ytDlpArgs = '--sub-lang "en.*" --sub-format "srt/best"';
     const get = vi.fn(async (_url: string, _source: string, _variant?: string) => makeData("cached"));
@@ -144,16 +155,16 @@ describe("SubtitleService ytdlp cache identity", () => {
 
   it("downloads again when the same URL uses different effective ytdlp args", async () => {
     const { scriptPath, logPath } = await createFakeYtDlpScript();
-    let ytDlpArgs = `${quoteArg(scriptPath)} --sub-lang en`;
+    let ytDlpArgs = "--sub-lang en";
     manager = new SubtitleCacheManager(() => makeSettings());
     const service = new SubtitleService(
-      async () => process.execPath,
+      async () => scriptPath,
       () => ({ ytDlpArgs }),
       manager
     );
 
     const first = await service.getSubtitles("https://video.example.test/watch");
-    ytDlpArgs = `${quoteArg(scriptPath)} --sub-lang zh`;
+    ytDlpArgs = "--sub-lang zh";
     const second = await service.getSubtitles("https://video.example.test/watch");
 
     expect(first.tracks[0]?.cues[0]?.text).toBe("en");
@@ -164,13 +175,13 @@ describe("SubtitleService ytdlp cache identity", () => {
   it("does not share an in-flight job when the same URL uses different ytdlp variants", async () => {
     const { scriptPath, logPath } = await createFakeYtDlpScript();
     const argLines = [
-      `${quoteArg(scriptPath)} --sub-lang en --delay-ms 50`,
-      `${quoteArg(scriptPath)} --sub-lang zh --delay-ms 50`
+      "--sub-lang en",
+      "--sub-lang zh"
     ];
     let nextArgLineIndex = 0;
     manager = new SubtitleCacheManager(() => makeSettings(false));
     const service = new SubtitleService(
-      async () => process.execPath,
+      async () => scriptPath,
       () => {
         if (nextArgLineIndex >= argLines.length) {
           throw new Error("Unexpected extra profile settings read");

@@ -836,8 +836,7 @@ describe("SubtitleView", () => {
         ...originalUsp,
         lookupWord,
         openWordLookupWindow,
-        notifyWordLookupTriggerLeave,
-        openExternal: vi.fn()
+        notifyWordLookupTriggerLeave
       }
     });
 
@@ -927,8 +926,7 @@ describe("SubtitleView", () => {
       value: {
         ...originalUsp,
         lookupWord,
-        openWordLookupWindow,
-        openExternal: vi.fn()
+        openWordLookupWindow
       }
     });
 
@@ -1009,8 +1007,7 @@ describe("SubtitleView", () => {
         ...originalUsp,
         lookupWord,
         openWordLookupWindow,
-        notifyWordLookupTriggerLeave,
-        openExternal: vi.fn()
+        notifyWordLookupTriggerLeave
       }
     });
 

@@ -6,7 +6,9 @@ import { validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
 import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
 import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
+import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
+import { validateYtDlpArgLine } from "../ytDlpArgPolicy.js";
 import { assertNoUnknownKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "features", "cache"] as const;
@@ -242,6 +244,11 @@ function validateTranscriptionConfigRecord(input: unknown, context: string, seen
   if (config.provider !== "whisper-api" && config.provider !== "faster-whisper") {
     throw new Error(`${context}.provider must be whisper-api or faster-whisper`);
   }
+  validateYtDlpArgLine(
+    (config.ytDlpArgs as string).trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
+    "transcription",
+    `${context}.ytDlpArgs`
+  );
   if (config.fasterWhisperDevice !== "cpu" && config.fasterWhisperDevice !== "cuda") {
     throw new Error(`${context}.fasterWhisperDevice must be cpu or cuda`);
   }

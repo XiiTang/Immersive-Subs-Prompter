@@ -13,8 +13,8 @@ export async function checkForUpdates(this: DesktopStoreThis) {
   }
 }
 
-export async function openReleaseDownload(this: DesktopStoreThis, url?: string) {
-  const result = await window.usp.openReleaseDownload(url);
+export async function openReleaseDownload(this: DesktopStoreThis) {
+  const result = await window.usp.openReleaseDownload();
   if (!result.ok) {
     reportError(new Error(result.error ?? "Failed to open release download"), "release.open-download");
   }

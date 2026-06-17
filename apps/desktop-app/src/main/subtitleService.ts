@@ -11,6 +11,7 @@ import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { assertPublicHttpUrl } from "./networkUrlSafety.js";
+import { parseYtDlpArgs } from "./ytDlpArgPolicy.js";
 
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
 
@@ -134,7 +135,7 @@ export class SubtitleService {
   private resolveYtDlpArgs(): string[] {
     const settings = this.settingsProvider ? this.settingsProvider() : DEFAULT_PROFILE_SETTINGS;
     const customLine = settings?.ytDlpArgs?.trim() || DEFAULT_YTDLP_ARGS;
-    return splitArgs(customLine);
+    return parseYtDlpArgs(customLine, "subtitle", "Subtitle yt-dlp args");
   }
 
   private buildArgs(videoUrl: string, baseOutput: string, ytDlpArgs: string[]): string[] {
@@ -227,47 +228,6 @@ export async function runCommand(
   });
 }
 
-export function splitArgs(input: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let quote: string | null = null;
-
-  for (let i = 0; i < input.length; i += 1) {
-    const char = input[i];
-    if (quote) {
-      if (char === quote) {
-        quote = null;
-      } else if (char === "\\" && input[i + 1] === quote) {
-        current += quote;
-        i += 1;
-      } else {
-        current += char;
-      }
-      continue;
-    }
-
-    if (char === "\"" || char === "'") {
-      quote = char;
-      continue;
-    }
-
-    if (/\s/.test(char)) {
-      if (current) {
-        result.push(current);
-        current = "";
-      }
-      continue;
-    }
-
-    current += char;
-  }
-
-  if (current) {
-    result.push(current);
-  }
-
-  return result;
-}
 
 export function formatCommandLine(binary: string, args: string[]): string {
   return [binary, ...args]

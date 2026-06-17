@@ -42,18 +42,4 @@ export function registerSettingsHandlers(context: IpcContext) {
     }
   });
 
-  ipcMain.handle("usp:open-external", async (_event, url: string) => {
-    if (!url || typeof url !== "string") {
-      return { ok: false, error: "Invalid URL" };
-    }
-    try {
-      await shell.openExternal(url);
-      return { ok: true };
-    } catch (error) {
-      context.logger.error(`Failed to open external link: ${url}`, error);
-      const message =
-        error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-      return { ok: false, error: message };
-    }
-  });
 }

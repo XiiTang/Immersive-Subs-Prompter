@@ -27,12 +27,11 @@ const api = {
     ipcRenderer.invoke("usp:select-word-list-file"),
   getReleaseState: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:get-release-state"),
   checkForUpdates: (): Promise<ReleaseState> => ipcRenderer.invoke("usp:check-for-updates"),
-  openReleaseDownload: (url?: string): Promise<{ ok: boolean; error?: string }> =>
-    ipcRenderer.invoke("usp:open-release-download", { url }),
+  openReleaseDownload: (): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:open-release-download"),
   onReleaseStateChange: (listener: Listener<ReleaseState>) => subscribe("usp:release-state", listener),
   openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:open-path", targetPath),
-  openExternal: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:open-external", url),
   getCacheStats: (): Promise<CacheStats> =>
     ipcRenderer.invoke("usp:cache-stats"),
   openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder"),

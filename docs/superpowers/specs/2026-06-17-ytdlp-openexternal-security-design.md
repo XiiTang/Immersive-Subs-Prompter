@@ -94,7 +94,7 @@ The final renderer API does not expose `window.usp.openExternal`.
 
 The main process does not register `usp:open-external`. Renderer code cannot invoke a generic external URL opener through IPC.
 
-Release downloads continue to use the existing narrow `openReleaseDownload` API. That path is not a generic renderer bridge: the main process owns the release URL decision and requires HTTPS before handing a URL to the operating system.
+Release downloads continue to use the narrow `openReleaseDownload` API, but that API does not accept a URL from the renderer. The main process owns the release URL decision from the checked release state and requires HTTPS before handing a URL to the operating system.
 
 Word Lookup result content does not open external links in this final state. Clicking anchors inside the Word Lookup window is inert. If external word-lookup links become a product requirement later, they must be added as a new narrow API with main-process scheme and host validation.
 
@@ -115,9 +115,10 @@ Required tests:
 - subtitle and transcription settings reject `--exec`, `--exec-before-download`, `--config-location`, `--output`, `-o`, `--paths`, `--external-downloader`, `--cookies-from-browser`, and unknown options.
 - subtitle and transcription services reject invalid `ytDlpArgs` before invoking `runCommand`.
 - app-owned `-o <baseOutput>` and media URL remain appended by the service, not supplied by settings.
+- transcription rejects invalid `ytDlpArgs` before creating a temporary working directory.
 - preload no longer exposes `openExternal`.
 - `settingsHandlers` no longer registers `usp:open-external`.
 - Word Lookup link clicks do not call an external opener.
-- release download tests continue to prove HTTPS-only release opening through `openReleaseDownload`.
+- release download tests prove `openReleaseDownload` opens only the main-owned release URL, does not accept renderer-supplied URLs, and still requires HTTPS.
 
 Verification commands should include focused desktop-app tests for settings sanitization, subtitle service, transcription service, Word Lookup window behavior, release service behavior, and a full typecheck.

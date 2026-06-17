@@ -30,7 +30,6 @@ describe("WordLookupWindow", () => {
     const pointerEnter = vi.fn();
     const pointerLeave = vi.fn();
     const resizeWordLookupWindow = vi.fn();
-    const openExternal = vi.fn();
     let payloadListener: ((payload: any) => void) | null = null;
 
     Object.defineProperty(window, "usp", {
@@ -44,12 +43,11 @@ describe("WordLookupWindow", () => {
         notifyWordLookupWindowPointerEnter: pointerEnter,
         notifyWordLookupWindowPointerLeave: pointerLeave,
         resizeWordLookupWindow,
-        openExternal,
         ...overrides
       }
     });
 
-    return { pointerEnter, pointerLeave, resizeWordLookupWindow, openExternal, payloadListener: () => payloadListener };
+    return { pointerEnter, pointerLeave, resizeWordLookupWindow, payloadListener: () => payloadListener };
   }
 
   function emitPayload(listener: ((payload: any) => void) | null) {
@@ -141,12 +139,14 @@ describe("WordLookupWindow", () => {
     wrapper.unmount();
   });
 
-  it("opens links externally without navigating the floating window", async () => {
+  it("keeps word lookup links inert instead of opening them externally", async () => {
     const { wrapper, api } = await mountWithPayload();
 
-    await wrapper.get("a").trigger("click");
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    wrapper.get("a").element.dispatchEvent(click);
 
-    expect(api.openExternal).toHaveBeenCalledWith("https://example.com");
+    expect(click.defaultPrevented).toBe(true);
+    expect(api.pointerLeave).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 

@@ -11,6 +11,7 @@ import {
   DEFAULT_PROFILE_ID,
   DEFAULT_PROFILE_SETTINGS
 } from "../../common/defaultSettings.js";
+import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { DEFAULT_YTDLP_ARGS } from "../../common/ytdlpDefaults.js";
 
 describe("appSettingsSanitizer", () => {
@@ -339,6 +340,107 @@ describe("appSettingsSanitizer", () => {
           settings
         )
       ).toThrow("features.transcription.configs.0.fasterWhisperVadThreshold must be between 0 and 1");
+    });
+
+    it("rejects unsafe yt-dlp arguments before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const profile = settings.profiles[0]!;
+      const config = settings.features.transcription.configs[0]!;
+      const deniedArgs = [
+        ['--exec "sh -c whoami"', "--exec"],
+        ['--exec-before-download "sh -c whoami"', "--exec-before-download"],
+        ["--config-location /tmp/yt-dlp.conf", "--config-location"],
+        ["--output /tmp/pwned", "--output"],
+        ["-o /tmp/pwned", "-o"],
+        ["--paths /tmp/pwned", "--paths"],
+        ["--external-downloader curl", "--external-downloader"],
+        ["--cookies-from-browser chrome", "--cookies-from-browser"],
+        ["--unknown-option value", "--unknown-option"]
+      ] as const;
+
+      for (const [argLine, option] of deniedArgs) {
+        expect(() =>
+          validateSettingsForUpdate(
+            {
+              profiles: settings.profiles.map((item) =>
+                item.id === profile.id
+                  ? {
+                      ...item,
+                      settings: {
+                        ...item.settings,
+                        ytDlpArgs: argLine
+                      }
+                    }
+                  : item
+              )
+            },
+            settings
+          )
+        ).toThrow(
+          option === "--unknown-option"
+            ? `profile.settings.ytDlpArgs cannot use unrecognized yt-dlp option ${option}`
+            : `profile.settings.ytDlpArgs cannot use yt-dlp option ${option}`
+        );
+
+        expect(() =>
+          validateSettingsForUpdate(
+            {
+              features: {
+                transcription: {
+                  activeConfigId: config.id,
+                  configs: [
+                    {
+                      ...config,
+                      ytDlpArgs: argLine
+                    }
+                  ]
+                }
+              }
+            } as never,
+            settings
+          )
+        ).toThrow(
+          option === "--unknown-option"
+            ? `features.transcription.configs.0.ytDlpArgs cannot use unrecognized yt-dlp option ${option}`
+            : `features.transcription.configs.0.ytDlpArgs cannot use yt-dlp option ${option}`
+        );
+      }
+    });
+
+    it("accepts current yt-dlp defaults before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const profile = settings.profiles[0]!;
+      const config = settings.features.transcription.configs[0]!;
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            profiles: settings.profiles.map((item) =>
+              item.id === profile.id
+                ? {
+                    ...item,
+                    settings: {
+                      ...item.settings,
+                      ytDlpArgs: DEFAULT_YTDLP_ARGS
+                    }
+                  }
+                : item
+            ),
+            features: {
+              transcription: {
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    ytDlpArgs: DEFAULT_TRANSCRIPTION_YTDLP_ARGS
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).not.toThrow();
     });
 
     it("merges fixed feature config patches", () => {

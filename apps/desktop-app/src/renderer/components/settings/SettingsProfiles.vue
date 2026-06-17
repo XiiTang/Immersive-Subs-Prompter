@@ -34,12 +34,10 @@
           "
           :placeholder="t('primary-priority-placeholder')"
           :error="primaryPriorityError"
-          :doc-url="regexDocUrl"
           :remove-label="t('priority-remove')"
           @add="addPriority('primary')"
           @remove="(value) => store.removePriority('primary', value)"
           @reorder="(fromIndex, toIndex) => store.reorderPriority('primary', fromIndex, toIndex)"
-          @doc-link-click="openRegexDoc"
         />
 
         <PriorityEditor
@@ -112,8 +110,6 @@ const primaryPriorityInput = ref("");
 const secondaryPriorityInput = ref("");
 const primaryPriorityError = computed(() => getPriorityRegexError(primaryPriorityInput.value));
 const secondaryPriorityError = computed(() => getPriorityRegexError(secondaryPriorityInput.value));
-const regexDocUrl =
-  "https://github.com/XiiTang/Immersive-Subs-Prompter/blob/main/docs/subtitle-priority-regex.md";
 
 function deleteEditingProfile() {
   if (editingProfileId.value) {
@@ -142,10 +138,6 @@ function addPriority(role: PriorityRole) {
   }
   store.addPriority(role, input.value);
   input.value = "";
-}
-
-async function openRegexDoc() {
-  await window.usp.openExternal(regexDocUrl);
 }
 
 function getPriorityRegexError(value: string): string | null {

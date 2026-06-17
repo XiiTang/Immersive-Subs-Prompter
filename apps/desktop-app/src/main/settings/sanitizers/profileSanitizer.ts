@@ -6,6 +6,8 @@ import {
   MIN_SUBTITLE_FONT_SIZE,
   MIN_TIMESTAMP_FONT_SIZE
 } from "../../../common/subtitleSizing.js";
+import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
+import { validateYtDlpArgLine } from "../../ytDlpArgPolicy.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
 const PROFILE_KEYS = ["id", "name", "enabled", "description", "settings"] as const;
@@ -104,6 +106,7 @@ function validateProfileSettingsForUpdate(input: unknown): void {
   validateNonEmptyStringField(source, "subtitleActivePrimaryColor");
   validateNonEmptyStringField(source, "subtitleActiveSecondaryColor");
   validateStringField(source, "ytDlpArgs");
+  validateYtDlpArgLine((source.ytDlpArgs as string).trim() || DEFAULT_YTDLP_ARGS, "subtitle", "profile.settings.ytDlpArgs");
   validateFiniteNumberField(source, "subtitleAutoScrollTimeout", 1);
   validateFiniteNumberField(source, "subtitleScrollPosition", 0, 100);
   validateFiniteNumberField(source, "subtitleBlockGap", 0, 60);
