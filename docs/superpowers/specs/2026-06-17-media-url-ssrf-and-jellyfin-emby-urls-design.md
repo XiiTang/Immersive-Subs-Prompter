@@ -163,6 +163,7 @@ Required tests:
 - unconfigured private-network URLs are not claimed by Jellyfin / Emby and do not enter generic `yt-dlp`
 - disabled Jellyfin / Emby rows do not match
 - enabled Jellyfin / Emby rows missing required runtime fields are rejected instead of silently skipped
+- first-match Jellyfin / Emby network or subtitle failures stay on the media-source path and do not enter generic URL parsing
 - the renderer Jellyfin / Emby URL input persists valid comma-separated lists and keeps invalid lists local
 - changing Jellyfin / Emby settings clears cached media-source state
 

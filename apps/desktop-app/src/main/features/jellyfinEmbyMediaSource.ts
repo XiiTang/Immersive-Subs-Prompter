@@ -57,36 +57,42 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     }
 
     const itemId = extractItemId(payload);
-    const sessions = await this.getSessions(server, envelope.type === "video-context");
+    const isVideoContext = envelope.type === "video-context";
+    let sessions: MediaServerSessionSummary[];
+    try {
+      sessions = await this.getSessions(server, isVideoContext);
+    } catch (error) {
+      if (!isVideoContext) {
+        throw error;
+      }
+      return [
+        sourceMatchedEvent(envelope, payload, null),
+        { type: "error", message: errorMessage(error) }
+      ];
+    }
     const selected = selectSession(sessions, itemId);
     const events: MediaSourceAdapterEvent[] = [{ type: "sessionsChanged", sessions }];
 
-    if (envelope.type !== "video-context") {
+    if (!isVideoContext) {
       if (selected) {
         events.push(sessionPlaybackEvent(selected));
       }
       return events;
     }
 
-    const pageUrl = text(payload.pageUrl);
-    const videoSrc = text(payload.videoSrc);
-    events.unshift({
-      type: "sourceMatched",
-      tabId: typeof envelope.tabId === "number" ? envelope.tabId : 0,
-      pageUrl,
-      videoUrl: pageUrl ?? videoSrc,
-      title: text(payload.title) ?? selected?.nowPlayingItemName ?? null,
-      site: "jellyfinemby",
-      selectedSessionId: selected?.id ?? null
-    });
+    events.unshift(sourceMatchedEvent(envelope, payload, selected));
 
     if (selected) {
       events.push(sessionPlaybackEvent(selected));
-      events.push({
-        type: "subtitleTracksLoaded",
-        sessionId: selected.id,
-        tracks: await this.loadSubtitleTracks(server, selected)
-      });
+      try {
+        events.push({
+          type: "subtitleTracksLoaded",
+          sessionId: selected.id,
+          tracks: await this.loadSubtitleTracks(server, selected)
+        });
+      } catch (error) {
+        events.push({ type: "error", message: errorMessage(error) });
+      }
     } else {
       events.push({ type: "subtitleTracksLoaded", sessionId: null, tracks: [] });
     }
@@ -174,6 +180,28 @@ function getPayload(envelope: Record<string, unknown>): Record<string, unknown> 
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function sourceMatchedEvent(
+  envelope: Record<string, unknown>,
+  payload: Record<string, unknown>,
+  selected: MediaServerSessionSummary | null
+): Extract<MediaSourceAdapterEvent, { type: "sourceMatched" }> {
+  const pageUrl = text(payload.pageUrl);
+  const videoSrc = text(payload.videoSrc);
+  return {
+    type: "sourceMatched",
+    tabId: typeof envelope.tabId === "number" ? envelope.tabId : 0,
+    pageUrl,
+    videoUrl: pageUrl ?? videoSrc,
+    title: text(payload.title) ?? selected?.nowPlayingItemName ?? null,
+    site: "jellyfinemby",
+    selectedSessionId: selected?.id ?? null
+  };
 }
 
 function requireObject(value: unknown, context: string): Record<string, unknown> {

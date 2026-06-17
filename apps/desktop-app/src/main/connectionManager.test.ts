@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { cloneFeatureSettings } from "../common/featureDefaults.js";
 import { AppEventBus } from "./appEventBus.js";
 import { ConnectionManager } from "./connectionManager.js";
-import type { AppSettings, DesktopState, NetworkSettings, SubtitleTrack } from "./types.js";
+import { JellyfinEmbyMediaSource } from "./features/jellyfinEmbyMediaSource.js";
+import { MediaSourceController } from "./mediaSources/mediaSourceController.js";
+import type { AppSettings, DesktopState, MediaServerSessionSummary, NetworkSettings, SubtitleTrack } from "./types.js";
 
 class FakeWebSocketServer extends EventEmitter {
   clients = new Set<any>();
@@ -19,9 +21,18 @@ function createStateManager() {
     activeTabId: null,
     activeSource: "extension",
     videoUrl: null,
+    pageUrl: null,
+    title: null,
+    site: null,
     subtitleTracks: [],
     status: "idle",
-    playback: { currentTime: 0, duration: null, playbackRate: 1, lastUpdate: null, loop: null }
+    playback: { currentTime: 0, duration: null, playbackRate: 1, lastUpdate: null, loop: null },
+    mediaServer: {
+      connected: false,
+      sessions: [],
+      selectedSessionId: null,
+      lastUpdated: null
+    }
   };
   return {
     getState: () => state,
@@ -33,7 +44,12 @@ function createStateManager() {
     updateState: vi.fn((producer: (draft: Partial<DesktopState>) => void) => {
       producer(state);
     }),
-    setPageContext: vi.fn(),
+    setPageContext: vi.fn((tabId: number, payload: Partial<DesktopState>) => {
+      state.activeTabId = tabId;
+      state.pageUrl = payload.pageUrl ?? null;
+      state.site = payload.site ?? null;
+      state.title = payload.title ?? null;
+    }),
     updatePlayback: vi.fn(),
     selectProfileForUrl: vi.fn(() => ({ profile: null, rule: null })),
     applyProfileSelection: vi.fn(),
@@ -43,7 +59,18 @@ function createStateManager() {
     setSubtitleTracks: vi.fn((tracks: SubtitleTrack[]) => {
       state.subtitleTracks = tracks;
     }),
-    applyPreferredTracksFromSettings: vi.fn()
+    applyPreferredTracksFromSettings: vi.fn(),
+    setMediaServerSessions: vi.fn((sessions: MediaServerSessionSummary[]) => {
+      state.mediaServer = {
+        connected: state.mediaServer?.connected ?? false,
+        selectedSessionId: state.mediaServer?.selectedSessionId ?? null,
+        sessions,
+        lastUpdated: Date.now()
+      };
+    }),
+    setStatus: vi.fn((status: string) => {
+      state.status = status;
+    })
   };
 }
 
@@ -265,6 +292,75 @@ describe("ConnectionManager network listeners", () => {
       }))
     );
 
+    expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
+  });
+
+  it("keeps a first Jellyfin / Emby match failure on the media-source path", async () => {
+    const network: NetworkSettings = {
+      endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+      authToken: "0123456789abcdef0123456789abcdef"
+    };
+    const settings = makeSettings(network);
+    settings.features.jellyfinEmby = {
+      enabled: true,
+      config: {
+        servers: [
+          {
+            id: "server-1",
+            name: "Home",
+            serverUrls: "https://media.example.test",
+            apiKey: "api-key",
+            enabled: true
+          }
+        ]
+      }
+    };
+    const stateManager = createStateManager();
+    const bus = new AppEventBus();
+    const subtitleService = {
+      getSubtitles: vi.fn(async () => ({ tracks: [] }))
+    };
+    const source = new JellyfinEmbyMediaSource({
+      getSettings: () => settings.features.jellyfinEmby,
+      fetch: vi.fn(async () => ({ ok: false, status: 503 })) as never
+    });
+    const controller = new MediaSourceController({
+      bus,
+      stateManager: stateManager as never,
+      getSources: () => [source]
+    });
+    controller.start();
+    const manager = new ConnectionManager({
+      getNetworkSettings: () => network,
+      getSettings: () => settings,
+      subtitleService: subtitleService as never,
+      stateManager: stateManager as never,
+      bus,
+      createWebSocketServer: () => new FakeWebSocketServer() as never
+    });
+    const handleSocketMessage = (manager as unknown as {
+      handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+    }).handleSocketMessage.bind(manager);
+
+    await handleSocketMessage(
+      {},
+      Buffer.from(JSON.stringify({
+        source: "usp-extension",
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          site: "jellyfin",
+          title: "Episode",
+          currentTime: 0,
+          paused: false
+        }
+      }))
+    );
+
+    expect(stateManager.state.activeSource).toBe("mediaserver");
+    expect(stateManager.state.error).toBe("Jellyfin / Emby request failed: HTTP 503");
     expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
   });
 

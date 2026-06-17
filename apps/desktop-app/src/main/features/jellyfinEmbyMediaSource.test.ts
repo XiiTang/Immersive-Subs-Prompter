@@ -382,7 +382,7 @@ describe("JellyfinEmbyMediaSource", () => {
     );
   });
 
-  it("surfaces subtitle stream request failures instead of reporting empty subtitles", async () => {
+  it("returns matched source state with the subtitle request error", async () => {
     const fetch = vi.fn(async (url: string) => {
       if (url.includes("/Sessions")) {
         return {
@@ -423,6 +423,17 @@ describe("JellyfinEmbyMediaSource", () => {
           site: "Jellyfin"
         }
       })
-    ).rejects.toThrow("Jellyfin / Emby subtitle request failed: HTTP 503 Unavailable");
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "sourceMatched",
+          selectedSessionId: "server-1:session-1"
+        }),
+        {
+          type: "error",
+          message: "Jellyfin / Emby subtitle request failed: HTTP 503 Unavailable"
+        }
+      ])
+    );
   });
 });
