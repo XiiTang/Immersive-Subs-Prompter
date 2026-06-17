@@ -1,7 +1,7 @@
-import { normalizeVersion, assertUnifiedPackageVersions } from "./utils.mjs";
+import { assertReleaseTag, normalizeVersion, assertUnifiedPackageVersions } from "./utils.mjs";
 
 const args = parseArgs(process.argv.slice(2).filter((arg) => arg !== "--"));
-const expectedVersion = args.tag ? normalizeVersion(args.tag) : null;
+const expectedVersion = args.tag ? normalizeVersion(assertReleaseTag(args.tag)) : null;
 
 const version = assertUnifiedPackageVersions(process.cwd(), expectedVersion);
 

@@ -35,11 +35,11 @@ Replace the static `releases/latest.json` desktop update flow with a real `elect
 
 ### Release Automation
 
-- The release workflow validates package versions, typecheck, tests, extension builds, desktop updater metadata, and artifact names.
-- The artifact checker verifies each updater YAML file references existing desktop release assets.
+- The release workflow validates package versions, `vX.Y.Z` tag shape, typecheck, tests, extension builds, desktop updater metadata, and artifact names.
+- The artifact checker verifies each updater YAML file references existing desktop release asset filenames, not absolute URLs.
 - The macOS release job requires `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY`, `APPLE_API_KEY_ID`, and `APPLE_API_ISSUER`.
 - Missing macOS signing or notarization secrets fail the release workflow before packaging, rather than publishing ad-hoc-signed updater artifacts.
-- The workflow creates or updates the GitHub Release and uploads desktop artifacts, extension ZIPs, updater metadata, blockmaps, and checksums.
+- The workflow creates or updates a published GitHub Release and uploads desktop artifacts, extension ZIPs, updater metadata, blockmaps, and checksums.
 
 ## Key Files
 

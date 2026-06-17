@@ -138,6 +138,7 @@ jobs:
       - shell: bash
         run: |
           TAG="${{ needs.validate.outputs.tag }}"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "$TAG" --notes "Release $TAG"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "Release $TAG"
           find release-artifacts/desktop release-artifacts/extension -type f -print0 | xargs -0 gh release upload "$TAG" --clobber
           gh release upload "$TAG" release-artifacts/checksums.txt --clobber
+          gh release edit "$TAG" --draft=false --latest

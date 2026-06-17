@@ -194,7 +194,7 @@ When an update is downloaded, the app does not silently restart. The user explic
 
 ## Release Automation
 
-The release workflow builds one product release from a `vX.Y.Z` tag or manual dispatch.
+The release workflow builds one product release from a `vX.Y.Z` tag. Manual dispatch inputs must also use the `vX.Y.Z` tag shape.
 
 Final workflow outputs:
 
@@ -204,7 +204,7 @@ Final workflow outputs:
 - Chrome extension ZIP
 - Firefox extension ZIP
 - checksum file for published assets
-- GitHub Release containing all desktop and extension assets
+- published GitHub Release containing all desktop and extension assets
 
 The workflow validates:
 
@@ -214,7 +214,7 @@ The workflow validates:
 - extension build and tests
 - generated updater metadata is present for each updater-supported platform
 - release assets use expected names
-- updater metadata references only release assets that exist
+- updater metadata references only release asset filenames that exist, not arbitrary absolute URLs
 - macOS release signing and notarization secrets are configured before macOS packaging starts
 
 The workflow does not open a pull request for `releases/latest.json`. That file is not part of the final desktop update system.

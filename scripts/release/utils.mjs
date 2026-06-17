@@ -18,6 +18,13 @@ export function normalizeVersion(input) {
   return match[1];
 }
 
+export function assertReleaseTag(input) {
+  if (typeof input !== "string" || !/^v\d+\.\d+\.\d+$/.test(input.trim())) {
+    throw new Error("Release tag must use vX.Y.Z");
+  }
+  return input.trim();
+}
+
 export function compareVersions(left, right) {
   const a = normalizeVersion(left).split(".").map(Number);
   const b = normalizeVersion(right).split(".").map(Number);

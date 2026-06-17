@@ -39,7 +39,7 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-The release workflow builds desktop packages with electron-builder, uploads updater metadata such as `latest.yml`, `latest-mac.yml`, and `latest-linux.yml`, uploads platform release assets, builds Chrome and Firefox extension ZIP files, creates a checksum file, and creates or updates the GitHub Release for the tag. The macOS release job fails before packaging if signing or notarization secrets are missing.
+The release workflow builds desktop packages with electron-builder, uploads updater metadata such as `latest.yml`, `latest-mac.yml`, and `latest-linux.yml`, uploads platform release assets, builds Chrome and Firefox extension ZIP files, creates a checksum file, and creates or updates the published GitHub Release for the tag. The macOS release job fails before packaging if signing or notarization secrets are missing. Updater metadata must reference uploaded release asset filenames, not arbitrary absolute URLs.
 
 The desktop app uses electron-updater in the main process. It checks the GitHub Release updater feed, downloads updates only after the user clicks "Download update", reports progress to Settings, and installs only after the user clicks "Install and restart".
 

@@ -17,17 +17,6 @@ test("compareVersions compares product versions", () => {
   assert.equal(compareVersions("1.2.0", "1.3.0"), -1);
 });
 
-test("release scripts validate builder updater metadata", () => {
-  const packageJson = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
-  const artifactCheckSource = readFileSync(new URL("./check-builder-artifacts.mjs", import.meta.url), "utf8");
-
-    assert.equal(packageJson.scripts["release:check-builder-artifacts"], "node ./scripts/release/check-builder-artifacts.mjs");
-    assert.equal(artifactCheckSource.includes("latest.yml"), true);
-    assert.equal(artifactCheckSource.includes("latest-mac.yml"), true);
-    assert.equal(artifactCheckSource.includes("latest-linux.yml"), true);
-  assert.equal(artifactCheckSource.includes("requireUpdaterReferences"), true);
-});
-
 test("release workflow requires macOS signing and notarization secrets", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
 
@@ -35,89 +24,78 @@ test("release workflow requires macOS signing and notarization secrets", () => {
     assert.match(workflow, new RegExp(`${name}: \\$\\{\\{ secrets\\.${name} \\}\\}`));
   }
   assert.match(workflow, /Missing macOS signing or notarization secrets/);
+  assert.doesNotMatch(workflow, /gh release create [^\n]*--draft/);
+  assert.match(workflow, /gh release edit "\$TAG" --draft=false/);
+});
+
+test("release check requires v-prefixed release tags", () => {
+  const result = spawnSync(
+    process.execPath,
+    [new URL("./check.mjs", import.meta.url).pathname, "--tag", "1.0.0"],
+    { cwd: new URL("../..", import.meta.url).pathname, encoding: "utf8" }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Release tag must use vX\.Y\.Z/);
 });
 
 test("builder artifact check rejects updater metadata that references missing files", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "usp-release-check-"));
-  const desktop = path.join(root, "desktop");
-  const extension = path.join(root, "extension");
-  mkdirSync(desktop);
-  mkdirSync(extension);
+  const fixture = createArtifactFixture();
 
   try {
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip"));
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-win32-x64-setup.exe"));
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-linux-x64.AppImage"));
-    touch(path.join(extension, "immersive-subs-prompter-chrome-v1.0.0.zip"));
-    touch(path.join(extension, "immersive-subs-prompter-firefox-v1.0.0.zip"));
-    writeUpdaterMetadata(path.join(desktop, "latest.yml"), "Immersive-Subs-Prompter-1.0.0-win32-x64-setup.exe");
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest.yml"), fixture.winSetup);
     writeFileSync(
-      path.join(desktop, "latest-mac.yml"),
+      path.join(fixture.desktop, "latest-mac.yml"),
       "version: 1.0.0\nfiles:\n  - url: Missing-Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip\npath: Missing-Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip\n",
       "utf8"
     );
-    writeUpdaterMetadata(path.join(desktop, "latest-linux.yml"), "Immersive-Subs-Prompter-1.0.0-linux-x64.AppImage");
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest-linux.yml"), fixture.linuxAppImage);
 
-    const result = spawnSync(
-      process.execPath,
-      [
-        new URL("./check-builder-artifacts.mjs", import.meta.url).pathname,
-        "--version",
-        "1.0.0",
-        "--desktop",
-        desktop,
-        "--extension",
-        extension
-      ],
-      { encoding: "utf8" }
-    );
-
+    const result = runArtifactCheck(fixture);
     assert.notEqual(result.status, 0);
     assert.match(`${result.stdout}\n${result.stderr}`, /missing updater asset/i);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(fixture.root, { recursive: true, force: true });
   }
 });
 
 test("builder artifact check validates updater file list URLs", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "usp-release-check-"));
-  const desktop = path.join(root, "desktop");
-  const extension = path.join(root, "extension");
-  mkdirSync(desktop);
-  mkdirSync(extension);
+  const fixture = createArtifactFixture();
 
   try {
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip"));
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-win32-x64-setup.exe"));
-    touch(path.join(desktop, "Immersive-Subs-Prompter-1.0.0-linux-x64.AppImage"));
-    touch(path.join(extension, "immersive-subs-prompter-chrome-v1.0.0.zip"));
-    touch(path.join(extension, "immersive-subs-prompter-firefox-v1.0.0.zip"));
-    writeUpdaterMetadata(path.join(desktop, "latest.yml"), "Immersive-Subs-Prompter-1.0.0-win32-x64-setup.exe");
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest.yml"), fixture.winSetup);
     writeFileSync(
-      path.join(desktop, "latest-mac.yml"),
-      "version: 1.0.0\nfiles:\n  - url: Missing-Immersive-Subs-Prompter-1.0.0-darwin-arm64.dmg\npath: Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip\n",
+      path.join(fixture.desktop, "latest-mac.yml"),
+      `version: 1.0.0\nfiles:\n  - url: Missing-Immersive-Subs-Prompter-1.0.0-darwin-arm64.dmg\npath: ${fixture.macZip}\n`,
       "utf8"
     );
-    writeUpdaterMetadata(path.join(desktop, "latest-linux.yml"), "Immersive-Subs-Prompter-1.0.0-linux-x64.AppImage");
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest-linux.yml"), fixture.linuxAppImage);
 
-    const result = spawnSync(
-      process.execPath,
-      [
-        new URL("./check-builder-artifacts.mjs", import.meta.url).pathname,
-        "--version",
-        "1.0.0",
-        "--desktop",
-        desktop,
-        "--extension",
-        extension
-      ],
-      { encoding: "utf8" }
-    );
-
+    const result = runArtifactCheck(fixture);
     assert.notEqual(result.status, 0);
     assert.match(`${result.stdout}\n${result.stderr}`, /missing updater asset/i);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("builder artifact check rejects absolute updater URLs outside release assets", () => {
+  const fixture = createArtifactFixture();
+
+  try {
+    writeFileSync(
+      path.join(fixture.desktop, "latest.yml"),
+      `version: 1.0.0\nfiles:\n  - url: https://example.invalid/downloads/${fixture.winSetup}\npath: ${fixture.winSetup}\n`,
+      "utf8"
+    );
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest-mac.yml"), fixture.macZip);
+    writeUpdaterMetadata(path.join(fixture.desktop, "latest-linux.yml"), fixture.linuxAppImage);
+
+    const result = runArtifactCheck(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /must be a release asset filename/i);
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
   }
 });
 
@@ -127,4 +105,39 @@ function touch(filePath) {
 
 function writeUpdaterMetadata(filePath, assetName) {
   writeFileSync(filePath, `version: 1.0.0\nfiles:\n  - url: ${assetName}\npath: ${assetName}\n`, "utf8");
+}
+
+function createArtifactFixture() {
+  const root = mkdtempSync(path.join(tmpdir(), "usp-release-check-"));
+  const desktop = path.join(root, "desktop");
+  const extension = path.join(root, "extension");
+  const macZip = "Immersive-Subs-Prompter-1.0.0-darwin-arm64.zip";
+  const winSetup = "Immersive-Subs-Prompter-1.0.0-win32-x64-setup.exe";
+  const linuxAppImage = "Immersive-Subs-Prompter-1.0.0-linux-x64.AppImage";
+
+  mkdirSync(desktop);
+  mkdirSync(extension);
+  for (const name of [macZip, winSetup, linuxAppImage]) {
+    touch(path.join(desktop, name));
+  }
+  touch(path.join(extension, "immersive-subs-prompter-chrome-v1.0.0.zip"));
+  touch(path.join(extension, "immersive-subs-prompter-firefox-v1.0.0.zip"));
+
+  return { root, desktop, extension, macZip, winSetup, linuxAppImage };
+}
+
+function runArtifactCheck(fixture) {
+  return spawnSync(
+    process.execPath,
+    [
+      new URL("./check-builder-artifacts.mjs", import.meta.url).pathname,
+      "--version",
+      "1.0.0",
+      "--desktop",
+      fixture.desktop,
+      "--extension",
+      fixture.extension
+    ],
+    { encoding: "utf8" }
+  );
 }

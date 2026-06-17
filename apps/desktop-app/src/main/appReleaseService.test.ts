@@ -78,7 +78,7 @@ describe("AppReleaseService", () => {
 
   it("keeps automatic checks separate from manual downloads", async () => {
     const updater = new FakeUpdater();
-    updater.checkForUpdates.mockResolvedValue({ updateInfo: updateInfo() });
+    updater.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: updateInfo() });
     const service = new AppReleaseService({
       updater,
       getCurrentVersion: () => "1.0.0",
@@ -96,7 +96,7 @@ describe("AppReleaseService", () => {
 
   it("reports an available update", async () => {
     const updater = new FakeUpdater();
-    updater.checkForUpdates.mockResolvedValue({ updateInfo: updateInfo() });
+    updater.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: updateInfo() });
     let currentSettings = settings();
     const states: string[] = [];
     const service = new AppReleaseService({
@@ -120,9 +120,12 @@ describe("AppReleaseService", () => {
     expect(states).toEqual(["checking", "available"]);
   });
 
-  it("reports unavailable when no update exists", async () => {
+  it("reports unavailable when electron-updater returns latest metadata without an available update", async () => {
     const updater = new FakeUpdater();
-    updater.checkForUpdates.mockResolvedValue(null);
+    updater.checkForUpdates.mockResolvedValue({
+      isUpdateAvailable: false,
+      updateInfo: updateInfo("1.0.0")
+    });
     const service = new AppReleaseService({
       updater,
       getCurrentVersion: () => "1.0.0",
@@ -177,7 +180,7 @@ describe("AppReleaseService", () => {
 
   it("downloads updates and reflects progress", async () => {
     const updater = new FakeUpdater();
-    updater.checkForUpdates.mockResolvedValue({ updateInfo: updateInfo() });
+    updater.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: updateInfo() });
     updater.downloadUpdate.mockImplementation(async () => {
       updater.emit("download-progress", {
         percent: 50,
@@ -222,7 +225,7 @@ describe("AppReleaseService", () => {
 
   it("installs after downloaded state", async () => {
     const updater = new FakeUpdater();
-    updater.checkForUpdates.mockResolvedValue({ updateInfo: updateInfo() });
+    updater.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: updateInfo() });
     updater.downloadUpdate.mockImplementation(async () => {
       updater.emit("update-downloaded", updateInfo());
       return [];
@@ -242,5 +245,37 @@ describe("AppReleaseService", () => {
     expect(result).toEqual({ ok: true });
     expect(updater.quitAndInstall).toHaveBeenCalledWith(true, true);
     expect(service.getState().status).toBe("installing");
+  });
+
+  it("classifies updater errors emitted after quitAndInstall as install failures", async () => {
+    const updater = new FakeUpdater();
+    updater.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: updateInfo() });
+    updater.downloadUpdate.mockImplementation(async () => {
+      updater.emit("update-downloaded", updateInfo());
+      return [];
+    });
+    updater.quitAndInstall.mockImplementation(() => {
+      setTimeout(() => {
+        updater.emit("error", new Error("installer spawn failed"));
+      }, 0);
+    });
+    const service = new AppReleaseService({
+      updater,
+      getCurrentVersion: () => "1.0.0",
+      getSettings: () => settings(),
+      updateSettings: () => settings({ lastUpdateCheckAt: Date.now() }),
+      now: () => Date.now()
+    });
+
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    await service.installDownloadedUpdate();
+    await vi.runAllTimersAsync();
+
+    expect(service.getState().status).toBe("error");
+    expect(service.getState().error).toEqual({
+      code: "install-failed",
+      message: "installer spawn failed"
+    });
   });
 });

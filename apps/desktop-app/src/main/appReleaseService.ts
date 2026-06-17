@@ -1,4 +1,5 @@
 import type { ProgressInfo, UpdateInfo } from "builder-util-runtime";
+import type { UpdateCheckResult } from "electron-updater";
 import type { AppSettings } from "./types.js";
 import {
   createInitialReleaseState,
@@ -10,16 +11,12 @@ import {
 
 const UPDATE_AUTO_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
-type CheckForUpdatesResult = {
-  updateInfo: UpdateInfo;
-};
-
 export interface UpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
   forceDevUpdateConfig?: boolean;
   logger?: unknown;
-  checkForUpdates(): Promise<CheckForUpdatesResult | null>;
+  checkForUpdates(): Promise<UpdateCheckResult | null>;
   downloadUpdate(): Promise<string[]>;
   quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
   on(event: "error", listener: (error: Error) => void): this;
@@ -28,8 +25,6 @@ export interface UpdaterLike {
   on(event: "download-progress", listener: (progress: ProgressInfo) => void): this;
   on(event: "update-downloaded", listener: (info: UpdateInfo) => void): this;
 }
-
-type ActiveOperation = "check" | "download" | "install" | null;
 
 type AppReleaseServiceOptions = {
   updater: UpdaterLike;
@@ -45,7 +40,6 @@ type AppReleaseServiceOptions = {
 export class AppReleaseService {
   private readonly now: () => number;
   private state: ReleaseState;
-  private activeOperation: ActiveOperation = null;
   private hasDownloadedUpdate = false;
 
   constructor(private readonly options: AppReleaseServiceOptions) {
@@ -86,10 +80,8 @@ export class AppReleaseService {
     const updatedSettings = this.recordCheckAttempt();
 
     try {
-      this.activeOperation = "check";
       const result = await this.options.updater.checkForUpdates();
-      this.activeOperation = null;
-      if (!result?.updateInfo) {
+      if (!result?.isUpdateAvailable || !result.updateInfo) {
         this.setState({
           ...this.state,
           status: "unavailable",
@@ -116,7 +108,6 @@ export class AppReleaseService {
       });
       return this.state;
     } catch (error) {
-      this.activeOperation = null;
       return this.recordError("check-failed", error);
     }
   }
@@ -150,12 +141,9 @@ export class AppReleaseService {
     });
 
     try {
-      this.activeOperation = "download";
       await this.options.updater.downloadUpdate();
-      this.activeOperation = null;
       return this.state;
     } catch (error) {
-      this.activeOperation = null;
       return this.recordError("download-failed", error);
     }
   }
@@ -175,17 +163,14 @@ export class AppReleaseService {
     }
 
     try {
-      this.activeOperation = "install";
       this.setState({
         ...this.state,
         status: "installing",
         error: null
       });
       this.options.updater.quitAndInstall(true, true);
-      this.activeOperation = null;
       return { ok: true };
     } catch (error) {
-      this.activeOperation = null;
       const state = this.recordError("install-failed", error);
       return { ok: false, error: state.error?.message ?? "Install failed" };
     }
@@ -202,7 +187,7 @@ export class AppReleaseService {
 
   private registerUpdaterListeners(): void {
     this.options.updater.on("error", (error) => {
-      this.recordError(this.errorCodeForActiveOperation(), error);
+      this.recordError(this.errorCodeForCurrentState(), error);
     });
     this.options.updater.on("update-available", (info) => {
       const updateInfo = normalizeUpdateInfo(info);
@@ -246,11 +231,11 @@ export class AppReleaseService {
     });
   }
 
-  private errorCodeForActiveOperation(): ReleaseErrorCode {
-    if (this.activeOperation === "download") {
+  private errorCodeForCurrentState(): ReleaseErrorCode {
+    if (this.state.status === "downloading") {
       return "download-failed";
     }
-    if (this.activeOperation === "install") {
+    if (this.state.status === "installing") {
       return "install-failed";
     }
     return "check-failed";

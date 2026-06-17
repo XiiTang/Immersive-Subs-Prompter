@@ -58,7 +58,7 @@ async function requireUpdaterReferences(dir, names, metadataNames) {
       throw new Error(`${metadataName} does not reference updater assets`);
     }
     for (const reference of references) {
-      const assetName = updaterAssetName(reference);
+      const assetName = updaterAssetName(metadataName, reference);
       if (!names.includes(assetName)) {
         throw new Error(`${metadataName} references missing updater asset ${assetName}`);
       }
@@ -81,13 +81,11 @@ function stripYamlScalar(value) {
   return trimmed;
 }
 
-function updaterAssetName(reference) {
-  try {
-    const url = new URL(reference);
-    return path.basename(url.pathname);
-  } catch {
-    return path.basename(reference);
+function updaterAssetName(metadataName, reference) {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(reference) || reference.includes("/") || reference.includes("\\")) {
+    throw new Error(`${metadataName} reference ${reference} must be a release asset filename`);
   }
+  return reference;
 }
 
 function requireArg(value, name) {
