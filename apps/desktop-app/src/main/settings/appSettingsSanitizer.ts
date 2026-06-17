@@ -6,6 +6,7 @@ import { validateRulesForUpdate } from "./sanitizers/ruleSanitizer.js";
 import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
 import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
+import { parseJellyfinEmbyServerUrls } from "../../common/jellyfinEmbyServerUrls.js";
 import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
 import { validateYtDlpArgLine } from "../ytDlpArgPolicy.js";
@@ -38,7 +39,7 @@ const TRANSCRIPTION_CONFIG_KEYS = [
   "fasterWhisperUseKim2"
 ] as const;
 const JELLYFIN_EMBY_CONFIG_KEYS = ["servers"] as const;
-const JELLYFIN_EMBY_SERVER_KEYS = ["id", "name", "serverUrl", "apiKey", "enabled"] as const;
+const JELLYFIN_EMBY_SERVER_KEYS = ["id", "name", "serverUrls", "apiKey", "enabled"] as const;
 const GLOBAL_SETTINGS_KEYS = [
   "autoLaunch",
   "toggleWindowShortcut",
@@ -295,10 +296,18 @@ function validateJellyfinEmbyFeature(input: unknown, requireAllKeys: boolean): v
     }
     requireString(record, "id", context);
     requireString(record, "name", context);
-    requireString(record, "serverUrl", context);
+    requireString(record, "serverUrls", context);
     requireString(record, "apiKey", context);
     requireBoolean(record, "enabled", context);
-    validateOptionalHttpUrl(record.serverUrl, `${context}.serverUrl`);
+    const serverUrls = parseJellyfinEmbyServerUrls(record.serverUrls as string, `${context}.serverUrls`);
+    if (record.enabled === true) {
+      if (!serverUrls.length) {
+        throw new Error(`${context}.serverUrls must include at least one URL when enabled`);
+      }
+      if (!(record.apiKey as string).trim()) {
+        throw new Error(`${context}.apiKey must be a non-empty string when enabled`);
+      }
+    }
   });
 }
 
@@ -335,19 +344,6 @@ function requireNumberRange(value: unknown, context: string, min: number, max: n
 function requireBoolean(source: Record<string, unknown>, key: string, context: string): void {
   if (typeof source[key] !== "boolean") {
     throw new Error(`${context}.${key} must use the current boolean setting`);
-  }
-}
-
-function validateOptionalHttpUrl(value: unknown, context: string): void {
-  if (typeof value !== "string" || !value.trim()) {
-    return;
-  }
-  if (!URL.canParse(value)) {
-    throw new Error(`${context} must be a valid HTTP(S) URL`);
-  }
-  const parsed = new URL(value);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(`${context} must be a valid HTTP(S) URL`);
   }
 }
 

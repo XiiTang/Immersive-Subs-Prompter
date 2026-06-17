@@ -129,7 +129,7 @@ interface JellyfinEmbyFeatureSettingsRecord {
     servers: Array<{
       id: string;
       name: string;
-      serverUrl: string;
+      serverUrls: string;
       apiKey: string;
       enabled: boolean;
     }>;
@@ -139,7 +139,7 @@ interface JellyfinEmbyFeatureSettingsRecord {
 
 Default settings include all three feature records. A fresh desktop settings object always has a complete `settings.features` object.
 
-The final settings sanitizer validates the fixed feature settings shape, including bounded numeric values and HTTP(S) Jellyfin / Emby server URLs when present. It does not accept arbitrary feature IDs or dynamic plugin config records.
+The final settings sanitizer validates the fixed feature settings shape, including bounded numeric values and comma-separated HTTP(S) Jellyfin / Emby server URLs when present. It does not accept arbitrary feature IDs or dynamic plugin config records.
 
 ## Main Process Architecture
 

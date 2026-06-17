@@ -114,7 +114,7 @@ interface JellyfinEmbyFeatureSettings {
 interface JellyfinEmbyServerConfig {
   id: string;
   name: string;
-  serverUrl: string;
+  serverUrls: string;
   apiKey: string;
   enabled: boolean;
 }
@@ -187,7 +187,7 @@ The preload bridge exposes explicit Faster-Whisper operations for paths, status,
 
 `JellyfinEmbyMediaSource` reads enabled complete server rows from `settings.features.jellyfinEmby.config.servers`.
 
-Runtime matching uses configured server URLs and browser media context. Disabled rows and incomplete rows are ignored by runtime matching. Enabled complete rows that fail network or subtitle-stream requests surface media-source errors rather than silently reporting no subtitles.
+Runtime matching uses configured comma-separated server URLs and browser media context. Disabled rows and incomplete rows are ignored by runtime matching. Enabled complete rows that fail network or subtitle-stream requests surface media-source errors rather than silently reporting no subtitles.
 
 Changing Jellyfin / Emby settings clears cached media-source runtime state.
 
@@ -285,7 +285,7 @@ The server list owns server name display, server copying, and server enablement.
 
 The editor shows:
 
-- server URL
+- comma-separated server URLs
 - API key
 
 Required-field and HTTP(S) URL validation appear inline. Empty server lists show an empty state. Deleting a selected server selects the next available row or returns to the empty state.
@@ -322,7 +322,7 @@ The settings sanitizer validates the complete final settings shape:
 - Word Lookup modifier and panel size bounds
 - Transcription active config consistency
 - Transcription provider, device, VAD threshold, extra params, required strings, and non-empty config list
-- Jellyfin / Emby server record shape and optional HTTP(S) server URLs
+- Jellyfin / Emby server record shape and comma-separated HTTP(S) server URLs
 
 Runtime validation remains provider-specific and fails before side effects where possible.
 

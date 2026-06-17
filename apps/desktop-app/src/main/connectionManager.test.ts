@@ -286,14 +286,49 @@ describe("ConnectionManager network listeners", () => {
     }).resolveVideoUrl.bind(manager);
 
     expect(resolveVideoUrl({
+      pageUrl: "https://youtube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBe("https://youtube.com/watch?v=abc");
+    expect(resolveVideoUrl({
+      pageUrl: "https://music.youtube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBe("https://music.youtube.com/watch?v=abc");
+    expect(resolveVideoUrl({
+      pageUrl: "https://notyoutube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBeNull();
+    expect(resolveVideoUrl({
+      pageUrl: "https://youtube.com.evil.example/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBeNull();
+    expect(resolveVideoUrl({
+      pageUrl: "https://youtube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "bilibili"
+    })).toBeNull();
+    expect(resolveVideoUrl({
+      pageUrl: "https://example.test/watch",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "unknown"
+    })).toBeNull();
+    expect(resolveVideoUrl({
       pageUrl: "https://example.test/watch",
       videoSrc: "http://127.0.0.1:8080/video.mp4",
       site: "unknown"
-    })).toBe("https://example.test/watch");
+    })).toBeNull();
     expect(resolveVideoUrl({
       pageUrl: "http://192.168.1.2/watch",
       videoSrc: "http://169.254.169.254/latest/meta-data",
       site: "unknown"
+    })).toBeNull();
+    expect(resolveVideoUrl({
+      pageUrl: "http://127.0.0.1:8080/watch",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
     })).toBeNull();
   });
 });

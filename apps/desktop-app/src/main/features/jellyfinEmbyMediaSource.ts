@@ -6,6 +6,7 @@ import type {
   SubtitleCue,
   SubtitleTrack
 } from "../types.js";
+import { parseJellyfinEmbyServerUrls } from "../../common/jellyfinEmbyServerUrls.js";
 import type { MediaSourceAdapterEvent, MediaSourceRuntime } from "../mediaSources/mediaSourceTypes.js";
 
 type FetchLike = typeof fetch;
@@ -17,7 +18,10 @@ export interface JellyfinEmbyMediaSourceOptions {
 
 const SESSION_REFRESH_MS = 2000;
 
-type NormalizedServer = JellyfinEmbyServerConfig & { serverUrl: string };
+type NormalizedServer = Omit<JellyfinEmbyServerConfig, "serverUrls"> & {
+  serverUrls: string;
+  apiBaseUrl: string;
+};
 
 export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
   readonly sourceId = "jellyfinEmby" as const;
@@ -193,45 +197,34 @@ function requireBooleanValue(source: Record<string, unknown>, key: string, conte
   return source[key];
 }
 
-function normalizeBaseUrl(url: string): string | null {
-  if (!URL.canParse(url)) {
-    return null;
-  }
-  const parsed = new URL(url);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return null;
-  }
-  parsed.pathname = parsed.pathname.replace(/\/+$/, "");
-  parsed.search = "";
-  parsed.hash = "";
-  return parsed.toString().replace(/\/+$/, "");
-}
-
-function normalizeServer(row: unknown, index: number): NormalizedServer | null {
+function normalizeServer(row: unknown, index: number): NormalizedServer[] {
   const source = requireObject(row, `Jellyfin / Emby server ${index + 1}`);
   const enabled = requireBooleanValue(source, "enabled", `Jellyfin / Emby server ${index + 1}`);
   if (!enabled) {
-    return null;
+    return [];
   }
-  const serverUrl = requireStringValue(source, "serverUrl", `Jellyfin / Emby server ${index + 1}`);
-  if (!serverUrl) {
-    return null;
-  }
-  const normalizedServerUrl = normalizeBaseUrl(serverUrl);
-  if (!normalizedServerUrl) {
-    return null;
-  }
+  const serverUrls = requireStringValue(source, "serverUrls", `Jellyfin / Emby server ${index + 1}`);
   const apiKey = requireStringValue(source, "apiKey", `Jellyfin / Emby server ${index + 1}`);
-  if (!apiKey) {
-    return null;
+  if (!serverUrls) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
   }
-  return {
-    id: requireStringValue(source, "id", `Jellyfin / Emby server ${index + 1}`),
-    name: requireStringValue(source, "name", `Jellyfin / Emby server ${index + 1}`),
-    serverUrl: normalizedServerUrl,
+  if (!apiKey) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include apiKey.`);
+  }
+  const id = requireStringValue(source, "id", `Jellyfin / Emby server ${index + 1}`);
+  const name = requireStringValue(source, "name", `Jellyfin / Emby server ${index + 1}`);
+  const parsedServerUrls = parseJellyfinEmbyServerUrls(serverUrls, `Jellyfin / Emby server ${index + 1} URLs`);
+  if (!parsedServerUrls.length) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
+  }
+  return parsedServerUrls.map((entry) => ({
+    id,
+    name,
+    serverUrls,
+    apiBaseUrl: entry.baseUrl,
     apiKey,
     enabled
-  };
+  }));
 }
 
 function parseServers(config: JellyfinEmbyFeatureSettings["config"]): NormalizedServer[] {
@@ -241,9 +234,7 @@ function parseServers(config: JellyfinEmbyFeatureSettings["config"]): Normalized
   if (!Array.isArray(config.servers)) {
     throw new Error("Jellyfin / Emby servers must be configured with a server list.");
   }
-  return config.servers
-    .map((server, index) => normalizeServer(server, index))
-    .filter((server): server is NormalizedServer => Boolean(server));
+  return config.servers.flatMap((server, index) => normalizeServer(server, index));
 }
 
 function parseOptionalUrl(value: unknown): URL | null {
@@ -257,10 +248,10 @@ function parseOptionalUrl(value: unknown): URL | null {
 
 function findServer(servers: NormalizedServer[], urls: unknown[]): NormalizedServer | null {
   for (const server of servers) {
-    const base = new URL(server.serverUrl);
+    const base = new URL(server.apiBaseUrl);
     const matched = urls.some((url) => {
       const parsed = parseOptionalUrl(url);
-      return parsed && parsed.host === base.host;
+      return parsed && parsed.origin === base.origin;
     });
     if (matched) {
       return server;
@@ -390,7 +381,7 @@ function toSessionSummary(server: NormalizedServer, row: unknown): MediaServerSe
   return {
     id: `${server.id}:${text(record.Id)}`,
     serverConfigId: server.id,
-    serverName: server.name || server.serverUrl,
+    serverName: server.name || server.apiBaseUrl,
     serverType: "jellyfinemby",
     deviceName: text(record.DeviceName),
     client: text(record.Client),
@@ -410,7 +401,7 @@ async function fetchSessions(fetchImpl: FetchLike, server: NormalizedServer): Pr
   if (!server.apiKey) {
     return [];
   }
-  const url = new URL(`${server.serverUrl}/Sessions`);
+  const url = new URL(`${server.apiBaseUrl}/Sessions`);
   url.searchParams.set("api_key", server.apiKey);
   const rows = await fetchJson(fetchImpl, url.toString(), server);
   return Array.isArray(rows)
@@ -426,7 +417,7 @@ async function fetchItemMetadata(
   if (!session.nowPlayingItemId) {
     return null;
   }
-  const url = new URL(`${server.serverUrl}/Items/${session.nowPlayingItemId}`);
+  const url = new URL(`${server.apiBaseUrl}/Items/${session.nowPlayingItemId}`);
   url.searchParams.set("api_key", server.apiKey);
   return fetchJson(fetchImpl, url.toString(), server);
 }
@@ -481,7 +472,7 @@ function buildSubtitleUrl(
   extension: "srt" | "vtt"
 ): string {
   const url = new URL(
-    `${server.serverUrl}/Videos/${session.nowPlayingItemId}/${session.mediaSourceId}/Subtitles/${stream.index}/Stream.${extension}`
+    `${server.apiBaseUrl}/Videos/${session.nowPlayingItemId}/${session.mediaSourceId}/Subtitles/${stream.index}/Stream.${extension}`
   );
   url.searchParams.set("api_key", server.apiKey);
   return url.toString();

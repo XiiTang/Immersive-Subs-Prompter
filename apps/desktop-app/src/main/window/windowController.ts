@@ -391,7 +391,7 @@ function areJellyfinEmbyFeatureSettingsEqual(
       other &&
       server.id === other.id &&
       server.name === other.name &&
-      server.serverUrl === other.serverUrl &&
+      server.serverUrls === other.serverUrls &&
       server.apiKey === other.apiKey &&
       server.enabled === other.enabled
     );

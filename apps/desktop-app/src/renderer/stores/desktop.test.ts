@@ -355,9 +355,9 @@ describe("desktop store profile selection", () => {
               {
                 id,
                 name: "Server 1",
-                serverUrl: "",
+                serverUrls: "",
                 apiKey: "",
-                enabled: true
+                enabled: false
               }
             ]
           }
@@ -370,11 +370,13 @@ describe("desktop store profile selection", () => {
     const store = useDesktopStore();
     store.settings = createSettings();
     store.settings.features.jellyfinEmby.config.servers = [
-      { id: "server-1", name: "Home", serverUrl: "", apiKey: "", enabled: true }
+      { id: "server-1", name: "Home", serverUrls: "", apiKey: "", enabled: true }
     ];
     const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
 
-    await store.updateJellyfinEmbyServer("server-1", { serverUrl: "https://media.example.test" });
+    await store.updateJellyfinEmbyServer("server-1", {
+      serverUrls: "http://localhost:8096, http://127.0.0.1:8096"
+    });
 
     expect(updateSettings).toHaveBeenCalledWith({
       features: {
@@ -382,7 +384,13 @@ describe("desktop store profile selection", () => {
           enabled: store.settings.features.jellyfinEmby.enabled,
           config: {
             servers: [
-              { id: "server-1", name: "Home", serverUrl: "https://media.example.test", apiKey: "", enabled: true }
+              {
+                id: "server-1",
+                name: "Home",
+                serverUrls: "http://localhost:8096, http://127.0.0.1:8096",
+                apiKey: "",
+                enabled: true
+              }
             ]
           }
         }
@@ -397,7 +405,7 @@ describe("desktop store profile selection", () => {
       {
         id: "server-1",
         name: "Home",
-        serverUrl: "https://home.example.test",
+        serverUrls: "http://localhost:8096, http://127.0.0.1:8096",
         apiKey: "token",
         enabled: true
       }
@@ -416,14 +424,14 @@ describe("desktop store profile selection", () => {
               {
                 id: "server-1",
                 name: "Home",
-                serverUrl: "https://home.example.test",
+                serverUrls: "http://localhost:8096, http://127.0.0.1:8096",
                 apiKey: "token",
                 enabled: true
               },
               {
                 id,
                 name: "Home Copy",
-                serverUrl: "https://home.example.test",
+                serverUrls: "http://localhost:8096, http://127.0.0.1:8096",
                 apiKey: "token",
                 enabled: true
               }

@@ -6,6 +6,8 @@
 
 **Architecture:** Keep generic subtitle downloads and Jellyfin / Emby as separate trust paths. Generic `yt-dlp` accepts only recognized public page URLs. Jellyfin / Emby uses a final `serverUrls` comma-separated field, parses it through one shared helper, and uses the matched configured URL as the API base.
 
+Recognized generic site identity is bound to the page URL hostname in the desktop main process. The extension should report only exact supported domains or their subdomains as `youtube`, `bilibili`, or `douyin`, but the desktop process remains the authoritative trust boundary.
+
 **Tech Stack:** Electron main process, Vue 3 renderer, Pinia store, TypeScript, Vitest main/jsdom/browser projects.
 
 ---
@@ -33,6 +35,8 @@
 - Modify `apps/desktop-app/src/main/connectionManager.ts`: remove generic unknown-site `videoSrc` and `pageUrl` fallback for `yt-dlp`.
 - Modify `apps/desktop-app/src/main/connectionManager.test.ts`: connection URL resolution tests for recognized sites, unknown sites, and private URLs.
 - Create `apps/desktop-app/src/main/networkUrlSafety.test.ts`: URL guard coverage for blocked and accepted hosts.
+- Modify `apps/extension/src/video/VideoStateGatherer.ts`: classify supported sites by exact domain or subdomain, not substring.
+- Create `apps/extension/src/video/VideoStateGatherer.test.ts`: extension site-classification coverage for supported, subdomain, and lookalike hosts.
 - Modify `apps/desktop-app/src/renderer/components/settings/JellyfinEmbyFeatureSettings.vue`: replace single URL behavior with comma-separated `serverUrls` drafts, validation, and summary.
 - Modify `apps/desktop-app/src/renderer/components/settings/SettingsFeatures.test.ts`: jsdom settings UI tests for valid/invalid URL lists.
 - Modify `apps/desktop-app/src/renderer/components/settings/SettingsFeatures.browser.test.ts`: browser contract tests that still prove ProfileList-style server rows and stable summaries.
@@ -130,7 +134,7 @@ Append these cases inside `describe("sanitizeSettings", ...)` in `apps/desktop-a
       ).not.toThrow();
     });
 
-    it("rejects legacy Jellyfin / Emby serverUrl fields in final settings", () => {
+    it("rejects unknown Jellyfin / Emby server fields in final settings", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
 
       expect(() =>
@@ -144,7 +148,7 @@ Append these cases inside `describe("sanitizeSettings", ...)` in `apps/desktop-a
                     {
                       id: "server-1",
                       name: "Home",
-                      serverUrl: "http://localhost:8096",
+                      unexpected: "value",
                       apiKey: "token",
                       enabled: true
                     }
@@ -155,7 +159,7 @@ Append these cases inside `describe("sanitizeSettings", ...)` in `apps/desktop-a
           } as never,
           settings
         )
-      ).toThrow("features.jellyfinEmby.config.servers.0 contains unknown setting: serverUrl");
+      ).toThrow("features.jellyfinEmby.config.servers.0 contains unknown setting: unexpected");
     });
 
     it("rejects enabled Jellyfin / Emby rows without a URL list or API key", () => {
@@ -171,6 +175,22 @@ Append these cases inside `describe("sanitizeSettings", ...)` in `apps/desktop-a
                   servers: [
                     { id: "server-1", name: "Home", serverUrls: "", apiKey: "token", enabled: true }
                   ]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrls must include at least one URL when enabled");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [{ id: "server-1", name: "Home", serverUrls: ", ,", apiKey: "token", enabled: true }]
                 }
               }
             }
@@ -330,15 +350,15 @@ Replace the per-server validation block inside `validateJellyfinEmbyFeature` wit
     requireString(record, "serverUrls", context);
     requireString(record, "apiKey", context);
     requireBoolean(record, "enabled", context);
+    const serverUrls = parseJellyfinEmbyServerUrls(record.serverUrls as string, `${context}.serverUrls`);
     if (record.enabled === true) {
-      if (!(record.serverUrls as string).trim()) {
+      if (!serverUrls.length) {
         throw new Error(`${context}.serverUrls must include at least one URL when enabled`);
       }
       if (!(record.apiKey as string).trim()) {
         throw new Error(`${context}.apiKey must be a non-empty string when enabled`);
       }
     }
-    parseJellyfinEmbyServerUrls(record.serverUrls as string, `${context}.serverUrls`);
 ```
 
 Remove the old `validateOptionalHttpUrl(record.serverUrl, ...)` call from this block. Keep `validateOptionalHttpUrl` only if another current sanitizer still uses it; otherwise remove the function.
@@ -726,7 +746,7 @@ Run:
 pnpm --filter @immersive-subs/desktop-app exec vitest run --project main src/main/features/jellyfinEmbyMediaSource.test.ts
 ```
 
-Expected: FAIL because runtime still reads `serverUrl` and cannot match `serverUrls`.
+Expected: FAIL until runtime parses `serverUrls`, rejects incomplete enabled rows, and uses the matched configured endpoint as `apiBaseUrl`.
 
 - [ ] **Step 3: Implement runtime URL-list parsing**
 
@@ -741,7 +761,7 @@ Replace the runtime server type:
 ```ts
 type NormalizedServer = Omit<JellyfinEmbyServerConfig, "serverUrls"> & {
   serverUrls: string;
-  serverUrl: string;
+  apiBaseUrl: string;
 };
 ```
 
@@ -756,16 +776,23 @@ function normalizeServer(row: unknown, index: number): NormalizedServer[] {
   }
   const serverUrls = requireStringValue(source, "serverUrls", `Jellyfin / Emby server ${index + 1}`);
   const apiKey = requireStringValue(source, "apiKey", `Jellyfin / Emby server ${index + 1}`);
-  if (!serverUrls || !apiKey) {
-    return [];
+  if (!serverUrls) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
+  }
+  if (!apiKey) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include apiKey.`);
   }
   const id = requireStringValue(source, "id", `Jellyfin / Emby server ${index + 1}`);
   const name = requireStringValue(source, "name", `Jellyfin / Emby server ${index + 1}`);
-  return parseJellyfinEmbyServerUrls(serverUrls, `Jellyfin / Emby server ${index + 1} URLs`).map((entry) => ({
+  const parsedServerUrls = parseJellyfinEmbyServerUrls(serverUrls, `Jellyfin / Emby server ${index + 1} URLs`);
+  if (!parsedServerUrls.length) {
+    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
+  }
+  return parsedServerUrls.map((entry) => ({
     id,
     name,
     serverUrls,
-    serverUrl: entry.baseUrl,
+    apiBaseUrl: entry.baseUrl,
     apiKey,
     enabled
   }));
@@ -785,7 +812,7 @@ Replace matching to compare configured origins:
 ```ts
 function findServer(servers: NormalizedServer[], urls: unknown[]): NormalizedServer | null {
   for (const server of servers) {
-    const base = new URL(server.serverUrl);
+    const base = new URL(server.apiBaseUrl);
     const matched = urls.some((url) => {
       const parsed = parseOptionalUrl(url);
       return parsed && parsed.origin === base.origin;
@@ -798,7 +825,7 @@ function findServer(servers: NormalizedServer[], urls: unknown[]): NormalizedSer
 }
 ```
 
-Keep `fetchSessions`, `fetchItemMetadata`, `buildSubtitleUrl`, and `toSessionSummary` using `server.serverUrl`; that field is now the matched configured endpoint.
+Keep `fetchSessions`, `fetchItemMetadata`, `buildSubtitleUrl`, and `toSessionSummary` using `server.apiBaseUrl`; that field is the matched configured endpoint.
 
 - [ ] **Step 4: Run Jellyfin / Emby runtime tests to verify they pass**
 
@@ -841,6 +868,30 @@ In `apps/desktop-app/src/main/connectionManager.test.ts`, replace the current lo
     })).toBe("https://youtube.com/watch?v=abc");
 
     expect(resolveVideoUrl({
+      pageUrl: "https://music.youtube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBe("https://music.youtube.com/watch?v=abc");
+
+    expect(resolveVideoUrl({
+      pageUrl: "https://notyoutube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBeNull();
+
+    expect(resolveVideoUrl({
+      pageUrl: "https://youtube.com.evil.example/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "youtube"
+    })).toBeNull();
+
+    expect(resolveVideoUrl({
+      pageUrl: "https://youtube.com/watch?v=abc",
+      videoSrc: "https://cdn.example.test/video.mp4",
+      site: "bilibili"
+    })).toBeNull();
+
+    expect(resolveVideoUrl({
       pageUrl: "https://example.test/watch",
       videoSrc: "https://cdn.example.test/video.mp4",
       site: "unknown"
@@ -881,7 +932,10 @@ describe("networkUrlSafety", () => {
   it("rejects local private link-local multicast and metadata hosts", () => {
     for (const url of [
       "http://localhost:8096/watch",
+      "http://localhost.:8096/watch",
       "http://app.localhost/watch",
+      "http://app.localhost./watch",
+      "http://service.local./watch",
       "http://127.0.0.1:8080/watch",
       "http://10.0.0.5/watch",
       "http://172.16.0.5/watch",
@@ -889,6 +943,7 @@ describe("networkUrlSafety", () => {
       "http://100.64.0.1/watch",
       "http://169.254.169.254/latest/meta-data",
       "http://metadata.google.internal/computeMetadata/v1",
+      "http://metadata.google.internal./computeMetadata/v1",
       "http://224.0.0.1/watch",
       "http://[::1]/watch",
       "http://[fc00::1]/watch",
@@ -920,16 +975,22 @@ Expected: FAIL in `connectionManager.test.ts` because unknown-site public `pageU
 
 - [ ] **Step 4: Restrict generic media URL resolution**
 
-In `apps/desktop-app/src/main/connectionManager.ts`, replace `resolveVideoUrl` with:
+In `apps/desktop-app/src/main/connectionManager.ts`, bind recognized site identity to the page URL hostname, then replace `resolveVideoUrl` with:
 
 ```ts
+const PAGE_URL_SITE_HOSTS = {
+  youtube: ["youtube.com"],
+  bilibili: ["bilibili.com"],
+  douyin: ["douyin.com"]
+} as const;
+
   private resolveVideoUrl(
     payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]
   ): string | null {
     const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
     const site = payload.site;
 
-    if (pageUrl && site && PAGE_URL_SITES.has(site) && isPublicHttpUrl(pageUrl)) {
+    if (pageUrl && siteMatchesPageUrl(site, pageUrl) && isPublicHttpUrl(pageUrl)) {
       return pageUrl;
     }
 
@@ -938,6 +999,8 @@ In `apps/desktop-app/src/main/connectionManager.ts`, replace `resolveVideoUrl` w
 ```
 
 Do not add a replacement fallback through `videoSrc`.
+
+Update `apps/extension/src/video/VideoStateGatherer.ts` to use the same exact-or-subdomain classification rule for supported site IDs, and add `apps/extension/src/video/VideoStateGatherer.test.ts` coverage for `notyoutube.com` and `youtube.com.evil.example`.
 
 - [ ] **Step 5: Confirm `SubtitleService` direct guard remains in place**
 
@@ -987,24 +1050,23 @@ git commit -m "fix: restrict page controlled subtitle urls"
 Run:
 
 ```bash
-rg -n "serverUrl" apps/desktop-app/src docs/superpowers/specs/2026-06-15-built-in-features-design.md docs/superpowers/specs/2026-06-16-feature-restoration-design.md
+rg -n "serverUrl\\b" apps/desktop-app/src docs/superpowers/specs/2026-06-15-built-in-features-design.md docs/superpowers/specs/2026-06-16-feature-restoration-design.md
 ```
 
 Expected before docs/source cleanup: matches remain only in files not yet updated by earlier tasks.
 
 - [ ] **Step 2: Remove stale source references**
 
-If `serverUrl` appears under `apps/desktop-app/src`, replace it with `serverUrls` or the runtime-only local variable `serverUrl` in `jellyfinEmbyMediaSource.ts`.
+If `serverUrl` appears under `apps/desktop-app/src`, replace it with `serverUrls` or the runtime matched-base field `apiBaseUrl` in `jellyfinEmbyMediaSource.ts`.
 
 Allowed remaining source matches after cleanup:
 
 ```text
-apps/desktop-app/src/main/features/jellyfinEmbyMediaSource.ts
 apps/desktop-app/src/common/jellyfinEmbyServerUrls.ts
 apps/desktop-app/src/main/settings/jellyfinEmbyServerUrls.test.ts
 ```
 
-`jellyfinEmbyMediaSource.ts` may keep `serverUrl` only as the matched configured API base on the runtime `NormalizedServer` type.
+`jellyfinEmbyMediaSource.ts` should use `apiBaseUrl` as the matched configured API base on the runtime `NormalizedServer` type.
 
 - [ ] **Step 3: Update stale docs to final `serverUrls` model**
 
@@ -1052,14 +1114,14 @@ Run:
 
 ```bash
 git diff --check
-rg -n "serverUrl" apps/desktop-app/src docs/superpowers/specs/2026-06-15-built-in-features-design.md docs/superpowers/specs/2026-06-16-feature-restoration-design.md
+rg -n "serverUrl\\b" apps/desktop-app/src docs/superpowers/specs/2026-06-15-built-in-features-design.md docs/superpowers/specs/2026-06-16-feature-restoration-design.md
 rg -n "videoSrc && isPublicHttpUrl|pageUrl && isPublicHttpUrl\\(pageUrl\\)\\)" apps/desktop-app/src/main/connectionManager.ts
 ```
 
 Expected:
 
 - `git diff --check` prints no output.
-- `serverUrl` matches only the runtime matched-base variable in `jellyfinEmbyMediaSource.ts` and helper/test names containing `ServerUrl`.
+- no singular `serverUrl` settings or runtime fields remain; helper and test names may contain `ServerUrl` as part of `ServerUrls`.
 - the unsafe `resolveVideoUrl` fallback patterns do not appear.
 
 - [ ] **Step 7: Commit final docs and cleanup**
@@ -1084,7 +1146,8 @@ Spec coverage:
 - Localhost, loopback, and LAN Jellyfin / Emby matching is covered by Task 3.
 - Matched configured endpoint as API base is covered by Task 3.
 - Invalid URL-list persistence rejection is covered by Tasks 1 and 2.
-- Disabled and incomplete rows not matching is covered by Tasks 1 and 3.
+- Disabled rows not matching is covered by Task 3.
+- Enabled incomplete rows rejecting instead of silently skipping is covered by Tasks 1 and 3.
 - Stale docs are covered by Task 5.
 
 Placeholder scan:
@@ -1094,5 +1157,5 @@ Placeholder scan:
 Type consistency:
 
 - Persisted settings use `serverUrls`.
-- Runtime matched API base uses local `serverUrl` only inside `JellyfinEmbyMediaSource`.
+- Runtime matched API base uses `apiBaseUrl` inside `JellyfinEmbyMediaSource`.
 - Shared helper returns `{ input, origin, baseUrl }`; tests and runtime use `baseUrl`.

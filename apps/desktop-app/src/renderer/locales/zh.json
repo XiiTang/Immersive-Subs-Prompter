@@ -212,8 +212,9 @@
   "feature-jellyfin-emby-api-key": "API key",
   "feature-jellyfin-emby-server-enabled": "启用",
   "feature-jellyfin-emby-delete-server": "删除服务器",
-  "feature-jellyfin-emby-url-required": "服务器 URL 不能为空",
-  "feature-jellyfin-emby-url-http": "服务器 URL 必须是 HTTP(S)",
+  "feature-jellyfin-emby-url-required": "至少需要一个服务器 URL",
+  "feature-jellyfin-emby-url-http": "每个服务器 URL 都必须是 HTTP(S)",
+  "feature-jellyfin-emby-url-count": "{count} 个 URL",
   "feature-jellyfin-emby-api-key-required": "API key 不能为空",
   "transcription-config-select": "语音转录配置",
   "primary-track-label": "主字幕"

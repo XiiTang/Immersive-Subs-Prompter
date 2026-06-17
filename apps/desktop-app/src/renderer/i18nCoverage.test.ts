@@ -60,7 +60,8 @@ const requiredKeys = [
   "feature-jellyfin-emby-title",
   "feature-jellyfin-emby-server-list",
   "feature-jellyfin-emby-untitled",
-  "feature-jellyfin-emby-no-url"
+  "feature-jellyfin-emby-no-url",
+  "feature-jellyfin-emby-url-count"
 ];
 
 function readLocale(name: "en" | "zh") {

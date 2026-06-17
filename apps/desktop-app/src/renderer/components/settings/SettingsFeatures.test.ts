@@ -187,9 +187,9 @@ describe("SettingsFeatures", () => {
       store.settings!.features.jellyfinEmby.config.servers.push({
         id: "server-1",
         name: "Server 1",
-        serverUrl: "",
+        serverUrls: "",
         apiKey: "",
-        enabled: true
+        enabled: false
       });
       return "server-1";
     });
@@ -198,38 +198,36 @@ describe("SettingsFeatures", () => {
 
     await wrapper.get('[data-testid="feature-jellyfin-emby-add-server"]').trigger("click");
     await wrapper.vm.$nextTick();
-    await wrapper.get("#feature-jellyfin-emby-server-url").setValue("https://media.example.test");
+    await wrapper.get("#feature-jellyfin-emby-server-url").setValue("http://localhost:8096, http://127.0.0.1:8096");
 
     expect(store.updateJellyfinEmbyServer).toHaveBeenCalledWith("server-1", expect.objectContaining({
-      serverUrl: "https://media.example.test"
+      serverUrls: "http://localhost:8096, http://127.0.0.1:8096"
     }));
   });
 
-  it("keeps invalid Jellyfin / Emby server URLs in a local draft until they are saveable", async () => {
+  it("keeps invalid Jellyfin / Emby server URL lists in a local draft until every entry is saveable", async () => {
     const store = seedStore();
     store.settings!.features.jellyfinEmby.config.servers = [
       {
         id: "server-1",
         name: "Home",
-        serverUrl: "",
-        apiKey: "",
+        serverUrls: "",
+        apiKey: "token",
         enabled: true
       }
     ];
     const updateServer = vi.spyOn(store, "updateJellyfinEmbyServer").mockResolvedValue();
-    const wrapper = mount(JellyfinEmbyFeatureSettings);
-    const urlInput = wrapper.get<HTMLInputElement>("#feature-jellyfin-emby-server-url");
+    const urlInput = mount(JellyfinEmbyFeatureSettings).get<HTMLInputElement>("#feature-jellyfin-emby-server-url");
 
-    await urlInput.setValue("h");
+    await urlInput.setValue("http://localhost:8096, nope");
 
-    expect(urlInput.element.value).toBe("h");
+    expect(urlInput.element.value).toBe("http://localhost:8096, nope");
     expect(updateServer).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain("Server URL must be HTTP(S)");
 
-    await urlInput.setValue("https://media.example.test");
+    await urlInput.setValue("http://localhost:8096, http://127.0.0.1:8096");
 
     expect(updateServer).toHaveBeenCalledWith("server-1", expect.objectContaining({
-      serverUrl: "https://media.example.test"
+      serverUrls: "http://localhost:8096, http://127.0.0.1:8096"
     }));
   });
 
@@ -239,14 +237,14 @@ describe("SettingsFeatures", () => {
       {
         id: "server-1",
         name: "Home",
-        serverUrl: "https://home.example.test",
+        serverUrls: "http://localhost:8096, http://127.0.0.1:8096",
         apiKey: "token",
         enabled: true
       },
       {
         id: "server-2",
         name: "Office",
-        serverUrl: "",
+        serverUrls: "",
         apiKey: "",
         enabled: false
       }
@@ -257,7 +255,7 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get(".profile-list-sidebar").exists()).toBe(true);
     expect(wrapper.findAll(".profile-list__item")).toHaveLength(2);
     expect(wrapper.find("#feature-jellyfin-emby-server-name").exists()).toBe(false);
-    expect(wrapper.findAll(".profile-list__meta")[0]!.text()).toBe("https://home.example.test");
+    expect(wrapper.findAll(".profile-list__meta")[0]!.text()).toContain("2 URLs");
     expect(wrapper.findAll(".profile-list__meta")[1]!.text()).toBe("No server URL");
 
     await wrapper.findAll('[data-testid="feature-jellyfin-emby-server-name-action"]')[1]!.trigger("click");
@@ -289,14 +287,14 @@ describe("SettingsFeatures", () => {
       {
         id: "server-a",
         name: "Home",
-        serverUrl: "https://home.example.test",
+        serverUrls: "https://home.example.test",
         apiKey: "token-a",
         enabled: true
       },
       {
         id: "server-b",
         name: "Office",
-        serverUrl: "https://office.example.test",
+        serverUrls: "https://office.example.test",
         apiKey: "token-b",
         enabled: false
       }
@@ -306,7 +304,7 @@ describe("SettingsFeatures", () => {
       store.settings!.features.jellyfinEmby.config.servers.push({
         id: "server-b-copy",
         name: "Office Copy",
-        serverUrl: "https://office.example.test",
+        serverUrls: "https://office.example.test",
         apiKey: "token-b",
         enabled: false
       });
@@ -328,14 +326,14 @@ describe("SettingsFeatures", () => {
       {
         id: "server-a",
         name: "Home",
-        serverUrl: "https://home.example.test",
+        serverUrls: "https://home.example.test",
         apiKey: "token-a",
         enabled: true
       },
       {
         id: "server-b",
         name: "Office",
-        serverUrl: "https://office.example.test",
+        serverUrls: "https://office.example.test",
         apiKey: "token-b",
         enabled: false
       }
@@ -359,7 +357,7 @@ describe("SettingsFeatures", () => {
       {
         id: "server-1",
         name: "",
-        serverUrl: "not a url",
+        serverUrls: "not a url",
         apiKey: "",
         enabled: true
       }
@@ -369,7 +367,7 @@ describe("SettingsFeatures", () => {
 
     expect(wrapper.find(".server-errors").exists()).toBe(false);
     expect(wrapper.get("#feature-jellyfin-emby-server-url-row .ui-setting-row__error").text()).toBe(
-      "Server URL must be HTTP(S)"
+      "Every server URL must be HTTP(S)"
     );
     expect(wrapper.get("#feature-jellyfin-emby-api-key-row .ui-setting-row__error").text()).toBe(
       "API key is required"

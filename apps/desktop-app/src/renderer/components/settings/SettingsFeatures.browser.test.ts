@@ -146,14 +146,14 @@ describe("SettingsFeatures browser layout", () => {
       {
         id: "server-a",
         name: "Home",
-        serverUrl: "https://home.example.test",
+        serverUrls: "https://home.example.test",
         apiKey: "token",
         enabled: true
       },
       {
         id: "server-b",
         name: "Office",
-        serverUrl: "",
+        serverUrls: "",
         apiKey: "",
         enabled: false
       }
@@ -176,6 +176,7 @@ describe("SettingsFeatures browser layout", () => {
       Number.parseFloat(nameActionStyle.borderTopWidth) + Number.parseFloat(nameActionStyle.paddingTop);
     const serverMeta = wrapper.findAll<HTMLElement>(".profile-list__meta")[1]!;
     expect(serverMeta.text()).toBe("No server URL");
+    expect(wrapper.findAll<HTMLElement>(".profile-list__meta")).toHaveLength(2);
     expect(serverMeta.element.getBoundingClientRect().left - nameActions[1]!.element.getBoundingClientRect().left).toBe(
       actionTextLeftOffset
     );

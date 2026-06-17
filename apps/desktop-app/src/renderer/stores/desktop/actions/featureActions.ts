@@ -119,9 +119,9 @@ export async function addJellyfinEmbyServer(this: DesktopStoreThis): Promise<str
     {
       id,
       name: `Server ${servers.length + 1}`,
-      serverUrl: "",
+      serverUrls: "",
       apiKey: "",
-      enabled: true
+      enabled: false
     }
   ]);
   return id;

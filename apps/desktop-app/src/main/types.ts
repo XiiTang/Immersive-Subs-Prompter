@@ -143,7 +143,7 @@ export interface TranscriptionFeatureSettings {
 export interface JellyfinEmbyServerConfig {
   id: string;
   name: string;
-  serverUrl: string;
+  serverUrls: string;
   apiKey: string;
   enabled: boolean;
 }

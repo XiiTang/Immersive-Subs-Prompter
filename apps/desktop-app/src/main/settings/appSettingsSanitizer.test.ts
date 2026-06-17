@@ -151,7 +151,7 @@ describe("appSettingsSanitizer", () => {
       ).toThrow("features contains unknown setting: customFeature");
     });
 
-    it("rejects invalid Jellyfin / Emby server URLs in feature settings", () => {
+    it("accepts final Jellyfin / Emby server URL lists including local network URLs", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
 
       expect(() =>
@@ -165,7 +165,7 @@ describe("appSettingsSanitizer", () => {
                     {
                       id: "server-1",
                       name: "Home",
-                      serverUrl: "not a url",
+                      serverUrls: "http://localhost:8096, http://127.0.0.1:8096, http://192.168.1.45:8096",
                       apiKey: "token",
                       enabled: true
                     }
@@ -176,7 +176,89 @@ describe("appSettingsSanitizer", () => {
           } as never,
           settings
         )
-      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrl must be a valid HTTP(S) URL");
+      ).not.toThrow();
+    });
+
+    it("rejects enabled Jellyfin / Emby rows without a URL list or API key", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [{ id: "server-1", name: "Home", serverUrls: "", apiKey: "token", enabled: true }]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrls must include at least one URL when enabled");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [{ id: "server-1", name: "Home", serverUrls: ", ,", apiKey: "token", enabled: true }]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrls must include at least one URL when enabled");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [
+                    { id: "server-1", name: "Home", serverUrls: "http://localhost:8096", apiKey: "", enabled: true }
+                  ]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.apiKey must be a non-empty string when enabled");
+    });
+
+    it("rejects invalid entries inside Jellyfin / Emby server URL lists", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              jellyfinEmby: {
+                enabled: true,
+                config: {
+                  servers: [
+                    {
+                      id: "server-1",
+                      name: "Home",
+                      serverUrls: "http://localhost:8096, not a url",
+                      apiKey: "token",
+                      enabled: true
+                    }
+                  ]
+                }
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.jellyfinEmby.config.servers.0.serverUrls entry 2 must be a valid HTTP(S) URL");
     });
 
     it("rejects out-of-range feature numbers before runtime use", () => {

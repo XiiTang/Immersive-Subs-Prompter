@@ -2,13 +2,24 @@ import { log, state } from "../content/state";
 import { send } from "../connection/MessageSender";
 import type { VideoSite, VideoStateSnapshot } from "@immersive-subs/contracts";
 
+const SITE_HOSTS = {
+  youtube: ["youtube.com"],
+  bilibili: ["bilibili.com"],
+  douyin: ["douyin.com"]
+} as const;
+
 function detectSite(): VideoSite {
-  const host = location.hostname;
-  const site = host.includes("youtube.com") ? "youtube"
-    : host.includes("bilibili.com") ? "bilibili"
-      : host.includes("douyin.com") ? "douyin" : "unknown";
-  log.debug("site", `Detected: ${site}`, { hostname: host });
-  return site;
+  const host = stripDnsRootDot(location.hostname.toLowerCase());
+  const site = Object.entries(SITE_HOSTS).find(([, domains]) =>
+    domains.some((domain) => host === domain || host.endsWith(`.${domain}`))
+  )?.[0] as VideoSite | undefined;
+  const detected = site ?? "unknown";
+  log.debug("site", `Detected: ${detected}`, { hostname: host });
+  return detected;
+}
+
+function stripDnsRootDot(hostname: string): string {
+  return hostname.endsWith(".") ? hostname.replace(/\.+$/, "") : hostname;
 }
 
 export function gatherVideoState(video: HTMLVideoElement): VideoStateSnapshot;

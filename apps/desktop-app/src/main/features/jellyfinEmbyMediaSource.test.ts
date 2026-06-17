@@ -9,7 +9,7 @@ function createSettings(overrides = {}) {
         {
           id: "server-1",
           name: "Home",
-          serverUrl: "https://media.example.test/",
+          serverUrls: "https://media.example.test",
           apiKey: "api-key",
           enabled: true
         }
@@ -69,7 +69,7 @@ describe("JellyfinEmbyMediaSource", () => {
     );
   });
 
-  it("does not use incomplete or invalid server rows at runtime", async () => {
+  it("does not use disabled server rows at runtime", async () => {
     const fetch = vi.fn();
     const source = new JellyfinEmbyMediaSource({
       getSettings: () => createSettings({
@@ -77,17 +77,10 @@ describe("JellyfinEmbyMediaSource", () => {
           servers: [
             {
               id: "server-1",
-              name: "Broken",
-              serverUrl: "not a url",
+              name: "Disabled",
+              serverUrls: "https://media.example.test",
               apiKey: "api-key",
-              enabled: true
-            },
-            {
-              id: "server-2",
-              name: "No token",
-              serverUrl: "https://media.example.test/",
-              apiKey: "",
-              enabled: true
+              enabled: false
             }
           ]
         }
@@ -103,6 +96,166 @@ describe("JellyfinEmbyMediaSource", () => {
           pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
           videoSrc: null,
           title: "Movie",
+          site: "Jellyfin"
+        }
+      })
+    ).resolves.toBeUndefined();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects enabled server rows missing required runtime fields", async () => {
+    const source = new JellyfinEmbyMediaSource({
+      getSettings: () => createSettings({
+        config: {
+          servers: [
+            {
+              id: "server-1",
+              name: "No token",
+              serverUrls: "https://media.example.test",
+              apiKey: "",
+              enabled: true
+            }
+          ]
+        }
+      }),
+      fetch: vi.fn() as never
+    });
+
+    await expect(
+      source.handleConnectionMessage({
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Movie",
+          site: "Jellyfin"
+        }
+      })
+    ).rejects.toThrow("Jellyfin / Emby server 1 must include apiKey.");
+  });
+
+  it("rejects enabled server rows without any parsed runtime URL", async () => {
+    const source = new JellyfinEmbyMediaSource({
+      getSettings: () => createSettings({
+        config: {
+          servers: [
+            {
+              id: "server-1",
+              name: "No URL",
+              serverUrls: ", ,",
+              apiKey: "api-key",
+              enabled: true
+            }
+          ]
+        }
+      }),
+      fetch: vi.fn() as never
+    });
+
+    await expect(
+      source.handleConnectionMessage({
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Movie",
+          site: "Jellyfin"
+        }
+      })
+    ).rejects.toThrow("Jellyfin / Emby server 1 must include serverUrls.");
+  });
+
+  it("matches any configured Jellyfin / Emby URL and fetches from the matched configured endpoint", async () => {
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes("/Sessions")) {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              Id: "session-1",
+              DeviceName: "Chrome",
+              Client: "Jellyfin Web",
+              UserName: "cq",
+              NowPlayingItem: {
+                Id: "item-1",
+                Name: "Episode",
+                RunTimeTicks: 10_000_000,
+                MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
+              },
+              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+            }
+          ]
+        };
+      }
+      return {
+        ok: true,
+        text: async () => "1\n00:00:00,000 --> 00:00:01,000\nhello\n"
+      };
+    });
+    const source = new JellyfinEmbyMediaSource({
+      getSettings: () => createSettings({
+        config: {
+          servers: [
+            {
+              id: "server-1",
+              name: "Home",
+              serverUrls: "http://localhost:8096, http://127.0.0.1:8096, http://192.168.1.45:8096",
+              apiKey: "api-key",
+              enabled: true
+            }
+          ]
+        }
+      }),
+      fetch: fetch as never
+    });
+
+    await source.handleConnectionMessage({
+      type: "video-context",
+      tabId: 1,
+      payload: {
+        pageUrl: "http://127.0.0.1:8096/web/index.html#!/details?id=item-1",
+        videoSrc: "blob:http://127.0.0.1:8096/video",
+        title: "Episode",
+        site: "Jellyfin"
+      }
+    });
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("http://127.0.0.1:8096/Sessions"), expect.any(Object));
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("http://127.0.0.1:8096/Videos/item-1/media-1/Subtitles/2/Stream.srt"),
+      expect.any(Object)
+    );
+  });
+
+  it("does not claim unconfigured private network Jellyfin / Emby URLs", async () => {
+    const fetch = vi.fn();
+    const source = new JellyfinEmbyMediaSource({
+      getSettings: () => createSettings({
+        config: {
+          servers: [
+            {
+              id: "server-1",
+              name: "Home",
+              serverUrls: "http://localhost:8096",
+              apiKey: "api-key",
+              enabled: true
+            }
+          ]
+        }
+      }),
+      fetch: fetch as never
+    });
+
+    await expect(
+      source.handleConnectionMessage({
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "http://192.168.1.45:8096/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Episode",
           site: "Jellyfin"
         }
       })

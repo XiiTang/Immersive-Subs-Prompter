@@ -90,13 +90,13 @@
       <UiSettingRow
         id="feature-jellyfin-emby-server-url-row"
         :label="t('feature-jellyfin-emby-server-url')"
-        :error="serverUrlError(editableServer)"
+        :error="serverUrlsError(editableServer)"
         control-width="wide"
       >
         <UiInput
           id="feature-jellyfin-emby-server-url"
-          :model-value="editableServer.serverUrl"
-          @update:model-value="updateSelectedServer({ serverUrl: String($event) })"
+          :model-value="editableServer.serverUrls"
+          @update:model-value="updateSelectedServer({ serverUrls: String($event) })"
         />
       </UiSettingRow>
       <UiSettingRow
@@ -121,6 +121,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
+import { isValidJellyfinEmbyServerUrls, parseJellyfinEmbyServerUrls } from "../../../common/jellyfinEmbyServerUrls";
 import type { JellyfinEmbyServerConfig } from "../../../main/types";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
@@ -199,7 +200,20 @@ async function removeSelectedServer() {
 }
 
 function serverMeta(server: JellyfinEmbyServerConfig): string {
-  return server.serverUrl.trim() || t("feature-jellyfin-emby-no-url");
+  if (!server.serverUrls.trim()) {
+    return t("feature-jellyfin-emby-no-url");
+  }
+  if (!isValidJellyfinEmbyServerUrls(server.serverUrls)) {
+    return server.serverUrls.trim();
+  }
+  const urls = parseJellyfinEmbyServerUrls(server.serverUrls);
+  if (!urls.length) {
+    return t("feature-jellyfin-emby-no-url");
+  }
+  if (urls.length === 1) {
+    return urls[0]!.baseUrl;
+  }
+  return t("feature-jellyfin-emby-url-count", { count: urls.length });
 }
 
 async function startServerNameEdit(server: JellyfinEmbyServerConfig) {
@@ -244,22 +258,14 @@ function commitServerName(serverId: string) {
   updateServer(serverId, { name });
 }
 
-function isHttpUrl(value: string) {
-  if (!URL.canParse(value)) {
-    return false;
-  }
-  const parsed = new URL(value);
-  return parsed.protocol === "http:" || parsed.protocol === "https:";
-}
-
-function serverUrlError(server: JellyfinEmbyServerConfig): string | null {
-  if (!server.enabled) {
-    return null;
-  }
-  if (!server.serverUrl.trim()) {
+function serverUrlsError(server: JellyfinEmbyServerConfig): string | null {
+  if (!server.serverUrls.trim()) {
+    if (!server.enabled) {
+      return null;
+    }
     return t("feature-jellyfin-emby-url-required");
   }
-  if (!isHttpUrl(server.serverUrl)) {
+  if (!isValidJellyfinEmbyServerUrls(server.serverUrls)) {
     return t("feature-jellyfin-emby-url-http");
   }
   return null;
@@ -273,7 +279,13 @@ function serverApiKeyError(server: JellyfinEmbyServerConfig): string | null {
 }
 
 function canPersistServerDraft(server: JellyfinEmbyServerConfig): boolean {
-  return !server.serverUrl.trim() || isHttpUrl(server.serverUrl);
+  if (server.serverUrls.trim() && !isValidJellyfinEmbyServerUrls(server.serverUrls)) {
+    return false;
+  }
+  if (!server.enabled) {
+    return true;
+  }
+  return Boolean(server.serverUrls.trim() && server.apiKey.trim());
 }
 </script>
 

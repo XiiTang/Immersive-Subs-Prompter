@@ -31,7 +31,7 @@ export function isPublicHttpUrl(input: string): boolean {
 }
 
 function isBlockedLocalHost(hostname: string): boolean {
-  const host = stripIpv6Brackets(hostname).toLowerCase();
+  const host = stripDnsRootDot(stripIpv6Brackets(hostname).toLowerCase());
   if (!host || METADATA_HOSTS.has(host) || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) {
     return true;
   }
@@ -49,6 +49,10 @@ function isBlockedLocalHost(hostname: string): boolean {
 function stripIpv6Brackets(hostname: string): string {
   const trimmed = hostname.trim();
   return trimmed.startsWith("[") && trimmed.endsWith("]") ? trimmed.slice(1, -1) : trimmed;
+}
+
+function stripDnsRootDot(hostname: string): string {
+  return hostname.endsWith(".") ? hostname.replace(/\.+$/, "") : hostname;
 }
 
 function isBlockedIpv4(host: string): boolean {

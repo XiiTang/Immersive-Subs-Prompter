@@ -24,7 +24,11 @@ import {
   VideoControlCommand
 } from "./types.js";
 
-const PAGE_URL_SITES = new Set(["youtube", "bilibili", "douyin"]);
+const PAGE_URL_SITE_HOSTS = {
+  youtube: ["youtube.com"],
+  bilibili: ["bilibili.com"],
+  douyin: ["douyin.com"]
+} as const;
 
 type ConnectionManagerOptions = {
   getNetworkSettings: () => NetworkSettings;
@@ -671,21 +675,27 @@ export class ConnectionManager {
     payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]
   ): string | null {
     const pageUrl = typeof payload.pageUrl === "string" ? payload.pageUrl : null;
-    const videoSrc = typeof payload.videoSrc === "string" ? payload.videoSrc : null;
     const site = payload.site;
 
-    if (pageUrl && site && PAGE_URL_SITES.has(site) && isPublicHttpUrl(pageUrl)) {
-      return pageUrl;
-    }
-
-    if (videoSrc && isPublicHttpUrl(videoSrc)) {
-      return videoSrc;
-    }
-
-    if (pageUrl && isPublicHttpUrl(pageUrl)) {
+    if (pageUrl && siteMatchesPageUrl(site, pageUrl) && isPublicHttpUrl(pageUrl)) {
       return pageUrl;
     }
 
     return null;
   }
+}
+
+function siteMatchesPageUrl(site: unknown, pageUrl: string): boolean {
+  if (site !== "youtube" && site !== "bilibili" && site !== "douyin") {
+    return false;
+  }
+  if (!URL.canParse(pageUrl)) {
+    return false;
+  }
+  const host = stripDnsRootDot(new URL(pageUrl).hostname.toLowerCase());
+  return PAGE_URL_SITE_HOSTS[site].some((domain) => host === domain || host.endsWith(`.${domain}`));
+}
+
+function stripDnsRootDot(hostname: string): string {
+  return hostname.endsWith(".") ? hostname.replace(/\.+$/, "") : hostname;
 }

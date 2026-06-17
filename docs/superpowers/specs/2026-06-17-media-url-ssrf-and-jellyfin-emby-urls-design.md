@@ -8,7 +8,7 @@ The final app does not let arbitrary page-controlled `pageUrl` or `videoSrc` val
 
 Jellyfin / Emby remains able to use localhost, loopback, and private-network URLs, but only through server URLs explicitly configured by the user in the built-in Jellyfin / Emby settings.
 
-This design describes the final state only. The project has not launched, so the implementation does not preserve legacy persisted `serverUrl` data, add migration code, keep compatibility aliases, or retain transitional fallback behavior.
+This design describes the final state only. The project has not launched, so the implementation does not preserve legacy persisted endpoint data, add migration code, keep compatibility aliases, or retain transitional fallback behavior.
 
 ## Scope
 
@@ -34,17 +34,19 @@ The generic subtitle-download path treats extension media context as untrusted i
 
 The final generic `yt-dlp` path accepts only public HTTP(S) page URLs from product-recognized media site identities. The current recognized generic site identities are `youtube`, `bilibili`, and `douyin`. It does not use unknown-site `videoSrc` or unknown-site `pageUrl` as an automatic fallback. Unknown pages may still update playback state, but they do not start desktop subtitle downloads through `yt-dlp`.
 
+Recognized site identity is bound to the page URL hostname in the desktop main process. `youtube` only matches `youtube.com` and its subdomains, `bilibili` only matches `bilibili.com` and its subdomains, and `douyin` only matches `douyin.com` and its subdomains. Lookalike hosts such as `notyoutube.com` or `youtube.com.evil.example` are not recognized. The extension uses the same exact-or-subdomain rule when reporting site identity, but desktop validation is the authoritative boundary.
+
 Before invoking `yt-dlp`, the main process validates the resolved URL again. The validation rejects:
 
 - non-HTTP(S) schemes
-- localhost and `*.localhost`
+- localhost and `*.localhost`, including DNS root-dot forms such as `localhost.`
 - loopback addresses
 - private IPv4 ranges
 - carrier-grade NAT ranges
 - link-local addresses
 - multicast/reserved ranges
 - IPv6 loopback, unique-local, link-local, and multicast ranges
-- metadata-service hosts such as `169.254.169.254` and `metadata.google.internal`
+- metadata-service hosts such as `169.254.169.254` and `metadata.google.internal`, including DNS root-dot forms
 
 This runtime guard is defense-in-depth. The generic path must not rely only on renderer checks, extension checks, or profile UI state.
 
@@ -71,7 +73,7 @@ interface JellyfinEmbyServerConfig {
 }
 ```
 
-`serverUrls` is the only Jellyfin / Emby endpoint field. There is no primary URL, alias URL, fallback URL, or legacy `serverUrl` field in the final model.
+`serverUrls` is the only Jellyfin / Emby endpoint field. There is no primary URL, alias URL, fallback URL, or parallel endpoint field in the final model.
 
 The settings UI shows one server URL input. Users enter all equivalent addresses for the same Jellyfin / Emby server in that input, separated by commas:
 
@@ -155,11 +157,12 @@ Required tests:
 - `SubtitleService` rejects direct local and private URLs before resolving or spawning `yt-dlp`
 - Jellyfin / Emby settings accept a comma-separated `serverUrls` list containing localhost, loopback, and private-network HTTP(S) URLs
 - Jellyfin / Emby settings reject invalid URL entries in `serverUrls`
-- the default Jellyfin / Emby settings snapshot uses `serverUrls`, not legacy `serverUrl`
+- the default Jellyfin / Emby settings snapshot uses the final `serverUrls` field
 - one Jellyfin / Emby server row can match `localhost:8096`, `127.0.0.1:8096`, and `192.168.1.45:8096`
 - when `127.0.0.1:8096` matches, Jellyfin / Emby fetches `/Sessions` and subtitle streams from the matching configured `127.0.0.1:8096` endpoint
 - unconfigured private-network URLs are not claimed by Jellyfin / Emby and do not enter generic `yt-dlp`
-- disabled and incomplete Jellyfin / Emby rows do not match
+- disabled Jellyfin / Emby rows do not match
+- enabled Jellyfin / Emby rows missing required runtime fields are rejected instead of silently skipped
 - the renderer Jellyfin / Emby URL input persists valid comma-separated lists and keeps invalid lists local
 - changing Jellyfin / Emby settings clears cached media-source state
 
