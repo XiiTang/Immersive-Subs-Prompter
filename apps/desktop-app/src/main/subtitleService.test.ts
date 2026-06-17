@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { promises as fsp } from "node:fs";
+import { promises as fsp, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -89,6 +89,13 @@ afterEach(async () => {
 });
 
 describe("SubtitleService ytdlp cache identity", () => {
+  it("keeps subtitle settings resolution free of duplicate fallback branches", () => {
+    const source = readFileSync(path.join(__dirname, "subtitleService.ts"), "utf-8");
+
+    expect(source).not.toContain("this.settingsProvider ?");
+    expect(source).not.toContain("settings?.ytDlpArgs");
+  });
+
   it("rejects local and private video URLs before invoking yt-dlp", async () => {
     const binaryResolver = vi.fn(async () => process.execPath);
     const service = new SubtitleService(binaryResolver);

@@ -133,8 +133,7 @@ export class SubtitleService {
   }
 
   private resolveYtDlpArgs(): string[] {
-    const settings = this.settingsProvider ? this.settingsProvider() : DEFAULT_PROFILE_SETTINGS;
-    const customLine = settings?.ytDlpArgs?.trim() || DEFAULT_YTDLP_ARGS;
+    const customLine = this.settingsProvider().ytDlpArgs.trim() || DEFAULT_YTDLP_ARGS;
     return parseYtDlpArgs(customLine, "subtitle", "Subtitle yt-dlp args");
   }
 
