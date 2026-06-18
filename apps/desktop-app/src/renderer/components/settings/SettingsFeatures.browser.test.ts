@@ -66,22 +66,23 @@ describe("SettingsFeatures browser layout", () => {
           paths: {
             binaryDir: "/tmp/fw/bin",
             modelsDir: "/tmp/fw/models",
-            cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-            gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
+            xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
           },
-          binaries: {
-            cpu: {
-              exists: false,
-              path: "/tmp/fw/bin/faster-whisper"
-            },
-            gpu: {
-              exists: false,
-              path: "/tmp/fw/bin/faster-whisper-xxl"
+          binary: {
+            variant: "xxl",
+            exists: false,
+            path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+            downloadable: true,
+            asset: {
+              name: "Faster-Whisper-XXL_r245.4_linux.7z",
+              version: "r245.4",
+              sizeBytes: 1657690937
             }
           },
           models: [],
           modelsBaseDir: "/tmp/fw/models"
         }),
+        downloadFasterWhisperBinary: vi.fn(),
         onFasterWhisperDownloadProgress: vi.fn(() => vi.fn())
       }
     });

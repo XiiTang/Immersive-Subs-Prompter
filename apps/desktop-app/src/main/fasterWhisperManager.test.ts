@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -9,39 +9,62 @@ describe("FasterWhisperManager", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reports app-managed paths and missing binaries", async () => {
+  it("reports a downloadable XXL binary on Windows x64", async () => {
     const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const manager = new FasterWhisperManager({ baseDir });
+    const manager = new FasterWhisperManager({ baseDir, platform: "win32", arch: "x64" });
 
     const status = await manager.getStatus();
 
-    expect(status.paths.binaryDir).toBe(path.join(baseDir, "bin"));
-    expect(status.paths.modelsDir).toBe(path.join(baseDir, "models"));
-    expect(status.binaries.cpu.exists).toBe(false);
-    expect(status.binaries.gpu.exists).toBe(false);
-    expect(status.binaries.cpu).toEqual({
+    expect(status.paths).toEqual({
+      binaryDir: path.join(baseDir, "bin"),
+      modelsDir: path.join(baseDir, "models"),
+      xxlBinaryPath: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    });
+    expect(status.binary).toEqual({
+      variant: "xxl",
       exists: false,
-      path: path.join(baseDir, "bin", process.platform === "win32" ? "faster-whisper.exe" : "faster-whisper")
+      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe"),
+      downloadable: true,
+      asset: {
+        name: "Faster-Whisper-XXL_r245.4_windows.7z",
+        version: "r245.4",
+        sizeBytes: 1424256246
+      }
     });
     expect(status.models).toEqual([]);
   });
 
-  it("reports manually installed binaries without app-managed download metadata", async () => {
+  it("reports a downloadable XXL binary on Linux x64", async () => {
     const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const targetPath = path.join(baseDir, "bin", "faster-whisper.exe");
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, "manual-binary", "utf-8");
-    const manager = new FasterWhisperManager({ baseDir, platform: "win32" });
+    const manager = new FasterWhisperManager({ baseDir, platform: "linux", arch: "x64" });
 
     const status = await manager.getStatus();
 
-    expect(status.binaries.cpu).toEqual({
-      exists: true,
-      path: targetPath
-    });
-    expect(status.binaries.gpu).toEqual({
+    expect(status.binary).toEqual({
+      variant: "xxl",
       exists: false,
-      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl"),
+      downloadable: true,
+      asset: {
+        name: "Faster-Whisper-XXL_r245.4_linux.7z",
+        version: "r245.4",
+        sizeBytes: 1657690937
+      }
+    });
+  });
+
+  it("reports non-downloadable XXL status on macOS", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const manager = new FasterWhisperManager({ baseDir, platform: "darwin", arch: "arm64" });
+
+    const status = await manager.getStatus();
+
+    expect(status.binary).toEqual({
+      variant: "xxl",
+      exists: false,
+      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl"),
+      downloadable: false,
+      reason: "Faster-Whisper-XXL binary download is not available on this platform."
     });
   });
 
@@ -202,5 +225,179 @@ describe("FasterWhisperManager", () => {
       "Invalid Faster-Whisper model name"
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("downloads and installs the Windows XXL binary through the fixed manifest", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const archiveBytes = Buffer.from("archive");
+    const binaryAssets = [{
+      platform: "win32" as const,
+      arch: "x64" as const,
+      name: "test-windows.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-windows.7z",
+      sizeBytes: archiveBytes.length,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    }];
+    const extractArchive = vi.fn(async ({ destinationDir }: { archivePath: string; destinationDir: string }) => {
+      const binary = path.join(destinationDir, "Faster-Whisper-XXL", "faster-whisper-xxl.exe");
+      await mkdir(path.dirname(binary), { recursive: true });
+      await writeFile(binary, "xxl", "utf-8");
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(archiveBytes, {
+      status: 200,
+      headers: { "content-length": String(archiveBytes.length) }
+    })));
+    const manager = new FasterWhisperManager({ baseDir, platform: "win32", arch: "x64", extractArchive, binaryAssets });
+
+    const result = await manager.downloadBinary("xxl");
+
+    expect(result).toEqual({
+      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe"),
+      asset: "test-windows.7z",
+      version: "r245.4"
+    });
+    expect(extractArchive).toHaveBeenCalledWith({
+      archivePath: path.join(baseDir, "bin", ".downloads", "test-windows.7z.download"),
+      destinationDir: expect.stringContaining(path.join(baseDir, "bin", ".downloads"))
+    });
+    await expect(readFile(result.path, "utf-8")).resolves.toBe("xxl");
+  });
+
+  it("sets executable permissions when installing the Linux XXL binary", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const archiveBytes = Buffer.from("archive");
+    const binaryAssets = [{
+      platform: "linux" as const,
+      arch: "x64" as const,
+      name: "test-linux.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-linux.7z",
+      sizeBytes: archiveBytes.length,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl")
+    }];
+    const extractArchive = vi.fn(async ({ destinationDir }: { archivePath: string; destinationDir: string }) => {
+      const binary = path.join(destinationDir, "Faster-Whisper-XXL", "faster-whisper-xxl");
+      await mkdir(path.dirname(binary), { recursive: true });
+      await writeFile(binary, "xxl", { mode: 0o644 });
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(archiveBytes, { status: 200 })));
+    const manager = new FasterWhisperManager({ baseDir, platform: "linux", arch: "x64", extractArchive, binaryAssets });
+
+    const result = await manager.downloadBinary("xxl");
+
+    expect((await stat(result.path)).mode & 0o777).toBe(0o755);
+  });
+
+  it("rejects binary downloads on unsupported platforms before fetching", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const manager = new FasterWhisperManager({ baseDir, platform: "darwin", arch: "arm64" });
+
+    await expect(manager.downloadBinary("xxl")).rejects.toThrow(
+      "Faster-Whisper-XXL binary download is not available on this platform."
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects binary downloads when the byte count does not match the manifest", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const binaryAssets = [{
+      platform: "win32" as const,
+      arch: "x64" as const,
+      name: "test-windows.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-windows.7z",
+      sizeBytes: 100,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(Buffer.from("short"), { status: 200 })));
+    const extractArchive = vi.fn();
+    const manager = new FasterWhisperManager({ baseDir, platform: "win32", arch: "x64", extractArchive, binaryAssets });
+
+    await expect(manager.downloadBinary("xxl")).rejects.toThrow("Faster-Whisper-XXL download size mismatch.");
+    expect(extractArchive).not.toHaveBeenCalled();
+    await expect(access(path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe"))).rejects.toThrow();
+  });
+
+  it("rejects binary downloads redirected to unsupported hosts", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const archiveBytes = Buffer.from("archive");
+    const binaryAssets = [{
+      platform: "win32" as const,
+      arch: "x64" as const,
+      name: "test-windows.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-windows.7z",
+      sizeBytes: archiveBytes.length,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    }];
+    const response = new Response(archiveBytes, { status: 200 });
+    Object.defineProperty(response, "url", { value: "https://example.test/Faster-Whisper-XXL.7z" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+    const manager = new FasterWhisperManager({ baseDir, platform: "win32", arch: "x64", extractArchive: vi.fn(), binaryAssets });
+
+    await expect(manager.downloadBinary("xxl")).rejects.toThrow(
+      "Faster-Whisper-XXL release asset redirected to unsupported host: example.test"
+    );
+  });
+
+  it("rejects installation when extraction does not produce the expected executable", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const archiveBytes = Buffer.from("archive");
+    const binaryAssets = [{
+      platform: "win32" as const,
+      arch: "x64" as const,
+      name: "test-windows.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-windows.7z",
+      sizeBytes: archiveBytes.length,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(archiveBytes, { status: 200 })));
+    const manager = new FasterWhisperManager({
+      baseDir,
+      platform: "win32",
+      arch: "x64",
+      extractArchive: vi.fn().mockResolvedValue(undefined),
+      binaryAssets
+    });
+
+    await expect(manager.downloadBinary("xxl")).rejects.toThrow(
+      "Faster-Whisper-XXL archive did not contain faster-whisper-xxl.exe."
+    );
+    await expect(access(path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe"))).rejects.toThrow();
+  });
+
+  it("replaces the existing app-managed XXL directory after a successful re-download", async () => {
+    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
+    const archiveBytes = Buffer.from("archive");
+    const targetBinary = path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe");
+    const oldFile = path.join(baseDir, "bin", "Faster-Whisper-XXL", "old.txt");
+    await mkdir(path.dirname(targetBinary), { recursive: true });
+    await writeFile(targetBinary, "old", "utf-8");
+    await writeFile(oldFile, "old", "utf-8");
+    const binaryAssets = [{
+      platform: "win32" as const,
+      arch: "x64" as const,
+      name: "test-windows.7z",
+      version: "r245.4" as const,
+      url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/test-windows.7z",
+      sizeBytes: archiveBytes.length,
+      executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+    }];
+    const extractArchive = vi.fn(async ({ destinationDir }: { archivePath: string; destinationDir: string }) => {
+      const binary = path.join(destinationDir, "Faster-Whisper-XXL", "faster-whisper-xxl.exe");
+      await mkdir(path.dirname(binary), { recursive: true });
+      await writeFile(binary, "new", "utf-8");
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(archiveBytes, { status: 200 })));
+    const manager = new FasterWhisperManager({ baseDir, platform: "win32", arch: "x64", extractArchive, binaryAssets });
+
+    await manager.downloadBinary("xxl");
+
+    await expect(readFile(targetBinary, "utf-8")).resolves.toBe("new");
+    await expect(access(oldFile)).rejects.toThrow();
   });
 });

@@ -3,12 +3,15 @@ import type { IpcContext } from "../ipcRouter.js";
 import { openFolder } from "../openFolder.js";
 
 type ModelsDirectoryPayload = { configId?: string };
+type BinaryPayload = { variant: "xxl"; jobId?: string };
 type ModelPayload = { model: string; configId?: string; jobId?: string };
 
 const CONFIG_NOT_FOUND_MESSAGE = "Faster-Whisper transcription config was not found.";
 const MODELS_DIRECTORY_PAYLOAD_ERROR = "Faster-Whisper models directory payload is invalid.";
+const BINARY_DOWNLOAD_PAYLOAD_ERROR = "Faster-Whisper binary download payload is invalid.";
 const MODEL_DOWNLOAD_PAYLOAD_ERROR = "Faster-Whisper model download payload is invalid.";
 const MODELS_DIRECTORY_PAYLOAD_KEYS = new Set(["configId"]);
+const BINARY_DOWNLOAD_PAYLOAD_KEYS = new Set(["variant", "jobId"]);
 const MODEL_DOWNLOAD_PAYLOAD_KEYS = new Set(["model", "configId", "jobId"]);
 
 function assertPlainPayload(
@@ -38,6 +41,17 @@ function readModelsDirectoryPayload(payload: unknown): ModelsDirectoryPayload | 
     throw new Error(MODELS_DIRECTORY_PAYLOAD_ERROR);
   }
   return { configId: record.configId };
+}
+
+function readBinaryPayload(payload: unknown): BinaryPayload {
+  const record = assertPlainPayload(payload, BINARY_DOWNLOAD_PAYLOAD_KEYS, BINARY_DOWNLOAD_PAYLOAD_ERROR);
+  if (!record || record.variant !== "xxl" || (record.jobId !== undefined && typeof record.jobId !== "string")) {
+    throw new Error(BINARY_DOWNLOAD_PAYLOAD_ERROR);
+  }
+  return {
+    variant: "xxl",
+    jobId: record.jobId
+  };
 }
 
 function readModelPayload(payload: unknown): ModelPayload {
@@ -118,6 +132,31 @@ export function registerFasterWhisperHandlers(context: IpcContext): void {
       const message = error instanceof Error ? error.message : String(error);
       context.logger.error("Failed to get Faster-Whisper status", error);
       return { ok: false, error: message };
+    }
+  });
+
+  ipcMain.handle("usp:faster-whisper-download-binary", async (event, rawPayload: unknown) => {
+    let downloadId = `fw-binary-${Date.now()}`;
+    let progress: ((percent: number, status: string) => void) | null = null;
+    try {
+      const payload = readBinaryPayload(rawPayload);
+      downloadId = payload.jobId || downloadId;
+      progress = (percent: number, status: string) => {
+        event.sender.send("usp:faster-whisper-download-progress", {
+          id: downloadId,
+          type: "binary",
+          variant: payload.variant,
+          percent,
+          status
+        });
+      };
+      const result = await context.fasterWhisperManager.downloadBinary(payload.variant, progress);
+      return { ok: true, id: downloadId, ...result };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      context.logger.error("Faster-Whisper binary download failed", error);
+      progress?.(0, `Error: ${message}`);
+      return { ok: false, id: downloadId, error: message };
     }
   });
 

@@ -4,8 +4,21 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { createLogger } from "./logger.js";
+import { extractSevenZipArchive } from "./sevenZipExtractor.js";
 
 type ProgressCallback = (percent: number, status: string) => void;
+type BinaryVariant = "xxl";
+type ExtractArchive = typeof extractSevenZipArchive;
+
+type BinaryAsset = {
+  platform: NodeJS.Platform;
+  arch: NodeJS.Architecture;
+  name: string;
+  version: "r245.4";
+  url: string;
+  sizeBytes: number;
+  executableRelativePath: string;
+};
 
 const REQUIRED_MODEL_FILES = ["config.json", "model.bin", "tokenizer.json"] as const;
 const MODEL_FILE_DOWNLOAD_ORDER = ["config.json", "model.bin", "preprocessor_config.json", "tokenizer.json"] as const;
@@ -35,6 +48,33 @@ const OFFICIAL_MODEL_REPOS = new Map<string, string>([
   ["turbo", "mobiuslabsgmbh/faster-whisper-large-v3-turbo"]
 ]);
 const OFFICIAL_MODEL_NAME_BY_REPO_NAME = buildOfficialModelNameByRepoName();
+const FASTER_WHISPER_XXL_UNSUPPORTED =
+  "Faster-Whisper-XXL binary download is not available on this platform.";
+const RELEASE_ASSET_ALLOWED_HOSTS = new Set([
+  "github.com",
+  "objects.githubusercontent.com",
+  "release-assets.githubusercontent.com"
+]);
+const FASTER_WHISPER_XXL_ASSETS: BinaryAsset[] = [
+  {
+    platform: "win32",
+    arch: "x64",
+    name: "Faster-Whisper-XXL_r245.4_windows.7z",
+    version: "r245.4",
+    url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/Faster-Whisper-XXL_r245.4_windows.7z",
+    sizeBytes: 1424256246,
+    executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl.exe")
+  },
+  {
+    platform: "linux",
+    arch: "x64",
+    name: "Faster-Whisper-XXL_r245.4_linux.7z",
+    version: "r245.4",
+    url: "https://github.com/Purfview/whisper-standalone-win/releases/download/Faster-Whisper-XXL/Faster-Whisper-XXL_r245.4_linux.7z",
+    sizeBytes: 1657690937,
+    executableRelativePath: path.join("Faster-Whisper-XXL", "faster-whisper-xxl")
+  }
+];
 
 export class FasterWhisperManager {
   private readonly log = createLogger("faster-whisper");
@@ -42,12 +82,26 @@ export class FasterWhisperManager {
   private readonly binDir: string;
   private readonly modelsDir: string;
   private readonly platform: NodeJS.Platform;
+  private readonly arch: NodeJS.Architecture;
+  private readonly extractArchive: ExtractArchive;
+  private readonly binaryAssets: readonly BinaryAsset[];
 
-  constructor(options: { baseDir?: string; platform?: NodeJS.Platform } = {}) {
+  constructor(
+    options: {
+      baseDir?: string;
+      platform?: NodeJS.Platform;
+      arch?: NodeJS.Architecture;
+      extractArchive?: ExtractArchive;
+      binaryAssets?: readonly BinaryAsset[];
+    } = {}
+  ) {
     this.baseDir = options.baseDir ?? path.join(app.getPath("userData"), "faster-whisper");
     this.binDir = path.join(this.baseDir, "bin");
     this.modelsDir = path.join(this.baseDir, "models");
     this.platform = options.platform ?? process.platform;
+    this.arch = options.arch ?? process.arch;
+    this.extractArchive = options.extractArchive ?? extractSevenZipArchive;
+    this.binaryAssets = options.binaryAssets ?? FASTER_WHISPER_XXL_ASSETS;
   }
 
   async getPaths() {
@@ -55,25 +109,20 @@ export class FasterWhisperManager {
     return {
       binaryDir: this.binDir,
       modelsDir: this.modelsDir,
-      cpuBinaryPath: this.getTargetPath("cpu"),
-      gpuBinaryPath: this.getTargetPath("gpu")
+      xxlBinaryPath: this.getXxlTargetPath()
     };
   }
 
   async getStatus(modelDirOverride?: string) {
     const paths = await this.getPaths();
     const targetModelDir = modelDirOverride?.trim() || paths.modelsDir;
-    const [cpuStatus, gpuStatus, modelList] = await Promise.all([
-      this.buildBinaryStatus(paths.cpuBinaryPath),
-      this.buildBinaryStatus(paths.gpuBinaryPath),
+    const [binaryStatus, modelList] = await Promise.all([
+      this.buildBinaryStatus(paths.xxlBinaryPath),
       this.listDownloadedModels(targetModelDir)
     ]);
     return {
       paths,
-      binaries: {
-        cpu: cpuStatus,
-        gpu: gpuStatus
-      },
+      binary: binaryStatus,
       models: modelList.models,
       modelsBaseDir: modelList.baseDir
     };
@@ -108,18 +157,75 @@ export class FasterWhisperManager {
 
   private async buildBinaryStatus(targetPath: string) {
     const exists = await this.fileExists(targetPath);
+    const asset = this.getCurrentPlatformAsset();
     return {
+      variant: "xxl" as const,
       exists,
-      path: targetPath
+      path: targetPath,
+      downloadable: Boolean(asset),
+      ...(asset
+        ? { asset: { name: asset.name, version: asset.version, sizeBytes: asset.sizeBytes } }
+        : { reason: FASTER_WHISPER_XXL_UNSUPPORTED })
     };
   }
 
-  private getTargetPath(variant: "cpu" | "gpu"): string {
-    if (variant === "gpu") {
-      const executable = this.platform === "win32" ? "faster-whisper-xxl.exe" : "faster-whisper-xxl";
-      return path.join(this.binDir, "Faster-Whisper-XXL", executable);
+  private getXxlTargetPath(): string {
+    const executable = this.platform === "win32" ? "faster-whisper-xxl.exe" : "faster-whisper-xxl";
+    return path.join(this.binDir, "Faster-Whisper-XXL", executable);
+  }
+
+  async downloadBinary(
+    variant: BinaryVariant,
+    progress?: ProgressCallback
+  ): Promise<{ path: string; asset: string; version: string }> {
+    if (variant !== "xxl") {
+      throw new Error("Invalid Faster-Whisper binary variant.");
     }
-    return path.join(this.binDir, this.platform === "win32" ? "faster-whisper.exe" : "faster-whisper");
+    await this.ensureDirs();
+    const asset = this.getCurrentPlatformAsset();
+    if (!asset) {
+      throw new Error(FASTER_WHISPER_XXL_UNSUPPORTED);
+    }
+
+    const downloadsDir = path.join(this.binDir, ".downloads");
+    const archivePath = path.join(downloadsDir, `${asset.name}.download`);
+    const stagingDir = path.join(downloadsDir, `${asset.name}.staging`);
+    await fs.rm(stagingDir, { recursive: true, force: true });
+    await fs.mkdir(downloadsDir, { recursive: true });
+
+    try {
+      await this.downloadFile(
+        asset.url,
+        archivePath,
+        (percent) => {
+          progress?.(Math.min(80, Math.round(percent * 0.8)), "Downloading Faster-Whisper-XXL");
+        },
+        {
+          expectedSizeBytes: asset.sizeBytes,
+          allowedHosts: RELEASE_ASSET_ALLOWED_HOSTS,
+          label: "Faster-Whisper-XXL"
+        }
+      );
+      progress?.(85, "Extracting Faster-Whisper-XXL");
+      await this.extractArchive({ archivePath, destinationDir: stagingDir });
+
+      const extractedRoot = path.join(stagingDir, "Faster-Whisper-XXL");
+      const extractedBinary = path.join(stagingDir, asset.executableRelativePath);
+      if (!(await this.fileExists(extractedBinary))) {
+        throw new Error(`Faster-Whisper-XXL archive did not contain ${path.basename(asset.executableRelativePath)}.`);
+      }
+
+      const targetRoot = path.join(this.binDir, "Faster-Whisper-XXL");
+      await fs.rm(targetRoot, { recursive: true, force: true });
+      await fs.rename(extractedRoot, targetRoot);
+      const targetPath = path.join(this.binDir, asset.executableRelativePath);
+      await this.ensureExecutable(targetPath);
+      progress?.(100, "Faster-Whisper-XXL ready");
+      return { path: targetPath, asset: asset.name, version: asset.version };
+    } finally {
+      await fs.rm(archivePath, { force: true });
+      await fs.rm(stagingDir, { recursive: true, force: true });
+    }
   }
 
   async downloadModel(
@@ -194,13 +300,38 @@ export class FasterWhisperManager {
       .sort((left, right) => left.localeCompare(right));
   }
 
-  private async downloadFile(url: string, targetPath: string, progress?: (percent: number) => void): Promise<void> {
+  private getCurrentPlatformAsset(): BinaryAsset | null {
+    return this.binaryAssets.find((asset) => asset.platform === this.platform && asset.arch === this.arch) ?? null;
+  }
+
+  private async ensureExecutable(targetPath: string): Promise<void> {
+    if (this.platform !== "win32") {
+      await fs.chmod(targetPath, 0o755);
+    }
+  }
+
+  private async downloadFile(
+    url: string,
+    targetPath: string,
+    progress?: (percent: number) => void,
+    options?: {
+      expectedSizeBytes?: number;
+      allowedHosts?: ReadonlySet<string>;
+      label?: string;
+    }
+  ): Promise<number> {
+    if (options?.allowedHosts) {
+      assertExpectedDownloadUrl(url, options.allowedHosts, options.label ?? "Download");
+    }
     const response = await fetch(url);
     if (!response.ok || !response.body) {
       throw new Error(`Download failed: ${response.status} ${response.statusText}`);
     }
+    if (options?.allowedHosts && response.url) {
+      assertExpectedDownloadUrl(response.url, options.allowedHosts, options.label ?? "Download");
+    }
 
-    const total = Number(response.headers.get("content-length") ?? 0);
+    const total = options?.expectedSizeBytes ?? Number(response.headers.get("content-length") ?? 0);
     const readable = Readable.fromWeb(response.body as never);
     let downloaded = 0;
     await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -217,8 +348,22 @@ export class FasterWhisperManager {
       readable.on("error", reject);
       readable.pipe(fileStream);
     });
+    if (options?.expectedSizeBytes !== undefined && downloaded !== options.expectedSizeBytes) {
+      throw new Error(`${options.label ?? "Download"} download size mismatch.`);
+    }
     progress?.(100);
     this.log.info(`Downloaded ${url} to ${targetPath}`);
+    return downloaded;
+  }
+}
+
+function assertExpectedDownloadUrl(input: string, allowedHosts: ReadonlySet<string>, label: string): void {
+  const parsed = new URL(input);
+  if (parsed.protocol !== "https:") {
+    throw new Error(`${label} release asset download must use https.`);
+  }
+  if (!allowedHosts.has(parsed.hostname.toLowerCase())) {
+    throw new Error(`${label} release asset redirected to unsupported host: ${parsed.hostname}`);
   }
 }
 

@@ -43,11 +43,12 @@ const api = {
   getFasterWhisperPaths: (): Promise<{
     binaryDir: string;
     modelsDir: string;
-    cpuBinaryPath: string;
-    gpuBinaryPath: string;
+    xxlBinaryPath: string;
   }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
   getFasterWhisperStatus: (payload?: { configId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-status", payload),
+  downloadFasterWhisperBinary: (payload: { variant: "xxl"; jobId?: string }): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-download-binary", payload),
   downloadFasterWhisperModel: (payload: { model: string; configId?: string; jobId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
   openFasterWhisperBinaryFolder: (): Promise<{ ok: boolean; error?: string }> =>

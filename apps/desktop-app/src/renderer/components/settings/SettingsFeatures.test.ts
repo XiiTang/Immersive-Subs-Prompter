@@ -48,6 +48,31 @@ function createTranscriptionConfig(patch: Partial<TranscriptionConfig>): Transcr
   };
 }
 
+function createFasterWhisperStatus(overrides: Record<string, unknown> = {}) {
+  return {
+    ok: true,
+    paths: {
+      binaryDir: "/tmp/fw/bin",
+      modelsDir: "/tmp/fw/models",
+      xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
+    },
+    binary: {
+      variant: "xxl",
+      exists: false,
+      path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+      downloadable: true,
+      asset: {
+        name: "Faster-Whisper-XXL_r245.4_linux.7z",
+        version: "r245.4",
+        sizeBytes: 1657690937
+      }
+    },
+    models: [],
+    modelsBaseDir: "/tmp/fw/models",
+    ...overrides
+  };
+}
+
 describe("SettingsFeatures", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -58,21 +83,8 @@ describe("SettingsFeatures", () => {
         getWordLookupStatus: vi.fn().mockResolvedValue(null),
         refreshWordLookup: vi.fn().mockResolvedValue(null),
         selectWordListFile: vi.fn(),
-        getFasterWhisperStatus: vi.fn().mockResolvedValue({
-          ok: true,
-          paths: {
-            binaryDir: "/tmp/fw/bin",
-            modelsDir: "/tmp/fw/models",
-            cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-            gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
-          },
-          binaries: {
-            cpu: { exists: false, path: "/tmp/fw/bin/faster-whisper" },
-            gpu: { exists: false, path: "/tmp/fw/bin/faster-whisper-xxl" }
-          },
-          models: [],
-          modelsBaseDir: "/tmp/fw/models"
-        }),
+        getFasterWhisperStatus: vi.fn().mockResolvedValue(createFasterWhisperStatus()),
+        downloadFasterWhisperBinary: vi.fn(),
         downloadFasterWhisperModel: vi.fn(),
         onFasterWhisperDownloadProgress: vi.fn(() => vi.fn()),
         openFasterWhisperBinaryFolder: vi.fn().mockResolvedValue({ ok: true }),
@@ -635,21 +647,9 @@ describe("SettingsFeatures", () => {
       configurable: true,
       value: {
         ...window.usp,
-        getFasterWhisperStatus: vi.fn().mockResolvedValue({
-          ok: true,
-          paths: {
-            binaryDir: "/tmp/fw/bin",
-            modelsDir: "/tmp/fw/models",
-            cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-            gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
-          },
-          binaries: {
-            cpu: { exists: false, path: "/tmp/fw/bin/faster-whisper" },
-            gpu: { exists: false, path: "/tmp/fw/bin/faster-whisper-xxl" }
-          },
-          models: [],
+        getFasterWhisperStatus: vi.fn().mockResolvedValue(createFasterWhisperStatus({
           modelsBaseDir: "/custom/models"
-        }),
+        })),
         downloadFasterWhisperModel,
         updateSettings: vi.fn(async () => store.settings)
       }
@@ -666,6 +666,50 @@ describe("SettingsFeatures", () => {
         configId: "config-a"
       })
     );
+  });
+
+  it("downloads Faster-Whisper-XXL and writes only the executable path", async () => {
+    const store = seedStore();
+    const configA = createTranscriptionConfig({
+      id: "config-a",
+      provider: "faster-whisper",
+      fasterWhisperBinary: "manual",
+      fasterWhisperDevice: "cpu"
+    });
+    store.settings!.features.transcription.activeConfigId = configA.id;
+    store.settings!.features.transcription.configs = [configA];
+    const setTranscriptionConfigs = vi.spyOn(store, "setTranscriptionConfigs").mockResolvedValue();
+    const downloadFasterWhisperBinary = vi.fn().mockResolvedValue({
+      ok: true,
+      path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+      asset: "Faster-Whisper-XXL_r245.4_linux.7z",
+      version: "r245.4"
+    });
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        ...window.usp,
+        downloadFasterWhisperBinary,
+        getFasterWhisperStatus: vi.fn().mockResolvedValue(createFasterWhisperStatus())
+      }
+    });
+    const wrapper = mount(TranscriptionFeatureSettings);
+
+    await flushPromises();
+    await wrapper.get('[data-testid="feature-transcription-download-xxl"]').trigger("click");
+    await flushPromises();
+
+    expect(downloadFasterWhisperBinary).toHaveBeenCalledWith({
+      variant: "xxl",
+      jobId: expect.stringMatching(/^fw-binary-/)
+    });
+    expect(setTranscriptionConfigs).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "config-a",
+        fasterWhisperBinary: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+        fasterWhisperDevice: "cpu"
+      })
+    ], "config-a");
   });
 
   it("opens Faster-Whisper folders through narrow pathless APIs", async () => {
@@ -761,28 +805,55 @@ describe("SettingsFeatures", () => {
     expect(updateConfig).toHaveBeenCalledWith({ fasterWhisperVadThreshold: 0.7 });
   });
 
-  it("renders Faster-Whisper binary status without app-managed download controls", () => {
+  it("renders Faster-Whisper-XXL binary status and supported download action", () => {
     const wrapper = mount(FasterWhisperBinariesCard, {
       props: {
         t: (key: string) => key,
         paths: { binaryDir: "/tmp/fw/bin" },
         binaryStatus: {
-          cpu: {
-            exists: false,
-            path: "/tmp/fw/bin/faster-whisper"
-          },
-          gpu: {
-            exists: false,
-            path: "/tmp/fw/bin/faster-whisper-xxl"
+          variant: "xxl",
+          exists: false,
+          path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+          downloadable: true,
+          asset: {
+            name: "Faster-Whisper-XXL_r245.4_linux.7z",
+            version: "r245.4",
+            sizeBytes: 1657690937
           }
         },
-        isBusy: false
+        isBusy: false,
+        downloadProgress: 0,
+        downloadMessage: "",
+        downloadError: null
       }
     });
 
-    expect(wrapper.text()).toContain("CPU");
-    expect(wrapper.text()).toContain("GPU");
-    expect(wrapper.find('[data-testid="feature-transcription-download-cpu"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="feature-transcription-download-gpu"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("Faster-Whisper-XXL");
+    expect(wrapper.text()).not.toContain("CPU");
+    expect(wrapper.text()).not.toContain("GPU");
+    expect(wrapper.find('[data-testid="feature-transcription-download-xxl"]').exists()).toBe(true);
+  });
+
+  it("does not render a binary download action on unsupported platforms", () => {
+    const wrapper = mount(FasterWhisperBinariesCard, {
+      props: {
+        t: (key: string) => key,
+        paths: { binaryDir: "/tmp/fw/bin" },
+        binaryStatus: {
+          variant: "xxl",
+          exists: false,
+          path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+          downloadable: false,
+          reason: "Faster-Whisper-XXL binary download is not available on this platform."
+        },
+        isBusy: false,
+        downloadProgress: 0,
+        downloadMessage: "",
+        downloadError: null
+      }
+    });
+
+    expect(wrapper.text()).toContain("feature-transcription-unsupported");
+    expect(wrapper.find('[data-testid="feature-transcription-download-xxl"]').exists()).toBe(false);
   });
 });

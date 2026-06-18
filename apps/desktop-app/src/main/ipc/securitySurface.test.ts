@@ -47,5 +47,10 @@ describe("renderer-to-main security surface", () => {
     expect(fasterWhisperComposable).not.toContain("modelDir:");
     expect(preload).toContain("openFasterWhisperBinaryFolder");
     expect(preload).toContain("openFasterWhisperModelsFolder");
+    expect(preload).toContain("downloadFasterWhisperBinary");
+    expect(preload).not.toContain("binaryUrl");
+    expect(preload).not.toContain("binaryPath");
+    expect(fasterWhisperHandlers).toContain("BINARY_DOWNLOAD_PAYLOAD_KEYS");
+    expect(fasterWhisperHandlers).not.toContain("url:");
   });
 });

@@ -38,6 +38,7 @@
   "author": "sheixunixitang3@gmail.com",
   "license": "MIT",
   "dependencies": {
+    "7zip-bin": "5.2.0",
     "@chenglou/pretext": "0.0.7",
     "@immersive-subs/contracts": "workspace:*",
     "@immersive-subs/ui": "workspace:*",

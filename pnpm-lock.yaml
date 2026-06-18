@@ -25,6 +25,9 @@ importers:
 
   apps/desktop-app:
     dependencies:
+      7zip-bin:
+        specifier: 5.2.0
+        version: 5.2.0
       '@chenglou/pretext':
         specifier: 0.0.7
         version: 0.0.7

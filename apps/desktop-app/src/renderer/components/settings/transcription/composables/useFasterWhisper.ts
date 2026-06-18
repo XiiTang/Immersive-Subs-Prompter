@@ -6,8 +6,7 @@ type UpdateConfig = (patch: Partial<TranscriptionConfig>) => void;
 interface FasterWhisperPaths {
   binaryDir: string;
   modelsDir: string;
-  cpuBinaryPath: string;
-  gpuBinaryPath: string;
+  xxlBinaryPath: string;
 }
 
 interface DownloadedModel {
@@ -16,19 +15,23 @@ interface DownloadedModel {
   folder: string;
 }
 
+interface FasterWhisperBinaryStatus {
+  variant: "xxl";
+  exists: boolean;
+  path: string;
+  downloadable: boolean;
+  reason?: string;
+  asset?: {
+    name: string;
+    version: string;
+    sizeBytes: number;
+  };
+}
+
 interface FasterWhisperStatus {
   ok: boolean;
   paths: FasterWhisperPaths;
-  binaries: {
-    cpu: {
-      exists: boolean;
-      path: string;
-    };
-    gpu: {
-      exists: boolean;
-      path: string;
-    };
-  };
+  binary: FasterWhisperBinaryStatus;
   models: DownloadedModel[];
   modelsBaseDir: string;
   error?: string;
@@ -36,6 +39,7 @@ interface FasterWhisperStatus {
 
 interface DownloadProgress {
   id: string;
+  type: "binary" | "model";
   percent: number;
   status: string;
 }
@@ -54,10 +58,17 @@ export function useFasterWhisper(
   const downloadProgress = ref(0);
   const downloadMessage = ref("");
   const downloadError = ref<string | null>(null);
+  const activeDownloadType = ref<"binary" | "model" | null>(null);
   let unsubscribeDownloadProgress: (() => void) | null = null;
   let isMounted = false;
 
-  const binaryStatus = computed(() => status.value?.binaries ?? null);
+  const binaryStatus = computed(() => status.value?.binary ?? null);
+  const binaryDownloadProgress = computed(() => activeDownloadType.value === "binary" ? downloadProgress.value : 0);
+  const binaryDownloadMessage = computed(() => activeDownloadType.value === "binary" ? downloadMessage.value : "");
+  const binaryDownloadError = computed(() => activeDownloadType.value === "binary" ? downloadError.value : null);
+  const modelDownloadProgress = computed(() => activeDownloadType.value === "model" ? downloadProgress.value : 0);
+  const modelDownloadMessage = computed(() => activeDownloadType.value === "model" ? downloadMessage.value : "");
+  const modelDownloadError = computed(() => activeDownloadType.value === "model" ? downloadError.value : null);
   const selectedModel = computed(() =>
     selectedDownloadedModel.value || customModelInput.value || activeConfig.value?.fasterWhisperModel || ""
   );
@@ -95,8 +106,35 @@ export function useFasterWhisper(
   }
 
   function handleDownloadProgress(payload: DownloadProgress) {
+    activeDownloadType.value = payload.type;
     downloadProgress.value = payload.percent;
     downloadMessage.value = payload.status;
+  }
+
+  async function handleDownloadBinary() {
+    if (!activeConfig.value) {
+      return;
+    }
+    isBusy.value = true;
+    activeDownloadType.value = "binary";
+    downloadProgress.value = 0;
+    downloadError.value = null;
+    try {
+      const result = await window.usp.downloadFasterWhisperBinary({
+        variant: "xxl",
+        jobId: `fw-binary-${crypto.randomUUID()}`
+      });
+      if (!result.ok) {
+        downloadError.value = result.error;
+        return;
+      }
+      updateConfig({
+        fasterWhisperBinary: result.path
+      });
+      await refreshStatus();
+    } finally {
+      isBusy.value = false;
+    }
   }
 
   async function handleDownloadModel(modelName = selectedModel.value) {
@@ -105,6 +143,7 @@ export function useFasterWhisper(
       return;
     }
     isBusy.value = true;
+    activeDownloadType.value = "model";
     downloadProgress.value = 0;
     downloadError.value = null;
     try {
@@ -175,7 +214,14 @@ export function useFasterWhisper(
     downloadProgress,
     downloadMessage,
     downloadError,
+    binaryDownloadProgress,
+    binaryDownloadMessage,
+    binaryDownloadError,
+    modelDownloadProgress,
+    modelDownloadMessage,
+    modelDownloadError,
     refreshStatus,
+    handleDownloadBinary,
     handleDownloadModel,
     openBinaryFolder,
     openModelsFolder

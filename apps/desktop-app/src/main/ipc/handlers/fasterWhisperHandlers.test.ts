@@ -36,12 +36,14 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus: vi.fn(),
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       logger: { error: vi.fn() }
     } as never);
 
     expect(handle.mock.calls.map(([channel]) => channel).sort()).toEqual([
+      "usp:faster-whisper-download-binary",
       "usp:faster-whisper-download-model",
       "usp:faster-whisper-open-binary-folder",
       "usp:faster-whisper-open-models-folder",
@@ -52,10 +54,21 @@ describe("registerFasterWhisperHandlers", () => {
 
   it("resolves selected config model directory in main for Faster-Whisper status", async () => {
     const status = {
-      paths: { binaryDir: "/bin", modelsDir: "/models", cpuBinaryPath: "/bin/cpu", gpuBinaryPath: "/bin/gpu" },
-      binaries: {
-        cpu: { exists: false, path: "/bin/cpu" },
-        gpu: { exists: false, path: "/bin/gpu" }
+      paths: {
+        binaryDir: "/bin",
+        modelsDir: "/models",
+        xxlBinaryPath: "/bin/Faster-Whisper-XXL/faster-whisper-xxl"
+      },
+      binary: {
+        variant: "xxl",
+        exists: false,
+        path: "/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+        downloadable: true,
+        asset: {
+          name: "Faster-Whisper-XXL_r245.4_linux.7z",
+          version: "r245.4",
+          sizeBytes: 1657690937
+        }
       },
       models: [],
       modelsBaseDir: "/custom/models"
@@ -66,6 +79,7 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus,
         getPaths: vi.fn().mockResolvedValue(status.paths),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({
@@ -91,6 +105,7 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus: vi.fn().mockRejectedValue(new Error("disk failed")),
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       logger: { error: vi.fn() }
@@ -109,6 +124,7 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus,
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       logger: { error: vi.fn() }
@@ -129,6 +145,7 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus: vi.fn(),
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel
       },
       logger: { error: vi.fn() }
@@ -147,6 +164,97 @@ describe("registerFasterWhisperHandlers", () => {
     expect(downloadModel).not.toHaveBeenCalled();
   });
 
+  it("downloads the app-managed XXL binary without renderer URLs or paths", async () => {
+    const downloadBinary = vi.fn().mockResolvedValue({
+      path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+      asset: "Faster-Whisper-XXL_r245.4_linux.7z",
+      version: "r245.4"
+    });
+    const send = vi.fn();
+    registerFasterWhisperHandlers({
+      fasterWhisperManager: {
+        getStatus: vi.fn(),
+        getPaths: vi.fn(),
+        listDownloadedModels: vi.fn(),
+        downloadBinary,
+        downloadModel: vi.fn()
+      },
+      logger: { error: vi.fn() }
+    } as never);
+
+    await expect(
+      registeredHandler("usp:faster-whisper-download-binary")(
+        { sender: { send } },
+        { variant: "xxl", jobId: "job-1" }
+      )
+    ).resolves.toEqual({
+      ok: true,
+      id: "job-1",
+      path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl",
+      asset: "Faster-Whisper-XXL_r245.4_linux.7z",
+      version: "r245.4"
+    });
+    expect(downloadBinary).toHaveBeenCalledWith("xxl", expect.any(Function));
+  });
+
+  it("rejects binary download payloads with renderer supplied paths or URLs", async () => {
+    const downloadBinary = vi.fn();
+    const send = vi.fn();
+    registerFasterWhisperHandlers({
+      fasterWhisperManager: {
+        getStatus: vi.fn(),
+        getPaths: vi.fn(),
+        listDownloadedModels: vi.fn(),
+        downloadBinary,
+        downloadModel: vi.fn()
+      },
+      logger: { error: vi.fn() }
+    } as never);
+
+    await expect(
+      registeredHandler("usp:faster-whisper-download-binary")(
+        { sender: { send } },
+        { variant: "xxl", url: "https://example.test/file.7z", path: "/tmp/file" }
+      )
+    ).resolves.toEqual({
+      ok: false,
+      id: expect.stringMatching(/^fw-binary-/),
+      error: "Faster-Whisper binary download payload is invalid."
+    });
+    expect(downloadBinary).not.toHaveBeenCalled();
+  });
+
+  it("emits binary download progress events", async () => {
+    const send = vi.fn();
+    const downloadBinary = vi.fn(async (_variant: "xxl", progress: (percent: number, status: string) => void) => {
+      progress(40, "Downloading Faster-Whisper-XXL");
+      return { path: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl", asset: "asset.7z", version: "r245.4" };
+    });
+    registerFasterWhisperHandlers({
+      fasterWhisperManager: {
+        getStatus: vi.fn(),
+        getPaths: vi.fn(),
+        listDownloadedModels: vi.fn(),
+        downloadBinary,
+        downloadModel: vi.fn()
+      },
+      logger: { error: vi.fn() }
+    } as never);
+
+    await registeredHandler("usp:faster-whisper-download-binary")(
+      { sender: { send } },
+      { variant: "xxl", jobId: "job-1" }
+    );
+
+    expect(send).toHaveBeenCalledWith("usp:faster-whisper-download-progress", {
+      id: "job-1",
+      type: "binary",
+      variant: "xxl",
+      percent: 40,
+      status: "Downloading Faster-Whisper-XXL"
+    });
+  });
+
   it("resolves selected config model directory in main for model downloads", async () => {
     const downloadModel = vi.fn().mockResolvedValue({
       path: "/custom/models/faster-whisper-base",
@@ -160,10 +268,10 @@ describe("registerFasterWhisperHandlers", () => {
         getPaths: vi.fn().mockResolvedValue({
           binaryDir: "/tmp/fw/bin",
           modelsDir: "/tmp/fw/models",
-          cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-          gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
+          xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel
       },
       getSettings: vi.fn(() => ({
@@ -198,10 +306,10 @@ describe("registerFasterWhisperHandlers", () => {
         getPaths: vi.fn().mockResolvedValue({
           binaryDir: "/tmp/fw/bin",
           modelsDir: "/tmp/fw/models",
-          cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-          gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
+          xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({
@@ -230,10 +338,10 @@ describe("registerFasterWhisperHandlers", () => {
         getPaths: vi.fn().mockResolvedValue({
           binaryDir: "/tmp/fw/bin",
           modelsDir: "/tmp/fw/models",
-          cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-          gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
+          xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(),
@@ -251,10 +359,10 @@ describe("registerFasterWhisperHandlers", () => {
         getPaths: vi.fn().mockResolvedValue({
           binaryDir: "/tmp/fw/bin",
           modelsDir: "/tmp/fw/models",
-          cpuBinaryPath: "/tmp/fw/bin/faster-whisper",
-          gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
+          xxlBinaryPath: "/tmp/fw/bin/Faster-Whisper-XXL/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
+        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({
