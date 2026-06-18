@@ -244,4 +244,34 @@ describe("StateManager profile URL matching", () => {
       vi.useRealTimers();
     }
   });
+
+  it("keeps playback baseline when clearing subtitle state", () => {
+    const settings = makeSettings();
+    const manager = new StateManager(new AppEventBus(), () => settings);
+
+    manager.updatePlayback({
+      currentTime: 4200,
+      duration: 20_000,
+      playbackRate: 1.25,
+      lastUpdate: 12_345
+    });
+    manager.setSubtitleTracks([
+      {
+        id: "track-1",
+        sourceFile: "episode.srt",
+        cues: [{ start: 0, end: 1000, text: "hello" }]
+      }
+    ]);
+
+    manager.resetSubtitleState(true);
+
+    expect(manager.getState().subtitleTracks).toEqual([]);
+    expect(manager.getState().playback).toEqual({
+      currentTime: 4200,
+      duration: 20_000,
+      playbackRate: 1.25,
+      lastUpdate: 12_345,
+      loop: null
+    });
+  });
 });

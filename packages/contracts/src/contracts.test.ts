@@ -167,22 +167,18 @@ describe("@immersive-subs/contracts", () => {
     });
   });
 
-  it("normalizes invalid playback projection input to current contract defaults", () => {
+  it("rejects malformed playback projection input instead of fabricating a baseline", () => {
     expect(
-      projectPlaybackSnapshot(
+      () => projectPlaybackSnapshot(
         {
           currentTime: Number.NaN,
           updatedAt: "bad",
           playbackRate: "bad",
           paused: false,
           duration: null
-        },
+        } as never,
         7000
       )
-    ).toEqual({
-      currentTime: 0,
-      updatedAt: 7000,
-      playbackRate: 1
-    });
+    ).toThrow("Playback snapshot updatedAt must be a positive finite timestamp");
   });
 });

@@ -1,5 +1,4 @@
 import { AppEventBus } from "./appEventBus.js";
-import { createLogger } from "./logger.js";
 import {
   AppSettings,
   DesktopState,
@@ -84,10 +83,19 @@ function createDefaultTranscriptionState(): TranscriptionState {
   };
 }
 
+function createEmptyPlaybackState(): PlaybackState {
+  return {
+    currentTime: 0,
+    duration: null,
+    playbackRate: 0,
+    lastUpdate: null,
+    loop: null
+  };
+}
+
 export class StateManager {
   private state: DesktopState;
   private activeProfileId: string | null;
-  private readonly log = createLogger("state");
 
   constructor(private readonly bus: AppEventBus, private readonly getSettings: () => AppSettings) {
     const initial = createInitialState(getSettings());
@@ -135,6 +143,7 @@ export class StateManager {
         draft.status = "idle";
         draft.activeTabId = null;
         this.resetSubtitleStateInternal(draft);
+        this.resetPlaybackStateInternal(draft);
         this.applyProfileSelectionInternal(getDefaultProfile(this.getSettings()), null, draft);
       } else if (draft.connectionCount > 0 && draft.status === "idle" && draft.activeSource !== "mediaserver") {
         draft.status = "awaiting-video";
@@ -242,10 +251,7 @@ export class StateManager {
   }
 
   resetSubtitleState(clearError = false) {
-    const result = this.updateState((draft) => this.resetSubtitleStateInternal(draft, clearError));
-    // Emit playback state change separately to ensure renderer stops prediction loop
-    this.bus.emit("state:playback", this.state.playback);
-    return result;
+    return this.updateState((draft) => this.resetSubtitleStateInternal(draft, clearError));
   }
 
   getActiveProfileSettings(): ProfileSettings {
@@ -372,16 +378,13 @@ export class StateManager {
     draft.primarySubtitles = null;
     draft.secondarySubtitles = null;
     draft.transcription = createDefaultTranscriptionState();
-    draft.playback = {
-      currentTime: 0,
-      duration: null,
-      playbackRate: 0,
-      lastUpdate: null,
-      loop: null
-    };
     if (clearError) {
       draft.error = null;
     }
+  }
+
+  private resetPlaybackStateInternal(draft: DesktopState) {
+    draft.playback = createEmptyPlaybackState();
   }
 
   private applyProfileSelectionInternal(

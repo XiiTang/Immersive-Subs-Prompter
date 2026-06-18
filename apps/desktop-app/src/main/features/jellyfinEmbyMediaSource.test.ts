@@ -157,10 +157,9 @@ describe("JellyfinEmbyMediaSource", () => {
               NowPlayingItem: {
                 Id: "item-1",
                 Name: "Episode",
-                RunTimeTicks: 10_000_000,
                 MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
               },
-              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+              PlayState: { MediaSourceId: "media-1" }
             }
           ]
         };
@@ -253,10 +252,9 @@ describe("JellyfinEmbyMediaSource", () => {
               NowPlayingItem: {
                 Id: "item-1",
                 Name: "Episode",
-                RunTimeTicks: 10_000_000,
                 MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
               },
-              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+              PlayState: { MediaSourceId: "media-1" }
             }
           ]
         };
@@ -304,10 +302,9 @@ describe("JellyfinEmbyMediaSource", () => {
               NowPlayingItem: {
                 Id: "item-1",
                 Name: "Wrong Episode",
-                RunTimeTicks: 10_000_000,
                 MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 1, Codec: "srt" }] }]
               },
-              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+              PlayState: { MediaSourceId: "media-1" }
             },
             {
               Id: "session-2",
@@ -317,10 +314,9 @@ describe("JellyfinEmbyMediaSource", () => {
               NowPlayingItem: {
                 Id: "item-2",
                 Name: "Target Episode",
-                RunTimeTicks: 20_000_000,
                 MediaSources: [{ Id: "media-2", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
               },
-              PlayState: { MediaSourceId: "media-2", PositionTicks: 2_000_000, IsPaused: false, PlaybackRate: 1 }
+              PlayState: { MediaSourceId: "media-2" }
             }
           ]
         };
@@ -372,10 +368,9 @@ describe("JellyfinEmbyMediaSource", () => {
               NowPlayingItem: {
                 Id: "item-1",
                 Name: "Episode",
-                RunTimeTicks: 10_000_000,
                 MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
               },
-              PlayState: { MediaSourceId: "media-1", PositionTicks: 1_000_000, IsPaused: false, PlaybackRate: 1 }
+              PlayState: { MediaSourceId: "media-1" }
             }
           ]
         };
@@ -413,12 +408,13 @@ describe("JellyfinEmbyMediaSource", () => {
     );
   });
 
-  it("emits cached playback snapshots with the original fetchedAt sample timestamp", async () => {
+  it("reuses cached sessions without emitting playback snapshots", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1000);
     try {
       const fetch = vi.fn(async (url: string) => {
         if (url.includes("/Sessions")) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
           return {
             ok: true,
             json: async () => [
@@ -430,22 +426,21 @@ describe("JellyfinEmbyMediaSource", () => {
                 NowPlayingItem: {
                   Id: "item-1",
                   Name: "Episode",
-                  RunTimeTicks: 20_000_000,
                   MediaSources: [{ Id: "media-1", MediaStreams: [] }]
                 },
-                PlayState: { MediaSourceId: "media-1", PositionTicks: 2_000_000, IsPaused: false, PlaybackRate: 1 }
+                PlayState: { MediaSourceId: "media-1" }
               }
             ]
           };
         }
         return {
           ok: true,
-          text: async () => ""
+          json: async () => ({})
         };
       });
       const source = new JellyfinEmbyMediaSource({ getSettings: () => createSettings(), fetch: fetch as never });
 
-      await source.handleConnectionMessage({
+      const initialRequest = source.handleConnectionMessage({
         type: "video-context",
         tabId: 1,
         payload: {
@@ -455,6 +450,8 @@ describe("JellyfinEmbyMediaSource", () => {
           site: "Jellyfin"
         }
       });
+      await vi.advanceTimersByTimeAsync(200);
+      await initialRequest;
 
       vi.setSystemTime(2500);
       const result = await source.handleConnectionMessage({
@@ -470,16 +467,12 @@ describe("JellyfinEmbyMediaSource", () => {
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(result).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "playbackSnapshot",
-            sessionId: "server-1:session-1",
-            positionMs: 200,
-            playbackRate: 1,
-            paused: false,
-            updatedAt: 1000
-          })
-        ])
+        [
+          {
+            type: "sessionsChanged",
+            sessions: [expect.objectContaining({ id: "server-1:session-1" })]
+          }
+        ]
       );
     } finally {
       vi.useRealTimers();

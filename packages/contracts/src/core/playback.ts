@@ -13,11 +13,11 @@ export interface PlaybackSnapshot {
 }
 
 export interface PlaybackProjectionInput {
-  currentTime: unknown;
-  updatedAt: unknown;
-  playbackRate: unknown;
-  paused: unknown;
-  duration?: unknown;
+  currentTime: number;
+  updatedAt: number;
+  playbackRate: number;
+  paused: boolean;
+  duration?: number | null;
 }
 
 export interface PlaybackProjection {
@@ -27,14 +27,15 @@ export interface PlaybackProjection {
 }
 
 export function projectPlaybackSnapshot(input: PlaybackProjectionInput, now = Date.now()): PlaybackProjection {
-  const targetTime = normalizeTimestamp(now, Date.now());
-  const sampleTime = normalizeTimestamp(input.updatedAt, targetTime);
-  const paused = input.paused === true;
-  const playbackRate = paused ? 0 : normalizePlaybackRate(input.playbackRate);
-  const currentTime = normalizeNonNegativeNumber(input.currentTime, 0);
+  const targetTime = readPositiveFiniteTimestamp(now, "Projection target time");
+  const sampleTime = readPositiveFiniteTimestamp(input.updatedAt, "Playback snapshot updatedAt");
+  const currentTime = readNonNegativeFiniteNumber(input.currentTime, "Playback snapshot currentTime");
+  const sourcePlaybackRate = readPositiveFiniteNumber(input.playbackRate, "Playback snapshot playbackRate");
+  const paused = readBoolean(input.paused, "Playback snapshot paused");
+  const playbackRate = paused ? 0 : sourcePlaybackRate;
   const elapsed = Math.max(0, targetTime - sampleTime);
   const projectedTime = paused ? currentTime : currentTime + elapsed * playbackRate;
-  const duration = normalizePositiveDuration(input.duration);
+  const duration = readDuration(input.duration);
 
   return {
     currentTime: clampPlaybackTime(projectedTime, duration),
@@ -43,20 +44,42 @@ export function projectPlaybackSnapshot(input: PlaybackProjectionInput, now = Da
   };
 }
 
-function normalizeTimestamp(value: unknown, defaultValue: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : defaultValue;
+function readPositiveFiniteTimestamp(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`${field} must be a positive finite timestamp`);
+  }
+  return value;
 }
 
-function normalizePlaybackRate(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 1;
+function readPositiveFiniteNumber(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`${field} must be a positive finite number`);
+  }
+  return value;
 }
 
-function normalizeNonNegativeNumber(value: unknown, defaultValue: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : defaultValue;
+function readNonNegativeFiniteNumber(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative finite number`);
+  }
+  return value;
 }
 
-function normalizePositiveDuration(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+function readBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${field} must be a boolean`);
+  }
+  return value;
+}
+
+function readDuration(value: unknown): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error("Playback snapshot duration must be null or a non-negative finite number");
+  }
+  return value;
 }
 
 function clampPlaybackTime(value: number, duration: number | null): number {

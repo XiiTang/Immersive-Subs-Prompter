@@ -393,6 +393,7 @@ export class ConnectionManager {
       await pendingHandlers[index];
     }
     if (event.handled) {
+      this.applyHandledPlaybackMessage(event.message);
       return;
     }
 
@@ -626,6 +627,25 @@ export class ConnectionManager {
       default:
         break;
     }
+  }
+
+  private applyHandledPlaybackMessage(message: FromExtensionBroadcastMessage): void {
+    if (message.type !== "video-context" && message.type !== "time-update" && message.type !== "playback-rate") {
+      return;
+    }
+    if (message.type !== "video-context") {
+      const state = this.options.stateManager.getState();
+      if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
+        return;
+      }
+    }
+
+    const state = this.options.stateManager.getState();
+    const playback = this.projectExtensionPlayback(message.payload, state.playback.duration ?? null);
+    this.options.stateManager.updatePlayback({
+      ...playback,
+      loop: message.payload.loop ?? null
+    });
   }
 
   setSubtitleTrack(payload: TrackSelectionPayload) {

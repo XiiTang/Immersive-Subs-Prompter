@@ -19,15 +19,6 @@ export type MediaSourceAdapterEvent =
       sessionId: string | null;
       tracks: SubtitleTrack[];
     }
-  | {
-      type: "playbackSnapshot";
-      sessionId: string | null;
-      positionMs: number | null;
-      durationMs: number | null;
-      playbackRate: number;
-      paused: boolean;
-      updatedAt: number;
-    }
   | { type: "sourceDisconnected" }
   | { type: "error"; message: string };
 

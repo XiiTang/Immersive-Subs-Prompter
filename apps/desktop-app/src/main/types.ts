@@ -247,10 +247,6 @@ export interface MediaServerSessionSummary {
   nowPlayingItemId: string | null;
   nowPlayingItemName: string | null;
   mediaSourceId: string | null;
-  runTimeTicks: number | null;
-  positionTicks: number | null;
-  isPaused: boolean;
-  playbackRate: number | null;
   subtitleStreams: MediaServerSubtitleStream[];
 }
 
@@ -270,16 +266,6 @@ export interface MediaServerSubtitlesPayload {
   sessionId: string | null;
   itemName: string | null;
   tracks: SubtitleTrack[];
-  serverType: string;
-}
-
-export interface MediaServerPlaybackPayload {
-  sessionId: string | null;
-  itemName: string | null;
-  positionMs: number | null;
-  runTimeMs: number | null;
-  playbackRate: number;
-  isPaused: boolean;
   serverType: string;
 }
 

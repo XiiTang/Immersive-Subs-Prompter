@@ -74,21 +74,17 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
         { type: "error", message: errorMessage(error) }
       ];
     }
-    const { sessions, fetchedAt } = sessionBatch;
+    const { sessions } = sessionBatch;
     const selected = selectSession(sessions, itemId);
     const events: MediaSourceAdapterEvent[] = [{ type: "sessionsChanged", sessions }];
 
     if (!isVideoContext) {
-      if (selected) {
-        events.push(sessionPlaybackEvent(selected, fetchedAt));
-      }
       return events;
     }
 
     events.unshift(sourceMatchedEvent(envelope, payload, selected));
 
     if (selected) {
-      events.push(sessionPlaybackEvent(selected, fetchedAt));
       try {
         events.push({
           type: "subtitleTracksLoaded",
@@ -117,8 +113,8 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     if (!forceRefresh && cached && Date.now() - cached.fetchedAt < SESSION_REFRESH_MS) {
       return cached;
     }
-    const fetchedAt = Date.now();
     const sessions = await fetchSessions(this.fetchImpl, server);
+    const fetchedAt = Date.now();
     const entry = { sessions, fetchedAt };
     this.sessionsByServer.set(server.id, entry);
     return entry;
@@ -379,10 +375,6 @@ function toSessionSummary(server: NormalizedServer, row: unknown): MediaServerSe
     nowPlayingItemId: text(nowPlayingItem?.Id),
     nowPlayingItemName: text(nowPlayingItem?.Name),
     mediaSourceId,
-    runTimeTicks: typeof nowPlayingItem?.RunTimeTicks === "number" ? nowPlayingItem.RunTimeTicks : null,
-    positionTicks: typeof playState.PositionTicks === "number" ? playState.PositionTicks : null,
-    isPaused: Boolean(playState.IsPaused),
-    playbackRate: typeof playState.PlaybackRate === "number" ? playState.PlaybackRate : 1,
     subtitleStreams: extractSubtitleStreams(mediaSource, nowPlayingItem)
   };
 }
@@ -538,16 +530,4 @@ function parseSubtitle(content: string, extension: "srt" | "vtt"): SubtitleCue[]
 
 function selectSession(sessions: MediaServerSessionSummary[], itemId: string | null): MediaServerSessionSummary | null {
   return itemId ? sessions.find((session) => session.nowPlayingItemId === itemId) ?? null : sessions[0] ?? null;
-}
-
-function sessionPlaybackEvent(session: MediaServerSessionSummary, updatedAt: number): MediaSourceAdapterEvent {
-  return {
-    type: "playbackSnapshot",
-    sessionId: session.id,
-    positionMs: session.positionTicks ? Math.round(session.positionTicks / 10000) : null,
-    durationMs: session.runTimeTicks ? Math.round(session.runTimeTicks / 10000) : null,
-    playbackRate: session.playbackRate ?? 1,
-    paused: session.isPaused,
-    updatedAt
-  };
 }

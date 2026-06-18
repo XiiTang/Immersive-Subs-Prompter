@@ -5,6 +5,7 @@ import { AppEventBus } from "./appEventBus.js";
 import { ConnectionManager } from "./connectionManager.js";
 import { JellyfinEmbyMediaSource } from "./features/jellyfinEmbyMediaSource.js";
 import { MediaSourceController } from "./mediaSources/mediaSourceController.js";
+import { StateManager } from "./stateManager.js";
 import type { AppSettings, DesktopState, MediaServerSessionSummary, NetworkSettings, SubtitleTrack } from "./types.js";
 
 class FakeWebSocketServer extends EventEmitter {
@@ -231,6 +232,9 @@ describe("ConnectionManager network listeners", () => {
           site: "example",
           title: "Example",
           currentTime: 0,
+          updatedAt: 1000,
+          playbackRate: 1,
+          duration: 10_000,
           paused: false
         }
       },
@@ -287,6 +291,9 @@ describe("ConnectionManager network listeners", () => {
           site: "example",
           title: "Example",
           currentTime: 0,
+          updatedAt: 1000,
+          playbackRate: 1,
+          duration: 10_000,
           paused: false
         }
       }))
@@ -354,6 +361,9 @@ describe("ConnectionManager network listeners", () => {
           site: "jellyfin",
           title: "Episode",
           currentTime: 0,
+          updatedAt: 1000,
+          playbackRate: 1,
+          duration: 10_000,
           paused: false
         }
       }))
@@ -362,6 +372,118 @@ describe("ConnectionManager network listeners", () => {
     expect(stateManager.state.activeSource).toBe("mediaserver");
     expect(stateManager.state.error).toBe("Jellyfin / Emby request failed: HTTP 503");
     expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
+  });
+
+  it("projects Jellyfin / Emby playback from the extension payload while media-source handles subtitles", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const settings = makeSettings(network);
+      settings.features.jellyfinEmby = {
+        enabled: true,
+        config: {
+          servers: [
+            {
+              id: "server-1",
+              name: "Home",
+              serverUrls: "https://media.example.test",
+              apiKey: "api-key",
+              enabled: true
+            }
+          ]
+        }
+      };
+      const stateManager = createStateManager();
+      const bus = new AppEventBus();
+      const subtitleService = {
+        getSubtitles: vi.fn(async () => ({ tracks: [] }))
+      };
+      const source = new JellyfinEmbyMediaSource({
+        getSettings: () => settings.features.jellyfinEmby,
+        fetch: vi.fn(async (url: string) => {
+          if (url.includes("/Sessions")) {
+            return {
+              ok: true,
+              json: async () => [
+                {
+                  Id: "session-1",
+                  DeviceName: "Chrome",
+                  Client: "Jellyfin Web",
+                  UserName: "cq",
+                  NowPlayingItem: {
+                    Id: "item-1",
+                    Name: "Episode",
+                    RunTimeTicks: 120_000_000,
+                    MediaSources: [{ Id: "media-1", MediaStreams: [] }]
+                  },
+                  PlayState: {
+                    MediaSourceId: "media-1",
+                    PositionTicks: 90_000_000,
+                    IsPaused: false,
+                    PlaybackRate: 1
+                  }
+                }
+              ]
+            };
+          }
+          return { ok: true, text: async () => "" };
+        }) as never
+      });
+      const controller = new MediaSourceController({
+        bus,
+        stateManager: stateManager as never,
+        getSources: () => [source]
+      });
+      controller.start();
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => settings,
+        subtitleService: subtitleService as never,
+        stateManager: stateManager as never,
+        bus,
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "video-context",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+            videoSrc: null,
+            site: "jellyfin",
+            title: "Episode",
+            currentTime: 1000,
+            updatedAt: 7000,
+            playbackRate: 1.5,
+            duration: 20_000,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      expect(stateManager.state.activeSource).toBe("mediaserver");
+      expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
+      expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 5500,
+        playbackRate: 1.5,
+        duration: 20_000,
+        loop: null,
+        lastUpdate: 10_000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not resolve extension media URLs that target local or private network hosts", () => {
@@ -528,6 +650,64 @@ describe("ConnectionManager network listeners", () => {
       );
 
       expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 8000,
+        playbackRate: 2,
+        duration: 10_000,
+        loop: null,
+        lastUpdate: 8000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps projected extension video-context playback after subtitle state resets", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(8000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const settings = makeSettings(network);
+      const bus = new AppEventBus();
+      const stateManager = new StateManager(bus, () => settings);
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => settings,
+        subtitleService: {
+          getSubtitles: vi.fn(async () => ({ tracks: [] }))
+        } as never,
+        stateManager,
+        bus,
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleMessage = (manager as unknown as {
+        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
+      }).handleMessage.bind(manager);
+
+      await handleMessage(
+        {
+          source: "usp-extension",
+          type: "video-context",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://youtube.com/watch?v=abc",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "youtube",
+            title: "Example",
+            currentTime: 2000,
+            updatedAt: 5000,
+            playbackRate: 2,
+            duration: 10_000,
+            paused: false,
+            loop: null
+          }
+        },
+        "https://youtube.com/watch?v=abc"
+      );
+
+      expect(stateManager.getState().playback).toEqual({
         currentTime: 8000,
         playbackRate: 2,
         duration: 10_000,
