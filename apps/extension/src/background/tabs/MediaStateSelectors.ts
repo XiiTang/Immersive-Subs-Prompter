@@ -1,7 +1,18 @@
+import { projectPlaybackSnapshot } from "@immersive-subs/contracts";
 import type { MediaStateRecord } from "../../shared/types";
 
 export function isMediaStatePlaying(state: MediaStateRecord): boolean {
   return !state.paused && (state.readyState || 0) >= 2;
+}
+
+export function projectMediaStateRecord(state: MediaStateRecord, now = Date.now()): MediaStateRecord {
+  const projected = projectPlaybackSnapshot(state, now);
+  return {
+    ...state,
+    currentTime: projected.currentTime,
+    playbackRate: projected.playbackRate,
+    updatedAt: projected.updatedAt
+  };
 }
 
 export function sortMediaStatesByPriority(states: MediaStateRecord[]): MediaStateRecord[] {

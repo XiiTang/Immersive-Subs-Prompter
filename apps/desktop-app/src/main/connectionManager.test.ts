@@ -427,4 +427,115 @@ describe("ConnectionManager network listeners", () => {
       site: "youtube"
     })).toBeNull();
   });
+
+  it("projects extension time-update payloads from updatedAt before applying playback", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.state.activeTabId = 1;
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {} as never,
+        stateManager: stateManager as never,
+        bus: new AppEventBus(),
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleMessage = (manager as unknown as {
+        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
+      }).handleMessage.bind(manager);
+
+      await handleMessage(
+        {
+          source: "usp-extension",
+          type: "time-update",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://example.test/watch",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "unknown",
+            title: "Example",
+            currentTime: 1000,
+            updatedAt: 4000,
+            playbackRate: 1.5,
+            duration: 12_000,
+            paused: false,
+            loop: null
+          }
+        },
+        null
+      );
+
+      expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 10_000,
+        playbackRate: 1.5,
+        duration: 12_000,
+        loop: null,
+        lastUpdate: 10_000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("projects extension video-context playback before subtitle loading", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(8000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {
+          getSubtitles: vi.fn(async () => ({ tracks: [] }))
+        } as never,
+        stateManager: stateManager as never,
+        bus: new AppEventBus(),
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleMessage = (manager as unknown as {
+        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
+      }).handleMessage.bind(manager);
+
+      await handleMessage(
+        {
+          source: "usp-extension",
+          type: "video-context",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://example.test/watch",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "unknown",
+            title: "Example",
+            currentTime: 2000,
+            updatedAt: 5000,
+            playbackRate: 2,
+            duration: 10_000,
+            paused: false,
+            loop: null
+          }
+        },
+        "https://cdn.example.test/video.mp4"
+      );
+
+      expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 8000,
+        playbackRate: 2,
+        duration: 10_000,
+        loop: null,
+        lastUpdate: 8000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

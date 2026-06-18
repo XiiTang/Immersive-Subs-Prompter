@@ -10,6 +10,7 @@ import type {
   ToExtensionMessage,
   VideoStateSnapshot
 } from "./index.js";
+import { projectPlaybackSnapshot } from "./index.js";
 
 describe("@immersive-subs/contracts", () => {
   it("requires action-specific payloads for control commands", () => {
@@ -90,5 +91,98 @@ describe("@immersive-subs/contracts", () => {
 
     expect(command.action).toBe("loop");
     expect(command.payload?.origin).toBe("single-loop");
+  });
+
+  it("projects a playing playback snapshot from its sample timestamp", () => {
+    const projected = projectPlaybackSnapshot(
+      {
+        currentTime: 12_000,
+        updatedAt: 1000,
+        playbackRate: 1.25,
+        paused: false,
+        duration: 20_000
+      },
+      3000
+    );
+
+    expect(projected).toEqual({
+      currentTime: 14_500,
+      updatedAt: 3000,
+      playbackRate: 1.25
+    });
+  });
+
+  it("keeps paused playback snapshots fixed while moving the timestamp baseline", () => {
+    const projected = projectPlaybackSnapshot(
+      {
+        currentTime: 12_000,
+        updatedAt: 1000,
+        playbackRate: 2,
+        paused: true,
+        duration: 20_000
+      },
+      4000
+    );
+
+    expect(projected).toEqual({
+      currentTime: 12_000,
+      updatedAt: 4000,
+      playbackRate: 0
+    });
+  });
+
+  it("clamps negative elapsed time and projected time beyond duration", () => {
+    expect(
+      projectPlaybackSnapshot(
+        {
+          currentTime: 9000,
+          updatedAt: 5000,
+          playbackRate: 1,
+          paused: false,
+          duration: 10_000
+        },
+        3000
+      )
+    ).toEqual({
+      currentTime: 9000,
+      updatedAt: 3000,
+      playbackRate: 1
+    });
+
+    expect(
+      projectPlaybackSnapshot(
+        {
+          currentTime: 9000,
+          updatedAt: 1000,
+          playbackRate: 2,
+          paused: false,
+          duration: 10_000
+        },
+        3000
+      )
+    ).toEqual({
+      currentTime: 10_000,
+      updatedAt: 3000,
+      playbackRate: 2
+    });
+  });
+
+  it("normalizes invalid playback projection input to current contract defaults", () => {
+    expect(
+      projectPlaybackSnapshot(
+        {
+          currentTime: Number.NaN,
+          updatedAt: "bad",
+          playbackRate: "bad",
+          paused: false,
+          duration: null
+        },
+        7000
+      )
+    ).toEqual({
+      currentTime: 0,
+      updatedAt: 7000,
+      playbackRate: 1
+    });
   });
 });

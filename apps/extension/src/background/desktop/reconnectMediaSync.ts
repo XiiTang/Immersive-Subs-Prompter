@@ -1,5 +1,5 @@
 import type { MediaStateRecord } from "../../shared/types";
-import { selectCurrentMediaState } from "../tabs/MediaStateSelectors";
+import { projectMediaStateRecord, selectCurrentMediaState } from "../tabs/MediaStateSelectors";
 import type { DesktopConnectionSendPayload } from "./DesktopConnection";
 
 type MediaStateSource = {
@@ -12,7 +12,8 @@ type DesktopMediaSender = {
 
 export function sendCurrentMediaContext(
   connection: DesktopMediaSender,
-  mediaStateStore: MediaStateSource
+  mediaStateStore: MediaStateSource,
+  now = Date.now()
 ) {
   const current = selectCurrentMediaState(mediaStateStore.list());
 
@@ -23,6 +24,6 @@ export function sendCurrentMediaContext(
   connection.send({
     tabId: current.tabId,
     type: "video-context",
-    payload: current
+    payload: projectMediaStateRecord(current, now)
   });
 }

@@ -156,10 +156,14 @@ export class StateManager {
 
   updatePlayback(updates: Partial<PlaybackState>) {
     const next = clone(this.state);
+    const lastUpdate =
+      typeof updates.lastUpdate === "number" && Number.isFinite(updates.lastUpdate)
+        ? updates.lastUpdate
+        : Date.now();
     next.playback = {
       ...next.playback,
       ...updates,
-      lastUpdate: Date.now()
+      lastUpdate
     };
     this.state = next;
     this.bus.emit("state:playback", next.playback);

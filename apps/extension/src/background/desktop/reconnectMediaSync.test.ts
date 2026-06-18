@@ -33,13 +33,79 @@ describe("sendCurrentMediaContext", () => {
 
     sendCurrentMediaContext(connection, {
       list: () => [pausedRecent, playingOlder]
-    });
+    }, 3000);
 
     expect(connection.send).toHaveBeenCalledTimes(1);
     expect(connection.send).toHaveBeenCalledWith({
       tabId: 2,
       type: "video-context",
-      payload: playingOlder
+      payload: expect.objectContaining({
+        currentTime: 120,
+        updatedAt: 3000,
+        tabId: playingOlder.tabId
+      })
+    });
+  });
+
+  it("projects a cached playing media state before reconnect replay", () => {
+    const connection = { send: vi.fn() };
+
+    sendCurrentMediaContext(
+      connection,
+      {
+        list: () => [
+          mediaState({
+            tabId: 2,
+            currentTime: 12_000,
+            updatedAt: 1000,
+            playbackRate: 1.5,
+            paused: false,
+            duration: 20_000
+          })
+        ]
+      },
+      3000
+    );
+
+    expect(connection.send).toHaveBeenCalledWith({
+      tabId: 2,
+      type: "video-context",
+      payload: expect.objectContaining({
+        currentTime: 15_000,
+        updatedAt: 3000,
+        playbackRate: 1.5
+      })
+    });
+  });
+
+  it("does not advance a paused cached media state before reconnect replay", () => {
+    const connection = { send: vi.fn() };
+
+    sendCurrentMediaContext(
+      connection,
+      {
+        list: () => [
+          mediaState({
+            tabId: 3,
+            currentTime: 12_000,
+            updatedAt: 1000,
+            playbackRate: 2,
+            paused: true,
+            duration: 20_000
+          })
+        ]
+      },
+      5000
+    );
+
+    expect(connection.send).toHaveBeenCalledWith({
+      tabId: 3,
+      type: "video-context",
+      payload: expect.objectContaining({
+        currentTime: 12_000,
+        updatedAt: 5000,
+        playbackRate: 0
+      })
     });
   });
 

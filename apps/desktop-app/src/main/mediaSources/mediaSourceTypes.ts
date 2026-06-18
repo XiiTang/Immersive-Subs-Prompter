@@ -26,6 +26,7 @@ export type MediaSourceAdapterEvent =
       durationMs: number | null;
       playbackRate: number;
       paused: boolean;
+      updatedAt: number;
     }
   | { type: "sourceDisconnected" }
   | { type: "error"; message: string };

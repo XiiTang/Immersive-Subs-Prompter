@@ -8,7 +8,7 @@ import { createLogger } from "./logger.js";
 import { isAuthorizedDesktopClient } from "./connectionAuth.js";
 import { areNetworkSettingsEqual } from "./networkSettings.js";
 import { isPublicHttpUrl } from "./networkUrlSafety.js";
-import { networkEndpointKey } from "@immersive-subs/contracts";
+import { networkEndpointKey, projectPlaybackSnapshot } from "@immersive-subs/contracts";
 import type {
   ControlLoopCommandMessage,
   ControlSeekCommandMessage,
@@ -254,6 +254,30 @@ export class ConnectionManager {
     return Math.max(0, value);
   }
 
+  private projectExtensionPlayback(
+    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
+    existingDuration: number | null
+  ) {
+    const durationUpdate = this.normalizeDuration(payload.duration);
+    const duration = durationUpdate !== null ? durationUpdate : existingDuration;
+    const projected = projectPlaybackSnapshot(
+      {
+        currentTime: payload.currentTime,
+        updatedAt: payload.updatedAt,
+        playbackRate: payload.playbackRate,
+        paused: payload.paused,
+        duration
+      },
+      Date.now()
+    );
+    return {
+      currentTime: projected.currentTime,
+      playbackRate: projected.playbackRate,
+      duration,
+      lastUpdate: projected.updatedAt
+    };
+  }
+
   private bootstrapWebSocketServer(endpoint: NetworkEndpoint, authToken: string, record: ListenerRecord) {
     const wss = this.createWebSocketServer({
       port: endpoint.port,
@@ -417,15 +441,13 @@ export class ConnectionManager {
           title: message.payload.title ?? null
         });
 
-        const initialDuration = this.normalizeDuration(message.payload.duration);
-        const initialPlaybackRate = message.payload.paused
-          ? 0
-          : message.payload.playbackRate ?? this.options.stateManager.getState().playback.playbackRate;
-        const initialCurrentTime = message.payload.currentTime ?? 0;
+        const initialPlayback = this.projectExtensionPlayback(
+          message.payload,
+          this.options.stateManager.getState().playback.duration ?? null
+        );
         this.options.stateManager.updatePlayback({
-          currentTime: initialCurrentTime,
-          duration: initialDuration,
-          playbackRate: initialPlaybackRate
+          ...initialPlayback,
+          loop: message.payload.loop ?? null
         });
 
         if (!resolvedUrl) {
@@ -506,16 +528,13 @@ export class ConnectionManager {
           return;
         }
 
-        const currentTime = message.payload.currentTime ?? state.playback.currentTime;
-        const rawPlaybackRate = message.payload.playbackRate ?? state.playback.playbackRate;
-        const playbackRate = message.payload.paused ? 0 : rawPlaybackRate;
-        const durationUpdate = this.normalizeDuration(message.payload.duration);
-        const duration = durationUpdate !== null ? durationUpdate : state.playback.duration ?? null;
+        const projectedPlayback = this.projectExtensionPlayback(
+          message.payload,
+          state.playback.duration ?? null
+        );
 
         this.options.stateManager.updatePlayback({
-          currentTime,
-          playbackRate,
-          duration,
+          ...projectedPlayback,
           loop: message.payload.loop ?? null
         });
         break;

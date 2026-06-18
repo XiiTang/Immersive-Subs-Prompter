@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_PROFILE_ID } from "../common/defaultSettings.js";
 import { AppEventBus } from "./appEventBus.js";
 import { DEFAULT_SETTINGS_FACTORY } from "./settings/appSettingsSanitizer.js";
@@ -206,5 +206,42 @@ describe("StateManager profile URL matching", () => {
         error: "listen EADDRNOTAVAIL"
       }
     ]);
+  });
+
+  it("preserves an explicit playback lastUpdate supplied by a projected source", () => {
+    const settings = makeSettings();
+    const manager = new StateManager(new AppEventBus(), () => settings);
+
+    manager.updatePlayback({
+      currentTime: 4200,
+      playbackRate: 1,
+      lastUpdate: 12_345
+    });
+
+    expect(manager.getState().playback).toEqual(
+      expect.objectContaining({
+        currentTime: 4200,
+        playbackRate: 1,
+        lastUpdate: 12_345
+      })
+    );
+  });
+
+  it("uses local time as playback lastUpdate when callers do not provide one", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(23_456);
+    try {
+      const settings = makeSettings();
+      const manager = new StateManager(new AppEventBus(), () => settings);
+
+      manager.updatePlayback({
+        currentTime: 1000,
+        playbackRate: 1
+      });
+
+      expect(manager.getState().playback.lastUpdate).toBe(23_456);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

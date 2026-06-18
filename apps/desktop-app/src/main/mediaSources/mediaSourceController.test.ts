@@ -63,127 +63,147 @@ function createStateManager() {
   };
 }
 
+async function emitConnectionMessage(bus: AppEventBus, event: any) {
+  const pending: Promise<unknown>[] = [];
+  const eventWithWait = {
+    ...event,
+    waitUntil(promise: Promise<unknown>) {
+      pending.push(Promise.resolve(promise));
+    }
+  };
+  bus.emit("connection:message", eventWithWait);
+  await Promise.all(pending);
+  return eventWithWait;
+}
+
 describe("MediaSourceController", () => {
   it("projects source, subtitle, session, and playback events into host state", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
     const bus = new AppEventBus();
     const stateManager = createStateManager();
-    const controller = new MediaSourceController({
-      bus,
-      stateManager: stateManager as never,
-      getSources: () => [
-        {
-          sourceId: "jellyfinEmby",
-          handleConnectionMessage: vi.fn(async () => [
-            {
-              type: "sourceMatched",
-              tabId: 7,
-              pageUrl: "https://media.example.test/watch/1",
-              videoUrl: "https://media.example.test/items/1",
-              title: "Episode 1",
-              site: "community-media",
-              selectedSessionId: "session-1"
-            },
-            {
-              type: "sessionsChanged",
-              sessions: [{ id: "session-1", serverConfigId: "server-1" }]
-            },
-            {
-              type: "subtitleTracksLoaded",
-              sessionId: "session-1",
-              tracks: [{ id: "track-1", sourceFile: "en.srt", cues: [] }]
-            },
-            {
-              type: "playbackSnapshot",
-              sessionId: "session-1",
-              positionMs: 5000,
-              durationMs: 10000,
-              playbackRate: 1,
-              paused: false
-            }
-          ])
+    try {
+      const controller = new MediaSourceController({
+        bus,
+        stateManager: stateManager as never,
+        getSources: () => [
+          {
+            sourceId: "jellyfinEmby",
+            handleConnectionMessage: vi.fn(async () => [
+              {
+                type: "sourceMatched",
+                tabId: 7,
+                pageUrl: "https://media.example.test/watch/1",
+                videoUrl: "https://media.example.test/items/1",
+                title: "Episode 1",
+                site: "community-media",
+                selectedSessionId: "session-1"
+              },
+              {
+                type: "sessionsChanged",
+                sessions: [{ id: "session-1", serverConfigId: "server-1" }]
+              },
+              {
+                type: "subtitleTracksLoaded",
+                sessionId: "session-1",
+                tracks: [{ id: "track-1", sourceFile: "en.srt", cues: [] }]
+              },
+              {
+                type: "playbackSnapshot",
+                sessionId: "session-1",
+                positionMs: 5000,
+                durationMs: 10000,
+                playbackRate: 1,
+                paused: false,
+                updatedAt: 1000
+              }
+            ])
+          }
+        ]
+      });
+      controller.start();
+      const event = {
+        message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
+        resolvedUrl: "https://media.example.test/watch/1",
+        handled: false,
+        markHandled() {
+          this.handled = true;
         }
-      ]
-    });
-    controller.start();
-    const event = {
-      message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
-      resolvedUrl: "https://media.example.test/watch/1",
-      handled: false,
-      markHandled() {
-        this.handled = true;
-      }
-    } as any;
+      } as any;
 
-    bus.emit("connection:message", event);
-    await vi.waitFor(() => {
-      expect(event.handled).toBe(true);
+      const emitted = await emitConnectionMessage(bus, event);
+      expect(emitted.handled).toBe(true);
       expect(stateManager.state.activeSource).toBe("mediaserver");
       expect(stateManager.state.mediaServer.sessions).toEqual([{ id: "session-1", serverConfigId: "server-1" }]);
       expect(stateManager.state.subtitleTracks).toEqual([{ id: "track-1", sourceFile: "en.srt", cues: [] }]);
       expect(stateManager.state.playback.currentTime).toBe(5000);
-    });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("marks active media-source playback events as handled", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
     const bus = new AppEventBus();
     const stateManager = createStateManager();
-    const handleConnectionMessage = vi
-      .fn()
-      .mockResolvedValueOnce([
-        {
-          type: "sourceMatched",
-          tabId: 7,
-          pageUrl: "https://media.example.test/watch/1",
-          videoUrl: "https://media.example.test/items/1",
-          title: "Episode 1",
-          site: "community-media",
-          selectedSessionId: "session-1"
-        }
-      ])
-      .mockResolvedValueOnce([
-        {
-          type: "playbackSnapshot",
-          sessionId: "session-1",
-          positionMs: 12000,
-          durationMs: 60000,
-          playbackRate: 1,
-          paused: false
-        }
-      ]);
-    const controller = new MediaSourceController({
-      bus,
-      stateManager: stateManager as never,
-      getSources: () => [{ sourceId: "jellyfinEmby", handleConnectionMessage }]
-    });
-    controller.start();
+    try {
+      const handleConnectionMessage = vi
+        .fn()
+        .mockResolvedValueOnce([
+          {
+            type: "sourceMatched",
+            tabId: 7,
+            pageUrl: "https://media.example.test/watch/1",
+            videoUrl: "https://media.example.test/items/1",
+            title: "Episode 1",
+            site: "community-media",
+            selectedSessionId: "session-1"
+          }
+        ])
+        .mockResolvedValueOnce([
+          {
+            type: "playbackSnapshot",
+            sessionId: "session-1",
+            positionMs: 12_000,
+            durationMs: 60_000,
+            playbackRate: 1,
+            paused: false,
+            updatedAt: 1000
+          }
+        ]);
+      const controller = new MediaSourceController({
+        bus,
+        stateManager: stateManager as never,
+        getSources: () => [{ sourceId: "jellyfinEmby", handleConnectionMessage }]
+      });
+      controller.start();
 
-    bus.emit("connection:message", {
-      message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
-      resolvedUrl: "https://media.example.test/watch/1",
-      handled: false,
-      markHandled() {
-        this.handled = true;
-      }
-    } as any);
-    await vi.waitFor(() => {
+      await emitConnectionMessage(bus, {
+        message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
+        resolvedUrl: "https://media.example.test/watch/1",
+        handled: false,
+        markHandled() {
+          this.handled = true;
+        }
+      } as any);
       expect(stateManager.state.activeSource).toBe("mediaserver");
-    });
 
-    const playbackEvent = {
-      message: { source: "usp-extension", type: "time-update", tabId: 7, payload: { currentTime: 5000 } },
-      resolvedUrl: null,
-      handled: false,
-      markHandled() {
-        this.handled = true;
-      }
-    } as any;
+      const playbackEvent = {
+        message: { source: "usp-extension", type: "time-update", tabId: 7, payload: { currentTime: 5000 } },
+        resolvedUrl: null,
+        handled: false,
+        markHandled() {
+          this.handled = true;
+        }
+      } as any;
 
-    bus.emit("connection:message", playbackEvent);
-
-    await vi.waitFor(() => {
-      expect(playbackEvent.handled).toBe(true);
-      expect(stateManager.state.playback.currentTime).toBe(12000);
-    });
+      const emittedPlayback = await emitConnectionMessage(bus, playbackEvent);
+      expect(emittedPlayback.handled).toBe(true);
+      expect(stateManager.state.playback.currentTime).toBe(12_000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("clears a stale selected session when the same source matches media without a selected session", async () => {
@@ -356,6 +376,110 @@ describe("MediaSourceController", () => {
     expect(stateManager.state.videoUrl).toBeNull();
     expect(stateManager.state.mediaServer.sessions).toEqual([]);
     expect(stateManager.resetSubtitleState).toHaveBeenCalled();
+  });
+
+  it("projects built-in media-source playback snapshots from updatedAt", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(5000);
+    try {
+      const bus = new AppEventBus();
+      const stateManager = createStateManager();
+      stateManager.state.activeSource = "mediaserver";
+      stateManager.state.mediaServer.selectedSessionId = "session-1";
+      const controller = new MediaSourceController({
+        bus,
+        stateManager: stateManager as never,
+        getSources: () => [
+          {
+            sourceId: "jellyfinEmby",
+            handleConnectionMessage: vi.fn(async () => [
+              {
+                type: "playbackSnapshot",
+                sessionId: "session-1",
+                positionMs: 1000,
+                durationMs: 10_000,
+                playbackRate: 2,
+                paused: false,
+                updatedAt: 3000
+              }
+            ])
+          }
+        ]
+      });
+      controller.start();
+
+      await emitConnectionMessage(bus, {
+        message: { source: "usp-extension", type: "time-update", tabId: 7, payload: {} },
+        resolvedUrl: null,
+        handled: false,
+        markHandled() {
+          this.handled = true;
+        }
+      } as any);
+
+      expect(stateManager.state.playback).toEqual(
+        expect.objectContaining({
+          currentTime: 5000,
+          playbackRate: 2,
+          duration: 10_000,
+          lastUpdate: 5000
+        })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps paused built-in media-source playback fixed while moving lastUpdate", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(6000);
+    try {
+      const bus = new AppEventBus();
+      const stateManager = createStateManager();
+      stateManager.state.activeSource = "mediaserver";
+      stateManager.state.mediaServer.selectedSessionId = "session-1";
+      const controller = new MediaSourceController({
+        bus,
+        stateManager: stateManager as never,
+        getSources: () => [
+          {
+            sourceId: "jellyfinEmby",
+            handleConnectionMessage: vi.fn(async () => [
+              {
+                type: "playbackSnapshot",
+                sessionId: "session-1",
+                positionMs: 3000,
+                durationMs: 10_000,
+                playbackRate: 2,
+                paused: true,
+                updatedAt: 1000
+              }
+            ])
+          }
+        ]
+      });
+      controller.start();
+
+      await emitConnectionMessage(bus, {
+        message: { source: "usp-extension", type: "time-update", tabId: 7, payload: {} },
+        resolvedUrl: null,
+        handled: false,
+        markHandled() {
+          this.handled = true;
+        }
+      } as any);
+
+      expect(stateManager.state.playback).toEqual(
+        expect.objectContaining({
+          currentTime: 3000,
+          playbackRate: 0,
+          duration: 10_000,
+          lastUpdate: 6000
+        })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
 });

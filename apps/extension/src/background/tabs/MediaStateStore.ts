@@ -1,6 +1,7 @@
 import { Logger } from "../../shared/Logger";
 import type { VideoStateSnapshot } from "@immersive-subs/contracts";
 import type { MediaStateRecord } from "../../shared/types";
+import { projectMediaStateRecord } from "./MediaStateSelectors";
 
 const MINIMUM_DURATION = 10000;
 
@@ -48,13 +49,19 @@ export class MediaStateStore {
     const base =
       prev ||
       ({ ...(patch as VideoStateSnapshot), tabId, lastEventType: lastEventType || "video-context" } as MediaStateRecord);
-    const next: MediaStateRecord = {
+    const now = Date.now();
+    const sampleUpdatedAt =
+      typeof patch.updatedAt === "number" && Number.isFinite(patch.updatedAt) && patch.updatedAt > 0
+        ? patch.updatedAt
+        : now;
+    const merged: MediaStateRecord = {
       ...base,
       ...patch,
       tabId,
       lastEventType: lastEventType || base.lastEventType || "video-context",
-      updatedAt: Date.now()
+      updatedAt: sampleUpdatedAt
     };
+    const next = projectMediaStateRecord(merged, now);
     this.mediaStates.set(tabId, next);
     this.onChange?.(this.mediaStates);
     return next;

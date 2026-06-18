@@ -23,11 +23,15 @@ type NormalizedServer = Omit<JellyfinEmbyServerConfig, "serverUrls"> & {
   apiBaseUrl: string;
 };
 
+type SessionCacheEntry = {
+  sessions: MediaServerSessionSummary[];
+  fetchedAt: number;
+};
+
 export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
   readonly sourceId = "jellyfinEmby" as const;
   private readonly fetchImpl: FetchLike;
-  private readonly sessionsByServer = new Map<string, MediaServerSessionSummary[]>();
-  private readonly lastFetchByServer = new Map<string, number>();
+  private readonly sessionsByServer = new Map<string, SessionCacheEntry>();
 
   constructor(private readonly options: JellyfinEmbyMediaSourceOptions) {
     this.fetchImpl = options.fetch ?? fetch;
@@ -58,9 +62,9 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
 
     const itemId = extractItemId(payload);
     const isVideoContext = envelope.type === "video-context";
-    let sessions: MediaServerSessionSummary[];
+    let sessionBatch: SessionCacheEntry;
     try {
-      sessions = await this.getSessions(server, isVideoContext);
+      sessionBatch = await this.getSessions(server, isVideoContext);
     } catch (error) {
       if (!isVideoContext) {
         throw error;
@@ -70,12 +74,13 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
         { type: "error", message: errorMessage(error) }
       ];
     }
+    const { sessions, fetchedAt } = sessionBatch;
     const selected = selectSession(sessions, itemId);
     const events: MediaSourceAdapterEvent[] = [{ type: "sessionsChanged", sessions }];
 
     if (!isVideoContext) {
       if (selected) {
-        events.push(sessionPlaybackEvent(selected));
+        events.push(sessionPlaybackEvent(selected, fetchedAt));
       }
       return events;
     }
@@ -83,7 +88,7 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     events.unshift(sourceMatchedEvent(envelope, payload, selected));
 
     if (selected) {
-      events.push(sessionPlaybackEvent(selected));
+      events.push(sessionPlaybackEvent(selected, fetchedAt));
       try {
         events.push({
           type: "subtitleTracksLoaded",
@@ -107,16 +112,16 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     this.clearState();
   }
 
-  private async getSessions(server: NormalizedServer, forceRefresh: boolean): Promise<MediaServerSessionSummary[]> {
-    const lastFetch = this.lastFetchByServer.get(server.id) ?? 0;
+  private async getSessions(server: NormalizedServer, forceRefresh: boolean): Promise<SessionCacheEntry> {
     const cached = this.sessionsByServer.get(server.id);
-    if (!forceRefresh && cached && Date.now() - lastFetch < SESSION_REFRESH_MS) {
+    if (!forceRefresh && cached && Date.now() - cached.fetchedAt < SESSION_REFRESH_MS) {
       return cached;
     }
+    const fetchedAt = Date.now();
     const sessions = await fetchSessions(this.fetchImpl, server);
-    this.sessionsByServer.set(server.id, sessions);
-    this.lastFetchByServer.set(server.id, Date.now());
-    return sessions;
+    const entry = { sessions, fetchedAt };
+    this.sessionsByServer.set(server.id, entry);
+    return entry;
   }
 
   private async loadSubtitleTracks(server: NormalizedServer, session: MediaServerSessionSummary): Promise<SubtitleTrack[]> {
@@ -159,7 +164,6 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
 
   private clearState(): void {
     this.sessionsByServer.clear();
-    this.lastFetchByServer.clear();
   }
 }
 
@@ -536,13 +540,14 @@ function selectSession(sessions: MediaServerSessionSummary[], itemId: string | n
   return itemId ? sessions.find((session) => session.nowPlayingItemId === itemId) ?? null : sessions[0] ?? null;
 }
 
-function sessionPlaybackEvent(session: MediaServerSessionSummary): MediaSourceAdapterEvent {
+function sessionPlaybackEvent(session: MediaServerSessionSummary, updatedAt: number): MediaSourceAdapterEvent {
   return {
     type: "playbackSnapshot",
     sessionId: session.id,
     positionMs: session.positionTicks ? Math.round(session.positionTicks / 10000) : null,
     durationMs: session.runTimeTicks ? Math.round(session.runTimeTicks / 10000) : null,
     playbackRate: session.playbackRate ?? 1,
-    paused: session.isPaused
+    paused: session.isPaused,
+    updatedAt
   };
 }

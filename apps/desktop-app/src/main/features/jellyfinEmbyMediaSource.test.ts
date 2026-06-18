@@ -412,4 +412,77 @@ describe("JellyfinEmbyMediaSource", () => {
       ])
     );
   });
+
+  it("emits cached playback snapshots with the original fetchedAt sample timestamp", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
+    try {
+      const fetch = vi.fn(async (url: string) => {
+        if (url.includes("/Sessions")) {
+          return {
+            ok: true,
+            json: async () => [
+              {
+                Id: "session-1",
+                DeviceName: "Chrome",
+                Client: "Jellyfin Web",
+                UserName: "cq",
+                NowPlayingItem: {
+                  Id: "item-1",
+                  Name: "Episode",
+                  RunTimeTicks: 20_000_000,
+                  MediaSources: [{ Id: "media-1", MediaStreams: [] }]
+                },
+                PlayState: { MediaSourceId: "media-1", PositionTicks: 2_000_000, IsPaused: false, PlaybackRate: 1 }
+              }
+            ]
+          };
+        }
+        return {
+          ok: true,
+          text: async () => ""
+        };
+      });
+      const source = new JellyfinEmbyMediaSource({ getSettings: () => createSettings(), fetch: fetch as never });
+
+      await source.handleConnectionMessage({
+        type: "video-context",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Episode",
+          site: "Jellyfin"
+        }
+      });
+
+      vi.setSystemTime(2500);
+      const result = await source.handleConnectionMessage({
+        type: "time-update",
+        tabId: 1,
+        payload: {
+          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+          videoSrc: null,
+          title: "Episode",
+          site: "Jellyfin"
+        }
+      });
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "playbackSnapshot",
+            sessionId: "server-1:session-1",
+            positionMs: 200,
+            playbackRate: 1,
+            paused: false,
+            updatedAt: 1000
+          })
+        ])
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

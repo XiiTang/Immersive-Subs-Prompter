@@ -65,4 +65,45 @@ describe("MediaStateStore", () => {
       })
     );
   });
+
+  it("stores media snapshots with a current background playback baseline", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(5000);
+    try {
+      const store = new MediaStateStore();
+
+      const result = store.setState(
+        4,
+        {
+          pageUrl: "https://example.com/watch",
+          site: "unknown",
+          videoSrc: "https://cdn.example.com/video.mp4",
+          videoWidth: 1920,
+          videoHeight: 1080,
+          pictureInPicture: false,
+          playbackRate: 1.5,
+          currentTime: 1000,
+          duration: 20_000,
+          paused: false,
+          muted: false,
+          volume: 1,
+          readyState: 4,
+          title: "Episode",
+          updatedAt: 3000,
+          loop: null
+        },
+        "time-update"
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          currentTime: 4000,
+          playbackRate: 1.5,
+          updatedAt: 5000
+        })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

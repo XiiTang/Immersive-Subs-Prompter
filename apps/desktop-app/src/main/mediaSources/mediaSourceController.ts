@@ -3,6 +3,7 @@ import type { StateManager } from "../stateManager.js";
 import type { PlaybackState } from "../types.js";
 import { createLogger } from "../logger.js";
 import type { MediaSourceAdapterEvent, MediaSourceRuntime } from "./mediaSourceTypes.js";
+import { projectPlaybackSnapshot } from "@immersive-subs/contracts";
 
 export interface MediaSourceControllerOptions {
   bus: AppEventBus;
@@ -166,10 +167,23 @@ export class MediaSourceController {
     if (event.sessionId && state.mediaServer.selectedSessionId && event.sessionId !== state.mediaServer.selectedSessionId) {
       return;
     }
+    const duration =
+      typeof event.durationMs === "number" && event.durationMs >= 0 ? event.durationMs : state.playback.duration;
+    const projected = projectPlaybackSnapshot(
+      {
+        currentTime: event.positionMs,
+        updatedAt: event.updatedAt,
+        playbackRate: event.playbackRate,
+        paused: event.paused,
+        duration
+      },
+      Date.now()
+    );
     const playback: Partial<PlaybackState> = {
-      currentTime: event.positionMs ?? 0,
-      duration: typeof event.durationMs === "number" && event.durationMs >= 0 ? event.durationMs : state.playback.duration,
-      playbackRate: event.paused ? 0 : event.playbackRate || 1
+      currentTime: projected.currentTime,
+      duration,
+      playbackRate: projected.playbackRate,
+      lastUpdate: projected.updatedAt
     };
     this.options.stateManager.updatePlayback(playback);
   }
