@@ -591,6 +591,27 @@ describe("appSettingsSanitizer", () => {
       });
     });
 
+    it("returns the validated merged settings snapshot for update patches", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      const next = validateSettingsForUpdate(
+        {
+          global: {
+            autoLaunch: false
+          }
+        },
+        settings
+      );
+
+      expect(next).toEqual({
+        ...settings,
+        global: {
+          ...settings.global,
+          autoLaunch: false
+        }
+      });
+    });
+
     it("uses explicit product defaults from the factory", () => {
       const result = DEFAULT_SETTINGS_FACTORY();
       const settings = result.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!.settings;

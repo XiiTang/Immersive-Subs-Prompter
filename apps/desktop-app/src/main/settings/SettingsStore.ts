@@ -5,7 +5,6 @@ import { reportError } from "../errors.js";
 import { AppSettings } from "../types.js";
 import {
   DEFAULT_SETTINGS_FACTORY,
-  mergeSettings,
   sanitizeSettings,
   validateSettingsForUpdate
 } from "./appSettingsSanitizer.js";
@@ -45,16 +44,7 @@ export class SettingsStore {
   }
 
   update(partial: Partial<AppSettings>): AppSettings {
-    validateSettingsForUpdate(partial, this.data);
-    const merged = mergeSettings(this.data, partial);
-    const next = merged;
-    this.save(next);
-    this.data = next;
-    return this.data;
-  }
-
-  replace(next: AppSettings): AppSettings {
-    sanitizeSettings(next);
+    const next = validateSettingsForUpdate(partial, this.data);
     this.save(next);
     this.data = next;
     return this.data;

@@ -358,7 +358,7 @@ function requireBoolean(source: Record<string, unknown>, key: string, context: s
 export function validateSettingsForUpdate(
   input: Partial<AppSettings> | null | undefined,
   current: AppSettings
-): void {
+): AppSettings {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new Error("settings update must use the current object setting");
   }
@@ -393,7 +393,9 @@ export function validateSettingsForUpdate(
   if (Object.prototype.hasOwnProperty.call(input, "cache")) {
     validateCacheSettingsForUpdate((input as { cache?: unknown }).cache);
   }
-  validateSettingsSnapshot(mergeSettings(current, input));
+  const next = mergeSettings(current, input);
+  validateSettingsSnapshot(next);
+  return next;
 }
 
 export function mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSettings {

@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const requiredKeys = [
@@ -68,6 +68,31 @@ function readLocale(name: "en" | "zh") {
   return JSON.parse(readFileSync(resolve(process.cwd(), `src/renderer/locales/${name}.json`), "utf8")) as Record<string, string>;
 }
 
+function readProductionRendererSource() {
+  const sourceRoot = resolve(process.cwd(), "src/renderer");
+  const chunks: string[] = [];
+
+  function walk(dir: string) {
+    for (const entry of readdirSync(dir)) {
+      const fullPath = join(dir, entry);
+      const stat = statSync(fullPath);
+      if (stat.isDirectory()) {
+        if (entry !== "locales" && entry !== "test") {
+          walk(fullPath);
+        }
+        continue;
+      }
+      if (!/\.(?:vue|ts|html)$/.test(entry) || /\.test\.ts$/.test(entry) || /\.d\.ts$/.test(entry)) {
+        continue;
+      }
+      chunks.push(readFileSync(fullPath, "utf8"));
+    }
+  }
+
+  walk(sourceRoot);
+  return chunks.join("\n");
+}
+
 describe("renderer i18n coverage", () => {
   it("keeps English and Chinese dictionaries aligned for new UI surfaces", () => {
     const en = readLocale("en");
@@ -78,5 +103,14 @@ describe("renderer i18n coverage", () => {
       expect(en[key]?.trim()).toBeTruthy();
       expect(zh[key]?.trim()).toBeTruthy();
     }
+  });
+
+  it("does not keep renderer locale keys that production code never references", () => {
+    const en = readLocale("en");
+    const source = readProductionRendererSource();
+
+    const unusedKeys = Object.keys(en).filter((key) => !source.includes(`"${key}"`) && !source.includes(`'${key}'`));
+
+    expect(unusedKeys).toEqual([]);
   });
 });

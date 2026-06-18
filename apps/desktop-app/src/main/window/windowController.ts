@@ -287,38 +287,6 @@ export class WindowController {
     return appSettings;
   }
 
-  private replaceAppSettings(next: AppSettings) {
-    const previous = this.options.getSettings();
-    const previousGlobal = previous.global;
-    const previousNetwork = previous.network;
-    const appSettings = this.options.settingsStore.replace(next);
-    this.options.setSettings(appSettings);
-    this.options.stateManager.handleSettingsUpdated(previous);
-
-    if (previousGlobal.autoLaunch !== appSettings.global.autoLaunch) {
-      this.autoLaunchManager.apply(appSettings.global.autoLaunch);
-    }
-    if (previousGlobal.toggleWindowShortcut !== appSettings.global.toggleWindowShortcut) {
-      this.applyGlobalShortcut();
-    }
-    if (previousGlobal.alwaysOnTop !== appSettings.global.alwaysOnTop) {
-      this.windowManager.updateAlwaysOnTop(appSettings.global.alwaysOnTop);
-      this.wordLookupWindowManager.updateAlwaysOnTop();
-    }
-    if (previousGlobal.language !== appSettings.global.language) {
-      this.trayManager.updateLanguage();
-    }
-    if (!areNetworkSettingsEqual(previousNetwork, appSettings.network)) {
-      this.options.connectionManager.applyNetworkSettings();
-    }
-    this.handleFeatureSettingsUpdated(previous);
-
-    this.options.bus.emit("state:changed", this.options.stateManager.getState());
-    this.pushSettings();
-    this.gameProcessMonitor.refresh();
-    return appSettings;
-  }
-
   private handleFeatureSettingsUpdated(previous: AppSettings) {
     const current = this.options.getSettings();
     if (areJellyfinEmbyFeatureSettingsEqual(previous.features.jellyfinEmby, current.features.jellyfinEmby)) {
