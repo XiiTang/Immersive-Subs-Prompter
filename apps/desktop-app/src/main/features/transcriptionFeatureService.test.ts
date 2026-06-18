@@ -14,7 +14,7 @@ function createRuntimeConfig(overrides: Partial<import("../types.js").Transcript
     prompt: "technical terms",
     enableWordTimestamps: true,
     extraParams: { temperature: "0" },
-    ytDlpArgs: "--extract-audio --audio-format wav",
+    ytDlpArgs: "--extract-audio --audio-format=wav",
     fasterWhisperBinary: "faster-whisper",
     fasterWhisperModel: "base",
     fasterWhisperModelDir: "",

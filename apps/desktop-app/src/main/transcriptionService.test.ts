@@ -18,7 +18,7 @@ function createConfig(overrides: Partial<TranscriptionConfig> = {}): Transcripti
     prompt: "",
     enableWordTimestamps: false,
     extraParams: {},
-    ytDlpArgs: "--extract-audio --audio-format wav",
+    ytDlpArgs: "--extract-audio --audio-format=wav",
     fasterWhisperBinary: "faster-whisper",
     fasterWhisperModel: "base",
     fasterWhisperModelDir: "",
@@ -46,13 +46,12 @@ describe("TranscriptionService", () => {
     }).resolveYtDlpArgs.bind(service);
 
     expect(buildArgs(
-      resolveYtDlpArgs({ ytDlpArgs: "--extract-audio --audio-format mp3" }),
+      resolveYtDlpArgs({ ytDlpArgs: "--extract-audio --audio-format=mp3" }),
       "https://video.example.test/watch",
       "/tmp/out"
     )).toEqual([
       "--extract-audio",
-      "--audio-format",
-      "mp3",
+      "--audio-format=mp3",
       "-o",
       "/tmp/out",
       "https://video.example.test/watch"

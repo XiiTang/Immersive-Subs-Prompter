@@ -109,7 +109,7 @@ function validateProfileSettingsForUpdate(input: unknown): void {
   validateNonEmptyStringField(source, "subtitleActivePrimaryColor");
   validateNonEmptyStringField(source, "subtitleActiveSecondaryColor");
   validateNonEmptyStringField(source, "ytDlpArgs");
-  validateYtDlpArgLine((source.ytDlpArgs as string).trim(), "subtitle", "profile.settings.ytDlpArgs");
+  validateYtDlpArgLine((source.ytDlpArgs as string).trim(), "profile.settings.ytDlpArgs");
   validateFiniteNumberField(source, "subtitleAutoScrollTimeout", 1);
   validateFiniteNumberField(source, "subtitleScrollPosition", 0, 100);
   validateFiniteNumberField(source, "subtitleBlockGap", 0, 60);

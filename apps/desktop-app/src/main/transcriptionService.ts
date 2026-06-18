@@ -71,7 +71,7 @@ export class TranscriptionService {
     if (!customLine) {
       throw new Error("Transcription yt-dlp args must be non-empty");
     }
-    return parseYtDlpArgs(customLine, "transcription", "Transcription yt-dlp args");
+    return parseYtDlpArgs(customLine, "Transcription yt-dlp args");
   }
 
   private buildArgs(ytDlpArgs: string[], videoUrl: string, baseOutput: string): string[] {

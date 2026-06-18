@@ -50,6 +50,11 @@ const fs = require("node:fs");
 const logPath = ${JSON.stringify(logPath)};
 
 function argValue(name, fallback) {
+  const inlinePrefix = name + "=";
+  const inline = process.argv.find((arg) => arg.startsWith(inlinePrefix));
+  if (inline) {
+    return inline.slice(inlinePrefix.length);
+  }
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
 }
@@ -165,7 +170,7 @@ describe("SubtitleService ytdlp cache identity", () => {
   });
 
   it("normalizes ytdlp args before building the cache variant", async () => {
-    let ytDlpArgs = '--sub-lang "en.*" --sub-format "srt/best"';
+    let ytDlpArgs = '--sub-lang="en.*" --sub-format="srt/best"';
     const get = vi.fn(async (_url: string, _source: string, _variant?: string) => makeData("cached"));
     const cacheManager = { get, set: vi.fn() } as unknown as SubtitleCacheManager;
     const service = new SubtitleService(
@@ -175,17 +180,17 @@ describe("SubtitleService ytdlp cache identity", () => {
     );
 
     await service.getSubtitles("https://video.example.test/watch");
-    ytDlpArgs = "--sub-lang en.* --sub-format srt/best";
+    ytDlpArgs = "--sub-lang=en.* --sub-format=srt/best";
     await service.getSubtitles("https://video.example.test/watch");
 
-    const expected = expectedVariant("--sub-lang en.* --sub-format srt/best");
+    const expected = expectedVariant("--sub-lang=en.* --sub-format=srt/best");
     expect(get.mock.calls[0]?.[2]).toBe(expected);
     expect(get.mock.calls[1]?.[2]).toBe(expected);
   });
 
   it("downloads again when the same URL uses different effective ytdlp args", async () => {
     const { scriptPath, logPath } = await createFakeYtDlpScript();
-    let ytDlpArgs = "--sub-lang en";
+    let ytDlpArgs = "--sub-lang=en";
     manager = new SubtitleCacheManager(() => makeSettings());
     const service = new SubtitleService(
       async () => scriptPath,
@@ -194,7 +199,7 @@ describe("SubtitleService ytdlp cache identity", () => {
     );
 
     const first = await service.getSubtitles("https://video.example.test/watch");
-    ytDlpArgs = "--sub-lang zh";
+    ytDlpArgs = "--sub-lang=zh";
     const second = await service.getSubtitles("https://video.example.test/watch");
 
     expect(first.tracks[0]?.cues[0]?.text).toBe("en");
@@ -205,8 +210,8 @@ describe("SubtitleService ytdlp cache identity", () => {
   it("does not share an in-flight job when the same URL uses different ytdlp variants", async () => {
     const { scriptPath, logPath } = await createFakeYtDlpScript();
     const argLines = [
-      "--sub-lang en",
-      "--sub-lang zh"
+      "--sub-lang=en",
+      "--sub-lang=zh"
     ];
     let nextArgLineIndex = 0;
     manager = new SubtitleCacheManager(() => makeSettings(false));
@@ -237,7 +242,7 @@ describe("SubtitleService ytdlp cache identity", () => {
     const scriptPath = await createOversizedSubtitleYtDlpScript();
     const service = new SubtitleService(
       async () => scriptPath,
-      () => ({ ytDlpArgs: "--sub-lang en" })
+      () => ({ ytDlpArgs: "--sub-lang=en" })
     );
 
     await expect(service.getSubtitles("https://video.example.test/watch")).rejects.toThrow(

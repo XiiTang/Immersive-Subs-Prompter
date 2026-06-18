@@ -1,54 +1,83 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../common/transcriptionDefaults.js";
 import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
-import { parseYtDlpArgs, type YtDlpArgPolicy } from "./ytDlpArgPolicy.js";
+import { parseYtDlpArgs } from "./ytDlpArgPolicy.js";
 
 const deniedArgLines = [
-  ['--exec "sh -c whoami"', "--exec"],
-  ['--exec-before-download "sh -c whoami"', "--exec-before-download"],
-  ["--config-location /tmp/yt-dlp.conf", "--config-location"],
-  ["--output /tmp/pwned.%(ext)s", "--output"],
-  ["-o /tmp/pwned.%(ext)s", "-o"],
-  ["--paths /tmp/pwned", "--paths"],
-  ["--external-downloader curl", "--external-downloader"],
-  ["--cookies-from-browser chrome", "--cookies-from-browser"],
-  ["--unknown-option value", "--unknown-option"]
+  ['--exec="sh -c whoami"', "--exec"],
+  ['--exec-before-download="sh -c whoami"', "--exec-before-download"],
+  ["--config-location=/tmp/yt-dlp.conf", "--config-location"],
+  ["--ignore-config", "--ignore-config"],
+  ["--output=/tmp/pwned.%(ext)s", "--output"],
+  ["-o/tmp/pwned.%(ext)s", "-o"],
+  ["-o=/tmp/pwned.%(ext)s", "-o"],
+  ["--paths=/tmp/pwned", "--paths"],
+  ["-P/tmp/pwned", "-P"],
+  ["-P=/tmp/pwned", "-P"],
+  ["--external-downloader=curl", "--external-downloader"],
+  ["--external-downloader-args=--output /tmp/file", "--external-downloader-args"],
+  ["--use-postprocessor=exec", "--use-postprocessor"],
+  ["--download-archive=/tmp/archive.txt", "--download-archive"],
+  ["--write-info-json", "--write-info-json"],
+  ["--write-description", "--write-description"],
+  ["--write-thumbnail", "--write-thumbnail"]
 ] as const;
 
-function defaultArgsFor(policy: YtDlpArgPolicy): string {
-  return policy === "subtitle" ? DEFAULT_YTDLP_ARGS : DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
-}
+const allowedArgLines = [
+  ["--cookies=/Users/me/cookies.txt", ["--cookies=/Users/me/cookies.txt"]],
+  ["--cookies-from-browser=chrome", ["--cookies-from-browser=chrome"]],
+  ["--unknown-option=value", ["--unknown-option=value"]],
+  ["--extractor-args=youtube:player_client=default", ["--extractor-args=youtube:player_client=default"]],
+  ['--postprocessor-args="-ac 1 -ar 16000"', ["--postprocessor-args=-ac 1 -ar 16000"]],
+  ["--convert-subs=ass", ["--convert-subs=ass"]]
+] as const;
 
 describe("yt-dlp argument policy", () => {
-  it.each<YtDlpArgPolicy>(["subtitle", "transcription"])("accepts the %s default args", (policy) => {
-    expect(parseYtDlpArgs(defaultArgsFor(policy), policy, `${policy} args`)).toEqual(
-      expect.arrayContaining(policy === "subtitle" ? ["--write-auto-subs"] : ["--extract-audio"])
-    );
+  it("accepts the current subtitle default args", () => {
+    expect(parseYtDlpArgs(DEFAULT_YTDLP_ARGS, "subtitle args")).toEqual([
+      "--skip-download",
+      "--write-subs",
+      "--write-auto-subs",
+      "--all-subs",
+      "--no-playlist"
+    ]);
   });
 
-  it.each<YtDlpArgPolicy>(["subtitle", "transcription"])("rejects positional args for %s settings", (policy) => {
-    expect(() =>
-      parseYtDlpArgs(`${defaultArgsFor(policy)} https://attacker.example/watch`, policy, `${policy} args`)
-    ).toThrow(`${policy} args cannot include positional yt-dlp argument`);
+  it("accepts the current transcription default args", () => {
+    expect(parseYtDlpArgs(DEFAULT_TRANSCRIPTION_YTDLP_ARGS, "transcription args")).toEqual([
+      "--extract-audio",
+      "--audio-format=wav",
+      "--audio-quality=32K",
+      "--postprocessor-args=-ac 1 -ar 16000"
+    ]);
   });
 
-  it.each<YtDlpArgPolicy>(["subtitle", "transcription"])("rejects denied and unknown options for %s settings", (policy) => {
+  it("accepts cookies and unknown non-denied options", () => {
+    for (const [argLine, expected] of allowedArgLines) {
+      expect(parseYtDlpArgs(argLine, "yt-dlp args")).toEqual(expected);
+    }
+  });
+
+  it("rejects denied options", () => {
     for (const [argLine, option] of deniedArgLines) {
-      expect(() => parseYtDlpArgs(argLine, policy, `${policy} args`)).toThrow(
-        option === "--unknown-option"
-          ? `${policy} args cannot use unrecognized yt-dlp option ${option}`
-          : `${policy} args cannot use yt-dlp option ${option}`
+      expect(() => parseYtDlpArgs(argLine, "yt-dlp args")).toThrow(
+        `yt-dlp args cannot use yt-dlp option ${option}`
       );
     }
   });
 
-  it("accepts only the product transcription postprocessor args", () => {
-    expect(parseYtDlpArgs(DEFAULT_TRANSCRIPTION_YTDLP_ARGS, "transcription", "transcription args")).toContain(
-      "-ac 1 -ar 16000"
-    );
-
-    expect(() =>
-      parseYtDlpArgs('--extract-audio --postprocessor-args "-i /tmp/input"', "transcription", "transcription args")
-    ).toThrow("transcription args cannot use custom postprocessor arguments");
+  it("rejects raw positional args and separated option values", () => {
+    for (const argLine of [
+      `${DEFAULT_YTDLP_ARGS} https://attacker.example/watch`,
+      "--skip-download https://attacker.example/watch",
+      "--sub-lang en.*",
+      "--audio-format wav",
+      "-",
+      "--"
+    ]) {
+      expect(() => parseYtDlpArgs(argLine, "yt-dlp args")).toThrow(
+        "yt-dlp args cannot include positional yt-dlp argument"
+      );
+    }
   });
 });

@@ -1,7 +1,7 @@
 import type { TranscriptionConfig } from "../main/types.js";
 
 export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
-  '--extract-audio --audio-format wav --audio-quality 32K --postprocessor-args "-ac 1 -ar 16000"';
+  '--extract-audio --audio-format=wav --audio-quality=32K --postprocessor-args="-ac 1 -ar 16000"';
 
 export const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 

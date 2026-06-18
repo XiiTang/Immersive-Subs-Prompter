@@ -83,7 +83,7 @@ const YOUTUBE_PROFILE_SETTINGS: ProfileSettings = {
   subtitleActivePrimaryColor: "#fff8dc",
   subtitleActiveSecondaryColor: "#fff9c4",
   ytDlpArgs:
-    '--skip-download --write-subs --write-auto-subs  --sub-lang "en.*,zh-Hans.*" --sub-format "srt/best"',
+    "--skip-download --write-subs --write-auto-subs --sub-lang=en.*,zh-Hans.* --sub-format=srt/best",
   subtitleScrollPosition: 33,
   secondarySubtitlePriority: ["zh", "zh-Hans"]
 };
@@ -94,7 +94,7 @@ const TIKTOK_PROFILE_SETTINGS: ProfileSettings = {
   subtitleActivePrimaryColor: "#fff8dc",
   subtitleActiveSecondaryColor: "#fff9c4",
   ytDlpArgs:
-    '--skip-download --write-subs --write-auto-subs  --sub-lang "eng.*,cmn-Hans.*" --sub-format "srt/best"',
+    "--skip-download --write-subs --write-auto-subs --sub-lang=eng.*,cmn-Hans.* --sub-format=srt/best",
   subtitleScrollPosition: 33,
   primarySubtitlePriority: ["eng", "en", "ai-en"],
   secondarySubtitlePriority: ["cmn-Hans", "zh", "ai-zh", "zh-Hans"]
@@ -102,7 +102,7 @@ const TIKTOK_PROFILE_SETTINGS: ProfileSettings = {
 
 const BILIBILI_PROFILE_SETTINGS: ProfileSettings = {
   ...DEFAULT_PROFILE_SETTINGS,
-  ytDlpArgs: '--skip-download --write-subs --write-auto-subs  --all-subs --sub-format "srt/best"',
+  ytDlpArgs: "--skip-download --write-subs --write-auto-subs --all-subs --sub-format=srt/best",
   subtitleScrollPosition: 33,
   secondarySubtitlePriority: ["zh", "ai-zh", "zh-Hans"]
 };

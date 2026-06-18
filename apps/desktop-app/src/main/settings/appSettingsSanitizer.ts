@@ -256,7 +256,7 @@ function validateTranscriptionConfigRecord(input: unknown, context: string, seen
   if (!ytDlpArgs) {
     throw new Error(`${context}.ytDlpArgs must be a non-empty string`);
   }
-  validateYtDlpArgLine(ytDlpArgs, "transcription", `${context}.ytDlpArgs`);
+  validateYtDlpArgLine(ytDlpArgs, `${context}.ytDlpArgs`);
   if (config.fasterWhisperDevice !== "cpu" && config.fasterWhisperDevice !== "cuda") {
     throw new Error(`${context}.fasterWhisperDevice must be cpu or cuda`);
   }

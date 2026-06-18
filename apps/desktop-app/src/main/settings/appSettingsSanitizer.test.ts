@@ -475,15 +475,23 @@ describe("appSettingsSanitizer", () => {
       const profile = settings.profiles[0]!;
       const config = settings.features.transcription.configs[0]!;
       const deniedArgs = [
-        ['--exec "sh -c whoami"', "--exec"],
-        ['--exec-before-download "sh -c whoami"', "--exec-before-download"],
-        ["--config-location /tmp/yt-dlp.conf", "--config-location"],
-        ["--output /tmp/pwned", "--output"],
-        ["-o /tmp/pwned", "-o"],
-        ["--paths /tmp/pwned", "--paths"],
-        ["--external-downloader curl", "--external-downloader"],
-        ["--cookies-from-browser chrome", "--cookies-from-browser"],
-        ["--unknown-option value", "--unknown-option"]
+        ['--exec="sh -c whoami"', "--exec"],
+        ['--exec-before-download="sh -c whoami"', "--exec-before-download"],
+        ["--config-location=/tmp/yt-dlp.conf", "--config-location"],
+        ["--ignore-config", "--ignore-config"],
+        ["--output=/tmp/pwned", "--output"],
+        ["-o/tmp/pwned", "-o"],
+        ["-o=/tmp/pwned", "-o"],
+        ["--paths=/tmp/pwned", "--paths"],
+        ["-P/tmp/pwned", "-P"],
+        ["-P=/tmp/pwned", "-P"],
+        ["--external-downloader=curl", "--external-downloader"],
+        ["--external-downloader-args=--output /tmp/file", "--external-downloader-args"],
+        ["--use-postprocessor=exec", "--use-postprocessor"],
+        ["--download-archive=/tmp/archive.txt", "--download-archive"],
+        ["--write-info-json", "--write-info-json"],
+        ["--write-description", "--write-description"],
+        ["--write-thumbnail", "--write-thumbnail"]
       ] as const;
 
       for (const [argLine, option] of deniedArgs) {
@@ -504,11 +512,7 @@ describe("appSettingsSanitizer", () => {
             },
             settings
           )
-        ).toThrow(
-          option === "--unknown-option"
-            ? `profile.settings.ytDlpArgs cannot use unrecognized yt-dlp option ${option}`
-            : `profile.settings.ytDlpArgs cannot use yt-dlp option ${option}`
-        );
+        ).toThrow(`profile.settings.ytDlpArgs cannot use yt-dlp option ${option}`);
 
         expect(() =>
           validateSettingsForUpdate(
@@ -527,11 +531,59 @@ describe("appSettingsSanitizer", () => {
             } as never,
             settings
           )
-        ).toThrow(
-          option === "--unknown-option"
-            ? `features.transcription.configs.0.ytDlpArgs cannot use unrecognized yt-dlp option ${option}`
-            : `features.transcription.configs.0.ytDlpArgs cannot use yt-dlp option ${option}`
-        );
+        ).toThrow(`features.transcription.configs.0.ytDlpArgs cannot use yt-dlp option ${option}`);
+      }
+    });
+
+    it("accepts cookies and unknown non-denied yt-dlp arguments before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const profile = settings.profiles[0]!;
+      const config = settings.features.transcription.configs[0]!;
+
+      for (const argLine of [
+        "--cookies=/Users/me/cookies.txt",
+        "--cookies-from-browser=chrome",
+        "--unknown-option=value",
+        "--extractor-args=youtube:player_client=default",
+        '--postprocessor-args="-ac 1 -ar 16000"'
+      ]) {
+        expect(() =>
+          validateSettingsForUpdate(
+            {
+              profiles: settings.profiles.map((item) =>
+                item.id === profile.id
+                  ? {
+                      ...item,
+                      settings: {
+                        ...item.settings,
+                        ytDlpArgs: argLine
+                      }
+                    }
+                  : item
+              )
+            },
+            settings
+          )
+        ).not.toThrow();
+
+        expect(() =>
+          validateSettingsForUpdate(
+            {
+              features: {
+                transcription: {
+                  activeConfigId: config.id,
+                  configs: [
+                    {
+                      ...config,
+                      ytDlpArgs: argLine
+                    }
+                  ]
+                }
+              }
+            } as never,
+            settings
+          )
+        ).not.toThrow();
       }
     });
 
@@ -651,6 +703,19 @@ describe("appSettingsSanitizer", () => {
               }
             }
           } as never,
+          settings
+        )
+      ).not.toThrow();
+    });
+
+    it("accepts built-in profile preset yt-dlp args before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            profiles: settings.profiles
+          },
           settings
         )
       ).not.toThrow();

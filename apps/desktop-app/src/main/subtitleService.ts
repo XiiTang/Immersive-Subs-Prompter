@@ -141,7 +141,7 @@ export class SubtitleService {
     if (!customLine) {
       throw new Error("Subtitle yt-dlp args must be non-empty");
     }
-    return parseYtDlpArgs(customLine, "subtitle", "Subtitle yt-dlp args");
+    return parseYtDlpArgs(customLine, "Subtitle yt-dlp args");
   }
 
   private buildArgs(videoUrl: string, baseOutput: string, ytDlpArgs: string[]): string[] {
