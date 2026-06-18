@@ -6,6 +6,15 @@ const METADATA_HOSTS = new Set([
 ]);
 
 export function assertPublicHttpUrl(input: string, label = "URL"): string {
+  const normalized = assertHttpUrl(input, label);
+  const parsed = new URL(normalized);
+  if (isBlockedLocalHost(parsed.hostname)) {
+    throw new Error(`${label} cannot target local or private network hosts.`);
+  }
+  return normalized;
+}
+
+export function assertHttpUrl(input: string, label = "URL"): string {
   let parsed: URL;
   try {
     parsed = new URL(input);
@@ -14,9 +23,6 @@ export function assertPublicHttpUrl(input: string, label = "URL"): string {
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`${label} must use http or https.`);
-  }
-  if (isBlockedLocalHost(parsed.hostname)) {
-    throw new Error(`${label} cannot target local or private network hosts.`);
   }
   return parsed.toString();
 }

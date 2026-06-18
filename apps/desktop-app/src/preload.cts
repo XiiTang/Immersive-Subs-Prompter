@@ -32,11 +32,9 @@ const api = {
   installReleaseUpdate: (): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("usp:install-release-update"),
   onReleaseStateChange: (listener: Listener<ReleaseState>) => subscribe("usp:release-state", listener),
-  openPath: (targetPath: string): Promise<{ ok: boolean; error?: string }> =>
-    ipcRenderer.invoke("usp:open-path", targetPath),
   getCacheStats: (): Promise<CacheStats> =>
     ipcRenderer.invoke("usp:cache-stats"),
-  openCacheFolder: (): Promise<void> => ipcRenderer.invoke("usp:cache-open-folder"),
+  openCacheFolder: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke("usp:cache-open-folder"),
   toggleDisplayFullscreen: (): Promise<boolean> => ipcRenderer.invoke("usp:toggle-display-fullscreen"),
   getWindowPointerState: (): Promise<{ insideWindow: boolean; x: number | null; y: number | null }> =>
     ipcRenderer.invoke("usp:get-window-pointer-state"),
@@ -48,14 +46,16 @@ const api = {
     cpuBinaryPath: string;
     gpuBinaryPath: string;
   }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
-  getFasterWhisperStatus: (modelDir?: string): Promise<any> =>
-    ipcRenderer.invoke("usp:faster-whisper-status", modelDir),
-  listFasterWhisperModels: (modelDir?: string): Promise<any> =>
-    ipcRenderer.invoke("usp:faster-whisper-list-models", modelDir),
+  getFasterWhisperStatus: (payload?: { configId?: string }): Promise<any> =>
+    ipcRenderer.invoke("usp:faster-whisper-status", payload),
   downloadFasterWhisperBinary: (payload: { variant: "cpu" | "gpu"; jobId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-download-binary", payload),
-  downloadFasterWhisperModel: (payload: { model: string; modelDir?: string; jobId?: string }): Promise<any> =>
+  downloadFasterWhisperModel: (payload: { model: string; configId?: string; jobId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-download-model", payload),
+  openFasterWhisperBinaryFolder: (): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-open-binary-folder"),
+  openFasterWhisperModelsFolder: (payload?: { configId?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("usp:faster-whisper-open-models-folder", payload),
   onFasterWhisperDownloadProgress: (listener: Listener<any>) =>
     subscribe("usp:faster-whisper-download-progress", listener),
   openSettingsWindow: (): Promise<{ success: boolean; error?: string }> =>

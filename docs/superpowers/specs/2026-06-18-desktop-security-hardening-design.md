@@ -150,6 +150,8 @@ Renderer code uses narrow, main-owned operations:
 
 The main process resolves the path for each operation from current settings, app-managed Faster-Whisper paths, or validated user configuration. Renderer code may identify a setting or config record, but it does not send the raw filesystem path to open.
 
+The same boundary applies to Faster-Whisper model status and download IPC. Renderer code may send the active transcription `configId`, but it does not send `fasterWhisperModelDir` or any raw model-directory path. The main process resolves the selected config from current settings and passes only the resolved directory override to the Faster-Whisper manager.
+
 The main process canonicalizes the selected path before creating/opening it. Invalid, empty, or unresolved paths return a structured error. `shell.openPath` remains the operating-system opener, but only after main-process path resolution.
 
 ## Cache Path Hardening

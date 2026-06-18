@@ -2,7 +2,7 @@
   <UiSurface as="section" class="fw-card">
     <header>
       <h3>{{ t("feature-transcription-fw-models") }}</h3>
-      <UiButton v-if="paths" size="sm" variant="ghost" @click="$emit('openPath', modelsBaseDir || paths.modelsDir)">
+      <UiButton v-if="paths" size="sm" variant="ghost" @click="$emit('openModelsFolder')">
         <IconFolder size="sm" />
         {{ t("button-open-cache") }}
       </UiButton>
@@ -39,7 +39,7 @@ defineProps<{
 
 defineEmits<{
   downloadModel: [];
-  openPath: [targetPath: string];
+  openModelsFolder: [];
 }>();
 </script>
 

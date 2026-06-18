@@ -1,4 +1,9 @@
 import { SubtitleCue } from "./types.js";
+import {
+  DEFAULT_SUBTITLE_PARSER_LIMITS,
+  type SubtitleParserLimits,
+  utf8ByteLength
+} from "./resourceLimits.js";
 
 type RawVttCue = {
   start: number;
@@ -24,34 +29,70 @@ function sanitizeCueText(text: string): string {
     .trim();
 }
 
-export function parseSubtitle(content: string, extension: string): SubtitleCue[] {
+export function parseSubtitle(
+  content: string,
+  extension: string,
+  limits: SubtitleParserLimits = DEFAULT_SUBTITLE_PARSER_LIMITS
+): SubtitleCue[] {
+  assertParserInputWithinLimits(content, limits);
   const normalized = content.replace(/\ufeff/g, '');
   const normalizedExtension = extension.toLowerCase();
 
   if (normalizedExtension === "srt") {
-    return parseSrt(normalized);
+    return parseSrt(normalized, limits);
   }
   if (normalizedExtension === "vtt") {
-    return parseVtt(normalized);
+    return parseVtt(normalized, limits);
   }
   throw new Error(`Unsupported subtitle extension: ${extension}`);
 }
 
-function parseVtt(content: string): SubtitleCue[] {
+function assertParserInputWithinLimits(content: string, limits: SubtitleParserLimits): void {
+  const byteLength = utf8ByteLength(content);
+  if (byteLength > limits.maxInputBytes) {
+    throw new Error(`Subtitle parser input exceeds ${limits.maxInputBytes} bytes.`);
+  }
+  const lineCount = countLines(content);
+  if (lineCount > limits.maxLineCount) {
+    throw new Error(`Subtitle parser input exceeds ${limits.maxLineCount} lines.`);
+  }
+}
+
+function countLines(content: string): number {
+  if (!content.length) {
+    return 0;
+  }
+  let count = 1;
+  for (let index = 0; index < content.length; index += 1) {
+    if (content.charCodeAt(index) === 10) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function pushCue(cues: SubtitleCue[], cue: SubtitleCue, limits: SubtitleParserLimits): void {
+  if (cues.length >= limits.maxCueCount) {
+    throw new Error(`Subtitle parser cue count exceeds ${limits.maxCueCount}.`);
+  }
+  cues.push(cue);
+}
+
+function parseVtt(content: string, limits: SubtitleParserLimits): SubtitleCue[] {
   const rawCues = readRawVttCues(content);
   if (!rawCues.length) {
     return [];
   }
 
   if (isYoutubeWordLevelVtt(rawCues)) {
-    return collapseYoutubeWordLevelCues(rawCues);
+    return collapseYoutubeWordLevelCues(rawCues, limits);
   }
 
   const cues: SubtitleCue[] = [];
   for (const cue of rawCues) {
     const text = formatCueText(cue.lines);
     if (!text) continue;
-    cues.push({ start: cue.start, end: cue.end, text });
+    pushCue(cues, { start: cue.start, end: cue.end, text }, limits);
   }
   return cues;
 }
@@ -141,7 +182,7 @@ function isYoutubeWordLevelVtt(cues: RawVttCue[]): boolean {
   return timestampRich / longCueCount >= 0.5;
 }
 
-function collapseYoutubeWordLevelCues(rawCues: RawVttCue[]): SubtitleCue[] {
+function collapseYoutubeWordLevelCues(rawCues: RawVttCue[], limits: SubtitleParserLimits): SubtitleCue[] {
   const cues: SubtitleCue[] = [];
   for (let i = 0; i < rawCues.length; i += 1) {
     const current = rawCues[i];
@@ -156,7 +197,7 @@ function collapseYoutubeWordLevelCues(rawCues: RawVttCue[]): SubtitleCue[] {
       text = formatCueText(current.lines);
     }
     if (text) {
-      cues.push({ start: current.start, end: current.end, text });
+      pushCue(cues, { start: current.start, end: current.end, text }, limits);
     }
     if (hasShortPartner) {
       i += 1;
@@ -169,7 +210,7 @@ function cueDuration(cue: RawVttCue): number {
   return Math.max(0, cue.end - cue.start);
 }
 
-function parseSrt(content: string): SubtitleCue[] {
+function parseSrt(content: string, limits: SubtitleParserLimits): SubtitleCue[] {
   const blocks = content.replace(/\r/g, "").split(/\n\s*\n/);
   const cues: SubtitleCue[] = [];
 
@@ -194,7 +235,7 @@ function parseSrt(content: string): SubtitleCue[] {
     const end = parseTimestamp(match[2].trim());
     const text = sanitizeCueText(lines.slice(cursor + 1).map(stripTags).join("\n"));
     if (!Number.isNaN(start) && !Number.isNaN(end) && text) {
-      cues.push({ start, end, text });
+      pushCue(cues, { start, end, text }, limits);
     }
   }
 

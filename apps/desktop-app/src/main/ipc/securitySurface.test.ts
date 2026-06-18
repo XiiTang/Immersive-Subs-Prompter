@@ -24,4 +24,28 @@ describe("renderer-to-main security surface", () => {
     expect(releaseHandlers).toContain("context.releaseService.downloadUpdate()");
     expect(releaseHandlers).toContain("context.releaseService.installDownloadedUpdate()");
   });
+
+  it("does not expose generic renderer-controlled path opening", () => {
+    const preload = readSource("src/preload.cts");
+    const settingsHandlers = readSource("src/main/ipc/handlers/settingsHandlers.ts");
+    const fasterWhisperHandlers = readSource("src/main/ipc/handlers/fasterWhisperHandlers.ts");
+    const transcriptionSettings = readSource("src/renderer/components/settings/TranscriptionFeatureSettings.vue");
+    const fasterWhisperComposable = readSource(
+      "src/renderer/components/settings/transcription/composables/useFasterWhisper.ts"
+    );
+
+    expect(preload).not.toContain("openPath:");
+    expect(preload).not.toContain("usp:open-path");
+    expect(settingsHandlers).not.toContain("usp:open-path");
+    expect(transcriptionSettings).not.toContain("@open-path");
+    expect(fasterWhisperComposable).not.toContain("window.usp.openPath");
+    expect(preload).not.toContain("modelDir?: string");
+    expect(preload).not.toContain("modelDir:");
+    expect(preload).not.toContain("listFasterWhisperModels");
+    expect(fasterWhisperHandlers).not.toContain("usp:faster-whisper-list-models");
+    expect(fasterWhisperComposable).not.toContain("fasterWhisperModelDir || undefined");
+    expect(fasterWhisperComposable).not.toContain("modelDir:");
+    expect(preload).toContain("openFasterWhisperBinaryFolder");
+    expect(preload).toContain("openFasterWhisperModelsFolder");
+  });
 });

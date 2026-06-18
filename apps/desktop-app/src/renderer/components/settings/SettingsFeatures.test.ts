@@ -76,7 +76,8 @@ describe("SettingsFeatures", () => {
         downloadFasterWhisperBinary: vi.fn(),
         downloadFasterWhisperModel: vi.fn(),
         onFasterWhisperDownloadProgress: vi.fn(() => vi.fn()),
-        openPath: vi.fn()
+        openFasterWhisperBinaryFolder: vi.fn().mockResolvedValue({ ok: true }),
+        openFasterWhisperModelsFolder: vi.fn().mockResolvedValue({ ok: true })
       }
     });
   });
@@ -617,7 +618,7 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get<HTMLInputElement>('[aria-labelledby="feature-transcription-fw-model-label"]').element.value).toBe("large-v3");
   });
 
-  it("downloads Faster-Whisper models into the selected config model directory", async () => {
+  it("downloads Faster-Whisper models through a config id instead of renderer paths", async () => {
     const store = seedStore();
     store.settings!.features.transcription.activeConfigId = "config-a";
     store.settings!.features.transcription.configs = [
@@ -666,9 +667,35 @@ describe("SettingsFeatures", () => {
     expect(downloadFasterWhisperModel).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "base",
-        modelDir: "/custom/models"
+        configId: "config-a"
       })
     );
+  });
+
+  it("opens Faster-Whisper folders through narrow pathless APIs", async () => {
+    const store = seedStore();
+    store.settings!.features.transcription.activeConfigId = "config-a";
+    store.settings!.features.transcription.configs = [
+      createTranscriptionConfig({ id: "config-a", provider: "faster-whisper", fasterWhisperModelDir: "/custom/models" })
+    ];
+    const openFasterWhisperBinaryFolder = vi.fn().mockResolvedValue({ ok: true });
+    const openFasterWhisperModelsFolder = vi.fn().mockResolvedValue({ ok: true });
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        ...window.usp,
+        openFasterWhisperBinaryFolder,
+        openFasterWhisperModelsFolder
+      }
+    });
+    const wrapper = mount(TranscriptionFeatureSettings);
+    await flushPromises();
+
+    await wrapper.getComponent(FasterWhisperBinariesCard).findAll('[data-slot="button"]')[0]!.trigger("click");
+    await wrapper.getComponent(FasterWhisperModelsCard).findAll('[data-slot="button"]')[0]!.trigger("click");
+
+    expect(openFasterWhisperBinaryFolder).toHaveBeenCalledWith();
+    expect(openFasterWhisperModelsFolder).toHaveBeenCalledWith({ configId: "config-a" });
   });
 
   it("writes the detected model base directory when selecting a downloaded Faster-Whisper model", async () => {

@@ -4,8 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
+import {
+  MAX_PROCESS_STDERR_BYTES,
+  MAX_PROCESS_STDOUT_BYTES,
+  MAX_SUBTITLE_TEXT_BYTES
+} from "./resourceLimits.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
-import { SubtitleService } from "./subtitleService.js";
+import { runCommand, SubtitleService } from "./subtitleService.js";
 import type { SubtitleLoadResult } from "./types.js";
 import { splitArgs } from "./ytDlpArgPolicy.js";
 
@@ -71,6 +76,27 @@ setTimeout(() => {
   );
   await fsp.chmod(scriptPath, 0o755);
   return { scriptPath, logPath };
+}
+
+async function createOversizedSubtitleYtDlpScript(): Promise<string> {
+  const scriptPath = path.join(tempDir, "fake-ytdlp-oversized.cjs");
+  await fsp.writeFile(
+    scriptPath,
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+function argValue(name) {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : null;
+}
+const output = argValue("-o");
+const subtitlePath = output + ".en.srt";
+fs.writeFileSync(subtitlePath, "1\\n00:00:00,000 --> 00:00:01,000\\nhello\\n", "utf-8");
+fs.truncateSync(subtitlePath, ${MAX_SUBTITLE_TEXT_BYTES + 1});
+`,
+    "utf-8"
+  );
+  await fsp.chmod(scriptPath, 0o755);
+  return scriptPath;
 }
 
 async function readLogLines(logPath: string): Promise<string[]> {
@@ -208,5 +234,39 @@ describe("SubtitleService ytdlp cache identity", () => {
     expect(first.tracks[0]?.cues[0]?.text).toBe("en");
     expect(second.tracks[0]?.cues[0]?.text).toBe("zh");
     expect((await readLogLines(logPath)).sort()).toEqual(["en", "zh"]);
+  });
+
+  it("rejects subtitle files larger than 100 MiB before reading them", async () => {
+    const scriptPath = await createOversizedSubtitleYtDlpScript();
+    const service = new SubtitleService(
+      async () => scriptPath,
+      () => ({ ytDlpArgs: "--sub-lang en" })
+    );
+
+    await expect(service.getSubtitles("https://video.example.test/watch")).rejects.toThrow(
+      `Subtitle file exceeds ${MAX_SUBTITLE_TEXT_BYTES} bytes`
+    );
+  });
+
+  it("terminates commands when stdout exceeds the process output cap", async () => {
+    await expect(
+      runCommand(
+        process.execPath,
+        ["-e", `process.stdout.write("x".repeat(${MAX_PROCESS_STDOUT_BYTES + 1}))`],
+        tempDir,
+        "node"
+      )
+    ).rejects.toThrow(`stdout exceeded ${MAX_PROCESS_STDOUT_BYTES} bytes`);
+  });
+
+  it("terminates commands when stderr exceeds the process output cap", async () => {
+    await expect(
+      runCommand(
+        process.execPath,
+        ["-e", `process.stderr.write("x".repeat(${MAX_PROCESS_STDERR_BYTES + 1}))`],
+        tempDir,
+        "node"
+      )
+    ).rejects.toThrow(`stderr exceeded ${MAX_PROCESS_STDERR_BYTES} bytes`);
   });
 });

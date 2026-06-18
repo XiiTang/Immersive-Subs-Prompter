@@ -45,12 +45,12 @@
         <FasterWhisperBinariesCard
           v-bind="fasterWhisperBindings"
           @download-binary="handleDownloadBinary"
-          @open-path="openPath"
+          @open-binary-folder="openBinaryFolder"
         />
         <FasterWhisperModelsCard
           v-bind="fasterWhisperBindings"
           @download-model="handleDownloadModel"
-          @open-path="openPath"
+          @open-models-folder="openModelsFolder"
         />
         <FasterWhisperRuntimeCard
           :t="t"
@@ -127,7 +127,8 @@ const {
   downloadError,
   handleDownloadBinary,
   handleDownloadModel,
-  openPath
+  openBinaryFolder,
+  openModelsFolder
 } = useFasterWhisper(selectedConfig, updateConfig);
 
 const fasterWhisperBindings = computed(() => ({

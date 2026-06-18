@@ -30,11 +30,11 @@
 - Create `apps/desktop-app/src/main/ipc/openFolder.ts`: shared main-owned folder creation, canonicalization, and `shell.openPath` wrapper.
 - Modify `apps/desktop-app/src/main/ipc/handlers/settingsHandlers.ts`: remove the generic `usp:open-path` handler.
 - Modify `apps/desktop-app/src/main/ipc/handlers/cacheHandlers.ts`: use `openFolder` for cache folder opening and return structured results.
-- Modify `apps/desktop-app/src/main/ipc/handlers/fasterWhisperHandlers.ts`: add narrow Faster-Whisper folder-open handlers that resolve paths in main.
-- Modify `apps/desktop-app/src/main/ipc/handlers/fasterWhisperHandlers.test.ts`: cover narrow open-folder IPC behavior.
+- Modify `apps/desktop-app/src/main/ipc/handlers/fasterWhisperHandlers.ts`: add narrow Faster-Whisper folder-open handlers and model status/download handlers that resolve model directories in main.
+- Modify `apps/desktop-app/src/main/ipc/handlers/fasterWhisperHandlers.test.ts`: cover narrow open-folder IPC behavior and config-id model directory resolution.
 - Modify `apps/desktop-app/src/main/ipc/securitySurface.test.ts`: assert preload and handlers no longer expose generic path opening.
-- Modify `apps/desktop-app/src/preload.cts`: remove `openPath`; add `openFasterWhisperBinaryFolder` and `openFasterWhisperModelsFolder`.
-- Modify `apps/desktop-app/src/renderer/components/settings/transcription/composables/useFasterWhisper.ts`: call narrow folder APIs without sending raw paths.
+- Modify `apps/desktop-app/src/preload.cts`: remove `openPath`; add `openFasterWhisperBinaryFolder` and `openFasterWhisperModelsFolder`; keep Faster-Whisper model status/download payloads config-id based.
+- Modify `apps/desktop-app/src/renderer/components/settings/transcription/composables/useFasterWhisper.ts`: call narrow folder/status/download APIs without sending raw paths.
 - Modify `apps/desktop-app/src/renderer/components/settings/transcription/FasterWhisperBinariesCard.vue`: emit a pathless binary-folder open command.
 - Modify `apps/desktop-app/src/renderer/components/settings/transcription/FasterWhisperModelsCard.vue`: emit a pathless models-folder open command.
 - Modify `apps/desktop-app/src/renderer/components/settings/TranscriptionFeatureSettings.vue`: wire the pathless open-folder commands.
@@ -1976,7 +1976,7 @@ apps/desktop-app/src/main/ipc/handlers/fasterWhisperHandlers.ts: narrow Faster-W
 apps/desktop-app/src/main/networkUrlSafety.ts and tests: public media URL guard
 ```
 
-No remaining matches should show renderer-controlled `openPath`, `usp:open-path`, mutable Faster-Whisper binary asset URLs, cache cleanup over all `.json`, or Whisper API `baseUrl` using `assertPublicHttpUrl`.
+No remaining matches should show renderer-controlled `openPath`, `usp:open-path`, raw Faster-Whisper model directory IPC payloads, mutable Faster-Whisper binary asset URLs, cache cleanup over all `.json`, or Whisper API `baseUrl` using `assertPublicHttpUrl`.
 
 - [ ] **Step 5: Inspect git diff for final-state constraints**
 
@@ -2022,4 +2022,4 @@ Placeholder scan:
 Type consistency:
 - `assertHttpUrl` returns a normalized string and is used by runtime config, persisted settings validation, and Whisper API request construction.
 - `SubtitleParserLimits` is defined once in `resourceLimits.ts` and used by parser tests without changing production caller behavior.
-- Narrow folder APIs use `openFasterWhisperBinaryFolder()` and `openFasterWhisperModelsFolder({ configId })` consistently across handler, preload, composable, and renderer tests.
+- Narrow Faster-Whisper APIs use pathless binary-folder calls and `configId`-based model folder/status/download calls consistently across handler, preload, composable, and renderer tests.

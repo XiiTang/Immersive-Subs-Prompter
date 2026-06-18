@@ -1,6 +1,6 @@
-import { ipcMain, shell } from "electron";
+import { ipcMain } from "electron";
 import { IpcContext } from "../ipcRouter.js";
-import fs from "fs";
+import { openFolder } from "../openFolder.js";
 
 export function registerCacheHandlers(context: IpcContext) {
   ipcMain.handle("usp:cache-stats", async () => {
@@ -8,8 +8,10 @@ export function registerCacheHandlers(context: IpcContext) {
   });
 
   ipcMain.handle("usp:cache-open-folder", async () => {
-    const cachePath = context.cacheManager.getCachePath();
-    await fs.promises.mkdir(cachePath, { recursive: true });
-    await shell.openPath(cachePath);
+    const result = await openFolder(context.cacheManager.getCachePath(), "Cache folder");
+    if (!result.ok) {
+      context.logger.error("Failed to open cache folder", result.error);
+    }
+    return result;
   });
 }

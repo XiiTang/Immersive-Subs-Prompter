@@ -84,8 +84,9 @@ export function useFasterWhisper(
   }
 
   async function refreshStatus() {
-    const targetDir = activeConfig.value?.fasterWhisperModelDir || undefined;
-    const result = await window.usp.getFasterWhisperStatus(targetDir);
+    const result = await window.usp.getFasterWhisperStatus(
+      activeConfig.value?.id ? { configId: activeConfig.value.id } : undefined
+    );
     if (!result.ok) {
       downloadError.value = result.error;
       return;
@@ -137,11 +138,10 @@ export function useFasterWhisper(
     isBusy.value = true;
     downloadProgress.value = 0;
     downloadError.value = null;
-    const targetModelDir = activeConfig.value?.fasterWhisperModelDir.trim() || paths.value?.modelsDir || undefined;
     try {
       const result = await window.usp.downloadFasterWhisperModel({
         model,
-        modelDir: targetModelDir,
+        ...(activeConfig.value?.id ? { configId: activeConfig.value.id } : {}),
         jobId: `fw-model-${crypto.randomUUID()}`
       });
       if (!result.ok) {
@@ -158,10 +158,14 @@ export function useFasterWhisper(
     }
   }
 
-  async function openPath(targetPath: string) {
-    if (targetPath) {
-      await window.usp.openPath(targetPath);
-    }
+  async function openBinaryFolder() {
+    await window.usp.openFasterWhisperBinaryFolder();
+  }
+
+  async function openModelsFolder() {
+    await window.usp.openFasterWhisperModelsFolder(
+      activeConfig.value?.id ? { configId: activeConfig.value.id } : undefined
+    );
   }
 
   onMounted(() => {
@@ -206,6 +210,7 @@ export function useFasterWhisper(
     refreshStatus,
     handleDownloadBinary,
     handleDownloadModel,
-    openPath
+    openBinaryFolder,
+    openModelsFolder
   };
 }

@@ -1,13 +1,8 @@
 import type { TranscriptionConfig, TranscriptionFeatureSettings } from "../types.js";
+import { assertHttpUrl } from "../networkUrlSafety.js";
 
-function requireHttpUrl(value: string, fieldName: string): void {
-  if (!URL.canParse(value)) {
-    throw new Error(`Transcription ${fieldName} must be a valid HTTP(S) URL.`);
-  }
-  const parsed = new URL(value);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(`Transcription ${fieldName} must be a valid HTTP(S) URL.`);
-  }
+function requireHttpUrl(value: string, fieldName: string): string {
+  return assertHttpUrl(value, `Transcription ${fieldName}`);
 }
 
 function stringField(config: Record<string, unknown>, key: string, fieldName: string): string {
@@ -103,7 +98,7 @@ function cloneAndValidateConfig(input: TranscriptionConfig): TranscriptionConfig
 
   if (config.provider === "whisper-api") {
     config.baseUrl = requireTrimmed(record, "baseUrl", "API base URL");
-    requireHttpUrl(config.baseUrl, "API base URL");
+    config.baseUrl = requireHttpUrl(config.baseUrl, "API base URL");
     config.model = requireTrimmed(record, "model", "model");
   } else if (config.provider === "faster-whisper") {
     config.fasterWhisperModel = requireTrimmed(record, "fasterWhisperModel", "faster-whisper model");

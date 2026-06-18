@@ -10,6 +10,7 @@ import { parseJellyfinEmbyServerUrls } from "../../common/jellyfinEmbyServerUrls
 import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
 import { validateYtDlpArgLine } from "../ytDlpArgPolicy.js";
+import { assertHttpUrl } from "../networkUrlSafety.js";
 import { assertNoUnknownKeys } from "./utils.js";
 
 const APP_SETTINGS_KEYS = ["global", "network", "profiles", "defaultProfileId", "rules", "features", "cache"] as const;
@@ -244,6 +245,13 @@ function validateTranscriptionConfigRecord(input: unknown, context: string, seen
   seenIds.add(config.id as string);
   if (config.provider !== "whisper-api" && config.provider !== "faster-whisper") {
     throw new Error(`${context}.provider must be whisper-api or faster-whisper`);
+  }
+  if (config.provider === "whisper-api") {
+    const baseUrl = (config.baseUrl as string).trim();
+    if (!baseUrl) {
+      throw new Error(`${context}.baseUrl must be a non-empty string for whisper-api`);
+    }
+    assertHttpUrl(baseUrl, `${context}.baseUrl`);
   }
   validateYtDlpArgLine(
     (config.ytDlpArgs as string).trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS,

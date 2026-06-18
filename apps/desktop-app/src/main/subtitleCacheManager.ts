@@ -8,8 +8,11 @@ import { SubtitleLoadResult, SubtitleCacheSettings } from "./types.js";
 import { redactUrlSecrets } from "./urlRedaction.js";
 
 const DEFAULT_CACHE_DIR = path.join(app.getPath("userData"), "subtitle-cache");
+const CACHE_FILE_PREFIX = "usp-cache-";
+const CACHE_FILE_PATTERN = /^usp-cache-[a-f0-9]{64}\.json$/;
 
 type CacheSource = "ytdlp" | "mediaserver" | "transcription";
+const CACHE_SOURCES = new Set<CacheSource>(["ytdlp", "mediaserver", "transcription"]);
 
 interface CacheEntry {
   url: string;
@@ -47,7 +50,7 @@ export class SubtitleCacheManager {
 
     const key = this.getCacheKey(url, source, variant);
     const redactedUrl = redactUrlSecrets(url);
-    const cacheFile = path.join(this.getCachePath(), `${key}.json`);
+    const cacheFile = this.getCacheFilePath(key);
 
     const refreshTimestamp = async (entry: CacheEntry): Promise<SubtitleLoadResult> => {
       const refreshed: CacheEntry = { ...entry, url: redactUrlSecrets(entry.url), timestamp: Date.now() };
@@ -73,8 +76,11 @@ export class SubtitleCacheManager {
 
     // Check disk cache
     try {
-      const content = await fs.readFile(cacheFile, "utf-8");
-      const entry: CacheEntry = JSON.parse(content);
+      const entry = await this.readCacheEntry(cacheFile);
+      if (!entry) {
+        this.log.debug(`Cache miss for ${source}: ${redactedUrl}`);
+        return null;
+      }
 
       if (this.isExpired(entry.timestamp, settings.retentionDays)) {
         this.log.debug(`Cache expired for ${source}: ${redactedUrl}`);
@@ -115,7 +121,7 @@ export class SubtitleCacheManager {
     try {
       const cacheDir = this.getCachePath();
       await fs.mkdir(cacheDir, { recursive: true });
-      const cacheFile = path.join(cacheDir, `${key}.json`);
+      const cacheFile = this.getCacheFilePath(key);
       await fs.writeFile(cacheFile, JSON.stringify(entry, null, 2), "utf-8");
       this.log.debug(`Cached ${source} subtitles for: ${redactedUrl}`);
     } catch (error) {
@@ -149,26 +155,19 @@ export class SubtitleCacheManager {
     try {
       const files = await fs.readdir(cacheDir);
       for (const file of files) {
-        if (!file.endsWith(".json")) {
+        if (!this.isCacheFileName(file)) {
           continue;
         }
 
-        try {
-          const filePath = path.join(cacheDir, file);
-          const content = await fs.readFile(filePath, "utf-8");
-          const entry: CacheEntry = JSON.parse(content);
+        const filePath = path.join(cacheDir, file);
+        const entry = await this.readCacheEntry(filePath);
+        if (!entry) {
+          continue;
+        }
 
-          if (this.isExpired(entry.timestamp, settings.retentionDays)) {
-            await fs.unlink(filePath);
-            removedCount++;
-          }
-        } catch (error) {
-          // Invalid or corrupted cache file, remove it
-          await fs.unlink(path.join(cacheDir, file)).catch((unlinkError) => {
-            swallow(unlinkError, "cache.cleanup.unlink", "corrupted cache file may have been removed concurrently");
-          });
+        if (this.isExpired(entry.timestamp, settings.retentionDays)) {
+          await fs.unlink(filePath);
           removedCount++;
-          swallow(error, "cache.cleanup.parse", "deleted unreadable cache entry");
         }
       }
     } catch (error) {
@@ -197,15 +196,17 @@ export class SubtitleCacheManager {
     try {
       const files = await fs.readdir(cacheDir);
       for (const file of files) {
-        if (!file.endsWith(".json")) {
+        if (!this.isCacheFileName(file)) {
           continue;
         }
 
         try {
           const filePath = path.join(cacheDir, file);
+          const entry = await this.readCacheEntry(filePath);
+          if (!entry) {
+            continue;
+          }
           const fileStat = await fs.stat(filePath);
-          const content = await fs.readFile(filePath, "utf-8");
-          const entry: CacheEntry = JSON.parse(content);
 
           stats.totalEntries++;
           stats.totalSize += fileStat.size;
@@ -234,7 +235,7 @@ export class SubtitleCacheManager {
    */
   getCachePath(): string {
     const settings = this.settingsProvider();
-    return settings.path || DEFAULT_CACHE_DIR;
+    return path.resolve(settings.path.trim() || DEFAULT_CACHE_DIR);
   }
 
   /**
@@ -273,6 +274,42 @@ export class SubtitleCacheManager {
     const hash = createHash("sha256");
     hash.update(JSON.stringify({ source, url, variant }));
     return hash.digest("hex");
+  }
+
+  private getCacheFilePath(key: string): string {
+    return path.join(this.getCachePath(), `${CACHE_FILE_PREFIX}${key}.json`);
+  }
+
+  private isCacheFileName(fileName: string): boolean {
+    return CACHE_FILE_PATTERN.test(fileName);
+  }
+
+  private isCacheEntry(value: unknown): value is CacheEntry {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+    const entry = value as Partial<CacheEntry>;
+    return (
+      typeof entry.url === "string" &&
+      Boolean(entry.data) &&
+      typeof entry.data === "object" &&
+      Array.isArray(entry.data.tracks) &&
+      typeof entry.timestamp === "number" &&
+      Number.isFinite(entry.timestamp) &&
+      typeof entry.source === "string" &&
+      CACHE_SOURCES.has(entry.source as CacheSource)
+    );
+  }
+
+  private async readCacheEntry(filePath: string): Promise<CacheEntry | null> {
+    try {
+      const content = await fs.readFile(filePath, "utf-8");
+      const parsed = JSON.parse(content) as unknown;
+      return this.isCacheEntry(parsed) ? parsed : null;
+    } catch (error) {
+      swallow(error, "cache.read", "skipping unreadable cache entry");
+      return null;
+    }
   }
 
   /**

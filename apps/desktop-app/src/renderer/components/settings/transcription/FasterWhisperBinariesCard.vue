@@ -2,7 +2,7 @@
   <UiSurface as="section" class="fw-card">
     <header>
       <h3>{{ t("feature-transcription-fw-binaries") }}</h3>
-      <UiButton v-if="paths" size="sm" variant="ghost" @click="$emit('openPath', paths.binaryDir)">
+      <UiButton v-if="paths" size="sm" variant="ghost" @click="$emit('openBinaryFolder')">
         <IconFolder size="sm" />
         {{ t("button-open-cache") }}
       </UiButton>
@@ -72,7 +72,7 @@ const props = defineProps<{
 
 defineEmits<{
   downloadBinary: [variant: "cpu" | "gpu"];
-  openPath: [targetPath: string];
+  openBinaryFolder: [];
 }>();
 
 function canDownload(variant: "cpu" | "gpu"): boolean {

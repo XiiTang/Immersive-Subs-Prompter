@@ -422,6 +422,52 @@ describe("appSettingsSanitizer", () => {
           settings
         )
       ).toThrow("features.transcription.configs.0.fasterWhisperVadThreshold must be between 0 and 1");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                enabled: true,
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    baseUrl: "file:///tmp/api"
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.configs.0.baseUrl must use http or https");
+    });
+
+    it("accepts local and private Whisper API base URLs in explicit transcription settings", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const config = settings.features.transcription.configs[0]!;
+
+      for (const baseUrl of [
+        "http://localhost:8080/v1",
+        "http://127.0.0.1:8080/v1",
+        "http://192.168.1.20:8080/v1"
+      ]) {
+        expect(() =>
+          validateSettingsForUpdate(
+            {
+              features: {
+                transcription: {
+                  enabled: true,
+                  activeConfigId: config.id,
+                  configs: [{ ...config, baseUrl }]
+                }
+              }
+            },
+            settings
+          )
+        ).not.toThrow();
+      }
     });
 
     it("rejects unsafe yt-dlp arguments before settings are persisted", () => {

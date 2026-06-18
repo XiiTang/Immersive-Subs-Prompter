@@ -7,6 +7,7 @@ import type { SubtitleCacheSettings, SubtitleLoadResult } from "./types.js";
 
 let cacheDir: string;
 let manager: SubtitleCacheManager;
+const CACHE_FILE_PATTERN = /^usp-cache-[a-f0-9]{64}\.json$/;
 
 function makeSettings(partial: Partial<SubtitleCacheSettings> = {}): SubtitleCacheSettings {
   return {
@@ -31,7 +32,7 @@ function makeData(text: string): SubtitleLoadResult {
 
 async function ageOnlyCacheFile(ageMs: number) {
   const files = await fsp.readdir(cacheDir);
-  const cacheFile = files.find((file) => file.endsWith(".json"));
+  const cacheFile = files.find((file) => CACHE_FILE_PATTERN.test(file));
   expect(cacheFile).toBeDefined();
   const filePath = path.join(cacheDir, cacheFile!);
   const entry = JSON.parse(await fsp.readFile(filePath, "utf-8")) as { timestamp: number };
@@ -71,13 +72,29 @@ describe("SubtitleCacheManager", () => {
     reborn.stop();
   });
 
+  it("writes cache files with the app-owned prefix", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings());
+
+    await manager.set("http://x", "ytdlp", makeData("prefixed"));
+
+    const files = await fsp.readdir(cacheDir);
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatch(CACHE_FILE_PATTERN);
+  });
+
+  it("normalizes custom cache paths before use", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings({ path: path.join(cacheDir, "nested", "..", "custom") }));
+
+    expect(manager.getCachePath()).toBe(path.join(cacheDir, "custom"));
+  });
+
   it("redacts secret query values before persisting cache entries", async () => {
     manager = new SubtitleCacheManager(() => makeSettings());
     const url = "http://server.local/stream?api_key=secret-123&deviceId=dev";
     await manager.set(url, "mediaserver", makeData("private"));
 
     const files = await fsp.readdir(cacheDir);
-    const cacheFile = files.find((file) => file.endsWith(".json"));
+    const cacheFile = files.find((file) => CACHE_FILE_PATTERN.test(file));
     expect(cacheFile).toBeDefined();
     const content = await fsp.readFile(path.join(cacheDir, cacheFile!), "utf-8");
     expect(content).not.toContain("secret-123");
@@ -134,6 +151,22 @@ describe("SubtitleCacheManager", () => {
     expect(stats.newestEntry).not.toBeNull();
   });
 
+  it("reports stats only for matching cache-owned files with valid cache shape", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings());
+    await manager.set("http://a", "ytdlp", makeData("a"));
+    await fsp.writeFile(path.join(cacheDir, "notes.json"), JSON.stringify({ timestamp: 1 }), "utf-8");
+    await fsp.writeFile(path.join(cacheDir, "usp-cache-invalid.json"), JSON.stringify({ timestamp: 1 }), "utf-8");
+    await fsp.writeFile(
+      path.join(cacheDir, `usp-cache-${"a".repeat(64)}.json`),
+      JSON.stringify({ timestamp: 1, data: null }),
+      "utf-8"
+    );
+
+    const stats = await manager.getStats();
+
+    expect(stats.totalEntries).toBe(1);
+  });
+
   it("cleanup removes expired entries", async () => {
     manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
     await manager.set("http://x", "ytdlp", makeData("stale"));
@@ -143,5 +176,20 @@ describe("SubtitleCacheManager", () => {
 
     const removed = await manager.cleanup();
     expect(removed).toBeGreaterThanOrEqual(1);
+  });
+
+  it("cleanup skips unrelated json and invalid cache-shaped filenames", async () => {
+    manager = new SubtitleCacheManager(() => makeSettings({ retentionDays: 1 }));
+    await manager.set("http://x", "ytdlp", makeData("stale"));
+    await ageOnlyCacheFile(2 * 24 * 60 * 60 * 1000);
+    await fsp.writeFile(path.join(cacheDir, "notes.json"), "not cache", "utf-8");
+    await fsp.writeFile(path.join(cacheDir, `usp-cache-${"b".repeat(64)}.json`), "not json", "utf-8");
+
+    const removed = await manager.cleanup();
+    const files = await fsp.readdir(cacheDir);
+
+    expect(removed).toBe(1);
+    expect(files).toContain("notes.json");
+    expect(files).toContain(`usp-cache-${"b".repeat(64)}.json`);
   });
 });

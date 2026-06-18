@@ -109,6 +109,18 @@ describe("buildFeatureTranscriptionConfig", () => {
   });
 
   it("rejects provider-specific empty values before runtime transcription", () => {
+    expect(buildFeatureTranscriptionConfig(createFeatureSettings({
+      configs: [createRuntimeConfig({ baseUrl: "http://localhost:8080/v1" })]
+    }))).toMatchObject({
+      baseUrl: "http://localhost:8080/v1"
+    });
+
+    expect(buildFeatureTranscriptionConfig(createFeatureSettings({
+      configs: [createRuntimeConfig({ baseUrl: "http://192.168.1.20:8080/v1" })]
+    }))).toMatchObject({
+      baseUrl: "http://192.168.1.20:8080/v1"
+    });
+
     expect(() =>
       buildFeatureTranscriptionConfig(createFeatureSettings({
         configs: [createRuntimeConfig({ baseUrl: "" })]
@@ -119,7 +131,7 @@ describe("buildFeatureTranscriptionConfig", () => {
       buildFeatureTranscriptionConfig(createFeatureSettings({
         configs: [createRuntimeConfig({ baseUrl: "ftp://api.example.test" })]
       }))
-    ).toThrow("Transcription API base URL must be a valid HTTP(S) URL.");
+    ).toThrow("Transcription API base URL must use http or https.");
 
     expect(() =>
       buildFeatureTranscriptionConfig(createFeatureSettings({

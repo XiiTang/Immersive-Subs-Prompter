@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertPublicHttpUrl, isPublicHttpUrl } from "./networkUrlSafety.js";
+import { assertHttpUrl, assertPublicHttpUrl, isPublicHttpUrl } from "./networkUrlSafety.js";
 
 describe("networkUrlSafety", () => {
   it("rejects local private link-local multicast and metadata hosts", () => {
@@ -32,5 +32,27 @@ describe("networkUrlSafety", () => {
       "https://youtube.com/watch?v=abc"
     );
     expect(isPublicHttpUrl("http://example.com/watch")).toBe(true);
+  });
+
+  it("accepts local and private HTTP(S) URLs for user-configured endpoints", () => {
+    expect(assertHttpUrl("https://api.openai.com/v1", "Whisper API base URL")).toBe("https://api.openai.com/v1");
+    expect(assertHttpUrl("http://127.0.0.1:8080/v1", "Whisper API base URL")).toBe(
+      "http://127.0.0.1:8080/v1"
+    );
+    expect(assertHttpUrl("http://localhost:8080/v1", "Whisper API base URL")).toBe(
+      "http://localhost:8080/v1"
+    );
+    expect(assertHttpUrl("http://192.168.1.20:8080/v1", "Whisper API base URL")).toBe(
+      "http://192.168.1.20:8080/v1"
+    );
+  });
+
+  it("rejects non HTTP(S) schemes for user-configured endpoints", () => {
+    expect(() => assertHttpUrl("file:///tmp/socket", "Whisper API base URL")).toThrow(
+      "Whisper API base URL must use http or https."
+    );
+    expect(() => assertHttpUrl("not a url", "Whisper API base URL")).toThrow(
+      "Whisper API base URL must be a valid URL."
+    );
   });
 });

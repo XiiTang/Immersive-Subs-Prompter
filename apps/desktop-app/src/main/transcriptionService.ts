@@ -12,8 +12,9 @@ import { parseSubtitle } from "./subtitleParser.js";
 import { createLogger } from "./logger.js";
 import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../common/transcriptionDefaults.js";
 import { SubtitleTrack, TranscriptionConfig } from "./types.js";
-import { assertPublicHttpUrl } from "./networkUrlSafety.js";
+import { assertHttpUrl, assertPublicHttpUrl } from "./networkUrlSafety.js";
 import { parseYtDlpArgs } from "./ytDlpArgPolicy.js";
+import { MAX_SUBTITLE_TEXT_BYTES } from "./resourceLimits.js";
 
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "webm", "wav", "flac", "opus", "ogg"];
 
@@ -108,7 +109,7 @@ export class TranscriptionService {
       throw new Error("Whisper API base URL is not set.");
     }
 
-    const endpoint = buildTranscriptionUrl(assertPublicHttpUrl(config.baseUrl, "Whisper API base URL"));
+    const endpoint = buildTranscriptionUrl(assertHttpUrl(config.baseUrl, "Whisper API base URL"));
     const audioBuffer = await fs.readFile(audioPath);
     const form = new FormData();
     const fileName = path.basename(audioPath);
@@ -277,11 +278,15 @@ export class TranscriptionService {
 
     for (const candidate of candidates) {
       try {
+        const fileStat = await fs.stat(candidate);
+        if (fileStat.size > MAX_SUBTITLE_TEXT_BYTES) {
+          throw new Error(`Subtitle file exceeds ${MAX_SUBTITLE_TEXT_BYTES} bytes.`);
+        }
         const content = await fs.readFile(candidate, "utf-8");
         return { path: candidate, content };
       } catch (error) {
         const err = error as NodeJS.ErrnoException;
-        if (err?.code && err.code !== "ENOENT") {
+        if (err?.code !== "ENOENT") {
           throw error;
         }
       }

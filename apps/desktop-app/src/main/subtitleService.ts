@@ -12,6 +12,11 @@ import { createLogger } from "./logger.js";
 import { SubtitleCacheManager } from "./subtitleCacheManager.js";
 import { assertPublicHttpUrl } from "./networkUrlSafety.js";
 import { parseYtDlpArgs } from "./ytDlpArgPolicy.js";
+import {
+  MAX_PROCESS_STDERR_BYTES,
+  MAX_PROCESS_STDOUT_BYTES,
+  MAX_SUBTITLE_TEXT_BYTES
+} from "./resourceLimits.js";
 
 const SUBTITLE_EXTENSIONS = ["vtt", "srt"];
 
@@ -93,7 +98,7 @@ export class SubtitleService {
 
       const tracks: SubtitleTrack[] = [];
       for (const filePath of subtitleFiles) {
-        const content = await fs.readFile(filePath, "utf-8");
+        const content = await readSubtitleTextFile(filePath);
         const ext = path.extname(filePath).slice(1).toLowerCase();
         const cues = parseSubtitle(content, ext);
         if (!cues.length) continue;
@@ -151,6 +156,14 @@ function createYtDlpArgsVariant(args: string[]): string {
   return createHash("sha256").update(JSON.stringify(args)).digest("hex");
 }
 
+async function readSubtitleTextFile(filePath: string): Promise<string> {
+  const fileStat = await fs.stat(filePath);
+  if (fileStat.size > MAX_SUBTITLE_TEXT_BYTES) {
+    throw new Error(`Subtitle file exceeds ${MAX_SUBTITLE_TEXT_BYTES} bytes.`);
+  }
+  return fs.readFile(filePath, "utf-8");
+}
+
 export type CommandResult = {
   stdout: string;
   stderr: string;
@@ -195,11 +208,33 @@ export async function runCommand(
       return chunk.toString("utf8");
     };
 
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    let limitError: CommandExecutionError | null = null;
+
+    const failForOutputLimit = (streamName: "stdout" | "stderr", limit: number): void => {
+      if (limitError) {
+        return;
+      }
+      limitError = new CommandExecutionError(`${name} ${streamName} exceeded ${limit} bytes.`, info);
+      child.kill();
+    };
+
     child.stdout?.on("data", (chunk: Buffer) => {
+      stdoutBytes += chunk.length;
+      if (stdoutBytes > MAX_PROCESS_STDOUT_BYTES) {
+        failForOutputLimit("stdout", MAX_PROCESS_STDOUT_BYTES);
+        return;
+      }
       info.stdout += decodeBuffer(chunk);
     });
 
     child.stderr?.on("data", (chunk: Buffer) => {
+      stderrBytes += chunk.length;
+      if (stderrBytes > MAX_PROCESS_STDERR_BYTES) {
+        failForOutputLimit("stderr", MAX_PROCESS_STDERR_BYTES);
+        return;
+      }
       info.stderr += decodeBuffer(chunk);
     });
 
@@ -212,6 +247,10 @@ export async function runCommand(
     });
 
     child.on("close", (code) => {
+      if (limitError) {
+        reject(limitError);
+        return;
+      }
       if (code === 0) {
         resolve({ stdout: info.stdout, stderr: info.stderr });
       } else {

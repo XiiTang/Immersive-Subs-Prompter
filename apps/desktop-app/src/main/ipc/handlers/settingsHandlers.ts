@@ -1,5 +1,4 @@
-import { dialog, ipcMain, shell } from "electron";
-import fs from "fs";
+import { dialog, ipcMain } from "electron";
 import { AppSettings } from "../../types.js";
 import { IpcContext } from "../ipcRouter.js";
 
@@ -24,22 +23,6 @@ export function registerSettingsHandlers(context: IpcContext) {
       canceled: result.canceled,
       path: result.canceled ? null : result.filePaths[0] ?? null
     };
-  });
-
-  ipcMain.handle("usp:open-path", async (_event, targetPath: string) => {
-    try {
-      if (!targetPath) {
-        throw new Error("Path is empty");
-      }
-      await fs.promises.mkdir(targetPath, { recursive: true });
-      await shell.openPath(targetPath);
-      return { ok: true };
-    } catch (error) {
-      const message =
-        error && typeof error === "object" && "message" in error ? (error as Error).message : String(error);
-      context.logger.error("Failed to open path", error);
-      return { ok: false, error: message };
-    }
   });
 
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { parseSubtitle } from "./subtitleParser.js";
+import {
+  DEFAULT_SUBTITLE_PARSER_LIMITS,
+  MAX_SUBTITLE_CUE_COUNT,
+  MAX_SUBTITLE_LINE_COUNT,
+  MAX_SUBTITLE_TEXT_BYTES
+} from "./resourceLimits.js";
 
 describe("subtitleParser", () => {
   describe("parseSubtitle (srt)", () => {
@@ -83,6 +89,60 @@ describe("subtitleParser", () => {
       expect(() => parseSubtitle(vtt, "unknown")).toThrow(
         "Unsupported subtitle extension: unknown"
       );
+    });
+  });
+
+  describe("parseSubtitle limits", () => {
+    it("exports broad final parser limits", () => {
+      expect(MAX_SUBTITLE_TEXT_BYTES).toBe(100 * 1024 * 1024);
+      expect(MAX_SUBTITLE_LINE_COUNT).toBe(1_000_000);
+      expect(MAX_SUBTITLE_CUE_COUNT).toBe(1_000_000);
+      expect(DEFAULT_SUBTITLE_PARSER_LIMITS).toEqual({
+        maxInputBytes: MAX_SUBTITLE_TEXT_BYTES,
+        maxLineCount: MAX_SUBTITLE_LINE_COUNT,
+        maxCueCount: MAX_SUBTITLE_CUE_COUNT
+      });
+    });
+
+    it("rejects direct subtitle input above the configured byte limit", () => {
+      expect(() =>
+        parseSubtitle("123456", "srt", {
+          maxInputBytes: 5,
+          maxLineCount: MAX_SUBTITLE_LINE_COUNT,
+          maxCueCount: MAX_SUBTITLE_CUE_COUNT
+        })
+      ).toThrow("Subtitle parser input exceeds 5 bytes.");
+    });
+
+    it("rejects direct subtitle input above the configured line cap", () => {
+      expect(() =>
+        parseSubtitle("a\nb\nc", "srt", {
+          maxInputBytes: MAX_SUBTITLE_TEXT_BYTES,
+          maxLineCount: 2,
+          maxCueCount: MAX_SUBTITLE_CUE_COUNT
+        })
+      ).toThrow("Subtitle parser input exceeds 2 lines.");
+    });
+
+    it("rejects direct subtitle input above the configured cue cap", () => {
+      const srt = [
+        "1",
+        "00:00:00,000 --> 00:00:01,000",
+        "One",
+        "",
+        "2",
+        "00:00:01,000 --> 00:00:02,000",
+        "Two",
+        ""
+      ].join("\n");
+
+      expect(() =>
+        parseSubtitle(srt, "srt", {
+          maxInputBytes: MAX_SUBTITLE_TEXT_BYTES,
+          maxLineCount: MAX_SUBTITLE_LINE_COUNT,
+          maxCueCount: 1
+        })
+      ).toThrow("Subtitle parser cue count exceeds 1.");
     });
   });
 });
