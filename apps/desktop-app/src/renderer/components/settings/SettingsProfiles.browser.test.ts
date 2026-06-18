@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../../common/defaultSettings.js";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../../common/defaultSettings.js";
 import type { AppSettings, DesktopState, ProfileDefinition } from "../../../main/types.js";
 import { SUBTITLE_FONT_OPTIONS } from "../../../common/subtitleFonts.js";
 import SettingsProfiles from "./SettingsProfiles.vue";
@@ -68,7 +68,7 @@ function createProfile(id = DEFAULT_PROFILE_ID, name = "Default"): ProfileDefini
       subtitleSecondaryColor: "#c7d2fe",
       subtitleActivePrimaryColor: "#fff8dc",
       subtitleActiveSecondaryColor: "#fff9c4",
-      ytDlpArgs: "",
+      ytDlpArgs: DEFAULT_PROFILE_SETTINGS.ytDlpArgs,
       subtitleAutoScrollTimeout: 3,
       subtitleScrollPosition: 33,
       subtitleBlockGap: 12,

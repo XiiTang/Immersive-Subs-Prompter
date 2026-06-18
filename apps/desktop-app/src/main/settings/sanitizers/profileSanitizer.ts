@@ -6,7 +6,7 @@ import {
   MIN_SUBTITLE_FONT_SIZE,
   MIN_TIMESTAMP_FONT_SIZE
 } from "../../../common/subtitleSizing.js";
-import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
+import { isValidRegex } from "../../../common/regex.js";
 import { validateYtDlpArgLine } from "../../ytDlpArgPolicy.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
@@ -81,8 +81,11 @@ function validateBooleanField(source: Record<string, unknown>, field: keyof Prof
 
 function validatePriorityList(source: Record<string, unknown>, field: keyof ProfileSettings): void {
   const value = source[field];
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
-    throw new Error(`profile.${field} must use the current string array setting`);
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== "string" || !entry.trim() || !isValidRegex(entry.trim()))
+  ) {
+    throw new Error(`profile.${field} must contain only valid non-empty regex patterns`);
   }
 }
 
@@ -105,8 +108,8 @@ function validateProfileSettingsForUpdate(input: unknown): void {
   validateNonEmptyStringField(source, "subtitleSecondaryColor");
   validateNonEmptyStringField(source, "subtitleActivePrimaryColor");
   validateNonEmptyStringField(source, "subtitleActiveSecondaryColor");
-  validateStringField(source, "ytDlpArgs");
-  validateYtDlpArgLine((source.ytDlpArgs as string).trim() || DEFAULT_YTDLP_ARGS, "subtitle", "profile.settings.ytDlpArgs");
+  validateNonEmptyStringField(source, "ytDlpArgs");
+  validateYtDlpArgLine((source.ytDlpArgs as string).trim(), "subtitle", "profile.settings.ytDlpArgs");
   validateFiniteNumberField(source, "subtitleAutoScrollTimeout", 1);
   validateFiniteNumberField(source, "subtitleScrollPosition", 0, 100);
   validateFiniteNumberField(source, "subtitleBlockGap", 0, 60);

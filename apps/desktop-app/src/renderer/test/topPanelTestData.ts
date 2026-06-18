@@ -1,5 +1,5 @@
 import type { AppSettings, DesktopState, ProfileDefinition, SubtitleTrack } from "../../main/types.js";
-import { cloneFeatureSettings } from "../../common/featureDefaults.js";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../common/defaultSettings.js";
 
 function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
   return {
@@ -11,10 +11,11 @@ function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
 
 function createTopPanelProfile(): ProfileDefinition {
   return {
-    id: "profile-1",
+    id: DEFAULT_PROFILE_ID,
     name: "Default",
     description: null,
     settings: {
+      ...DEFAULT_PROFILE_SETTINGS,
       primarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
       primarySubtitleFontSize: 20,
       secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
@@ -27,7 +28,6 @@ function createTopPanelProfile(): ProfileDefinition {
       subtitleSecondaryColor: "#445566",
       subtitleActivePrimaryColor: "#778899",
       subtitleActiveSecondaryColor: "#aabbcc",
-      ytDlpArgs: "",
       subtitleAutoScrollTimeout: 3,
       subtitleScrollPosition: 40,
       subtitleBlockGap: 12,
@@ -38,8 +38,14 @@ function createTopPanelProfile(): ProfileDefinition {
 }
 
 export function createTopPanelSettings(autoHidePanels = true): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+
   return {
+    ...base,
     global: {
+      ...base.global,
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
@@ -58,9 +64,8 @@ export function createTopPanelSettings(autoHidePanels = true): AppSettings {
       authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createTopPanelProfile()],
-    defaultProfileId: "profile-1",
+    defaultProfileId: DEFAULT_PROFILE_ID,
     rules: [],
-    features: cloneFeatureSettings(),
     cache: {
       enabled: false,
       path: "",
@@ -102,7 +107,7 @@ export function createTopPanelDesktopState(): DesktopState {
     selectedSecondarySubtitleId: secondary.id,
     primarySubtitles: primary,
     secondarySubtitles: secondary,
-    appliedProfileId: "profile-1",
+    appliedProfileId: DEFAULT_PROFILE_ID,
     appliedProfileName: "Default",
     appliedRuleId: null,
     appliedRuleName: null,

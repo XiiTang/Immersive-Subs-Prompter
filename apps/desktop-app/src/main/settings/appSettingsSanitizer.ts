@@ -7,7 +7,6 @@ import { validateCacheSettingsForUpdate } from "./sanitizers/cacheSanitizer.js";
 import { DEFAULT_CACHE_SETTINGS, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
 import { createDefaultAppSettings } from "../../common/defaultSettings.js";
 import { parseJellyfinEmbyServerUrls } from "../../common/jellyfinEmbyServerUrls.js";
-import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../../common/transcriptionDefaults.js";
 import { createConnectionAuthToken } from "../connectionAuth.js";
 import { validateYtDlpArgLine } from "../ytDlpArgPolicy.js";
 import { assertHttpUrl } from "../networkUrlSafety.js";
@@ -253,11 +252,11 @@ function validateTranscriptionConfigRecord(input: unknown, context: string, seen
     }
     assertHttpUrl(baseUrl, `${context}.baseUrl`);
   }
-  validateYtDlpArgLine(
-    (config.ytDlpArgs as string).trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS,
-    "transcription",
-    `${context}.ytDlpArgs`
-  );
+  const ytDlpArgs = (config.ytDlpArgs as string).trim();
+  if (!ytDlpArgs) {
+    throw new Error(`${context}.ytDlpArgs must be a non-empty string`);
+  }
+  validateYtDlpArgLine(ytDlpArgs, "transcription", `${context}.ytDlpArgs`);
   if (config.fasterWhisperDevice !== "cpu" && config.fasterWhisperDevice !== "cuda") {
     throw new Error(`${context}.fasterWhisperDevice must be cpu or cuda`);
   }

@@ -12,7 +12,6 @@ import {
   TranscriptionState,
   TranscriptionStatus
 } from "./types.js";
-import { normalizeRegexPattern } from "../common/regex.js";
 import { getUrlRuleMatchType, matchesUrlRule } from "@immersive-subs/contracts";
 
 const clone = <T>(value: T): T => {
@@ -352,14 +351,7 @@ export class StateManager {
     const candidates = tracks.filter((track) => !excludeIds.has(track.id));
     if (priorities.length) {
       for (const rawPattern of priorities) {
-        const pattern = normalizeRegexPattern(rawPattern);
-        if (!pattern) {
-          if (rawPattern?.trim().length) {
-            this.log.warn(`Skipping invalid subtitle priority regex: "${rawPattern}"`);
-          }
-          continue;
-        }
-        const regex = new RegExp(pattern);
+        const regex = new RegExp(rawPattern.trim());
         const matched = candidates.find((track) => regex.test(track.sourceFile));
         if (matched) {
           return matched;

@@ -535,6 +535,91 @@ describe("appSettingsSanitizer", () => {
       }
     });
 
+    it("rejects empty yt-dlp arguments before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const profile = settings.profiles[0]!;
+      const config = settings.features.transcription.configs[0]!;
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            profiles: settings.profiles.map((item) =>
+              item.id === profile.id
+                ? {
+                    ...item,
+                    settings: {
+                      ...item.settings,
+                      ytDlpArgs: "   "
+                    }
+                  }
+                : item
+            )
+          },
+          settings
+        )
+      ).toThrow("profile.ytDlpArgs must use the current non-empty string setting");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            features: {
+              transcription: {
+                activeConfigId: config.id,
+                configs: [
+                  {
+                    ...config,
+                    ytDlpArgs: "   "
+                  }
+                ]
+              }
+            }
+          } as never,
+          settings
+        )
+      ).toThrow("features.transcription.configs.0.ytDlpArgs must be a non-empty string");
+    });
+
+    it("rejects invalid regex patterns before settings are persisted", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const profile = settings.profiles[0]!;
+      const ruleProfile = settings.profiles.find((item) => item.id !== DEFAULT_PROFILE_ID)!;
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            profiles: settings.profiles.map((item) =>
+              item.id === profile.id
+                ? {
+                    ...item,
+                    settings: {
+                      ...item.settings,
+                      primarySubtitlePriority: ["en", "["]
+                    }
+                  }
+                : item
+            )
+          },
+          settings
+        )
+      ).toThrow("profile.primarySubtitlePriority must contain only valid non-empty regex patterns");
+
+      expect(() =>
+        validateSettingsForUpdate(
+          {
+            rules: [
+              {
+                id: "rule-invalid-regex",
+                name: "Invalid",
+                pattern: "re:[",
+                profileId: ruleProfile.id
+              }
+            ]
+          },
+          settings
+        )
+      ).toThrow("rule.pattern must use a valid current URL rule pattern");
+    });
+
     it("accepts current yt-dlp defaults before settings are persisted", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
       const profile = settings.profiles[0]!;

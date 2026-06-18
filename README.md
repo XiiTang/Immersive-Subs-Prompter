@@ -74,11 +74,11 @@ pnpm install
 pnpm --filter @immersive-subs/desktop-app start
 ```
 
-The desktop app now targets Electron 41 / Chromium 146.
+The desktop app targets the Electron version pinned in `apps/desktop-app/package.json`.
 
 - Linux Wayland keeps the subtitle window fully frameless while benefiting from newer windowing and shortcut fixes.
 - Windows Quick Show preserves snapped layouts instead of forcing the panel into a conflicting top-most state.
-- Desktop release packaging now runs through Electron Forge with ASAR integrity validation enabled.
+- Desktop release packaging runs through electron-builder with ASAR integrity validation enabled.
 
 By default the app listens on `ws://127.0.0.1:44501/`. Under **Settings → Network**, add explicit listening endpoints such as `127.0.0.1:44501` and `192.168.1.2:44501` when another extension client must connect over your LAN. Non-loopback endpoints are displayed as tokenized URLs such as `ws://192.168.1.2:44501/?token=...`; enter one reachable URL per desktop app instance in the extension popup.
 
@@ -146,11 +146,11 @@ The desktop subtitle panel is rendered as a cue-anchored reader rather than a ch
 | `root` | `pnpm --filter @immersive-subs/extension typecheck` | Run the extension TypeScript compile check |
 | `root` | `pnpm --filter @immersive-subs/extension build` | Type-check and build the extension |
 | `root` | `pnpm --filter @immersive-subs/extension test` | Run the extension test suite |
-| `root` | `pnpm --filter @immersive-subs/desktop-app dist:win/mac/linux` | Build Electron Forge distributables; run on the matching host platform |
+| `root` | `pnpm --filter @immersive-subs/desktop-app dist:win/mac/linux` | Build electron-builder distributables; run on the matching host platform |
 
 ## Deployment and Distribution
 
-For detailed procedures (including extension packaging, Electron Forge distributables, and yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
+For detailed procedures (including extension packaging, electron-builder distributables, and yt-dlp distribution strategy), refer to [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Engineering Conventions
 

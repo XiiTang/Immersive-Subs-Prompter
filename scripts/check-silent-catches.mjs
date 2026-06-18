@@ -16,8 +16,10 @@ const EXT = new Set([".ts", ".tsx", ".mts", ".cts", ".vue", ".js", ".mjs", ".cjs
 // matches:
 //   catch {}         catch (e) {}        catch (e) { /* comment only */ }
 //   .catch(() => {}) .catch((e) => {})   .catch(e => {})  (with comment-only body)
+//   .catch(() => undefined) .catch((e) => null) .catch(e => void 0)
 const EMPTY_CATCH = /\bcatch\s*(?:\([^)]*\))?\s*\{\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*\n?\s*)*\}/g;
 const EMPTY_PROMISE_CATCH = /\.catch\(\s*(?:\([^)]*\)|[\w$]+)\s*=>\s*\{\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*\n?\s*)*\}\s*\)/g;
+const EMPTY_PROMISE_CATCH_EXPRESSION = /\.catch\(\s*(?:\([^)]*\)|[\w$]+)\s*=>\s*(?:undefined|null|void\s+0)\s*\)/g;
 
 const findings = [];
 
@@ -36,17 +38,28 @@ function walk(dir) {
 
 function scan(file) {
   const src = readFileSync(file, "utf8");
-  for (const pattern of [EMPTY_CATCH, EMPTY_PROMISE_CATCH]) {
+  findings.push(
+    ...findSilentCatchHandlers(src)
+      .filter((finding) => !hasAdjacentAllowComment(src, finding.index))
+      .map((finding) => ({
+        file: path.relative(ROOT, file),
+        line: finding.line,
+        snippet: finding.snippet
+      }))
+  );
+}
+
+export function findSilentCatchHandlers(src) {
+  const matches = [];
+  for (const pattern of [EMPTY_CATCH, EMPTY_PROMISE_CATCH, EMPTY_PROMISE_CATCH_EXPRESSION]) {
     pattern.lastIndex = 0;
     let match;
     while ((match = pattern.exec(src)) !== null) {
-      if (hasAdjacentAllowComment(src, match.index)) {
-        continue;
-      }
       const line = src.slice(0, match.index).split("\n").length;
-      findings.push({ file: path.relative(ROOT, file), line, snippet: match[0].replace(/\s+/g, " ") });
+      matches.push({ index: match.index, line, snippet: match[0].replace(/\s+/g, " ") });
     }
   }
+  return matches;
 }
 
 function hasAdjacentAllowComment(src, index) {
@@ -60,25 +73,31 @@ function hasAdjacentAllowComment(src, index) {
   return previousLine.includes("usp-allow-empty-catch");
 }
 
-for (const rel of SCAN_DIRS) {
-  const dir = path.join(ROOT, rel);
-  try {
-    walk(dir);
-  } catch (e) {
-    // directory doesn't exist yet; skip
+function main() {
+  for (const rel of SCAN_DIRS) {
+    const dir = path.join(ROOT, rel);
+    try {
+      walk(dir);
+    } catch (e) {
+      // directory doesn't exist yet; skip
+    }
   }
+
+  if (findings.length > 0) {
+    console.error(`\nFound ${findings.length} silent catch block(s):\n`);
+    for (const f of findings) {
+      console.error(`  ${f.file}:${f.line}   ${f.snippet}`);
+    }
+    console.error(
+      `\nReplace each with the process-local swallow(err, "scope.name", "why this is safe to ignore") helper,\n` +
+        `or add a comment containing "usp-allow-empty-catch" on the line above the catch block.\n`
+    );
+    process.exit(1);
+  }
+
+  console.log("No silent catches found.");
 }
 
-if (findings.length > 0) {
-  console.error(`\nFound ${findings.length} silent catch block(s):\n`);
-  for (const f of findings) {
-    console.error(`  ${f.file}:${f.line}   ${f.snippet}`);
-  }
-  console.error(
-    `\nReplace each with the process-local swallow(err, "scope.name", "why this is safe to ignore") helper,\n` +
-      `or add a comment containing "usp-allow-empty-catch" on the line above the catch block.\n`
-  );
-  process.exit(1);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
 }
-
-console.log("No silent catches found.");

@@ -1,13 +1,19 @@
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProgressInfo, UpdateInfo } from "builder-util-runtime";
-import { cloneFeatureSettings } from "../common/featureDefaults.js";
+import { createDefaultAppSettings } from "../common/defaultSettings.js";
 import { AppReleaseService, type UpdaterLike } from "./appReleaseService.js";
 import type { AppSettings } from "./types.js";
 
 function settings(overrides: Partial<AppSettings["global"]> = {}): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "token"
+  });
+
   return {
+    ...base,
     global: {
+      ...base.global,
       autoLaunch: false,
       toggleWindowShortcut: "",
       gameProcessBlacklist: [],
@@ -21,10 +27,7 @@ function settings(overrides: Partial<AppSettings["global"]> = {}): AppSettings {
       ...overrides
     },
     network: { endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }], authToken: "token" },
-    profiles: [],
-    defaultProfileId: "",
     rules: [],
-    features: cloneFeatureSettings(),
     cache: { enabled: true, path: "", retentionDays: 7 }
   };
 }

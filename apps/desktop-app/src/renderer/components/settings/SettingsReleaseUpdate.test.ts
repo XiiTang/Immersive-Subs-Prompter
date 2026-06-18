@@ -3,13 +3,19 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
 import type { ReleaseState } from "../../../main/releases/releaseState";
-import { cloneFeatureSettings } from "../../../common/featureDefaults";
+import { createDefaultAppSettings } from "../../../common/defaultSettings";
 import { useDesktopStore } from "../../stores/desktop";
 import SettingsReleaseUpdate from "./SettingsReleaseUpdate.vue";
 
 function settings(): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "token"
+  });
+
   return {
+    ...base,
     global: {
+      ...base.global,
       autoLaunch: false,
       toggleWindowShortcut: "",
       gameProcessBlacklist: [],
@@ -22,10 +28,7 @@ function settings(): AppSettings {
       lastUpdateCheckAt: null
     },
     network: { endpoints: [{ id: "default", host: "127.0.0.1", port: 44501 }], authToken: "token" },
-    profiles: [],
-    defaultProfileId: "",
     rules: [],
-    features: cloneFeatureSettings(),
     cache: { enabled: true, path: "", retentionDays: 7 }
   };
 }

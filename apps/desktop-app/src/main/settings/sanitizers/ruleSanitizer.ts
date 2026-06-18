@@ -1,3 +1,4 @@
+import { parseUrlRulePattern } from "@immersive-subs/contracts";
 import type { ProfileDefinition } from "../../types.js";
 import { assertNoUnknownKeys } from "../utils.js";
 
@@ -37,6 +38,10 @@ export function validateRulesForUpdate(
     }
     if (typeof source.pattern !== "string" || !source.pattern.trim()) {
       throw new Error("rule.pattern must use the current string setting");
+    }
+    const parsedPattern = parseUrlRulePattern(source.pattern);
+    if (parsedPattern.error || !parsedPattern.pattern) {
+      throw new Error("rule.pattern must use a valid current URL rule pattern");
     }
     if (typeof source.profileId !== "string" || !profileIds.has(source.profileId)) {
       throw new Error("rule.profileId must reference a non-fallback profile");

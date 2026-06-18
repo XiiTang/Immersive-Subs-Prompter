@@ -7,8 +7,8 @@ import SubtitleView from "./SubtitleView.vue";
 import TranscriptSurface from "./TranscriptSurface.vue";
 import { useDesktopStore } from "../../stores/desktop";
 import type { WordLookupResult } from "../../features/wordLookup/wordLookupTypes";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../../common/defaultSettings.js";
 import { DEFAULT_WORD_LOOKUP_FEATURE_CONFIG } from "../../../common/wordLookupDefaults.js";
-import { cloneFeatureSettings } from "../../../common/featureDefaults.js";
 
 const topControlPanelStub = defineComponent({
   name: "TopControlPanelStub",
@@ -61,10 +61,11 @@ function createTrack(id: string, cues: SubtitleTrack["cues"]): SubtitleTrack {
 
 function createProfile(): ProfileDefinition {
   return {
-    id: "profile-1",
+    id: DEFAULT_PROFILE_ID,
     name: "Default",
     description: null,
     settings: {
+      ...DEFAULT_PROFILE_SETTINGS,
       primarySubtitleFontFamily: 'Georgia, "Times New Roman", serif',
       primarySubtitleFontSize: 20,
       secondarySubtitleFontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
@@ -77,7 +78,6 @@ function createProfile(): ProfileDefinition {
       subtitleSecondaryColor: "#445566",
       subtitleActivePrimaryColor: "#778899",
       subtitleActiveSecondaryColor: "#aabbcc",
-      ytDlpArgs: "",
       subtitleAutoScrollTimeout: 3,
       subtitleScrollPosition: 40,
       subtitleBlockGap: 12,
@@ -88,8 +88,14 @@ function createProfile(): ProfileDefinition {
 }
 
 function createSettings(): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+
   return {
+    ...base,
     global: {
+      ...base.global,
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
@@ -106,9 +112,8 @@ function createSettings(): AppSettings {
       authToken: "0123456789abcdef0123456789abcdef"
     },
     profiles: [createProfile()],
-    defaultProfileId: "profile-1",
+    defaultProfileId: DEFAULT_PROFILE_ID,
     rules: [],
-    features: cloneFeatureSettings(),
     cache: {
       enabled: false,
       path: "",
@@ -159,7 +164,7 @@ function createDesktopState(options: { withSecondary?: boolean } = {}): DesktopS
     selectedSecondarySubtitleId: secondary?.id ?? null,
     primarySubtitles: primary,
     secondarySubtitles: secondary,
-    appliedProfileId: "profile-1",
+    appliedProfileId: DEFAULT_PROFILE_ID,
     appliedProfileName: "Default",
     appliedRuleId: null,
     appliedRuleName: null,
@@ -173,7 +178,12 @@ function createDesktopState(options: { withSecondary?: boolean } = {}): DesktopS
       lastUpdated: null
     },
     isFullscreen: false,
-    transcription: null
+    transcription: {
+      status: "idle",
+      message: null,
+      configName: null,
+      lastFinishedAt: null
+    }
   };
 }
 
@@ -187,7 +197,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -214,7 +224,7 @@ describe("SubtitleView", () => {
       error: "Timed out"
     };
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -258,7 +268,7 @@ describe("SubtitleView", () => {
       ...store.desktopState,
       playback: store.playback
     };
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -293,7 +303,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -399,7 +409,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -463,7 +473,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState({ withSecondary: false });
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -518,7 +528,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -600,7 +610,7 @@ describe("SubtitleView", () => {
       ...store.desktopState,
       playback: store.playback
     };
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -644,7 +654,7 @@ describe("SubtitleView", () => {
       ...store.desktopState,
       playback: store.playback
     };
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -705,7 +715,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       global: {
@@ -745,7 +755,7 @@ describe("SubtitleView", () => {
     store.settings = createSettings();
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -791,7 +801,7 @@ describe("SubtitleView", () => {
     };
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
     vi.spyOn(store, "setActiveTranscriptionConfig").mockResolvedValue();
 
     const wrapper = mount(SubtitleView, {
@@ -857,7 +867,7 @@ describe("SubtitleView", () => {
     };
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -947,7 +957,7 @@ describe("SubtitleView", () => {
     };
     store.desktopState = createDesktopState();
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,
@@ -1030,7 +1040,7 @@ describe("SubtitleView", () => {
     };
     store.desktopState = desktopState;
     store.playback = store.desktopState.playback;
-    store.editingProfileId = "profile-1";
+    store.editingProfileId = DEFAULT_PROFILE_ID;
 
     const wrapper = mount(SubtitleView, {
       attachTo: document.body,

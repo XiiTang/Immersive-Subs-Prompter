@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
-import { cloneFeatureSettings } from "../common/featureDefaults.js";
+import { createDefaultAppSettings } from "../common/defaultSettings.js";
 import { AppEventBus } from "./appEventBus.js";
 import { ConnectionManager } from "./connectionManager.js";
 import { JellyfinEmbyMediaSource } from "./features/jellyfinEmbyMediaSource.js";
@@ -85,14 +85,14 @@ function createDeferred<T>() {
 }
 
 function makeSettings(network: NetworkSettings): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: network.authToken
+  });
+
   return {
-    global: {} as never,
+    ...base,
     network,
-    profiles: [],
-    defaultProfileId: "",
-    rules: [],
-    features: cloneFeatureSettings(),
-    cache: {} as never
+    rules: []
   };
 }
 

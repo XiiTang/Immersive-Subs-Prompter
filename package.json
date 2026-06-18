@@ -17,7 +17,7 @@
     "release:check": "node ./scripts/release/check.mjs",
     "release:check-builder-artifacts": "node ./scripts/release/check-builder-artifacts.mjs",
     "release:zip-extension": "node ./scripts/release/zip-extension.mjs",
-    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-ui-boundaries.test.mjs",
+    "test:scripts": "node --test scripts/release/release-scripts.test.mjs scripts/check-ui-boundaries.test.mjs scripts/check-silent-catches.test.mjs",
     "test:release-scripts": "node --test scripts/release/release-scripts.test.mjs"
   }
 }

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../../../common/defaultSettings.js";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../../../common/defaultSettings.js";
 import type { ProfileDefinition } from "../../../../main/types";
 import { useDesktopStore } from "../../../stores/desktop";
 import ProfileList from "./ProfileList.vue";
@@ -27,7 +27,7 @@ const profile: ProfileDefinition = {
     subtitleAutoHideMetaRow: false,
     primarySubtitlePriority: [],
     secondarySubtitlePriority: [],
-    ytDlpArgs: ""
+    ytDlpArgs: DEFAULT_PROFILE_SETTINGS.ytDlpArgs
   }
 };
 

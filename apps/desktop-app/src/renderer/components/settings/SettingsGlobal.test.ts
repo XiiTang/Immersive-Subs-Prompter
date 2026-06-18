@@ -3,7 +3,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../../main/types";
-import { cloneFeatureSettings } from "../../../common/featureDefaults";
+import { createDefaultAppSettings } from "../../../common/defaultSettings";
 import SettingsGlobal from "./SettingsGlobal.vue";
 import { useDesktopStore } from "../../stores/desktop";
 
@@ -37,8 +37,14 @@ async function selectOption(trigger: HTMLElement, value: string) {
 }
 
 function createSettings(): AppSettings {
+  const base = createDefaultAppSettings({
+    networkAuthToken: "0123456789abcdef0123456789abcdef"
+  });
+
   return {
+    ...base,
     global: {
+      ...base.global,
       autoLaunch: false,
       toggleWindowShortcut: "CommandOrControl+Shift+S",
       gameProcessBlacklist: [],
@@ -57,10 +63,7 @@ function createSettings(): AppSettings {
       ],
       authToken: "0123456789abcdef0123456789abcdef"
     },
-    profiles: [],
-    defaultProfileId: "",
     rules: [],
-    features: cloneFeatureSettings(),
     cache: {
       enabled: true,
       path: "",

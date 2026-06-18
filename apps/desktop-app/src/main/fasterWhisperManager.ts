@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { swallow } from "./errors.js";
 import { createLogger } from "./logger.js";
 
 export type FasterWhisperBinaryVariant = "cpu" | "gpu";
@@ -280,7 +281,11 @@ export class FasterWhisperManager {
       await fs.rename(tempPath, targetPath);
       await this.ensurePermissions(targetPath);
     } catch (error) {
-      await fs.rm(tempPath, { force: true }).catch(() => undefined);
+      await fs
+        .rm(tempPath, { force: true })
+        .catch((cleanupError) =>
+          swallow(cleanupError, "fasterWhisper.download.cleanup", "temporary file may already be absent")
+        );
       throw error;
     }
   }

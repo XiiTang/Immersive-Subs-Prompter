@@ -74,6 +74,19 @@ describe("TranscriptionService", () => {
     expect(binaryResolver).not.toHaveBeenCalled();
   });
 
+  it("rejects empty yt-dlp args before resolving or invoking yt-dlp", async () => {
+    const binaryResolver = vi.fn(async () => {
+      throw new Error("binary resolver reached");
+    });
+    const service = new TranscriptionService(binaryResolver);
+
+    await expect(
+      service.transcribe("https://video.example.test/watch", createConfig({ ytDlpArgs: "   " }))
+    ).rejects.toThrow("Transcription yt-dlp args must be non-empty");
+
+    expect(binaryResolver).not.toHaveBeenCalled();
+  });
+
   it("rejects unsafe yt-dlp args without creating a temp working directory", async () => {
     const before = new Set((await fsp.readdir(os.tmpdir())).filter((name) => name.startsWith("usp-transcribe-")));
     const binaryResolver = vi.fn(async () => {

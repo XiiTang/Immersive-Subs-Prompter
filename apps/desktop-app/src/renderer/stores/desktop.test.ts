@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultAppSettings, DEFAULT_PROFILE_ID } from "../../common/defaultSettings.js";
+import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../common/defaultSettings.js";
 import type { AppSettings, DesktopState } from "../../main/types";
 import type { RendererApi } from "../../preload.cts";
 import { useDesktopStore } from "./desktop";
@@ -59,7 +59,7 @@ function createSettings(): AppSettings {
           subtitleSecondaryColor: "#c7d2fe",
           subtitleActivePrimaryColor: "#fff8dc",
           subtitleActiveSecondaryColor: "#fff9c4",
-          ytDlpArgs: "",
+          ytDlpArgs: DEFAULT_PROFILE_SETTINGS.ytDlpArgs,
           subtitleAutoScrollTimeout: 3,
           subtitleScrollPosition: 33,
           subtitleBlockGap: 12,
@@ -85,7 +85,7 @@ function createSettings(): AppSettings {
           subtitleSecondaryColor: "#cccccc",
           subtitleActivePrimaryColor: "#ff0000",
           subtitleActiveSecondaryColor: "#00ff00",
-          ytDlpArgs: "",
+          ytDlpArgs: DEFAULT_PROFILE_SETTINGS.ytDlpArgs,
           subtitleAutoScrollTimeout: 3,
           subtitleScrollPosition: 44,
           subtitleBlockGap: 12,

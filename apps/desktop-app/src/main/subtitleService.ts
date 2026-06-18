@@ -5,7 +5,6 @@ import * as iconv from "iconv-lite";
 import { tmpdir } from "os";
 import path from "path";
 import { DEFAULT_PROFILE_SETTINGS } from "../common/defaultSettings.js";
-import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { ProfileSettings, SubtitleLoadResult, SubtitleTrack } from "./types.js";
 import { createLogger } from "./logger.js";
@@ -138,7 +137,10 @@ export class SubtitleService {
   }
 
   private resolveYtDlpArgs(): string[] {
-    const customLine = this.settingsProvider().ytDlpArgs.trim() || DEFAULT_YTDLP_ARGS;
+    const customLine = this.settingsProvider().ytDlpArgs.trim();
+    if (!customLine) {
+      throw new Error("Subtitle yt-dlp args must be non-empty");
+    }
     return parseYtDlpArgs(customLine, "subtitle", "Subtitle yt-dlp args");
   }
 

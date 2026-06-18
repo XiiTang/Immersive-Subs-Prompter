@@ -57,7 +57,7 @@
         />
 
         <UiField id="yt-dlp-args" :label="t('yt-dlp-args-label')">
-          <UiTextarea v-model="ytDlpArgs" :rows="3" :placeholder="defaultYtDlpArgs" />
+          <UiTextarea v-model="ytDlpArgs" :rows="3" />
         </UiField>
       </div>
     </div>
@@ -69,7 +69,6 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { isValidRegex } from "../../../common/regex.js";
-import { DEFAULT_YTDLP_ARGS } from "../../../common/ytdlpDefaults.js";
 import ProfileList from "./profiles/ProfileList.vue";
 import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import SubtitleStylePreview from "./profiles/SubtitleStylePreview.vue";
@@ -102,7 +101,6 @@ const ytDlpArgs = computed({
   get: () => store.editingProfileSettings.ytDlpArgs,
   set: (value: string) => store.updateProfileSetting("ytDlpArgs", value)
 });
-const defaultYtDlpArgs = DEFAULT_YTDLP_ARGS;
 
 const primaryPriority = computed(() => store.editingProfileSettings.primarySubtitlePriority ?? []);
 const secondaryPriority = computed(() => store.editingProfileSettings.secondarySubtitlePriority ?? []);

@@ -3,7 +3,6 @@ import { promises as fsp, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_YTDLP_ARGS } from "../common/ytdlpDefaults.js";
 import {
   MAX_PROCESS_STDERR_BYTES,
   MAX_PROCESS_STDOUT_BYTES,
@@ -135,22 +134,20 @@ describe("SubtitleService ytdlp cache identity", () => {
     expect(binaryResolver).not.toHaveBeenCalled();
   });
 
-  it("includes DEFAULT_YTDLP_ARGS in the ytdlp cache variant when profile args are empty", async () => {
-    const get = vi.fn(async (_url: string, _source: string, _variant?: string) => makeData("cached"));
-    const cacheManager = { get, set: vi.fn() } as unknown as SubtitleCacheManager;
+  it("rejects empty ytdlp args before resolving or invoking yt-dlp", async () => {
+    const binaryResolver = vi.fn(async () => {
+      throw new Error("binary resolver reached");
+    });
     const service = new SubtitleService(
-      async () => process.execPath,
-      () => ({ ytDlpArgs: "  " }),
-      cacheManager
+      binaryResolver,
+      () => ({ ytDlpArgs: "  " })
     );
 
-    await service.getSubtitles("https://video.example.test/watch");
-
-    expect(get).toHaveBeenCalledWith(
-      "https://video.example.test/watch",
-      "ytdlp",
-      expectedVariant(DEFAULT_YTDLP_ARGS)
+    await expect(service.getSubtitles("https://video.example.test/watch")).rejects.toThrow(
+      "Subtitle yt-dlp args must be non-empty"
     );
+
+    expect(binaryResolver).not.toHaveBeenCalled();
   });
 
   it("rejects unsafe ytdlp args before resolving or invoking yt-dlp", async () => {

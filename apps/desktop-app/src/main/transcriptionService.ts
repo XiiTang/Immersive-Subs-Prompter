@@ -10,7 +10,6 @@ import {
 } from "./subtitleService.js";
 import { parseSubtitle } from "./subtitleParser.js";
 import { createLogger } from "./logger.js";
-import { DEFAULT_TRANSCRIPTION_YTDLP_ARGS } from "../common/transcriptionDefaults.js";
 import { SubtitleTrack, TranscriptionConfig } from "./types.js";
 import { assertHttpUrl, assertPublicHttpUrl } from "./networkUrlSafety.js";
 import { parseYtDlpArgs } from "./ytDlpArgPolicy.js";
@@ -68,7 +67,10 @@ export class TranscriptionService {
   }
 
   private resolveYtDlpArgs(config: Pick<TranscriptionConfig, "ytDlpArgs">): string[] {
-    const customLine = config.ytDlpArgs.trim() || DEFAULT_TRANSCRIPTION_YTDLP_ARGS;
+    const customLine = config.ytDlpArgs.trim();
+    if (!customLine) {
+      throw new Error("Transcription yt-dlp args must be non-empty");
+    }
     return parseYtDlpArgs(customLine, "transcription", "Transcription yt-dlp args");
   }
 
