@@ -103,14 +103,15 @@ describe("JellyfinEmbyMediaSource", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("rejects enabled server rows missing required runtime fields", async () => {
+  it("does not keep a second settings-schema rejection path for server rows", async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     const source = new JellyfinEmbyMediaSource({
       getSettings: () => createSettings({
         config: {
           servers: [
             {
               id: "server-1",
-              name: "No token",
+              name: "Home",
               serverUrls: "https://media.example.test",
               apiKey: "",
               enabled: true
@@ -118,53 +119,28 @@ describe("JellyfinEmbyMediaSource", () => {
           ]
         }
       }),
-      fetch: vi.fn() as never
+      fetch: fetch as never
     });
 
-    await expect(
-      source.handleConnectionMessage({
-        type: "video-context",
-        tabId: 1,
-        payload: {
-          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
-          videoSrc: null,
-          title: "Movie",
-          site: "Jellyfin"
-        }
-      })
-    ).rejects.toThrow("Jellyfin / Emby server 1 must include apiKey.");
-  });
-
-  it("rejects enabled server rows without any parsed runtime URL", async () => {
-    const source = new JellyfinEmbyMediaSource({
-      getSettings: () => createSettings({
-        config: {
-          servers: [
-            {
-              id: "server-1",
-              name: "No URL",
-              serverUrls: ", ,",
-              apiKey: "api-key",
-              enabled: true
-            }
-          ]
-        }
-      }),
-      fetch: vi.fn() as never
-    });
-
-    await expect(
-      source.handleConnectionMessage({
-        type: "video-context",
-        tabId: 1,
-        payload: {
-          pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
-          videoSrc: null,
-          title: "Movie",
-          site: "Jellyfin"
-        }
-      })
-    ).rejects.toThrow("Jellyfin / Emby server 1 must include serverUrls.");
+    await expect(source.handleConnectionMessage({
+      type: "video-context",
+      tabId: 1,
+      payload: {
+        pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+        videoSrc: null,
+        title: "Movie",
+        site: "Jellyfin"
+      }
+    })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "sourceMatched" }),
+        expect.objectContaining({ type: "sessionsChanged", sessions: [] })
+      ])
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("https://media.example.test/Sessions"),
+      { headers: { Accept: "application/json" } }
+    );
   });
 
   it("matches any configured Jellyfin / Emby URL and fetches from the matched configured endpoint", async () => {

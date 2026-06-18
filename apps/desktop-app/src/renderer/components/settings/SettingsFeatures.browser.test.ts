@@ -72,15 +72,11 @@ describe("SettingsFeatures browser layout", () => {
           binaries: {
             cpu: {
               exists: false,
-              path: "/tmp/fw/bin/faster-whisper",
-              downloadSupported: false,
-              downloadUnavailableReason: null
+              path: "/tmp/fw/bin/faster-whisper"
             },
             gpu: {
               exists: false,
-              path: "/tmp/fw/bin/faster-whisper-xxl",
-              downloadSupported: false,
-              downloadUnavailableReason: null
+              path: "/tmp/fw/bin/faster-whisper-xxl"
             }
           },
           models: [],

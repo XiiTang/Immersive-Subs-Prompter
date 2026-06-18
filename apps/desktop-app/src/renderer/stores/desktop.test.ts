@@ -279,15 +279,16 @@ describe("desktop store profile selection", () => {
     expect(store.transcriptBlocks).toBe(initialBlocks);
   });
 
-  it("initializes without requesting a plugin catalog", async () => {
+  it("initializes from renderer state and settings APIs", async () => {
     installRendererApi(createDesktopState(), createSettings());
 
     const store = useDesktopStore();
     await store.initialize();
 
+    expect(window.usp.getInitialState).toHaveBeenCalledWith();
+    expect(window.usp.getSettings).toHaveBeenCalledWith();
     expect(store.initError).toBeNull();
     expect(store.settings?.features.wordLookup.enabled).toBe(false);
-    expect("pluginCatalog" in store).toBe(false);
   });
 
   it("updates feature enabled state through settings", async () => {

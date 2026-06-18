@@ -43,12 +43,11 @@
       </template>
       <div v-else class="feature-transcription-faster">
         <FasterWhisperBinariesCard
-          v-bind="fasterWhisperBindings"
-          @download-binary="handleDownloadBinary"
+          v-bind="fasterWhisperBinaryBindings"
           @open-binary-folder="openBinaryFolder"
         />
         <FasterWhisperModelsCard
-          v-bind="fasterWhisperBindings"
+          v-bind="fasterWhisperModelBindings"
           @download-model="handleDownloadModel"
           @open-models-folder="openModelsFolder"
         />
@@ -118,25 +117,27 @@ const {
   binaryStatus,
   availableModels,
   modelsBaseDir,
-  selectedModel,
   selectedDownloadedModel,
   customModelInput,
   isBusy,
   downloadProgress,
   downloadMessage,
   downloadError,
-  handleDownloadBinary,
   handleDownloadModel,
   openBinaryFolder,
   openModelsFolder
 } = useFasterWhisper(selectedConfig, updateConfig);
 
-const fasterWhisperBindings = computed(() => ({
+const fasterWhisperBinaryBindings = computed(() => ({
   t,
   paths: paths.value,
-  binaryStatus: binaryStatus.value,
+  binaryStatus: binaryStatus.value
+}));
+
+const fasterWhisperModelBindings = computed(() => ({
+  t,
+  paths: paths.value,
   availableModels: availableModels.value,
-  selectedModel: selectedModel.value,
   modelsBaseDir: modelsBaseDir.value,
   isBusy: isBusy.value,
   downloadProgress: downloadProgress.value,

@@ -30,6 +30,26 @@ describe("registerFasterWhisperHandlers", () => {
     openPath.mockResolvedValue("");
   });
 
+  it("registers the current Faster-Whisper IPC channels", () => {
+    registerFasterWhisperHandlers({
+      fasterWhisperManager: {
+        getStatus: vi.fn(),
+        getPaths: vi.fn(),
+        listDownloadedModels: vi.fn(),
+        downloadModel: vi.fn()
+      },
+      logger: { error: vi.fn() }
+    } as never);
+
+    expect(handle.mock.calls.map(([channel]) => channel).sort()).toEqual([
+      "usp:faster-whisper-download-model",
+      "usp:faster-whisper-open-binary-folder",
+      "usp:faster-whisper-open-models-folder",
+      "usp:faster-whisper-paths",
+      "usp:faster-whisper-status"
+    ].sort());
+  });
+
   it("resolves selected config model directory in main for Faster-Whisper status", async () => {
     const status = {
       paths: { binaryDir: "/bin", modelsDir: "/models", cpuBinaryPath: "/bin/cpu", gpuBinaryPath: "/bin/gpu" },
@@ -46,7 +66,6 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus,
         getPaths: vi.fn().mockResolvedValue(status.paths),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({
@@ -72,7 +91,6 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus: vi.fn().mockRejectedValue(new Error("disk failed")),
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       logger: { error: vi.fn() }
@@ -91,7 +109,6 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus,
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       logger: { error: vi.fn() }
@@ -112,7 +129,6 @@ describe("registerFasterWhisperHandlers", () => {
         getStatus: vi.fn(),
         getPaths: vi.fn(),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel
       },
       logger: { error: vi.fn() }
@@ -148,7 +164,6 @@ describe("registerFasterWhisperHandlers", () => {
           gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel
       },
       getSettings: vi.fn(() => ({
@@ -187,7 +202,6 @@ describe("registerFasterWhisperHandlers", () => {
           gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({
@@ -220,7 +234,6 @@ describe("registerFasterWhisperHandlers", () => {
           gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(),
@@ -242,7 +255,6 @@ describe("registerFasterWhisperHandlers", () => {
           gpuBinaryPath: "/tmp/fw/bin/faster-whisper-xxl"
         }),
         listDownloadedModels: vi.fn(),
-        downloadBinary: vi.fn(),
         downloadModel: vi.fn()
       },
       getSettings: vi.fn(() => ({

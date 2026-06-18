@@ -2,7 +2,6 @@ import { computed, onMounted, onUnmounted, ref, watch, type ComputedRef } from "
 import type { TranscriptionConfig } from "../../../../../main/types";
 
 type UpdateConfig = (patch: Partial<TranscriptionConfig>) => void;
-type BinaryVariant = "cpu" | "gpu";
 
 interface FasterWhisperPaths {
   binaryDir: string;
@@ -24,14 +23,10 @@ interface FasterWhisperStatus {
     cpu: {
       exists: boolean;
       path: string;
-      downloadSupported: boolean;
-      downloadUnavailableReason: string | null;
     };
     gpu: {
       exists: boolean;
       path: string;
-      downloadSupported: boolean;
-      downloadUnavailableReason: string | null;
     };
   };
   models: DownloadedModel[];
@@ -104,32 +99,6 @@ export function useFasterWhisper(
     downloadMessage.value = payload.status;
   }
 
-  async function handleDownloadBinary(variant: BinaryVariant) {
-    isBusy.value = true;
-    downloadProgress.value = 0;
-    downloadError.value = null;
-    const binary = binaryStatus.value?.[variant];
-    if (binary && !binary.downloadSupported) {
-      downloadError.value = binary.downloadUnavailableReason;
-      isBusy.value = false;
-      return;
-    }
-    try {
-      const result = await window.usp.downloadFasterWhisperBinary({
-        variant,
-        jobId: `fw-bin-${crypto.randomUUID()}`
-      });
-      if (!result.ok) {
-        downloadError.value = result.error;
-        return;
-      }
-      updateConfig({ fasterWhisperBinary: result.path });
-      await refreshStatus();
-    } finally {
-      isBusy.value = false;
-    }
-  }
-
   async function handleDownloadModel(modelName = selectedModel.value) {
     const model = modelName.trim();
     if (!model) {
@@ -200,7 +169,6 @@ export function useFasterWhisper(
     binaryStatus,
     availableModels,
     modelsBaseDir,
-    selectedModel,
     selectedDownloadedModel,
     customModelInput,
     isBusy,
@@ -208,7 +176,6 @@ export function useFasterWhisper(
     downloadMessage,
     downloadError,
     refreshStatus,
-    handleDownloadBinary,
     handleDownloadModel,
     openBinaryFolder,
     openModelsFolder

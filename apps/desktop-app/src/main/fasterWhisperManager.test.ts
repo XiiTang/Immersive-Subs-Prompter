@@ -1,19 +1,8 @@
-import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FasterWhisperManager } from "./fasterWhisperManager.js";
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-function responseWithUrl(body: string, url: string): Response {
-  const response = new Response(body, { status: 200 });
-  Object.defineProperty(response, "url", { value: url });
-  return response;
-}
 
 describe("FasterWhisperManager", () => {
   afterEach(() => {
@@ -30,157 +19,30 @@ describe("FasterWhisperManager", () => {
     expect(status.paths.modelsDir).toBe(path.join(baseDir, "models"));
     expect(status.binaries.cpu.exists).toBe(false);
     expect(status.binaries.gpu.exists).toBe(false);
+    expect(status.binaries.cpu).toEqual({
+      exists: false,
+      path: path.join(baseDir, "bin", process.platform === "win32" ? "faster-whisper.exe" : "faster-whisper")
+    });
     expect(status.models).toEqual([]);
   });
 
-  it("does not offer app-managed binary downloads on unsupported platforms", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const manager = new FasterWhisperManager({ baseDir, platform: "darwin" });
-
-    const status = await manager.getStatus();
-
-    expect(status.binaries.cpu.downloadSupported).toBe(false);
-    expect(status.binaries.cpu.downloadUnavailableReason).toContain("Windows");
-    await expect(manager.downloadBinary("cpu")).rejects.toThrow("Windows");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("does not present GPU package download as a completed app-managed binary install", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const manager = new FasterWhisperManager({ baseDir, platform: "win32" });
-
-    const status = await manager.getStatus();
-
-    expect(status.binaries.cpu.downloadSupported).toBe(false);
-    expect(status.binaries.cpu.downloadUnavailableReason).toContain("trusted binary metadata");
-    expect(status.binaries.gpu.downloadSupported).toBe(false);
-    expect(status.binaries.gpu.downloadUnavailableReason).toContain("manual");
-    await expect(manager.downloadBinary("gpu")).rejects.toThrow("manual");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("disables production app-managed CPU binary download until trusted metadata exists", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const manager = new FasterWhisperManager({ baseDir, platform: "win32" });
-
-    const status = await manager.getStatus();
-
-    expect(status.binaries.cpu.exists).toBe(false);
-    expect(status.binaries.cpu.downloadSupported).toBe(false);
-    expect(status.binaries.cpu.downloadUnavailableReason).toContain("trusted binary metadata");
-    await expect(manager.downloadBinary("cpu")).rejects.toThrow("trusted binary metadata");
-  });
-
-  it("does not trust an existing production CPU binary when trusted metadata is unavailable", async () => {
+  it("reports manually installed binaries without app-managed download metadata", async () => {
     const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
     const targetPath = path.join(baseDir, "bin", "faster-whisper.exe");
     await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, "old-bytes", "utf-8");
+    await writeFile(targetPath, "manual-binary", "utf-8");
     const manager = new FasterWhisperManager({ baseDir, platform: "win32" });
 
     const status = await manager.getStatus();
 
-    expect(status.binaries.cpu.exists).toBe(false);
-    expect(status.binaries.cpu.downloadSupported).toBe(false);
-  });
-
-  it("rejects app-managed binary downloads from unexpected final hosts", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(responseWithUrl("binary", "https://evil.example/fw.exe")));
-    const manager = new FasterWhisperManager({
-      baseDir,
-      platform: "win32",
-      binaryAssets: {
-        cpu: {
-          url: "https://downloads.example.test/fw.exe",
-          fileName: "faster-whisper.exe",
-          expectedSha256: sha256("binary"),
-          allowedFinalHosts: ["downloads.example.test"]
-        }
-      }
+    expect(status.binaries.cpu).toEqual({
+      exists: true,
+      path: targetPath
     });
-
-    await expect(manager.downloadBinary("cpu")).rejects.toThrow("unexpected download host");
-  });
-
-  it("rejects app-managed binary downloads when SHA-256 does not match and removes the temp file", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(responseWithUrl("tampered", "https://downloads.example.test/fw.exe"))
-    );
-    const manager = new FasterWhisperManager({
-      baseDir,
-      platform: "win32",
-      binaryAssets: {
-        cpu: {
-          url: "https://downloads.example.test/fw.exe",
-          fileName: "faster-whisper.exe",
-          expectedSha256: sha256("expected"),
-          allowedFinalHosts: ["downloads.example.test"]
-        }
-      }
+    expect(status.binaries.gpu).toEqual({
+      exists: false,
+      path: path.join(baseDir, "bin", "Faster-Whisper-XXL", "faster-whisper-xxl.exe")
     });
-
-    await expect(manager.downloadBinary("cpu")).rejects.toThrow("could not be verified");
-
-    const entries = await readdir(path.join(baseDir, "bin"));
-    expect(entries).toEqual([]);
-  });
-
-  it("renames verified app-managed binary bytes into place only after verification succeeds", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(responseWithUrl("verified", "https://downloads.example.test/fw.exe"))
-    );
-    const manager = new FasterWhisperManager({
-      baseDir,
-      platform: "win32",
-      binaryAssets: {
-        cpu: {
-          url: "https://downloads.example.test/fw.exe",
-          fileName: "faster-whisper.exe",
-          expectedSha256: sha256("verified"),
-          allowedFinalHosts: ["downloads.example.test"]
-        }
-      }
-    });
-
-    const targetPath = await manager.downloadBinary("cpu");
-    const status = await manager.getStatus();
-
-    expect(targetPath).toBe(path.join(baseDir, "bin", "faster-whisper.exe"));
-    expect(await readFile(targetPath, "utf-8")).toBe("verified");
-    expect(status.binaries.cpu.exists).toBe(true);
-    expect(status.binaries.cpu.downloadSupported).toBe(true);
-  });
-
-  it("does not trust an existing app-managed binary whose hash does not match metadata", async () => {
-    const baseDir = await mkdtemp(path.join(tmpdir(), "usp-fw-"));
-    const targetPath = path.join(baseDir, "bin", "faster-whisper.exe");
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, "old-bytes", "utf-8");
-    const manager = new FasterWhisperManager({
-      baseDir,
-      platform: "win32",
-      binaryAssets: {
-        cpu: {
-          url: "https://downloads.example.test/fw.exe",
-          fileName: "faster-whisper.exe",
-          expectedSha256: sha256("new-bytes"),
-          allowedFinalHosts: ["downloads.example.test"]
-        }
-      }
-    });
-
-    const status = await manager.getStatus();
-
-    expect(status.binaries.cpu.exists).toBe(false);
   });
 
   it("lists downloaded models with required files", async () => {

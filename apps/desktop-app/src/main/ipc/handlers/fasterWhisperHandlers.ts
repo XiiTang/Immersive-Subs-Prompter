@@ -1,9 +1,7 @@
 import { ipcMain } from "electron";
-import type { FasterWhisperBinaryVariant } from "../../fasterWhisperManager.js";
 import type { IpcContext } from "../ipcRouter.js";
 import { openFolder } from "../openFolder.js";
 
-type BinaryPayload = { variant: FasterWhisperBinaryVariant; jobId?: string };
 type ModelsDirectoryPayload = { configId?: string };
 type ModelPayload = { model: string; configId?: string; jobId?: string };
 
@@ -120,28 +118,6 @@ export function registerFasterWhisperHandlers(context: IpcContext): void {
       const message = error instanceof Error ? error.message : String(error);
       context.logger.error("Failed to get Faster-Whisper status", error);
       return { ok: false, error: message };
-    }
-  });
-
-  ipcMain.handle("usp:faster-whisper-download-binary", async (event, payload: BinaryPayload) => {
-    const downloadId = payload.jobId || `fw-bin-${Date.now()}`;
-    const progress = (percent: number, status: string) => {
-      event.sender.send("usp:faster-whisper-download-progress", {
-        id: downloadId,
-        type: "binary",
-        variant: payload.variant,
-        percent,
-        status
-      });
-    };
-    try {
-      const binaryPath = await context.fasterWhisperManager.downloadBinary(payload.variant, progress);
-      return { ok: true, id: downloadId, path: binaryPath };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      context.logger.error("Faster-Whisper binary download failed", error);
-      progress(0, `Error: ${message}`);
-      return { ok: false, id: downloadId, error: message };
     }
   });
 

@@ -73,7 +73,6 @@ describe("SettingsFeatures", () => {
           models: [],
           modelsBaseDir: "/tmp/fw/models"
         }),
-        downloadFasterWhisperBinary: vi.fn(),
         downloadFasterWhisperModel: vi.fn(),
         onFasterWhisperDownloadProgress: vi.fn(() => vi.fn()),
         openFasterWhisperBinaryFolder: vi.fn().mockResolvedValue({ ok: true }),
@@ -82,17 +81,14 @@ describe("SettingsFeatures", () => {
     });
   });
 
-  it("renders fixed built-in features without plugin lifecycle controls", async () => {
+  it("renders fixed built-in feature enablement rows", async () => {
     const store = seedStore();
     const wrapper = mount(SettingsFeatures);
 
+    expect(wrapper.findAll('[data-testid^="feature-row-"]')).toHaveLength(3);
     expect(wrapper.text()).toContain("Word Lookup");
     expect(wrapper.text()).toContain("Speech Transcription");
     expect(wrapper.text()).toContain("Jellyfin / Emby");
-    expect(wrapper.text()).not.toContain("Install");
-    expect(wrapper.text()).not.toContain("Update");
-    expect(wrapper.text()).not.toContain("Delete");
-    expect(wrapper.text()).not.toContain("Permissions");
 
     await wrapper.get('[data-testid="feature-enabled-wordLookup"]').trigger("click");
     expect(store.setFeatureEnabled).toHaveBeenCalledWith("wordLookup", true);
@@ -765,7 +761,7 @@ describe("SettingsFeatures", () => {
     expect(updateConfig).toHaveBeenCalledWith({ fasterWhisperVadThreshold: 0.7 });
   });
 
-  it("disables unsupported Faster-Whisper binary download buttons", () => {
+  it("renders Faster-Whisper binary status without app-managed download controls", () => {
     const wrapper = mount(FasterWhisperBinariesCard, {
       props: {
         t: (key: string) => key,
@@ -773,22 +769,20 @@ describe("SettingsFeatures", () => {
         binaryStatus: {
           cpu: {
             exists: false,
-            path: "/tmp/fw/bin/faster-whisper",
-            downloadSupported: false,
-            downloadUnavailableReason: "App-managed binary download is only available on Windows."
+            path: "/tmp/fw/bin/faster-whisper"
           },
           gpu: {
             exists: false,
-            path: "/tmp/fw/bin/faster-whisper-xxl",
-            downloadSupported: false,
-            downloadUnavailableReason: "GPU binary installation is manual."
+            path: "/tmp/fw/bin/faster-whisper-xxl"
           }
         },
         isBusy: false
       }
     });
 
-    expect(wrapper.get('[data-testid="feature-transcription-download-cpu"]').attributes("disabled")).toBeDefined();
-    expect(wrapper.get('[data-testid="feature-transcription-download-gpu"]').attributes("disabled")).toBeDefined();
+    expect(wrapper.text()).toContain("CPU");
+    expect(wrapper.text()).toContain("GPU");
+    expect(wrapper.find('[data-testid="feature-transcription-download-cpu"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="feature-transcription-download-gpu"]').exists()).toBe(false);
   });
 });

@@ -125,14 +125,14 @@ describe("appSettingsSanitizer", () => {
       expect(sanitizeSettings(settings).features.transcription).toEqual(settings.features.transcription);
     });
 
-    it("rejects removed plugin settings", () => {
+    it("rejects arbitrary top-level settings outside the current schema", () => {
       const settings = DEFAULT_SETTINGS_FACTORY();
       const input = {
         ...settings,
-        plugins: {}
+        unknownSetting: true
       };
 
-      expect(() => sanitizeSettings(input)).toThrow("settings contains unknown setting: plugins");
+      expect(() => sanitizeSettings(input)).toThrow("settings contains unknown setting: unknownSetting");
     });
 
     it("rejects arbitrary feature keys", () => {

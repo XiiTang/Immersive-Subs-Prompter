@@ -94,62 +94,17 @@ describe("buildFeatureTranscriptionConfig", () => {
     ).toThrow("Active transcription config is not available.");
   });
 
-  it("rejects incomplete feature config instead of applying implicit defaults", () => {
-    const { baseUrl: _baseUrl, ...missingBaseUrl } = createRuntimeConfig();
-
-    expect(() => buildFeatureTranscriptionConfig(createFeatureSettings({ configs: [missingBaseUrl as never] }))).toThrow(
-      "Transcription API base URL must be a string."
-    );
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ fasterWhisperVadThreshold: null as never })]
-      }))
-    ).toThrow("Transcription faster-whisper VAD threshold must be a finite number.");
-  });
-
-  it("rejects provider-specific empty values before runtime transcription", () => {
-    expect(buildFeatureTranscriptionConfig(createFeatureSettings({
-      configs: [createRuntimeConfig({ baseUrl: "http://localhost:8080/v1" })]
-    }))).toMatchObject({
-      baseUrl: "http://localhost:8080/v1"
+  it("clones the active config without a second runtime schema validation layer", () => {
+    const active = createRuntimeConfig({
+      baseUrl: "http://localhost:8080/v1",
+      extraParams: { temperature: "0" }
     });
+    const result = buildFeatureTranscriptionConfig(createFeatureSettings({ configs: [active] }));
 
-    expect(buildFeatureTranscriptionConfig(createFeatureSettings({
-      configs: [createRuntimeConfig({ baseUrl: "http://192.168.1.20:8080/v1" })]
-    }))).toMatchObject({
-      baseUrl: "http://192.168.1.20:8080/v1"
-    });
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ baseUrl: "" })]
-      }))
-    ).toThrow("Transcription API base URL is required.");
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ baseUrl: "ftp://api.example.test" })]
-      }))
-    ).toThrow("Transcription API base URL must use http or https.");
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ model: " " })]
-      }))
-    ).toThrow("Transcription model is required.");
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ provider: "faster-whisper", fasterWhisperModel: "" })]
-      }))
-    ).toThrow("Transcription faster-whisper model is required.");
-
-    expect(() =>
-      buildFeatureTranscriptionConfig(createFeatureSettings({
-        configs: [createRuntimeConfig({ provider: "faster-whisper", fasterWhisperBinary: "" })]
-      }))
-    ).toThrow("Transcription faster-whisper executable is required.");
+    expect(result).toEqual(active);
+    expect(result).not.toBe(active);
+    expect(result.extraParams).toEqual(active.extraParams);
+    expect(result.extraParams).not.toBe(active.extraParams);
   });
 });
 
@@ -171,34 +126,36 @@ describe("startFeatureTranscription", () => {
     );
   });
 
-  it("returns provider-specific config validation errors without starting side effects", async () => {
+  it("passes the active config to the transcription service without duplicate settings validation", async () => {
     const stateManager = createStateManager();
-    const cacheManager = { get: vi.fn(), set: vi.fn() };
-    const transcriptionService = { transcribe: vi.fn() };
+    const cacheManager = { get: vi.fn().mockResolvedValue(null), set: vi.fn() };
+    const transcriptionService = { transcribe: vi.fn().mockRejectedValue(new Error("service rejected config")) };
+    const config = createRuntimeConfig({
+      provider: "faster-whisper",
+      fasterWhisperBinary: ""
+    });
 
     await expect(startFeatureTranscription({
       stateManager: stateManager as never,
       cacheManager: cacheManager as never,
       transcriptionService: transcriptionService as never,
       getSettings: () => createFeatureSettings({
-        configs: [
-          createRuntimeConfig({
-            provider: "faster-whisper",
-            fasterWhisperBinary: ""
-          })
-        ]
+        configs: [config]
       })
     })).resolves.toEqual({
       ok: false,
-      error: "Transcription faster-whisper executable is required."
+      error: "service rejected config"
     });
     expect(stateManager.setTranscriptionStatus).toHaveBeenCalledWith(
       "error",
-      "Transcription faster-whisper executable is required.",
-      "Speech Transcription"
+      "service rejected config",
+      "Config A"
     );
-    expect(cacheManager.get).not.toHaveBeenCalled();
-    expect(transcriptionService.transcribe).not.toHaveBeenCalled();
+    expect(cacheManager.get).toHaveBeenCalled();
+    expect(transcriptionService.transcribe).toHaveBeenCalledWith(
+      "https://video.example.test/watch",
+      expect.objectContaining({ fasterWhisperBinary: "" })
+    );
   });
 
   it("runs transcription and caches by fixed feature identity", async () => {

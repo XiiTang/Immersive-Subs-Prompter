@@ -204,64 +204,22 @@ function sourceMatchedEvent(
   };
 }
 
-function requireObject(value: unknown, context: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${context} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function requireStringValue(source: Record<string, unknown>, key: string, context: string): string {
-  if (typeof source[key] !== "string") {
-    throw new Error(`${context} must include string ${key}.`);
-  }
-  return source[key].trim();
-}
-
-function requireBooleanValue(source: Record<string, unknown>, key: string, context: string): boolean {
-  if (typeof source[key] !== "boolean") {
-    throw new Error(`${context} must include boolean ${key}.`);
-  }
-  return source[key];
-}
-
-function normalizeServer(row: unknown, index: number): NormalizedServer[] {
-  const source = requireObject(row, `Jellyfin / Emby server ${index + 1}`);
-  const enabled = requireBooleanValue(source, "enabled", `Jellyfin / Emby server ${index + 1}`);
-  if (!enabled) {
+function normalizeServer(server: JellyfinEmbyServerConfig, index: number): NormalizedServer[] {
+  if (!server.enabled) {
     return [];
   }
-  const serverUrls = requireStringValue(source, "serverUrls", `Jellyfin / Emby server ${index + 1}`);
-  const apiKey = requireStringValue(source, "apiKey", `Jellyfin / Emby server ${index + 1}`);
-  if (!serverUrls) {
-    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
-  }
-  if (!apiKey) {
-    throw new Error(`Jellyfin / Emby server ${index + 1} must include apiKey.`);
-  }
-  const id = requireStringValue(source, "id", `Jellyfin / Emby server ${index + 1}`);
-  const name = requireStringValue(source, "name", `Jellyfin / Emby server ${index + 1}`);
-  const parsedServerUrls = parseJellyfinEmbyServerUrls(serverUrls, `Jellyfin / Emby server ${index + 1} URLs`);
-  if (!parsedServerUrls.length) {
-    throw new Error(`Jellyfin / Emby server ${index + 1} must include serverUrls.`);
-  }
+  const parsedServerUrls = parseJellyfinEmbyServerUrls(
+    server.serverUrls,
+    `Jellyfin / Emby server ${index + 1} URLs`
+  );
   return parsedServerUrls.map((entry) => ({
-    id,
-    name,
-    serverUrls,
+    ...server,
     apiBaseUrl: entry.baseUrl,
-    apiKey,
-    enabled
+    serverUrls: server.serverUrls
   }));
 }
 
 function parseServers(config: JellyfinEmbyFeatureSettings["config"]): NormalizedServer[] {
-  if (config.servers === undefined) {
-    return [];
-  }
-  if (!Array.isArray(config.servers)) {
-    throw new Error("Jellyfin / Emby servers must be configured with a server list.");
-  }
   return config.servers.flatMap((server, index) => normalizeServer(server, index));
 }
 
@@ -426,9 +384,6 @@ function toSessionSummary(server: NormalizedServer, row: unknown): MediaServerSe
 }
 
 async function fetchSessions(fetchImpl: FetchLike, server: NormalizedServer): Promise<MediaServerSessionSummary[]> {
-  if (!server.apiKey) {
-    return [];
-  }
   const url = new URL(`${server.apiBaseUrl}/Sessions`);
   url.searchParams.set("api_key", server.apiKey);
   const rows = await fetchJson(fetchImpl, url.toString(), server);

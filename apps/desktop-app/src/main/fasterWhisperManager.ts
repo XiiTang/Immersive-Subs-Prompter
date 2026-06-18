@@ -1,13 +1,9 @@
 import { app } from "electron";
 import { createWriteStream } from "node:fs";
 import { promises as fs } from "node:fs";
-import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { swallow } from "./errors.js";
 import { createLogger } from "./logger.js";
-
-export type FasterWhisperBinaryVariant = "cpu" | "gpu";
 
 type ProgressCallback = (percent: number, status: string) => void;
 
@@ -40,31 +36,18 @@ const OFFICIAL_MODEL_REPOS = new Map<string, string>([
 ]);
 const OFFICIAL_MODEL_NAME_BY_REPO_NAME = buildOfficialModelNameByRepoName();
 
-export interface FasterWhisperBinaryAsset {
-  url: string;
-  fileName: string;
-  expectedSha256: string;
-  allowedFinalHosts: string[];
-}
-
-type BinaryAssetMap = Partial<Record<FasterWhisperBinaryVariant, FasterWhisperBinaryAsset>>;
-
-const WINDOWS_BINARY_ASSETS: BinaryAssetMap = {};
-
 export class FasterWhisperManager {
   private readonly log = createLogger("faster-whisper");
   private readonly baseDir: string;
   private readonly binDir: string;
   private readonly modelsDir: string;
   private readonly platform: NodeJS.Platform;
-  private readonly binaryAssets: BinaryAssetMap;
 
-  constructor(options: { baseDir?: string; platform?: NodeJS.Platform; binaryAssets?: BinaryAssetMap } = {}) {
+  constructor(options: { baseDir?: string; platform?: NodeJS.Platform } = {}) {
     this.baseDir = options.baseDir ?? path.join(app.getPath("userData"), "faster-whisper");
     this.binDir = path.join(this.baseDir, "bin");
     this.modelsDir = path.join(this.baseDir, "models");
     this.platform = options.platform ?? process.platform;
-    this.binaryAssets = options.binaryAssets ?? WINDOWS_BINARY_ASSETS;
   }
 
   async getPaths() {
@@ -81,8 +64,8 @@ export class FasterWhisperManager {
     const paths = await this.getPaths();
     const targetModelDir = modelDirOverride?.trim() || paths.modelsDir;
     const [cpuStatus, gpuStatus, modelList] = await Promise.all([
-      this.buildBinaryStatus("cpu", paths.cpuBinaryPath),
-      this.buildBinaryStatus("gpu", paths.gpuBinaryPath),
+      this.buildBinaryStatus(paths.cpuBinaryPath),
+      this.buildBinaryStatus(paths.gpuBinaryPath),
       this.listDownloadedModels(targetModelDir)
     ]);
     return {
@@ -123,61 +106,20 @@ export class FasterWhisperManager {
     return { models, baseDir: targetDir };
   }
 
-  async downloadBinary(variant: FasterWhisperBinaryVariant, progress?: ProgressCallback): Promise<string> {
-    await this.ensureDirs();
-    const targetPath = this.getTargetPath(variant);
-    if (await this.isVerifiedBinary(variant, targetPath)) {
-      return targetPath;
-    }
-
-    const unavailableReason = this.getDownloadUnavailableReason(variant);
-    if (unavailableReason) {
-      throw new Error(unavailableReason);
-    }
-
-    const asset = this.binaryAssets[variant];
-    if (!asset) {
-      throw new Error("App-managed Faster-Whisper binary download requires trusted binary metadata.");
-    }
-    progress?.(1, `Downloading ${variant.toUpperCase()} binary...`);
-    await this.downloadVerifiedBinaryAsset(asset, targetPath, (percent) =>
-      progress?.(Math.max(1, Math.min(99, percent)), `Downloading ${variant.toUpperCase()} binary...`)
-    );
-
-    progress?.(100, "Binary ready");
-    return targetPath;
-  }
-
-  private async buildBinaryStatus(variant: FasterWhisperBinaryVariant, targetPath: string) {
-    const unavailableReason = this.getDownloadUnavailableReason(variant);
-    const exists = await this.isVerifiedBinary(variant, targetPath);
+  private async buildBinaryStatus(targetPath: string) {
+    const exists = await this.fileExists(targetPath);
     return {
       exists,
-      path: targetPath,
-      downloadSupported: unavailableReason === null,
-      downloadUnavailableReason: unavailableReason
+      path: targetPath
     };
   }
 
-  private getTargetPath(variant: FasterWhisperBinaryVariant): string {
+  private getTargetPath(variant: "cpu" | "gpu"): string {
     if (variant === "gpu") {
       const executable = this.platform === "win32" ? "faster-whisper-xxl.exe" : "faster-whisper-xxl";
       return path.join(this.binDir, "Faster-Whisper-XXL", executable);
     }
     return path.join(this.binDir, this.platform === "win32" ? "faster-whisper.exe" : "faster-whisper");
-  }
-
-  private getDownloadUnavailableReason(variant: FasterWhisperBinaryVariant): string | null {
-    if (variant === "gpu") {
-      return "GPU binary installation is manual. Set the Faster-Whisper executable path in settings.";
-    }
-    if (this.platform !== "win32") {
-      return "App-managed Faster-Whisper binary download is only available on Windows.";
-    }
-    if (!this.binaryAssets[variant]) {
-      return "App-managed Faster-Whisper binary download requires trusted binary metadata.";
-    }
-    return null;
   }
 
   async downloadModel(
@@ -252,91 +194,6 @@ export class FasterWhisperManager {
       .sort((left, right) => left.localeCompare(right));
   }
 
-  private async isVerifiedBinary(variant: FasterWhisperBinaryVariant, targetPath: string): Promise<boolean> {
-    const asset = this.binaryAssets[variant];
-    if (!asset || !(await this.fileExists(targetPath))) {
-      return false;
-    }
-    return (await this.sha256File(targetPath)) === asset.expectedSha256;
-  }
-
-  private async downloadVerifiedBinaryAsset(
-    asset: FasterWhisperBinaryAsset,
-    targetPath: string,
-    progress?: (percent: number) => void
-  ): Promise<void> {
-    const tempPath = path.join(this.binDir, `${asset.fileName}.${randomUUID()}.tmp`);
-    try {
-      const response = await fetch(asset.url);
-      if (!response.ok || !response.body) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
-      }
-      this.assertAllowedFinalDownloadUrl(response.url || asset.url, asset);
-      await this.writeResponseBody(response, tempPath, progress);
-      const actualSha256 = await this.sha256File(tempPath);
-      if (actualSha256 !== asset.expectedSha256) {
-        throw new Error("Faster-Whisper binary could not be verified.");
-      }
-      await fs.mkdir(path.dirname(targetPath), { recursive: true });
-      await fs.rename(tempPath, targetPath);
-      await this.ensurePermissions(targetPath);
-    } catch (error) {
-      await fs
-        .rm(tempPath, { force: true })
-        .catch((cleanupError) =>
-          swallow(cleanupError, "fasterWhisper.download.cleanup", "temporary file may already be absent")
-        );
-      throw error;
-    }
-  }
-
-  private assertAllowedFinalDownloadUrl(finalUrl: string, asset: FasterWhisperBinaryAsset): void {
-    let parsed: URL;
-    try {
-      parsed = new URL(finalUrl);
-    } catch {
-      throw new Error("Faster-Whisper binary download returned an invalid final URL.");
-    }
-    if (parsed.protocol !== "https:") {
-      throw new Error("Faster-Whisper binary download must use HTTPS.");
-    }
-    if (!asset.allowedFinalHosts.includes(parsed.hostname)) {
-      throw new Error("Faster-Whisper binary download reached an unexpected download host.");
-    }
-  }
-
-  private async writeResponseBody(
-    response: Response,
-    targetPath: string,
-    progress?: (percent: number) => void
-  ): Promise<void> {
-    const total = Number(response.headers.get("content-length") ?? 0);
-    const readable = Readable.fromWeb(response.body as never);
-    let downloaded = 0;
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    await new Promise<void>((resolve, reject) => {
-      const fileStream = createWriteStream(targetPath);
-      fileStream.on("error", reject);
-      fileStream.on("finish", resolve);
-      readable.on("data", (chunk: Buffer) => {
-        downloaded += chunk.length;
-        if (progress && total > 0) {
-          progress(Math.min(99, Math.round((downloaded / total) * 100)));
-        }
-      });
-      readable.on("error", reject);
-      readable.pipe(fileStream);
-    });
-    progress?.(100);
-    this.log.info(`Downloaded ${response.url} to ${targetPath}`);
-  }
-
-  private async sha256File(targetPath: string): Promise<string> {
-    const hash = createHash("sha256");
-    hash.update(await fs.readFile(targetPath));
-    return hash.digest("hex");
-  }
-
   private async downloadFile(url: string, targetPath: string, progress?: (percent: number) => void): Promise<void> {
     const response = await fetch(url);
     if (!response.ok || !response.body) {
@@ -362,12 +219,6 @@ export class FasterWhisperManager {
     });
     progress?.(100);
     this.log.info(`Downloaded ${url} to ${targetPath}`);
-  }
-
-  private async ensurePermissions(targetPath: string): Promise<void> {
-    if (process.platform !== "win32") {
-      await fs.chmod(targetPath, 0o755);
-    }
   }
 }
 
