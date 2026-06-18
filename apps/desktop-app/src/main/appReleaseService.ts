@@ -26,7 +26,7 @@ export interface UpdaterLike {
   on(event: "update-downloaded", listener: (info: UpdateInfo) => void): this;
 }
 
-type AppReleaseServiceOptions = {
+export type AppReleaseServiceOptions = {
   updater: UpdaterLike;
   getCurrentVersion: () => string;
   getSettings: () => AppSettings;

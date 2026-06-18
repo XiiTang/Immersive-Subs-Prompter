@@ -1,5 +1,4 @@
 import { app } from "electron";
-import { autoUpdater } from "electron-updater";
 import { AppEventBus } from "../appEventBus.js";
 import { StateManager } from "../stateManager.js";
 import { ConnectionManager } from "../connectionManager.js";
@@ -20,7 +19,8 @@ import { IpcRouter } from "../ipc/ipcRouter.js";
 import { resolveBundledResource } from "../resourcePaths.js";
 import { areNetworkSettingsEqual } from "../networkSettings.js";
 import { MediaSourceController } from "../mediaSources/mediaSourceController.js";
-import { AppReleaseService } from "../appReleaseService.js";
+import { createAppReleaseService } from "../appReleaseRuntime.js";
+import type { AppReleaseService } from "../appReleaseService.js";
 import { WordLookupService } from "../features/wordLookupService.js";
 import { JellyfinEmbyMediaSource } from "../features/jellyfinEmbyMediaSource.js";
 import { FasterWhisperManager } from "../fasterWhisperManager.js";
@@ -107,8 +107,7 @@ export class WindowController {
       stateManager: this.options.stateManager,
       getSources: () => [this.jellyfinEmbyMediaSource]
     });
-    this.releaseService = new AppReleaseService({
-      updater: autoUpdater,
+    this.releaseService = createAppReleaseService({
       getCurrentVersion: () => app.getVersion(),
       getSettings: this.options.getSettings,
       updateSettings: (partial) => this.updateAppSettings(partial),
