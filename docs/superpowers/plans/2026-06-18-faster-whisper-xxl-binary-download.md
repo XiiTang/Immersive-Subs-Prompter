@@ -726,7 +726,6 @@ expect(handle.mock.calls.map(([channel]) => channel).sort()).toEqual([
   "usp:faster-whisper-download-model",
   "usp:faster-whisper-open-binary-folder",
   "usp:faster-whisper-open-models-folder",
-  "usp:faster-whisper-paths",
   "usp:faster-whisper-status"
 ].sort());
 ```
@@ -902,14 +901,9 @@ Register this handler before model download:
 
 - [ ] **Step 4: Update preload API**
 
-In `apps/desktop-app/src/preload.cts`, change the paths type and add `downloadFasterWhisperBinary`:
+In `apps/desktop-app/src/preload.cts`, add `downloadFasterWhisperBinary` without exposing a separate paths API:
 
 ```ts
-  getFasterWhisperPaths: (): Promise<{
-    binaryDir: string;
-    modelsDir: string;
-    xxlBinaryPath: string;
-  }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
   getFasterWhisperStatus: (payload?: { configId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-status", payload),
   downloadFasterWhisperBinary: (payload: { variant: "xxl"; jobId?: string }): Promise<any> =>
@@ -923,6 +917,9 @@ In `apps/desktop-app/src/preload.cts`, change the paths type and add `downloadFa
 In `apps/desktop-app/src/main/ipc/securitySurface.test.ts`, add expectations in the existing Faster-Whisper IPC test:
 
 ```ts
+expect(preload).not.toContain("getFasterWhisperPaths");
+expect(preload).not.toContain("usp:faster-whisper-paths");
+expect(fasterWhisperHandlers).not.toContain("usp:faster-whisper-paths");
 expect(preload).toContain("downloadFasterWhisperBinary");
 expect(preload).not.toContain("binaryUrl");
 expect(preload).not.toContain("binaryPath");

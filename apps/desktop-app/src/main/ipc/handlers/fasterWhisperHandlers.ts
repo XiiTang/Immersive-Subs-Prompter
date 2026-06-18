@@ -92,8 +92,6 @@ async function resolveModelsDirForOpen(context: IpcContext, payload?: ModelsDire
 }
 
 export function registerFasterWhisperHandlers(context: IpcContext): void {
-  ipcMain.handle("usp:faster-whisper-paths", () => context.fasterWhisperManager.getPaths());
-
   ipcMain.handle("usp:faster-whisper-open-binary-folder", async () => {
     const paths = await context.fasterWhisperManager.getPaths();
     const result = await openFolder(paths.binaryDir, "Faster-Whisper binary folder");

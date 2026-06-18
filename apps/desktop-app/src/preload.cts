@@ -40,11 +40,6 @@ const api = {
     ipcRenderer.invoke("usp:get-window-pointer-state"),
   startTranscription: (): Promise<{ ok: boolean; error?: string; trackId?: string }> =>
     ipcRenderer.invoke("usp:start-transcription"),
-  getFasterWhisperPaths: (): Promise<{
-    binaryDir: string;
-    modelsDir: string;
-    xxlBinaryPath: string;
-  }> => ipcRenderer.invoke("usp:faster-whisper-paths"),
   getFasterWhisperStatus: (payload?: { configId?: string }): Promise<any> =>
     ipcRenderer.invoke("usp:faster-whisper-status", payload),
   downloadFasterWhisperBinary: (payload: { variant: "xxl"; jobId?: string }): Promise<any> =>

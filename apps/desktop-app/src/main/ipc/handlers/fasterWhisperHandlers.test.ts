@@ -47,7 +47,6 @@ describe("registerFasterWhisperHandlers", () => {
       "usp:faster-whisper-download-model",
       "usp:faster-whisper-open-binary-folder",
       "usp:faster-whisper-open-models-folder",
-      "usp:faster-whisper-paths",
       "usp:faster-whisper-status"
     ].sort());
   });

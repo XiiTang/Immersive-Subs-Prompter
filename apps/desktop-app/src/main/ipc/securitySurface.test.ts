@@ -45,6 +45,9 @@ describe("renderer-to-main security surface", () => {
     expect(fasterWhisperHandlers).not.toContain("usp:faster-whisper-list-models");
     expect(fasterWhisperComposable).not.toContain("fasterWhisperModelDir || undefined");
     expect(fasterWhisperComposable).not.toContain("modelDir:");
+    expect(preload).not.toContain("getFasterWhisperPaths");
+    expect(preload).not.toContain("usp:faster-whisper-paths");
+    expect(fasterWhisperHandlers).not.toContain("usp:faster-whisper-paths");
     expect(preload).toContain("openFasterWhisperBinaryFolder");
     expect(preload).toContain("openFasterWhisperModelsFolder");
     expect(preload).toContain("downloadFasterWhisperBinary");
