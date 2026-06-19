@@ -30,8 +30,10 @@ export function projectPlaybackSnapshot(input: PlaybackProjectionInput, now = Da
   const targetTime = readPositiveFiniteTimestamp(now, "Projection target time");
   const sampleTime = readPositiveFiniteTimestamp(input.updatedAt, "Playback snapshot updatedAt");
   const currentTime = readNonNegativeFiniteNumber(input.currentTime, "Playback snapshot currentTime");
-  const sourcePlaybackRate = readPositiveFiniteNumber(input.playbackRate, "Playback snapshot playbackRate");
   const paused = readBoolean(input.paused, "Playback snapshot paused");
+  const sourcePlaybackRate = paused
+    ? readNonNegativeFiniteNumber(input.playbackRate, "Playback snapshot playbackRate")
+    : readPositiveFiniteNumber(input.playbackRate, "Playback snapshot playbackRate");
   const playbackRate = paused ? 0 : sourcePlaybackRate;
   const elapsed = Math.max(0, targetTime - sampleTime);
   const projectedTime = paused ? currentTime : currentTime + elapsed * playbackRate;

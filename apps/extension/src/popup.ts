@@ -150,6 +150,18 @@ function getConnectionInfo(endpoint: string): PopupConnection | null {
   return connectionStatuses.find((entry) => entry.endpoint === endpoint) || null;
 }
 
+function getVisibleServerEndpoints(): string[] {
+  const visible = [...serverEndpoints];
+  const seen = new Set(visible);
+  for (const connection of connectionStatuses) {
+    if (!seen.has(connection.endpoint)) {
+      seen.add(connection.endpoint);
+      visible.push(connection.endpoint);
+    }
+  }
+  return visible;
+}
+
 function connectionStatusLabel(state: PopupConnection["state"], hasError: boolean) {
   const base =
     state === "connected"
@@ -187,21 +199,36 @@ function addServerEndpoint(rawValue: string) {
     setServerError(t("validationInvalidServerAddress"));
     return;
   }
+  if (serverEndpoints.includes(normalized)) {
+    serverError = "";
+    serverDraftValue = "";
+    if (serverDraftInputEl) {
+      serverDraftInputEl.value = "";
+    }
+    renderServers();
+    return;
+  }
+  const dashboardPort = port ?? connectDashboardPort();
+  if (!dashboardPort) {
+    setServerError(t("popupStatusUnavailable"));
+    return;
+  }
+  try {
+    dashboardPort.postMessage({ type: "server-endpoints:add", endpoint: normalized });
+  } catch (error) {
+    console.error("[USP] Failed to add endpoint", error);
+    if (port === dashboardPort) {
+      port = null;
+    }
+    setServerError(t("popupStatusDisconnected"));
+    return;
+  }
   serverError = "";
   serverDraftValue = "";
   if (serverDraftInputEl) {
     serverDraftInputEl.value = "";
   }
-  if (serverEndpoints.includes(normalized)) {
-    renderServers();
-    return;
-  }
   renderServers();
-  try {
-    port?.postMessage({ type: "server-endpoints:add", endpoint: normalized });
-  } catch (error) {
-    console.error("[USP] Failed to add endpoint", error);
-  }
 }
 
 function removeServerEndpoint(endpoint: string) {
@@ -216,8 +243,9 @@ function renderServers() {
   if (!serverRoot) return;
 
   serverDraftValue = serverDraftInputEl?.value ?? serverDraftValue;
-  const total = serverEndpoints.length || connectionStatuses.length;
-  const connected = connectionStatuses.filter((entry) => entry.state === "connected").length;
+  const visibleEndpoints = getVisibleServerEndpoints();
+  const total = visibleEndpoints.length;
+  const connected = visibleEndpoints.filter((endpoint) => getConnectionInfo(endpoint)?.state === "connected").length;
   if (serverSummaryEl) {
     serverSummaryEl.textContent = total
       ? formatMessage("settingsServerSummaryConnected", { connected, total })
@@ -230,7 +258,7 @@ function renderServers() {
   const list = document.createElement("div");
   list.className = "priority-editor__list pill-list-editor__list server-pill-list";
 
-  serverEndpoints.forEach((endpoint) => {
+  visibleEndpoints.forEach((endpoint) => {
     const info = getConnectionInfo(endpoint);
     const state = info?.state || "disconnected";
     const hasError = !!info?.lastError;
@@ -664,6 +692,34 @@ function handleMessage(message: DashboardResponseMessage) {
   }
 }
 
+function connectDashboardPort(): chrome.runtime.Port | null {
+  try {
+    const nextPort = chrome.runtime.connect({ name: DASHBOARD_PORT });
+    port = nextPort;
+    setLocalizedStatus("popupStatusConnecting");
+    nextPort.onMessage.addListener(handleMessage);
+    nextPort.onDisconnect.addListener(() => {
+      if (port === nextPort) {
+        port = null;
+      }
+      lastSnapshot = null;
+      setLocalizedStatus("popupStatusDisconnected");
+      connectionStatuses = [];
+      renderServers();
+      renderEmptyState();
+    });
+    nextPort.postMessage({ type: "server-endpoints:get" });
+    return nextPort;
+  } catch (err) {
+    console.error("[USP] Failed to connect to dashboard port", err);
+    port = null;
+    lastSnapshot = null;
+    setLocalizedStatus("popupStatusUnavailable");
+    renderEmptyState();
+    return null;
+  }
+}
+
 mountStaticIcons();
 applyDocumentI18n(document);
 syncLanguageOptionButtons();
@@ -674,24 +730,7 @@ chrome.storage.local.get([APPEARANCE_STORAGE_KEY, LANGUAGE_STORAGE_KEY], (result
   applyAppearance(getStoredAppearanceTheme(result ?? {}));
 });
 
-try {
-  port = chrome.runtime.connect({ name: DASHBOARD_PORT });
-  setLocalizedStatus("popupStatusConnecting");
-  port.onMessage.addListener(handleMessage);
-  port.onDisconnect.addListener(() => {
-    lastSnapshot = null;
-    setLocalizedStatus("popupStatusDisconnected");
-    connectionStatuses = [];
-    renderServers();
-    renderEmptyState();
-  });
-  port.postMessage({ type: "server-endpoints:get" });
-} catch (err) {
-  console.error("[USP] Failed to connect to dashboard port", err);
-  lastSnapshot = null;
-  setLocalizedStatus("popupStatusUnavailable");
-  renderEmptyState();
-}
+connectDashboardPort();
 
 settingsButton?.addEventListener("click", () => setActivePanel("settings"));
 settingsBackButton?.addEventListener("click", () => setActivePanel(null));

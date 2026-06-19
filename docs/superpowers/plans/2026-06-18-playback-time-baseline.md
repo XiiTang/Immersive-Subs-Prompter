@@ -6,11 +6,12 @@ Playback time now has one source of truth: extension snapshots sampled from `HTM
 
 The shared projection helper in `@immersive-subs/contracts` remains the only timestamp math implementation. Extension background records, reconnect replay, popup/dashboard snapshots, and desktop main playback updates all project source snapshots from `updatedAt` to local handling time before exposing them further.
 
-Malformed playback snapshots are contract errors. The extension background rejects playback samples without a valid `updatedAt`, and the projection helper rejects malformed projection inputs instead of substituting local timestamps, zero positions, or default playback rates.
+Malformed playback snapshots are contract errors. The extension background rejects playback samples without a valid `updatedAt`, and the projection helper rejects malformed projection inputs instead of substituting local timestamps, zero positions, or default playback rates. Paused samples may carry an effective `playbackRate` of `0`; playing samples must still have a positive finite rate.
 
 ## Desktop Behavior
 
 `ConnectionManager` applies extension playback for `video-context`, `time-update`, and `playback-rate` messages once at socket ingress.
+It also applies `video-context` page context at ingress so media-source pages become the active tab before any async media-source handler can delay the rest of that message.
 
 When Jellyfin / Emby matches a media page, `MediaSourceController` handles media-server state, session selection, subtitle loading, and media-source errors. It may mark the message handled so generic/YT-DLP subtitle loading does not run. The extension playback projection has already run before that media-source handling starts.
 

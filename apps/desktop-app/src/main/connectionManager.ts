@@ -366,6 +366,9 @@ export class ConnectionManager {
 
     this.rememberTabSocket(tabId, socket);
     const resolvedUrl = type === "video-context" ? this.resolveVideoUrl(payload) : null;
+    if (message.type === "video-context") {
+      this.applyVideoContextPage(message);
+    }
     this.applyExtensionPlaybackMessage(message);
     const pendingHandlers: Promise<unknown>[] = [];
     const event: ConnectionMessageEvent = {
@@ -413,6 +416,26 @@ export class ConnectionManager {
     tabs.add(tabId);
   }
 
+  private applyVideoContextPage(message: Extract<FromExtensionBroadcastMessage, { type: "video-context" }>) {
+    const state = this.options.stateManager.getState();
+    const pageUrl = message.payload.pageUrl ?? null;
+    const site = message.payload.site ?? null;
+    const title = message.payload.title ?? null;
+    if (
+      state.activeTabId === message.tabId &&
+      state.pageUrl === pageUrl &&
+      state.site === site &&
+      state.title === title
+    ) {
+      return;
+    }
+    this.options.stateManager.setPageContext(message.tabId, {
+      pageUrl,
+      site,
+      title
+    });
+  }
+
   private forgetSocket(socket: WebSocket) {
     const tabs = this.socketTabs.get(socket);
     if (!tabs) return;
@@ -426,11 +449,7 @@ export class ConnectionManager {
   private async handleMessage(message: FromExtensionBroadcastMessage, resolvedUrl: string | null) {
     switch (message.type) {
       case "video-context": {
-        this.options.stateManager.setPageContext(message.tabId, {
-          pageUrl: message.payload.pageUrl ?? null,
-          site: message.payload.site ?? null,
-          title: message.payload.title ?? null
-        });
+        this.applyVideoContextPage(message);
 
         if (!resolvedUrl) {
           this.options.stateManager.updateState((draft) => {

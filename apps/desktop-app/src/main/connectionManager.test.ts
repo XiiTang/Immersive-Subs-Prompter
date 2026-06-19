@@ -673,6 +673,149 @@ describe("ConnectionManager network listeners", () => {
     }
   });
 
+  it("applies paused extension playback when the browser reports zero effective rate", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.state.activeTabId = 1;
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {} as never,
+        stateManager: stateManager as never,
+        bus: new AppEventBus(),
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "time-update",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://example.test/watch",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "unknown",
+            title: "Example",
+            currentTime: 1000,
+            updatedAt: 9000,
+            playbackRate: 0,
+            duration: 12_000,
+            paused: true,
+            loop: null
+          }
+        }))
+      );
+
+      expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 1000,
+        playbackRate: 0,
+        duration: 12_000,
+        loop: null,
+        lastUpdate: 10_000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps an immediate media-source playback update from the new video tab", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.state.activeTabId = 99;
+      const mediaSourceGate = createDeferred<void>();
+      const bus = new AppEventBus();
+      bus.on("connection:message", (event) => {
+        if (event.message.type === "video-context") {
+          event.waitUntil(mediaSourceGate.promise.then(() => event.markHandled()));
+        }
+      });
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {
+          getSubtitles: vi.fn(async () => ({ tracks: [] }))
+        } as never,
+        stateManager: stateManager as never,
+        bus,
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      const pendingVideoContext = handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "video-context",
+          tabId: 7,
+          payload: {
+            pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+            videoSrc: null,
+            site: "jellyfin",
+            title: "Episode",
+            currentTime: 1000,
+            updatedAt: 9000,
+            playbackRate: 2,
+            duration: 20_000,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "time-update",
+          tabId: 7,
+          payload: {
+            pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+            videoSrc: null,
+            site: "jellyfin",
+            title: "Episode",
+            currentTime: 2000,
+            updatedAt: 9000,
+            playbackRate: 0.75,
+            duration: 20_000,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      expect(stateManager.updatePlayback).toHaveBeenLastCalledWith({
+        currentTime: 2750,
+        playbackRate: 0.75,
+        duration: 20_000,
+        loop: null,
+        lastUpdate: 10_000
+      });
+
+      mediaSourceGate.resolve();
+      await pendingVideoContext;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("uses the extension duration sample instead of retaining an older desktop duration", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);

@@ -15,7 +15,7 @@ The projection contract treats these values as distinct:
 
 - `updatedAt`: when `currentTime` was sampled from the media element.
 - `currentTime`: media position in milliseconds at `updatedAt`.
-- `playbackRate`: source playback speed.
+- `playbackRate`: source playback speed, or `0` for a paused effective-rate sample.
 - `paused`: whether the source was paused at `updatedAt`.
 - `duration`: source duration at `updatedAt`, or `null` when the media element has no finite duration.
 - `lastUpdate`: desktop renderer baseline time after projection in the main process.
@@ -55,6 +55,7 @@ The background runtime accepts only complete playback samples with a positive fi
 - `playback-rate`.
 
 That projection happens once at desktop socket ingress, before either the generic/YT-DLP subtitle path or media-source handlers run.
+`video-context` also updates the active tab/page context at socket ingress so immediate follow-up `time-update` or `playback-rate` messages from the same tab are not filtered while an async media-source match is still in flight.
 
 For Jellyfin / Emby videos, `MediaSourceController` may mark the message handled to prevent generic subtitle loading. It does not own playback projection; by the time it handles the message, `ConnectionManager` has already applied the same extension playback projection used by generic/YT-DLP playback.
 

@@ -131,6 +131,25 @@ describe("@immersive-subs/contracts", () => {
     });
   });
 
+  it("accepts paused playback snapshots whose effective playback rate is zero", () => {
+    const projected = projectPlaybackSnapshot(
+      {
+        currentTime: 12_000,
+        updatedAt: 1000,
+        playbackRate: 0,
+        paused: true,
+        duration: 20_000
+      },
+      4000
+    );
+
+    expect(projected).toEqual({
+      currentTime: 12_000,
+      updatedAt: 4000,
+      playbackRate: 0
+    });
+  });
+
   it("clamps negative elapsed time and projected time beyond duration", () => {
     expect(
       projectPlaybackSnapshot(
