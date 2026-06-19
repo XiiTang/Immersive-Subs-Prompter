@@ -173,6 +173,16 @@ describe("SettingsWindowShell", () => {
     expect(rendererStylesheet).toContain("-webkit-app-region: drag;");
   });
 
+  it("uses a renderer-owned rounded settings shell boundary", () => {
+    expect(rendererStylesheet).toContain("--window-boundary-radius: 10px;");
+    expect(rendererStylesheet).toMatch(
+      /\.settings-window\s*\{[^}]*background:\s*transparent;[^}]*border-radius:\s*var\(--window-boundary-radius\);[^}]*overflow:\s*hidden;/s
+    );
+    expect(rendererStylesheet).toMatch(
+      /\.settings-window-shell\s*\{[^}]*background:\s*var\(--ui-bg\);[^}]*border-radius:\s*var\(--window-boundary-radius\);[^}]*overflow:\s*hidden;/s
+    );
+  });
+
   it("auto-hides settings scrollbars until users interact with scroll regions", () => {
     expect(rendererStylesheet).toContain("--settings-scrollbar-thumb: transparent;");
     expect(rendererStylesheet).toContain("scrollbar-color: var(--settings-scrollbar-thumb) transparent;");

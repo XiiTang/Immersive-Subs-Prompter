@@ -88,6 +88,25 @@ describe("TopControlPanel browser layout", () => {
     host.remove();
   });
 
+  it("renders the top panel as a clipped rounded window surface", async () => {
+    const { host, wrapper } = mountTopControlPanelInNarrowHost(480);
+
+    await nextFrame();
+
+    const surface = host.querySelector<HTMLElement>('[data-testid="top-control-panel-surface"]');
+    expect(surface).not.toBeNull();
+
+    const style = getComputedStyle(surface!);
+    expect(style.borderTopLeftRadius).toBe("10px");
+    expect(style.borderTopRightRadius).toBe("10px");
+    expect(style.borderBottomLeftRadius).toBe("10px");
+    expect(style.borderBottomRightRadius).toBe("10px");
+    expect(style.overflow).toBe("hidden");
+
+    wrapper.unmount();
+    host.remove();
+  });
+
   it("opens header tooltips and updates opacity through the header slider", async () => {
     const { host, wrapper } = mountTopControlPanelInNarrowHost(480);
     const store = useDesktopStore();

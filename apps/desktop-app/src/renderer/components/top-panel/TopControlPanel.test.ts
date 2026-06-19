@@ -241,8 +241,17 @@ describe("TopControlPanel", () => {
     expect(rendererStylesheet).toContain(".top-control-panel--collapsed .top-control-panel__surface");
   });
 
-  it("keeps the top control panel border square", () => {
-    expect(rendererStylesheet).toMatch(/\.top-control-panel__surface\s*\{[^}]*border-radius:\s*0;/);
+  it("uses the shared rounded window boundary", () => {
+    expect(rendererStylesheet).toContain("--window-boundary-radius: 10px;");
+    expect(rendererStylesheet).toMatch(
+      /\.window\s*\{[^}]*border-radius:\s*var\(--window-boundary-radius\);/s
+    );
+    expect(rendererStylesheet).toMatch(
+      /\.top-control-panel__surface\s*\{[^}]*border-radius:\s*var\(--window-boundary-radius\);[^}]*overflow:\s*hidden;/s
+    );
+    expect(rendererStylesheet).not.toMatch(
+      /\.top-control-panel__surface\s*\{[^}]*border-radius:\s*0;/s
+    );
   });
 
   it("enables the Electron drag region while the panel is expanded", async () => {

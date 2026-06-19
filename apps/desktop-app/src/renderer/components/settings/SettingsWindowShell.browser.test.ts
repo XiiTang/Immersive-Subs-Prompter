@@ -53,6 +53,40 @@ describe("SettingsWindowShell browser layout", () => {
     expect(wrapper.get('[data-testid="settings-section-general-content"]').exists()).toBe(true);
   });
 
+  it("renders settings with a transparent host and clipped rounded shell", () => {
+    const wrapper = shallowMount(SettingsWindowShell, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          SettingsNav: sectionStub("settings-nav-content"),
+          SettingsGlobal: sectionStub("settings-section-general-content"),
+          SettingsProfiles: sectionStub("settings-section-profiles-content"),
+          SettingsFeatures: sectionStub("settings-section-features-content")
+        }
+      }
+    });
+
+    const host = document.createElement("div");
+    host.className = "settings-window";
+    host.appendChild(wrapper.element);
+    document.body.appendChild(host);
+
+    const hostStyle = getComputedStyle(host);
+    const shellStyle = getComputedStyle(wrapper.get('[data-testid="settings-shell"]').element);
+
+    expect(hostStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(hostStyle.borderTopLeftRadius).toBe("10px");
+    expect(hostStyle.overflow).toBe("hidden");
+    expect(shellStyle.borderTopLeftRadius).toBe("10px");
+    expect(shellStyle.borderTopRightRadius).toBe("10px");
+    expect(shellStyle.borderBottomLeftRadius).toBe("10px");
+    expect(shellStyle.borderBottomRightRadius).toBe("10px");
+    expect(shellStyle.overflow).toBe("hidden");
+
+    wrapper.unmount();
+    host.remove();
+  });
+
   it("constrains the active settings content to the visible body row", async () => {
     const tallSectionStub = (testId: string) =>
       defineComponent({

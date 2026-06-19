@@ -37,14 +37,18 @@ export class SettingsWindowManager {
       resizable: false,
       fullscreenable: false,
       titleBarStyle: "hidden",
-      ...(process.platform === "win32" && {
+      ...(process.platform !== "darwin" && {
+        frame: false,
         titleBarOverlay: {
           color: "#0d1117",
           symbolColor: "#e5e5e5",
           height: 48
         }
       }),
-      backgroundColor: "#101418",
+      transparent: true,
+      backgroundColor: "#00000000",
+      hasShadow: false,
+      roundedCorners: true,
       webPreferences: {
         preload: path.join(this.__dirname, "../../preload.cjs"),
         contextIsolation: true,

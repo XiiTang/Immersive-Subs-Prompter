@@ -45,6 +45,11 @@ describe("WindowManager", () => {
     expect(createdOptions[0]).toMatchObject({
       width: MAIN_WINDOW_DEFAULT_WIDTH,
       height: MAIN_WINDOW_DEFAULT_HEIGHT,
+      frame: false,
+      hasShadow: false,
+      transparent: true,
+      backgroundColor: "#00000000",
+      roundedCorners: true,
       resizable: true
     });
   });

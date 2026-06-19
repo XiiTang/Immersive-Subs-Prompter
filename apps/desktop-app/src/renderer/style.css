@@ -605,6 +605,7 @@
 :root {
   --panel-opacity-factor: 1;
   --top-panel-collapsed-offset: 0px;
+  --window-boundary-radius: 10px;
 }
 
 body.main-window-body {
@@ -619,6 +620,7 @@ body.main-window-body {
   overflow: hidden;
   background: transparent;
   border: 0;
+  border-radius: var(--window-boundary-radius);
   position: relative;
 }
 
@@ -654,7 +656,7 @@ body.main-window-body {
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--ui-border);
-  border-radius: 0;
+  border-radius: var(--window-boundary-radius);
   background: var(--ui-surface);
   overflow: hidden;
   transform: translate3d(0, 0, 0);
@@ -852,9 +854,12 @@ body.main-window-body {
 }
 
 .settings-window {
+  height: 100vh;
   min-height: 100vh;
-  background: var(--ui-bg);
+  background: transparent;
   color: var(--ui-text);
+  border-radius: var(--window-boundary-radius);
+  overflow: hidden;
   -webkit-app-region: no-drag;
 }
 
@@ -863,6 +868,8 @@ body.main-window-body {
   grid-template-rows: 48px minmax(0, 1fr);
   height: 100vh;
   min-height: 0;
+  background: var(--ui-bg);
+  border-radius: var(--window-boundary-radius);
   overflow: hidden;
 }
 

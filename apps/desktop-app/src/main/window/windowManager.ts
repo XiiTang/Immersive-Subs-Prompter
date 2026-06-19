@@ -37,6 +37,7 @@ export class WindowManager {
       hasShadow: false,
       transparent: true,
       backgroundColor: "#00000000",
+      roundedCorners: true,
       resizable: true,
       fullscreenable: false,
       titleBarStyle: "hidden",
