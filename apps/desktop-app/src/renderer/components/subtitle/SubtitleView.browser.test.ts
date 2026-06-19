@@ -518,6 +518,88 @@ describe("SubtitleView", () => {
     }
   });
 
+  it("keeps the pending A-B start across media server state refreshes with unchanged subtitles", async () => {
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 180 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 220 });
+
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.desktopState = {
+      ...createDesktopState(),
+      activeSource: "mediaserver",
+      site: "jellyfinemby",
+      mediaServer: {
+        connected: true,
+        sessions: [{ id: "server-1:session-1", serverConfigId: "server-1", serverType: "jellyfinemby" }],
+        selectedSessionId: "server-1:session-1",
+        lastUpdated: Date.now()
+      }
+    };
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+    await nextTick();
+
+    await wrapper.get('[data-testid="cue-action-ab"]').trigger("click");
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("A");
+
+    const current = store.desktopState!;
+    const clonedPrimary = createTrack(
+      "primary",
+      current.primarySubtitles!.cues.map((cue) => ({ ...cue }))
+    );
+    const clonedSecondary = createTrack(
+      "secondary",
+      current.secondarySubtitles!.cues.map((cue) => ({ ...cue }))
+    );
+    const nextPlayback = {
+      ...store.playback!,
+      currentTime: 700,
+      lastUpdate: Date.now(),
+      loop: null
+    };
+    store.playback = nextPlayback;
+    store.desktopState = {
+      ...current,
+      playback: nextPlayback,
+      subtitleTracks: [clonedPrimary, clonedSecondary],
+      primarySubtitles: clonedPrimary,
+      secondarySubtitles: clonedSecondary,
+      mediaServer: {
+        ...current.mediaServer,
+        sessions: [...current.mediaServer.sessions],
+        lastUpdated: Date.now()
+      }
+    };
+
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="cue-action-ab"]').text()).toBe("A");
+
+    wrapper.unmount();
+    if (clientWidthDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
+    }
+    if (clientHeightDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeightDescriptor);
+    }
+  });
+
   it("keeps the looped cue rail visible after playback moves to another block", async () => {
     const clientWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
     const clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");

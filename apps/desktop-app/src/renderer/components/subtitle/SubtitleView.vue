@@ -196,6 +196,12 @@ const secondaryTrackId = computed({
 const transcriptBlocks = computed<TranscriptBlock[]>(() => store.transcriptBlocks);
 const primaryCues = computed(() => store.desktopState?.primarySubtitles?.cues ?? EMPTY_CUES);
 const secondaryCues = computed(() => store.desktopState?.secondarySubtitles?.cues ?? EMPTY_CUES);
+const primarySubtitleSelectionKey = computed(() =>
+  createSubtitleSelectionKey(store.desktopState?.selectedPrimarySubtitleId ?? null, primaryCues.value)
+);
+const secondarySubtitleSelectionKey = computed(() =>
+  createSubtitleSelectionKey(store.desktopState?.selectedSecondarySubtitleId ?? null, secondaryCues.value)
+);
 const playback = computed(() => store.playback ?? store.desktopState?.playback);
 const playbackLoop = computed(() => playback.value?.loop ?? null);
 const abLoopSelectionState = ref(createAbLoopSelectionState());
@@ -207,12 +213,7 @@ const wordLookupTriggerLeftRequestToken = ref<number | null>(null);
 const hoveredWordPayload = ref<WordHoverPayload | null>(null);
 const wordLookupError = ref<string | null>(null);
 
-watch([
-  () => store.desktopState?.selectedPrimarySubtitleId,
-  () => store.desktopState?.selectedSecondarySubtitleId,
-  primaryCues,
-  secondaryCues
-], () => {
+watch([primarySubtitleSelectionKey, secondarySubtitleSelectionKey], () => {
   abLoopSelectionState.value = createAbLoopSelectionState();
 });
 watch(playbackLoop, (loop) => {
@@ -350,6 +351,22 @@ async function startTranscription() {
 
 function formatTrackLabel(sourceFile: string): string {
   return formatSourceFile(sourceFile, transcriptionConfigNames.value);
+}
+
+function createSubtitleSelectionKey(
+  trackId: string | null,
+  cues: ReadonlyArray<{ start: number; end: number; text: string }>
+): string {
+  const firstCue = cues[0];
+  const lastCue = cues[cues.length - 1];
+  return [
+    trackId ?? "",
+    cues.length,
+    firstCue?.start ?? "",
+    firstCue?.end ?? "",
+    lastCue?.start ?? "",
+    lastCue?.end ?? ""
+  ].join(":");
 }
 
 const statusBanner = computed(() => {
