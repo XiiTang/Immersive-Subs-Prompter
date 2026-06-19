@@ -247,33 +247,23 @@ export class ConnectionManager {
     this.options.stateManager.setNetworkListenerStatuses(statuses);
   }
 
-  private normalizeDuration(value: unknown): number | null {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      return null;
-    }
-    return Math.max(0, value);
-  }
-
   private projectExtensionPlayback(
-    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"],
-    existingDuration: number | null
+    payload: Extract<FromExtensionBroadcastMessage, { type: "video-context" | "time-update" | "playback-rate" }>["payload"]
   ) {
-    const durationUpdate = this.normalizeDuration(payload.duration);
-    const duration = durationUpdate !== null ? durationUpdate : existingDuration;
     const projected = projectPlaybackSnapshot(
       {
         currentTime: payload.currentTime,
         updatedAt: payload.updatedAt,
         playbackRate: payload.playbackRate,
         paused: payload.paused,
-        duration
+        duration: payload.duration
       },
       Date.now()
     );
     return {
       currentTime: projected.currentTime,
       playbackRate: projected.playbackRate,
-      duration,
+      duration: payload.duration,
       lastUpdate: projected.updatedAt
     };
   }
@@ -376,6 +366,7 @@ export class ConnectionManager {
 
     this.rememberTabSocket(tabId, socket);
     const resolvedUrl = type === "video-context" ? this.resolveVideoUrl(payload) : null;
+    this.applyExtensionPlaybackMessage(message);
     const pendingHandlers: Promise<unknown>[] = [];
     const event: ConnectionMessageEvent = {
       message,
@@ -393,7 +384,6 @@ export class ConnectionManager {
       await pendingHandlers[index];
     }
     if (event.handled) {
-      this.applyHandledPlaybackMessage(event.message);
       return;
     }
 
@@ -440,15 +430,6 @@ export class ConnectionManager {
           pageUrl: message.payload.pageUrl ?? null,
           site: message.payload.site ?? null,
           title: message.payload.title ?? null
-        });
-
-        const initialPlayback = this.projectExtensionPlayback(
-          message.payload,
-          this.options.stateManager.getState().playback.duration ?? null
-        );
-        this.options.stateManager.updatePlayback({
-          ...initialPlayback,
-          loop: message.payload.loop ?? null
         });
 
         if (!resolvedUrl) {
@@ -524,20 +505,6 @@ export class ConnectionManager {
 
       case "time-update":
       case "playback-rate": {
-        const state = this.options.stateManager.getState();
-        if (state.activeTabId !== null && state.activeTabId !== message.tabId) {
-          return;
-        }
-
-        const projectedPlayback = this.projectExtensionPlayback(
-          message.payload,
-          state.playback.duration ?? null
-        );
-
-        this.options.stateManager.updatePlayback({
-          ...projectedPlayback,
-          loop: message.payload.loop ?? null
-        });
         break;
       }
 
@@ -629,7 +596,7 @@ export class ConnectionManager {
     }
   }
 
-  private applyHandledPlaybackMessage(message: FromExtensionBroadcastMessage): void {
+  private applyExtensionPlaybackMessage(message: FromExtensionBroadcastMessage): void {
     if (message.type !== "video-context" && message.type !== "time-update" && message.type !== "playback-rate") {
       return;
     }
@@ -640,8 +607,7 @@ export class ConnectionManager {
       }
     }
 
-    const state = this.options.stateManager.getState();
-    const playback = this.projectExtensionPlayback(message.payload, state.playback.duration ?? null);
+    const playback = this.projectExtensionPlayback(message.payload);
     this.options.stateManager.updatePlayback({
       ...playback,
       loop: message.payload.loop ?? null

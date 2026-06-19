@@ -17,6 +17,7 @@ The projection contract treats these values as distinct:
 - `currentTime`: media position in milliseconds at `updatedAt`.
 - `playbackRate`: source playback speed.
 - `paused`: whether the source was paused at `updatedAt`.
+- `duration`: source duration at `updatedAt`, or `null` when the media element has no finite duration.
 - `lastUpdate`: desktop renderer baseline time after projection in the main process.
 
 `sentAt` remains a transport timestamp. It is not a playback sample timestamp.
@@ -43,7 +44,7 @@ The content script reads playback directly from `HTMLVideoElement` and emits:
 - `updatedAt: Date.now()`.
 - loop metadata.
 
-The background runtime keeps cached media records on a current background baseline. Popup snapshots and reconnect replay use `projectPlaybackSnapshot()` before exposing cached records.
+The background runtime accepts only complete playback samples with a positive finite `updatedAt`. It rejects malformed playback samples instead of substituting a local timestamp. Cached media records are kept on a current background baseline, and popup snapshots and reconnect replay use `projectPlaybackSnapshot()` before exposing cached records.
 
 ## Desktop Main
 
@@ -53,9 +54,9 @@ The background runtime keeps cached media records on a current background baseli
 - `time-update`.
 - `playback-rate`.
 
-For generic/YT-DLP videos, that projection happens inside the normal extension message path before subtitle loading.
+That projection happens once at desktop socket ingress, before either the generic/YT-DLP subtitle path or media-source handlers run.
 
-For Jellyfin / Emby videos, `MediaSourceController` may mark the message handled to prevent generic subtitle loading, but `ConnectionManager` still applies the same extension playback projection before returning. This keeps Jellyfin / Emby playback time on the exact same timestamp path as generic/YT-DLP playback.
+For Jellyfin / Emby videos, `MediaSourceController` may mark the message handled to prevent generic subtitle loading. It does not own playback projection; by the time it handles the message, `ConnectionManager` has already applied the same extension playback projection used by generic/YT-DLP playback.
 
 ## Jellyfin / Emby
 
@@ -74,7 +75,7 @@ It does not emit playback timeline events. Server playback fields are not used t
 
 - All playback projection goes through `projectPlaybackSnapshot()`.
 - Extension playback snapshots are the only playback timestamp source.
-- Malformed playback samples fail at the shared projection boundary instead of falling back to local timestamps or default playback values.
+- Malformed playback samples are rejected instead of falling back to local timestamps or default playback values.
 - Jellyfin / Emby media-source handling cannot fall through into generic subtitle loading, but it also cannot replace extension playback time.
 - Media-source adapters do not own desktop playback timeline events.
 - The renderer prediction loop remains structurally unchanged.

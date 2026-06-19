@@ -189,4 +189,64 @@ describe("ContentMessageRouter", () => {
       vi.useRealTimers();
     }
   });
+
+  it("does not broadcast playback samples that omit the source updatedAt", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(5000);
+    try {
+      const logger = {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn()
+      };
+      const connectionPool = {
+        broadcast: vi.fn(),
+        describe: vi.fn(() => [])
+      };
+      const tabRegistry = {
+        rememberActiveFrame: vi.fn()
+      };
+      const mediaStateStore = new MediaStateStore({ logger: logger as never });
+      const snapshotBuilder = new SnapshotBuilder({
+        mediaStateStore,
+        connectionPool: connectionPool as never,
+        getEndpoints: () => [],
+        logger: logger as never
+      });
+      const router = new ContentMessageRouter({
+        logger: logger as never,
+        tabRegistry: tabRegistry as never,
+        mediaStateStore,
+        connectionPool: connectionPool as never,
+        snapshotBuilder
+      });
+
+      router.handleMessage(7, 0, {
+        type: "time-update",
+        payload: {
+          pageUrl: "https://example.com/watch",
+          site: "unknown",
+          videoSrc: "https://cdn.example.com/video.mp4",
+          videoWidth: 1920,
+          videoHeight: 1080,
+          pictureInPicture: false,
+          playbackRate: 1,
+          currentTime: 1000,
+          duration: 20_000,
+          paused: false,
+          muted: false,
+          volume: 1,
+          readyState: 4,
+          title: "Example",
+          loop: null
+        }
+      });
+
+      expect(mediaStateStore.has(7)).toBe(false);
+      expect(connectionPool.broadcast).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

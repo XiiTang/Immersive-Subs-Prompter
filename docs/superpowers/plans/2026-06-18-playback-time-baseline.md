@@ -6,13 +6,13 @@ Playback time now has one source of truth: extension snapshots sampled from `HTM
 
 The shared projection helper in `@immersive-subs/contracts` remains the only timestamp math implementation. Extension background records, reconnect replay, popup/dashboard snapshots, and desktop main playback updates all project source snapshots from `updatedAt` to local handling time before exposing them further.
 
-Malformed playback snapshots are contract errors. The projection helper rejects them instead of substituting local timestamps, zero positions, or default playback rates.
+Malformed playback snapshots are contract errors. The extension background rejects playback samples without a valid `updatedAt`, and the projection helper rejects malformed projection inputs instead of substituting local timestamps, zero positions, or default playback rates.
 
 ## Desktop Behavior
 
-`ConnectionManager` applies extension playback for `video-context`, `time-update`, and `playback-rate` messages.
+`ConnectionManager` applies extension playback for `video-context`, `time-update`, and `playback-rate` messages once at socket ingress.
 
-When Jellyfin / Emby matches a media page, `MediaSourceController` handles media-server state, session selection, subtitle loading, and media-source errors. It may mark the message handled so generic/YT-DLP subtitle loading does not run. `ConnectionManager` still applies the extension playback projection for that handled message before returning.
+When Jellyfin / Emby matches a media page, `MediaSourceController` handles media-server state, session selection, subtitle loading, and media-source errors. It may mark the message handled so generic/YT-DLP subtitle loading does not run. The extension playback projection has already run before that media-source handling starts.
 
 This keeps Jellyfin / Emby playback time on the same path as generic/YT-DLP playback.
 
@@ -35,7 +35,8 @@ The final code contains:
 
 - Extension-owned desktop playback timeline updates.
 - Jellyfin / Emby session state for matching and subtitle loading.
-- Strict projection validation that rejects malformed playback samples.
+- Strict playback sample validation that rejects malformed timestamps instead of fabricating local baselines.
+- Desktop duration baselines from the current extension sample, including `null` for unknown duration.
 - A regression test proving Jellyfin / Emby media-source handling does not replace extension playback time.
 
 ## Verification

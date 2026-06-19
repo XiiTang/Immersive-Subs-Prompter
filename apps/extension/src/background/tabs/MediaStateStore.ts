@@ -4,6 +4,7 @@ import type { MediaStateRecord } from "../../shared/types";
 import { projectMediaStateRecord } from "./MediaStateSelectors";
 
 const MINIMUM_DURATION = 10000;
+const PLAYBACK_SAMPLE_EVENTS = new Set(["video-context", "time-update", "playback-rate"]);
 
 export class MediaStateStore {
   logger: Logger;
@@ -37,34 +38,60 @@ export class MediaStateStore {
       this.logger.debug("filter", `Filtered: duration=${duration}s`);
       return false;
     }
+    if (!isNonNegativeFiniteNumber(payload.currentTime)) {
+      this.logger.debug("filter", "Filtered: invalid currentTime");
+      return false;
+    }
+    if (!isPositiveFiniteNumber(payload.updatedAt)) {
+      this.logger.debug("filter", "Filtered: invalid updatedAt");
+      return false;
+    }
+    if (!isPositiveFiniteNumber(payload.playbackRate)) {
+      this.logger.debug("filter", "Filtered: invalid playbackRate");
+      return false;
+    }
+    if (typeof payload.paused !== "boolean") {
+      this.logger.debug("filter", "Filtered: invalid paused state");
+      return false;
+    }
     return true;
   }
 
   setState(tabId: number, patch: Partial<MediaStateRecord> = {}, lastEventType?: string): MediaStateRecord | null {
     if (typeof tabId !== "number" || !patch || typeof patch !== "object") return null;
+    const eventType = lastEventType || "video-context";
     const prev = this.mediaStates.get(tabId);
-    if (!prev && !this.isValidMedia(patch as VideoStateSnapshot)) {
+    if (isPlaybackSampleEvent(eventType)) {
+      if (!this.isValidMedia(patch as VideoStateSnapshot)) {
+        return null;
+      }
+      const base =
+        prev ||
+        ({ ...(patch as VideoStateSnapshot), tabId, lastEventType: eventType } as MediaStateRecord);
+      const merged: MediaStateRecord = {
+        ...base,
+        ...(patch as VideoStateSnapshot),
+        tabId,
+        lastEventType: eventType
+      };
+      const next = projectMediaStateRecord(merged, Date.now());
+      this.mediaStates.set(tabId, next);
+      this.onChange?.(this.mediaStates);
+      return next;
+    }
+    if (!prev) {
       return null;
     }
-    const base =
-      prev ||
-      ({ ...(patch as VideoStateSnapshot), tabId, lastEventType: lastEventType || "video-context" } as MediaStateRecord);
-    const now = Date.now();
-    const sampleUpdatedAt =
-      typeof patch.updatedAt === "number" && Number.isFinite(patch.updatedAt) && patch.updatedAt > 0
-        ? patch.updatedAt
-        : now;
     const merged: MediaStateRecord = {
-      ...base,
-      ...patch,
+      ...prev,
       tabId,
-      lastEventType: lastEventType || base.lastEventType || "video-context",
-      updatedAt: sampleUpdatedAt
+      pageUrl: typeof patch.pageUrl === "string" ? patch.pageUrl : prev.pageUrl,
+      title: typeof patch.title === "string" ? patch.title : prev.title,
+      lastEventType: eventType
     };
-    const next = projectMediaStateRecord(merged, now);
-    this.mediaStates.set(tabId, next);
+    this.mediaStates.set(tabId, merged);
     this.onChange?.(this.mediaStates);
-    return next;
+    return merged;
   }
 
   removeState(tabId: number): boolean {
@@ -85,4 +112,16 @@ export class MediaStateStore {
   list(): MediaStateRecord[] {
     return [...this.mediaStates.values()];
   }
+}
+
+function isPlaybackSampleEvent(eventType: string): boolean {
+  return PLAYBACK_SAMPLE_EVENTS.has(eventType);
+}
+
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }

@@ -302,6 +302,74 @@ describe("ConnectionManager network listeners", () => {
     expect(subtitleService.getSubtitles).not.toHaveBeenCalled();
   });
 
+  it("projects playback before media-source handlers observe handled media messages", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.updatePlayback.mockImplementation((playback) => {
+        stateManager.state.playback = {
+          ...stateManager.state.playback,
+          ...playback
+        };
+      });
+      const bus = new AppEventBus();
+      let observedPlayback: DesktopState["playback"] | null = null;
+      bus.on("connection:message", (event) => {
+        observedPlayback = { ...stateManager.state.playback } as DesktopState["playback"];
+        event.markHandled();
+      });
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {
+          getSubtitles: vi.fn(async () => ({ tracks: [] }))
+        } as never,
+        stateManager: stateManager as never,
+        bus,
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "video-context",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+            videoSrc: null,
+            site: "jellyfin",
+            title: "Episode",
+            currentTime: 1000,
+            updatedAt: 7000,
+            playbackRate: 1.5,
+            duration: 20_000,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      expect(observedPlayback).toEqual({
+        currentTime: 5500,
+        duration: 20_000,
+        playbackRate: 1.5,
+        lastUpdate: 10_000,
+        loop: null
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps a first Jellyfin / Emby match failure on the media-source path", async () => {
     const network: NetworkSettings = {
       endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
@@ -568,12 +636,13 @@ describe("ConnectionManager network listeners", () => {
         bus: new AppEventBus(),
         createWebSocketServer: () => new FakeWebSocketServer() as never
       });
-      const handleMessage = (manager as unknown as {
-        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
-      }).handleMessage.bind(manager);
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
 
-      await handleMessage(
-        {
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
           source: "usp-extension",
           type: "time-update",
           tabId: 1,
@@ -589,14 +658,69 @@ describe("ConnectionManager network listeners", () => {
             paused: false,
             loop: null
           }
-        },
-        null
+        }))
       );
 
       expect(stateManager.updatePlayback).toHaveBeenCalledWith({
         currentTime: 10_000,
         playbackRate: 1.5,
         duration: 12_000,
+        loop: null,
+        lastUpdate: 10_000
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses the extension duration sample instead of retaining an older desktop duration", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.state.activeTabId = 1;
+      stateManager.state.playback.duration = 20_000;
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {} as never,
+        stateManager: stateManager as never,
+        bus: new AppEventBus(),
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "time-update",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://example.test/watch",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "unknown",
+            title: "Example",
+            currentTime: 1000,
+            updatedAt: 9000,
+            playbackRate: 1,
+            duration: null,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      expect(stateManager.updatePlayback).toHaveBeenCalledWith({
+        currentTime: 2000,
+        playbackRate: 1,
+        duration: null,
         loop: null,
         lastUpdate: 10_000
       });
@@ -624,19 +748,20 @@ describe("ConnectionManager network listeners", () => {
         bus: new AppEventBus(),
         createWebSocketServer: () => new FakeWebSocketServer() as never
       });
-      const handleMessage = (manager as unknown as {
-        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
-      }).handleMessage.bind(manager);
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
 
-      await handleMessage(
-        {
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
           source: "usp-extension",
           type: "video-context",
           tabId: 1,
           payload: {
-            pageUrl: "https://example.test/watch",
+            pageUrl: "https://youtube.com/watch?v=abc",
             videoSrc: "https://cdn.example.test/video.mp4",
-            site: "unknown",
+            site: "youtube",
             title: "Example",
             currentTime: 2000,
             updatedAt: 5000,
@@ -645,8 +770,7 @@ describe("ConnectionManager network listeners", () => {
             paused: false,
             loop: null
           }
-        },
-        "https://cdn.example.test/video.mp4"
+        }))
       );
 
       expect(stateManager.updatePlayback).toHaveBeenCalledWith({
@@ -682,12 +806,13 @@ describe("ConnectionManager network listeners", () => {
         bus,
         createWebSocketServer: () => new FakeWebSocketServer() as never
       });
-      const handleMessage = (manager as unknown as {
-        handleMessage(message: unknown, resolvedUrl: string | null): Promise<void>;
-      }).handleMessage.bind(manager);
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
 
-      await handleMessage(
-        {
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
           source: "usp-extension",
           type: "video-context",
           tabId: 1,
@@ -703,8 +828,7 @@ describe("ConnectionManager network listeners", () => {
             paused: false,
             loop: null
           }
-        },
-        "https://youtube.com/watch?v=abc"
+        }))
       );
 
       expect(stateManager.getState().playback).toEqual({
