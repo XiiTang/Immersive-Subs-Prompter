@@ -2,7 +2,7 @@
 
 ## Goal
 
-Playback time has one authoritative sample source: the browser extension's `HTMLVideoElement` snapshot. Every runtime that stores, forwards, replays, or applies playback state projects that snapshot from its `updatedAt` sample timestamp to the local handling time.
+Playback time has one authoritative sample source: the browser extension's `HTMLVideoElement` snapshot. Desktop main is the only runtime that projects desktop-bound playback samples from their `updatedAt` sample timestamp to the local handling time. Extension background projection is limited to popup/dashboard display snapshots.
 
 The desktop renderer keeps its existing prediction loop. It receives a desktop-side baseline containing projected `currentTime`, `playbackRate`, `duration`, `loop`, and `lastUpdate`.
 
@@ -27,10 +27,11 @@ The projection contract treats these values as distinct:
 ```mermaid
 flowchart LR
   Video["HTMLVideoElement"] --> Content["Content snapshot\ncurrentTime + updatedAt"]
-  Content --> Background["Extension background\ncache/project/forward"]
+  Content --> Background["Extension background\ncache raw sample/forward raw sample"]
   Background --> DesktopMain["Desktop main\nproject/apply playback"]
   Jellyfin["Jellyfin / Emby\nsource/session/subtitle matching"] --> DesktopMain
   DesktopMain --> Renderer["Renderer\nexisting prediction loop"]
+  Background --> Popup["Popup/dashboard\nproject display snapshot"]
 ```
 
 ## Extension
@@ -44,7 +45,7 @@ The content script reads playback directly from `HTMLVideoElement` and emits:
 - `updatedAt: Date.now()`.
 - loop metadata.
 
-The background runtime accepts only complete playback samples with a positive finite `updatedAt`. It rejects malformed playback samples instead of substituting a local timestamp. Cached media records are kept on a current background baseline, and popup snapshots and reconnect replay use `projectPlaybackSnapshot()` before exposing cached records.
+The background runtime accepts only complete playback samples with a positive finite `updatedAt`. It rejects malformed playback samples instead of substituting a local timestamp. Cached media records keep the raw content sample. Desktop-bound broadcasts and reconnect replay forward that raw sample; popup/dashboard snapshots may call `projectPlaybackSnapshot()` for display only.
 
 ## Desktop Main
 
@@ -66,15 +67,15 @@ The built-in Jellyfin / Emby media source is not a playback-time source.
 It owns only:
 
 - Matching configured server URLs.
-- Fetching and caching server sessions for session selection.
+- Fetching server sessions for session selection.
 - Loading subtitle tracks from the selected session.
 - Keeping first-match failures on the media-source path.
 
-It does not emit playback timeline events. Server playback fields are not used to drive the desktop playback clock. The session cache timestamp is only a cache-expiry timestamp.
+It does not emit playback timeline events. Server playback fields are not used to drive the desktop playback clock.
 
 ## Acceptance Criteria
 
-- All playback projection goes through `projectPlaybackSnapshot()`.
+- Desktop playback projection goes through `projectPlaybackSnapshot()` exactly once at desktop ingress. Popup/dashboard display projection may use the same helper without changing desktop-bound samples.
 - Extension playback snapshots are the only playback timestamp source.
 - Malformed playback samples are rejected instead of falling back to local timestamps or default playback values.
 - Jellyfin / Emby media-source handling cannot fall through into generic subtitle loading, but it also cannot replace extension playback time.

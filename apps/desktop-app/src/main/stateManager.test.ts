@@ -3,7 +3,7 @@ import { DEFAULT_PROFILE_ID } from "../common/defaultSettings.js";
 import { AppEventBus } from "./appEventBus.js";
 import { DEFAULT_SETTINGS_FACTORY } from "./settings/appSettingsSanitizer.js";
 import { StateManager } from "./stateManager.js";
-import type { AppSettings } from "./types.js";
+import type { AppSettings, MediaServerSessionSummary } from "./types.js";
 
 function createProfile(base: AppSettings, id: string, name: string) {
   const template = base.profiles.find((profile) => profile.id === DEFAULT_PROFILE_ID)!;
@@ -273,5 +273,53 @@ describe("StateManager profile URL matching", () => {
       lastUpdate: 12_345,
       loop: null
     });
+  });
+
+  it("does not emit full state changes for unchanged media server sessions", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
+    try {
+      const settings = makeSettings();
+      const bus = new AppEventBus();
+      const stateChanged = vi.fn();
+      bus.on("state:changed", stateChanged);
+      const manager = new StateManager(bus, () => settings);
+      const session: MediaServerSessionSummary = {
+        id: "server-1:session-1",
+        serverConfigId: "server-1",
+        serverName: "Home",
+        serverType: "jellyfin",
+        deviceName: "Chrome",
+        client: "Jellyfin Web",
+        userName: "cq",
+        nowPlayingItemId: "item-1",
+        nowPlayingItemName: "Episode",
+        mediaSourceId: "media-1",
+        subtitleStreams: [
+          {
+            index: 2,
+            codec: "subrip",
+            language: "eng",
+            displayTitle: "English",
+            isDefault: true,
+            isForced: false,
+            isText: true
+          }
+        ]
+      };
+
+      manager.setMediaServerSessions([session]);
+      expect(stateChanged).toHaveBeenCalledTimes(1);
+      expect(manager.getState().mediaServer.lastUpdated).toBe(1000);
+
+      stateChanged.mockClear();
+      vi.setSystemTime(5000);
+      manager.setMediaServerSessions([{ ...session, subtitleStreams: [{ ...session.subtitleStreams[0]! }] }]);
+
+      expect(stateChanged).not.toHaveBeenCalled();
+      expect(manager.getState().mediaServer.lastUpdated).toBe(1000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

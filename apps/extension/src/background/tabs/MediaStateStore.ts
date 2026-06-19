@@ -1,7 +1,6 @@
 import { Logger } from "../../shared/Logger";
 import type { VideoStateSnapshot } from "@immersive-subs/contracts";
 import type { MediaStateRecord } from "../../shared/types";
-import { projectMediaStateRecord } from "./MediaStateSelectors";
 
 const MINIMUM_DURATION = 10000;
 const PLAYBACK_SAMPLE_EVENTS = new Set(["video-context", "time-update", "playback-rate"]);
@@ -74,10 +73,9 @@ export class MediaStateStore {
         tabId,
         lastEventType: eventType
       };
-      const next = projectMediaStateRecord(merged, Date.now());
-      this.mediaStates.set(tabId, next);
+      this.mediaStates.set(tabId, merged);
       this.onChange?.(this.mediaStates);
-      return next;
+      return merged;
     }
     if (!prev) {
       return null;

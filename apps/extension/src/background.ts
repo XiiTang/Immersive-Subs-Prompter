@@ -64,8 +64,7 @@ const contentMessageRouter = new ContentMessageRouter({
   logger,
   tabRegistry,
   mediaStateStore,
-  connectionPool,
-  snapshotBuilder
+  connectionPool
 });
 
 endpointManager.load().then((endpoints) => {

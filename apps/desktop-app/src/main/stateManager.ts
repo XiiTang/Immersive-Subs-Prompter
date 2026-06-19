@@ -3,6 +3,7 @@ import {
   AppSettings,
   DesktopState,
   MediaServerSessionSummary,
+  MediaServerSubtitleStream,
   PlaybackState,
   ProfileDefinition,
   ProfileRule,
@@ -317,6 +318,9 @@ export class StateManager {
   }
 
   setMediaServerSessions(sessions: MediaServerSessionSummary[]) {
+    if (areMediaServerSessionsEqual(this.state.mediaServer.sessions, sessions)) {
+      return this.state;
+    }
     return this.updateState((draft) => {
       draft.mediaServer.sessions = sessions;
       draft.mediaServer.lastUpdated = Date.now();
@@ -443,4 +447,52 @@ function areStringArraysEqual(a: string[], b: string[]): boolean {
     return false;
   }
   return a.every((value, index) => value === b[index]);
+}
+
+function areMediaServerSessionsEqual(a: MediaServerSessionSummary[], b: MediaServerSessionSummary[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((session, index) => {
+    const other = b[index];
+    return (
+      !!other &&
+      session.id === other.id &&
+      session.serverConfigId === other.serverConfigId &&
+      session.serverName === other.serverName &&
+      session.serverType === other.serverType &&
+      session.deviceName === other.deviceName &&
+      session.client === other.client &&
+      session.userName === other.userName &&
+      session.nowPlayingItemId === other.nowPlayingItemId &&
+      session.nowPlayingItemName === other.nowPlayingItemName &&
+      session.mediaSourceId === other.mediaSourceId &&
+      areMediaServerSubtitleStreamsEqual(session.subtitleStreams, other.subtitleStreams)
+    );
+  });
+}
+
+function areMediaServerSubtitleStreamsEqual(
+  a: MediaServerSubtitleStream[],
+  b: MediaServerSubtitleStream[]
+): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((stream, index) => {
+    const other = b[index];
+    return (
+      !!other &&
+      stream.index === other.index &&
+      stream.codec === other.codec &&
+      stream.language === other.language &&
+      stream.displayTitle === other.displayTitle &&
+      stream.isDefault === other.isDefault &&
+      stream.isForced === other.isForced &&
+      stream.isText === other.isText
+    );
+  });
 }

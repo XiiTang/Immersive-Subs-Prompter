@@ -16,22 +16,15 @@ export interface JellyfinEmbyMediaSourceOptions {
   fetch?: FetchLike;
 }
 
-const SESSION_REFRESH_MS = 2000;
-
 type NormalizedServer = Omit<JellyfinEmbyServerConfig, "serverUrls"> & {
   serverUrls: string;
   apiBaseUrl: string;
 };
 
-type SessionCacheEntry = {
-  sessions: MediaServerSessionSummary[];
-  fetchedAt: number;
-};
-
 export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
   readonly sourceId = "jellyfinEmby" as const;
   private readonly fetchImpl: FetchLike;
-  private readonly sessionsByServer = new Map<string, SessionCacheEntry>();
+  private readonly subtitleTracksByIdentity = new Map<string, SubtitleTrack[]>();
 
   constructor(private readonly options: JellyfinEmbyMediaSourceOptions) {
     this.fetchImpl = options.fetch ?? fetch;
@@ -46,7 +39,7 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
       return undefined;
     }
     const envelope = message as Record<string, unknown>;
-    if (envelope.type !== "video-context" && envelope.type !== "time-update" && envelope.type !== "playback-rate") {
+    if (envelope.type !== "video-context") {
       return undefined;
     }
     const servers = parseServers(settings.config);
@@ -61,28 +54,20 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     }
 
     const itemId = extractItemId(payload);
-    const isVideoContext = envelope.type === "video-context";
-    let sessionBatch: SessionCacheEntry;
+    let sessions: MediaServerSessionSummary[];
     try {
-      sessionBatch = await this.getSessions(server, isVideoContext);
+      sessions = await fetchSessions(this.fetchImpl, server);
     } catch (error) {
-      if (!isVideoContext) {
-        throw error;
-      }
       return [
         sourceMatchedEvent(envelope, payload, null),
         { type: "error", message: errorMessage(error) }
       ];
     }
-    const { sessions } = sessionBatch;
     const selected = selectSession(sessions, itemId);
-    const events: MediaSourceAdapterEvent[] = [{ type: "sessionsChanged", sessions }];
-
-    if (!isVideoContext) {
-      return events;
-    }
-
-    events.unshift(sourceMatchedEvent(envelope, payload, selected));
+    const events: MediaSourceAdapterEvent[] = [
+      sourceMatchedEvent(envelope, payload, selected),
+      { type: "sessionsChanged", sessions }
+    ];
 
     if (selected) {
       try {
@@ -108,29 +93,35 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
     this.clearState();
   }
 
-  private async getSessions(server: NormalizedServer, forceRefresh: boolean): Promise<SessionCacheEntry> {
-    const cached = this.sessionsByServer.get(server.id);
-    if (!forceRefresh && cached && Date.now() - cached.fetchedAt < SESSION_REFRESH_MS) {
-      return cached;
-    }
-    const sessions = await fetchSessions(this.fetchImpl, server);
-    const fetchedAt = Date.now();
-    const entry = { sessions, fetchedAt };
-    this.sessionsByServer.set(server.id, entry);
-    return entry;
-  }
-
   private async loadSubtitleTracks(server: NormalizedServer, session: MediaServerSessionSummary): Promise<SubtitleTrack[]> {
     if (!session.nowPlayingItemId) {
       return [];
+    }
+    const summaryCacheKey = buildSubtitleTrackCacheKey(server, session);
+    if (summaryCacheKey) {
+      const cached = this.subtitleTracksByIdentity.get(summaryCacheKey);
+      if (cached) {
+        return cached;
+      }
     }
     const metadata = await resolveSubtitleMetadata(this.fetchImpl, server, session);
     const workingSession: MediaServerSessionSummary = {
       ...session,
       mediaSourceId: metadata.mediaSourceId,
+      subtitleStreams: metadata.streams,
       nowPlayingItemName: metadata.itemName
     };
+    const metadataCacheKey = buildSubtitleTrackCacheKey(server, workingSession);
+    if (metadataCacheKey) {
+      const cached = this.subtitleTracksByIdentity.get(metadataCacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
     if (!workingSession.mediaSourceId || !metadata.streams.length) {
+      if (metadataCacheKey) {
+        this.subtitleTracksByIdentity.set(metadataCacheKey, []);
+      }
       return [];
     }
 
@@ -155,11 +146,14 @@ export class JellyfinEmbyMediaSource implements MediaSourceRuntime {
         });
       }
     }
+    if (metadataCacheKey) {
+      this.subtitleTracksByIdentity.set(metadataCacheKey, tracks);
+    }
     return tracks;
   }
 
   private clearState(): void {
-    this.sessionsByServer.clear();
+    this.subtitleTracksByIdentity.clear();
   }
 }
 
@@ -530,4 +524,25 @@ function parseSubtitle(content: string, extension: "srt" | "vtt"): SubtitleCue[]
 
 function selectSession(sessions: MediaServerSessionSummary[], itemId: string | null): MediaServerSessionSummary | null {
   return itemId ? sessions.find((session) => session.nowPlayingItemId === itemId) ?? null : sessions[0] ?? null;
+}
+
+function buildSubtitleTrackCacheKey(server: NormalizedServer, session: MediaServerSessionSummary): string | null {
+  if (!session.nowPlayingItemId || !session.mediaSourceId) {
+    return null;
+  }
+  return JSON.stringify({
+    serverId: server.id,
+    sessionId: session.id,
+    itemId: session.nowPlayingItemId,
+    mediaSourceId: session.mediaSourceId,
+    streams: session.subtitleStreams.map((stream) => ({
+      index: stream.index,
+      codec: stream.codec,
+      language: stream.language,
+      displayTitle: stream.displayTitle,
+      isDefault: stream.isDefault,
+      isForced: stream.isForced,
+      isText: stream.isText
+    }))
+  });
 }

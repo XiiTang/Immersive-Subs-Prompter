@@ -1,7 +1,6 @@
 import { Logger } from "../../shared/Logger";
-import type { ContentToBackgroundMessage, MediaStateRecord } from "../../shared/types";
+import type { ContentToBackgroundMessage } from "../../shared/types";
 import type { DesktopConnectionPool } from "../desktop/DesktopConnectionPool";
-import type { SnapshotBuilder } from "./SnapshotBuilder";
 import type { MediaStateStore } from "../tabs/MediaStateStore";
 import type { TabRegistry } from "../tabs/TabRegistry";
 
@@ -29,31 +28,33 @@ function isContentToBackgroundMessage(message: unknown): message is ContentToBac
   );
 }
 
+function isPlaybackSampleMessage(
+  message: ContentToBackgroundMessage
+): message is Extract<ContentToBackgroundMessage, { type: "video-context" | "time-update" | "playback-rate" }> {
+  return message.type === "video-context" || message.type === "time-update" || message.type === "playback-rate";
+}
+
 export class ContentMessageRouter {
   logger: Logger;
   tabRegistry: TabRegistry;
   mediaStateStore: MediaStateStore;
   connectionPool: DesktopConnectionPool;
-  snapshotBuilder: SnapshotBuilder;
 
   constructor({
     logger = new Logger("content-router"),
     tabRegistry,
     mediaStateStore,
-    connectionPool,
-    snapshotBuilder
+    connectionPool
   }: {
     logger?: Logger;
     tabRegistry: TabRegistry;
     mediaStateStore: MediaStateStore;
     connectionPool: DesktopConnectionPool;
-    snapshotBuilder: SnapshotBuilder;
   }) {
     this.logger = logger;
     this.tabRegistry = tabRegistry;
     this.mediaStateStore = mediaStateStore;
     this.connectionPool = connectionPool;
-    this.snapshotBuilder = snapshotBuilder;
   }
 
   handlePort(port: chrome.runtime.Port) {
@@ -89,7 +90,7 @@ export class ContentMessageRouter {
       return;
     }
 
-    this.ingestMediaMessage(tabId, frameId, message);
+    const acceptedMediaSample = this.ingestMediaMessage(tabId, frameId, message);
 
     if (message.type === "video-ended") {
       this.connectionPool.broadcast({
@@ -105,16 +106,15 @@ export class ContentMessageRouter {
       });
     } else if (message.type === "loop-started" || message.type === "loop-cleared") {
       return;
-    } else if (this.mediaStateStore.has(tabId)) {
-      const mediaInfo = this.snapshotBuilder.buildMediaInfo(this.mediaStateStore.get(tabId) as MediaStateRecord);
+    } else if (acceptedMediaSample && isPlaybackSampleMessage(message)) {
       this.logger.debug("fwd", `->Desktop Tab${tabId}:${message.type}`, {
-        dur: mediaInfo.duration?.toFixed(1),
-        time: mediaInfo.currentTime?.toFixed(1)
+        dur: message.payload.duration?.toFixed(1),
+        time: message.payload.currentTime?.toFixed(1)
       });
       this.connectionPool.broadcast({
         tabId,
         type: message.type,
-        payload: mediaInfo
+        payload: message.payload
       });
     }
   }
@@ -140,7 +140,7 @@ export class ContentMessageRouter {
     }
   }
 
-  ingestMediaMessage(tabId: number, frameId: number, message: ContentToBackgroundMessage) {
+  ingestMediaMessage(tabId: number, frameId: number, message: ContentToBackgroundMessage): boolean {
     const { type, payload } = message;
 
     this.logger.debug("msg", `Tab${tabId} ->${type}`);
@@ -155,6 +155,7 @@ export class ContentMessageRouter {
         this.logger.info("media", `Tab${tabId} Update: ${type}`, { duration: payload.duration?.toFixed(1) });
         const patch = { ...payload, frameId };
         this.mediaStateStore.setState(tabId, patch, type);
+        return true;
       }
     } else if (type === "loop-started") {
       this.logger.info("loop", `Tab${tabId} Loop started`);
@@ -177,5 +178,6 @@ export class ContentMessageRouter {
       this.logger.info("media", `Tab${tabId} Playback ended`);
       this.mediaStateStore.removeState(tabId);
     }
+    return false;
   }
 }

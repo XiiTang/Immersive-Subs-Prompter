@@ -288,6 +288,60 @@ describe("JellyfinEmbyMediaSource", () => {
     );
   });
 
+  it("reuses subtitle tracks for repeated unchanged video context", async () => {
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes("/Sessions")) {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              Id: "session-1",
+              DeviceName: "Chrome",
+              Client: "Jellyfin Web",
+              UserName: "cq",
+              NowPlayingItem: {
+                Id: "item-1",
+                Name: "Episode",
+                MediaSources: [{ Id: "media-1", MediaStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }] }]
+              },
+              PlayState: { MediaSourceId: "media-1" }
+            }
+          ]
+        };
+      }
+      return {
+        ok: true,
+        text: async () => "1\n00:00:00,000 --> 00:00:01,000\nhello\n"
+      };
+    });
+    const source = new JellyfinEmbyMediaSource({ getSettings: () => createSettings(), fetch: fetch as never });
+    const message = {
+      type: "video-context",
+      tabId: 1,
+      payload: {
+        pageUrl: "https://media.example.test/web/index.html#!/details?id=item-1",
+        videoSrc: null,
+        title: "Episode",
+        site: "Jellyfin"
+      }
+    };
+
+    await source.handleConnectionMessage(message);
+    const result = await source.handleConnectionMessage(message);
+
+    expect(fetch.mock.calls.filter(([url]) => String(url).includes("/Sessions"))).toHaveLength(2);
+    expect(fetch.mock.calls.filter(([url]) => String(url).includes("/Subtitles/"))).toHaveLength(1);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "subtitleTracksLoaded",
+          sessionId: "server-1:session-1",
+          tracks: [expect.objectContaining({ id: "server-1:session-1:2" })]
+        })
+      ])
+    );
+  });
+
   it("selects the matching session from Jellyfin hash item routes", async () => {
     const fetch = vi.fn(async (url: string) => {
       if (url.includes("/Sessions")) {
@@ -408,7 +462,7 @@ describe("JellyfinEmbyMediaSource", () => {
     );
   });
 
-  it("reuses cached sessions without emitting playback snapshots", async () => {
+  it("does not refresh media-source state on playback ticks", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1000);
     try {
@@ -466,14 +520,7 @@ describe("JellyfinEmbyMediaSource", () => {
       });
 
       expect(fetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual(
-        [
-          {
-            type: "sessionsChanged",
-            sessions: [expect.objectContaining({ id: "server-1:session-1" })]
-          }
-        ]
-      );
+      expect(result).toBeUndefined();
     } finally {
       vi.useRealTimers();
     }

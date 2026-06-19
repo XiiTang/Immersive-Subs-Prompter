@@ -364,4 +364,87 @@ describe("MediaSourceController", () => {
     expect(stateManager.resetSubtitleState).toHaveBeenCalled();
   });
 
+  it("keeps repeated media-source context idempotent when media and tracks are unchanged", async () => {
+    const bus = new AppEventBus();
+    const stateManager = createStateManager();
+    const events = () => [
+      {
+        type: "sourceMatched",
+        tabId: 7,
+        pageUrl: "https://media.example.test/watch/1",
+        videoUrl: "https://media.example.test/items/1",
+        title: "Episode 1",
+        site: "community-media",
+        selectedSessionId: "session-1"
+      },
+      {
+        type: "subtitleTracksLoaded",
+        sessionId: "session-1",
+        tracks: [
+          {
+            id: "track-1",
+            sourceFile: "episode-1.srt",
+            cues: [{ start: 0, end: 1000, text: "hello" }]
+          }
+        ]
+      }
+    ];
+    const controller = new MediaSourceController({
+      bus,
+      stateManager: stateManager as never,
+      getSources: () => [
+        {
+          sourceId: "jellyfinEmby",
+          handleConnectionMessage: vi.fn(async () => events())
+        }
+      ]
+    });
+    controller.start();
+
+    await emitConnectionMessage(bus, {
+      message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
+      resolvedUrl: "https://media.example.test/watch/1",
+      handled: false,
+      markHandled() {
+        this.handled = true;
+      }
+    } as any);
+    expect(stateManager.state.activeSource).toBe("mediaserver");
+    expect(stateManager.state.subtitleTracks).toEqual([
+      {
+        id: "track-1",
+        sourceFile: "episode-1.srt",
+        cues: [{ start: 0, end: 1000, text: "hello" }]
+      }
+    ]);
+
+    vi.mocked(stateManager.setPageContext).mockClear();
+    vi.mocked(stateManager.updateState).mockClear();
+    vi.mocked(stateManager.resetSubtitleState).mockClear();
+    vi.mocked(stateManager.selectProfileForUrl).mockClear();
+    vi.mocked(stateManager.applyProfileSelection).mockClear();
+    vi.mocked(stateManager.setSubtitleTracks).mockClear();
+    vi.mocked(stateManager.applyPreferredTracksFromSettings).mockClear();
+    vi.mocked(stateManager.setStatus).mockClear();
+
+    const repeated = await emitConnectionMessage(bus, {
+      message: { source: "usp-extension", type: "video-context", tabId: 7, payload: {} },
+      resolvedUrl: "https://media.example.test/watch/1",
+      handled: false,
+      markHandled() {
+        this.handled = true;
+      }
+    } as any);
+
+    expect(repeated.handled).toBe(true);
+    expect(stateManager.setPageContext).not.toHaveBeenCalled();
+    expect(stateManager.updateState).not.toHaveBeenCalled();
+    expect(stateManager.resetSubtitleState).not.toHaveBeenCalled();
+    expect(stateManager.selectProfileForUrl).not.toHaveBeenCalled();
+    expect(stateManager.applyProfileSelection).not.toHaveBeenCalled();
+    expect(stateManager.setSubtitleTracks).not.toHaveBeenCalled();
+    expect(stateManager.applyPreferredTracksFromSettings).not.toHaveBeenCalled();
+    expect(stateManager.setStatus).not.toHaveBeenCalled();
+  });
+
 });

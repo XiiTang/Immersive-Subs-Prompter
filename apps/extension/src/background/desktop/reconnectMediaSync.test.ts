@@ -26,28 +26,28 @@ function mediaState(overrides: Partial<MediaStateRecord>): MediaStateRecord {
 }
 
 describe("sendCurrentMediaContext", () => {
-  it("sends one fresh video-context for the current best media state", () => {
+  it("sends one raw video-context for the current best media state", () => {
     const pausedRecent = mediaState({ tabId: 1, paused: true, updatedAt: 3000 });
     const playingOlder = mediaState({ tabId: 2, paused: false, updatedAt: 2000 });
     const connection = { send: vi.fn() };
 
     sendCurrentMediaContext(connection, {
       list: () => [pausedRecent, playingOlder]
-    }, 3000);
+    });
 
     expect(connection.send).toHaveBeenCalledTimes(1);
     expect(connection.send).toHaveBeenCalledWith({
       tabId: 2,
       type: "video-context",
       payload: expect.objectContaining({
-        currentTime: 120,
-        updatedAt: 3000,
+        currentTime: 12,
+        updatedAt: 2000,
         tabId: playingOlder.tabId
       })
     });
   });
 
-  it("projects a cached playing media state before reconnect replay", () => {
+  it("replays a cached playing media state without background projection", () => {
     const connection = { send: vi.fn() };
 
     sendCurrentMediaContext(
@@ -63,22 +63,21 @@ describe("sendCurrentMediaContext", () => {
             duration: 20_000
           })
         ]
-      },
-      3000
+      }
     );
 
     expect(connection.send).toHaveBeenCalledWith({
       tabId: 2,
       type: "video-context",
       payload: expect.objectContaining({
-        currentTime: 15_000,
-        updatedAt: 3000,
+        currentTime: 12_000,
+        updatedAt: 1000,
         playbackRate: 1.5
       })
     });
   });
 
-  it("does not advance a paused cached media state before reconnect replay", () => {
+  it("keeps a paused cached media sample raw before reconnect replay", () => {
     const connection = { send: vi.fn() };
 
     sendCurrentMediaContext(
@@ -94,8 +93,7 @@ describe("sendCurrentMediaContext", () => {
             duration: 20_000
           })
         ]
-      },
-      5000
+      }
     );
 
     expect(connection.send).toHaveBeenCalledWith({
@@ -103,8 +101,8 @@ describe("sendCurrentMediaContext", () => {
       type: "video-context",
       payload: expect.objectContaining({
         currentTime: 12_000,
-        updatedAt: 5000,
-        playbackRate: 0
+        updatedAt: 1000,
+        playbackRate: 2
       })
     });
   });

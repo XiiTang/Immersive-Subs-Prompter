@@ -1,4 +1,5 @@
 import type { DesktopStoreThis } from "../types";
+import type { PlaybackState } from "../../../../main/types";
 
 export async function initialize(this: DesktopStoreThis) {
   this.isInitializing = true;
@@ -25,8 +26,11 @@ export async function initialize(this: DesktopStoreThis) {
 
 export function attachIpcListeners(this: DesktopStoreThis) {
   window.usp.onStateChange((nextState) => {
-    this.desktopState = nextState;
-    this.playback = nextState.playback;
+    const playback = this.playback && arePlaybackStatesEqual(this.playback, nextState.playback)
+      ? this.playback
+      : nextState.playback;
+    this.desktopState = playback === nextState.playback ? nextState : { ...nextState, playback };
+    this.playback = playback;
   });
   window.usp.onPlayback((payload) => {
     this.playback = payload;
@@ -55,3 +59,34 @@ export const initActions = {
   initialize,
   attachIpcListeners
 };
+
+function arePlaybackStatesEqual(left: PlaybackState, right: PlaybackState): boolean {
+  return (
+    left.currentTime === right.currentTime &&
+    left.duration === right.duration &&
+    left.playbackRate === right.playbackRate &&
+    left.lastUpdate === right.lastUpdate &&
+    areLoopSnapshotsEqual(left.loop, right.loop)
+  );
+}
+
+function areLoopSnapshotsEqual(left: PlaybackState["loop"], right: PlaybackState["loop"]): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return (
+    left.status === right.status &&
+    left.mode === right.mode &&
+    left.startMs === right.startMs &&
+    left.endMs === right.endMs &&
+    left.startCueIndex === right.startCueIndex &&
+    left.endCueIndex === right.endCueIndex &&
+    left.anchorCueIndex === right.anchorCueIndex &&
+    left.origin === right.origin &&
+    left.boundaryTransition === right.boundaryTransition &&
+    left.programmaticSeekReason === right.programmaticSeekReason
+  );
+}

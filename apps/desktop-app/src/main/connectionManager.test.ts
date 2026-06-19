@@ -546,7 +546,6 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 5500,
         playbackRate: 1.5,
         duration: 20_000,
-        loop: null,
         lastUpdate: 10_000
       });
     } finally {
@@ -665,9 +664,76 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 10_000,
         playbackRate: 1.5,
         duration: 12_000,
-        loop: null,
         lastUpdate: 10_000
       });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not clear an existing desktop loop from ordinary playback samples", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    try {
+      const network: NetworkSettings = {
+        endpoints: [{ id: "loopback", host: "127.0.0.1", port: 44501 }],
+        authToken: "0123456789abcdef0123456789abcdef"
+      };
+      const stateManager = createStateManager();
+      stateManager.state.activeTabId = 1;
+      stateManager.state.playback.loop = {
+        status: "running",
+        mode: "ab",
+        startMs: 1000,
+        endMs: 3000,
+        startCueIndex: 0,
+        endCueIndex: 1,
+        anchorCueIndex: 0,
+        origin: "ab-loop",
+        boundaryTransition: "none",
+        programmaticSeekReason: "none"
+      };
+      const manager = new ConnectionManager({
+        getNetworkSettings: () => network,
+        getSettings: () => makeSettings(network),
+        subtitleService: {} as never,
+        stateManager: stateManager as never,
+        bus: new AppEventBus(),
+        createWebSocketServer: () => new FakeWebSocketServer() as never
+      });
+      const handleSocketMessage = (manager as unknown as {
+        handleSocketMessage(socket: unknown, raw: Buffer): Promise<void>;
+      }).handleSocketMessage.bind(manager);
+
+      await handleSocketMessage(
+        {},
+        Buffer.from(JSON.stringify({
+          source: "usp-extension",
+          type: "time-update",
+          tabId: 1,
+          payload: {
+            pageUrl: "https://example.test/watch",
+            videoSrc: "https://cdn.example.test/video.mp4",
+            site: "unknown",
+            title: "Example",
+            currentTime: 1000,
+            updatedAt: 9000,
+            playbackRate: 1,
+            duration: 12_000,
+            paused: false,
+            loop: null
+          }
+        }))
+      );
+
+      const playbackUpdate = vi.mocked(stateManager.updatePlayback).mock.calls[0]![0];
+      expect(playbackUpdate).toEqual({
+        currentTime: 2000,
+        playbackRate: 1,
+        duration: 12_000,
+        lastUpdate: 10_000
+      });
+      expect(Object.prototype.hasOwnProperty.call(playbackUpdate, "loop")).toBe(false);
     } finally {
       vi.useRealTimers();
     }
@@ -720,7 +786,6 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 1000,
         playbackRate: 0,
         duration: 12_000,
-        loop: null,
         lastUpdate: 10_000
       });
     } finally {
@@ -805,7 +870,6 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 2750,
         playbackRate: 0.75,
         duration: 20_000,
-        loop: null,
         lastUpdate: 10_000
       });
 
@@ -864,7 +928,6 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 2000,
         playbackRate: 1,
         duration: null,
-        loop: null,
         lastUpdate: 10_000
       });
     } finally {
@@ -920,7 +983,6 @@ describe("ConnectionManager network listeners", () => {
         currentTime: 8000,
         playbackRate: 2,
         duration: 10_000,
-        loop: null,
         lastUpdate: 8000
       });
     } finally {

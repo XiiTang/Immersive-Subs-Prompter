@@ -627,10 +627,14 @@ export class ConnectionManager {
     }
 
     const playback = this.projectExtensionPlayback(message.payload);
-    this.options.stateManager.updatePlayback({
-      ...playback,
-      loop: message.payload.loop ?? null
-    });
+    if (message.payload.loop) {
+      this.options.stateManager.updatePlayback({
+        ...playback,
+        loop: message.payload.loop
+      });
+      return;
+    }
+    this.options.stateManager.updatePlayback(playback);
   }
 
   setSubtitleTrack(payload: TrackSelectionPayload) {

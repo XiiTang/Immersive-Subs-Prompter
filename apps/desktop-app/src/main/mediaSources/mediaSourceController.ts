@@ -2,6 +2,7 @@ import type { ConnectionMessageEvent, AppEventBus } from "../appEventBus.js";
 import type { StateManager } from "../stateManager.js";
 import { createLogger } from "../logger.js";
 import type { MediaSourceAdapterEvent, MediaSourceRuntime } from "./mediaSourceTypes.js";
+import type { SubtitleTrack } from "../types.js";
 
 export interface MediaSourceControllerOptions {
   bus: AppEventBus;
@@ -88,6 +89,9 @@ export class MediaSourceController {
     switch (event.type) {
       case "sourceMatched":
         this.activeMediaSourceId = sourceId;
+        if (this.isSameSourceMatch(sourceId, event)) {
+          break;
+        }
         this.options.stateManager.setPageContext(event.tabId, {
           pageUrl: event.pageUrl,
           site: event.site,
@@ -138,6 +142,9 @@ export class MediaSourceController {
     if (event.sessionId && state.mediaServer.selectedSessionId && event.sessionId !== state.mediaServer.selectedSessionId) {
       return;
     }
+    if (this.hasSameSubtitleTracks(event)) {
+      return;
+    }
     this.options.stateManager.setSubtitleTracks(event.tracks);
     if (event.tracks.length) {
       this.options.stateManager.applyPreferredTracksFromSettings(event.tracks);
@@ -152,6 +159,34 @@ export class MediaSourceController {
       draft.status = "error";
       draft.error = "No media source subtitles available.";
     });
+  }
+
+  private isSameSourceMatch(
+    sourceId: string,
+    event: Extract<MediaSourceAdapterEvent, { type: "sourceMatched" }>
+  ): boolean {
+    if (this.activeMediaSourceId !== sourceId) {
+      return false;
+    }
+    const state = this.options.stateManager.getState();
+    const selectedSessionId = "selectedSessionId" in event ? event.selectedSessionId ?? null : state.mediaServer.selectedSessionId;
+    return (
+      state.activeSource === "mediaserver" &&
+      state.activeTabId === event.tabId &&
+      state.pageUrl === event.pageUrl &&
+      state.videoUrl === event.videoUrl &&
+      state.title === event.title &&
+      state.site === event.site &&
+      state.mediaServer.selectedSessionId === selectedSessionId
+    );
+  }
+
+  private hasSameSubtitleTracks(event: Extract<MediaSourceAdapterEvent, { type: "subtitleTracksLoaded" }>): boolean {
+    const state = this.options.stateManager.getState();
+    if ((event.sessionId ?? null) !== (state.mediaServer.selectedSessionId ?? null)) {
+      return false;
+    }
+    return areSubtitleTracksEqual(state.subtitleTracks, event.tracks);
   }
 
   private clearRuntimeState(): void {
@@ -175,6 +210,22 @@ export class MediaSourceController {
       }
     });
   }
+}
+
+function areSubtitleTracksEqual(left: SubtitleTrack[], right: SubtitleTrack[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((track, index) => {
+    const other = right[index];
+    if (!other || track.id !== other.id || track.sourceFile !== other.sourceFile || track.cues.length !== other.cues.length) {
+      return false;
+    }
+    return track.cues.every((cue, cueIndex) => {
+      const otherCue = other.cues[cueIndex];
+      return otherCue && cue.start === otherCue.start && cue.end === otherCue.end && cue.text === otherCue.text;
+    });
+  });
 }
 
 function normalizeSourceEvents(input: unknown): MediaSourceAdapterEvent[] {

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultAppSettings, DEFAULT_PROFILE_ID, DEFAULT_PROFILE_SETTINGS } from "../../common/defaultSettings.js";
-import type { AppSettings, DesktopState } from "../../main/types";
+import type { AppSettings, DesktopState, PlaybackState } from "../../main/types";
 import type { RendererApi } from "../../preload.cts";
 import { useDesktopStore } from "./desktop";
 
@@ -163,6 +163,8 @@ function createDesktopState(): DesktopState {
 }
 
 function installRendererApi(state: DesktopState, settings: AppSettings) {
+  let stateListener: ((state: DesktopState) => void) | null = null;
+  let playbackListener: ((state: PlaybackState) => void) | null = null;
   let releaseStateListener: ((state: unknown) => void) | null = null;
   const api: Partial<RendererApi> = {
     getInitialState: vi.fn().mockResolvedValue(state),
@@ -197,8 +199,12 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
       ...settings,
       ...partial
     })),
-    onStateChange: vi.fn(),
-    onPlayback: vi.fn(),
+    onStateChange: vi.fn((listener: (state: DesktopState) => void) => {
+      stateListener = listener;
+    }),
+    onPlayback: vi.fn((listener: (state: PlaybackState) => void) => {
+      playbackListener = listener;
+    }),
     onLoopCleared: vi.fn(),
     onSettingsChange: vi.fn(),
     onReleaseStateChange: vi.fn((listener: (state: unknown) => void) => {
@@ -213,6 +219,12 @@ function installRendererApi(state: DesktopState, settings: AppSettings) {
   });
 
   return {
+    emitState(state: DesktopState) {
+      stateListener?.(state);
+    },
+    emitPlayback(state: PlaybackState) {
+      playbackListener?.(state);
+    },
     emitReleaseState(state: unknown) {
       releaseStateListener?.(state);
     }
@@ -289,6 +301,29 @@ describe("desktop store profile selection", () => {
     expect(window.usp.getSettings).toHaveBeenCalledWith();
     expect(store.initError).toBeNull();
     expect(store.settings?.features.wordLookup.enabled).toBe(false);
+  });
+
+  it("keeps the playback object across non-playback state updates", async () => {
+    const initialState = createDesktopState();
+    const api = installRendererApi(initialState, createSettings());
+    const store = useDesktopStore();
+
+    await store.initialize();
+    const initialPlayback = store.playback;
+    const nextState = {
+      ...initialState,
+      mediaServer: {
+        ...initialState.mediaServer,
+        lastUpdated: 10_000
+      },
+      playback: { ...initialState.playback }
+    };
+
+    api.emitState(nextState);
+
+    expect(store.desktopState?.mediaServer.lastUpdated).toBe(10_000);
+    expect(store.playback).toBe(initialPlayback);
+    expect(store.desktopState?.playback).toBe(initialPlayback);
   });
 
   it("updates feature enabled state through settings", async () => {

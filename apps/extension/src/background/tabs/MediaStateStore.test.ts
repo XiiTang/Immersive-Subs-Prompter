@@ -54,7 +54,7 @@ describe("MediaStateStore", () => {
     }
   });
 
-  it("keeps existing state when a later incremental patch omits full media fields", () => {
+  it("keeps raw playback state when a later incremental patch omits full media fields", () => {
     vi.useFakeTimers();
     vi.setSystemTime(2000);
     try {
@@ -95,8 +95,8 @@ describe("MediaStateStore", () => {
       expect(result).toEqual(
         expect.objectContaining({
           tabId: 9,
-          currentTime: 2500,
-          updatedAt: 2000,
+          currentTime: 1500,
+          updatedAt: 1000,
           duration: 20_000,
           readyState: 4,
           title: "Episode 1 - details",
@@ -110,7 +110,7 @@ describe("MediaStateStore", () => {
     }
   });
 
-  it("stores media snapshots with a current background playback baseline", () => {
+  it("stores media snapshots without projecting the desktop-bound playback baseline", () => {
     vi.useFakeTimers();
     vi.setSystemTime(5000);
     try {
@@ -141,9 +141,9 @@ describe("MediaStateStore", () => {
 
       expect(result).toEqual(
         expect.objectContaining({
-          currentTime: 4000,
+          currentTime: 1000,
           playbackRate: 1.5,
-          updatedAt: 5000
+          updatedAt: 3000
         })
       );
     } finally {
