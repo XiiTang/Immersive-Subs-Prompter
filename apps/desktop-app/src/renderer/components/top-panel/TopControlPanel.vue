@@ -14,7 +14,6 @@
     <UiSurface
       :ref="setSurfaceRef"
       as="section"
-      variant="floating"
       :padded="false"
       class="top-control-panel__surface"
       data-testid="top-control-panel-surface"
