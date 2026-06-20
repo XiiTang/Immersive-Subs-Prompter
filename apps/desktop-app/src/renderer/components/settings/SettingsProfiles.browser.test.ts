@@ -576,6 +576,48 @@ describe("SettingsProfiles", () => {
     expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.primarySubtitleFontSize).toBe(28);
   });
 
+  it("updates the subtitle preview while a style slider is dragged without persisting until commit", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+    const updateSettings = vi.fn(async (partial: Partial<AppSettings>) => ({
+      ...store.settings!,
+      ...partial
+    }));
+    Object.defineProperty(window, "usp", {
+      configurable: true,
+      value: {
+        updateSettings
+      }
+    });
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    await flushPreviewSurface();
+
+    const slider = wrapper.get<HTMLInputElement>(
+      'input[type="range"][aria-labelledby="primary-subtitle-font-size-label"]'
+    );
+    const getActivePrimaryLine = () =>
+      wrapper.get<HTMLElement>(
+        '[data-testid="subtitle-preview-canvas"] .transcript-block--active .transcript-block__line--primary'
+      ).element;
+
+    expect(getActivePrimaryLine().style.fontSize).toBe("14px");
+
+    slider.element.value = "28";
+    await slider.trigger("input");
+    await flushPreviewSurface();
+
+    expect(getActivePrimaryLine().style.fontSize).toBe("28px");
+    expect(store.editingProfileSettings.primarySubtitleFontSize).toBe(14);
+    expect(updateSettings).not.toHaveBeenCalled();
+
+    await slider.trigger("change");
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0].profiles?.[0]?.settings.primarySubtitleFontSize).toBe(28);
+  });
+
   it("keeps timestamp font size slider local until the slider commits", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();

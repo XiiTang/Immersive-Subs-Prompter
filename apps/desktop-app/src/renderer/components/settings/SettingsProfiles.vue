@@ -21,8 +21,8 @@
           :is-default-profile="editingProfile.id === defaultProfileId"
           :rules="editingProfileRules"
         />
-        <SubtitleStyleFields />
-        <SubtitleStylePreview />
+        <SubtitleStyleFields @preview-settings-draft="updateSubtitleStylePreviewDraft" />
+        <SubtitleStylePreview :settings-draft="previewProfileSettingsDraft" />
 
         <PriorityEditor
           role="primary"
@@ -69,6 +69,7 @@ import { computed, ref } from "vue";
 import { useDesktopStore } from "../../stores/desktop";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { isValidRegex } from "../../../common/regex.js";
+import type { ProfileSettings } from "../../../main/types";
 import ProfileList from "./profiles/ProfileList.vue";
 import SubtitleStyleFields from "./profiles/SubtitleStyleFields.vue";
 import SubtitleStylePreview from "./profiles/SubtitleStylePreview.vue";
@@ -106,6 +107,7 @@ const primaryPriority = computed(() => store.editingProfileSettings.primarySubti
 const secondaryPriority = computed(() => store.editingProfileSettings.secondarySubtitlePriority ?? []);
 const primaryPriorityInput = ref("");
 const secondaryPriorityInput = ref("");
+const previewProfileSettingsDraft = ref<Partial<ProfileSettings> | null>(null);
 const primaryPriorityError = computed(() => getPriorityRegexError(primaryPriorityInput.value));
 const secondaryPriorityError = computed(() => getPriorityRegexError(secondaryPriorityInput.value));
 
@@ -127,6 +129,10 @@ function updateProfileName(profileId: string, name: string) {
     profile.id === profileId ? { ...profile, name: nextName } : profile
   );
   store.updateSettings({ profiles });
+}
+
+function updateSubtitleStylePreviewDraft(settingsDraft: Partial<ProfileSettings>) {
+  previewProfileSettingsDraft.value = settingsDraft;
 }
 
 function addPriority(role: PriorityRole) {

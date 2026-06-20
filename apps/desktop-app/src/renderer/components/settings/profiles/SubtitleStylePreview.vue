@@ -47,6 +47,7 @@ import { DEFAULT_LANGUAGE, useI18n } from "../../../i18n";
 import { clamp } from "../../../utils/formatters";
 import { createAbLoopSelectionState } from "../../subtitle/abLoopSelection";
 import TranscriptSurface from "../../subtitle/TranscriptSurface.vue";
+import type { ProfileSettings } from "../../../../main/types";
 import type { TranscriptBlock } from "../../subtitle/transcript/types";
 
 type PreviewBlockId = `before-${number}` | "active" | `after-${number}`;
@@ -326,6 +327,9 @@ const AFTER_BLOCKS: PreviewBlock[] = [
 ];
 
 const store = useDesktopStore();
+const props = defineProps<{
+  settingsDraft?: Partial<ProfileSettings> | null;
+}>();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
 
@@ -337,7 +341,10 @@ const subtitlePanelStyle = {
 };
 const previewBlocks = createPreviewTranscriptBlocks();
 
-const settings = computed(() => store.editingProfileSettings);
+const settings = computed(() => ({
+  ...store.editingProfileSettings,
+  ...(props.settingsDraft ?? {})
+}));
 const primaryFontFamily = computed(() => normalizeSubtitleFontFamily(settings.value.primarySubtitleFontFamily));
 const secondaryFontFamily = computed(() => normalizeSubtitleFontFamily(settings.value.secondarySubtitleFontFamily));
 const primaryFontSize = computed(() =>

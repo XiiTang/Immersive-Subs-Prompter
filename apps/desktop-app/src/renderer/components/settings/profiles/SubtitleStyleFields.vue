@@ -208,6 +208,9 @@ import { parseBoundedNumberDraft } from "../numericDraft";
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
 const { t } = useI18n(language);
+const emit = defineEmits<{
+  "preview-settings-draft": [settingsDraft: Partial<ProfileSettings>];
+}>();
 
 const subtitleFontOptions = SUBTITLE_FONT_OPTIONS.map((option) => ({
   ...option,
@@ -250,6 +253,10 @@ function commitDraftProfileSetting<Key extends DraftProfileSettingKey>(key: Key)
   store.updateProfileSetting(key, draft[key] as ProfileSettings[Key]);
 }
 
+function emitPreviewSettingsDraft() {
+  emit("preview-settings-draft", { ...draft });
+}
+
 function updateSubtitleAutoScrollTimeoutDraft(value: string) {
   subtitleAutoScrollTimeoutDraft.value = value;
   const timeout = parseBoundedNumberDraft(value, 1, 60);
@@ -260,8 +267,16 @@ function updateSubtitleAutoScrollTimeoutDraft(value: string) {
 
 watch(
   () => [store.editingProfileId, store.editingProfileSettings],
-  syncDraftFromStore,
+  () => {
+    syncDraftFromStore();
+    emitPreviewSettingsDraft();
+  },
   { immediate: true, deep: true }
+);
+
+watch(
+  () => ({ ...draft }),
+  emitPreviewSettingsDraft
 );
 
 const primarySubtitleFontFamily = computed({
