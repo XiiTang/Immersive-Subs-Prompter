@@ -100,6 +100,7 @@ describe("SettingsGlobal", () => {
     expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')).not.toBeNull();
     expect(wrapper.get("#language-label").element.closest('[data-slot="setting-row"]')?.querySelector(".ui-select")).not.toBeNull();
     expect(wrapper.find("#appearance-theme-label").exists()).toBe(true);
+    expect(wrapper.get("#appearance-theme").classes()).toContain("ui-setting-row--field");
     expect(wrapper.find("#cache-path-label").exists()).toBe(true);
     expect(wrapper.text()).toContain("Endpoints");
     expect(wrapper.text()).toContain("Path");
@@ -115,10 +116,24 @@ describe("SettingsGlobal", () => {
     expect(ariaIds(wrapper.get('[data-testid="toggle-shortcut-input"]').attributes("aria-describedby"))).toEqual([
       "toggle-shortcut-hint"
     ]);
-    expect(ariaIds(wrapper.get('input[aria-labelledby="cache-path-label"]').attributes("aria-describedby"))).toEqual([
-      "cache-path-hint"
-    ]);
+    expect(ariaIds(wrapper.get('input[aria-labelledby="cache-path-label"]').attributes("aria-describedby"))).toEqual([]);
     expect(ariaIds(wrapper.get('input[aria-labelledby="cache-retention-label"]').attributes("aria-describedby"))).toEqual([]);
+  });
+
+  it("keeps cache enablement as switch-only state and shows the default path as placeholder", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+
+    const wrapper = mount(SettingsGlobal);
+    const cacheGroup = wrapper
+      .findAll(".global-settings__group")
+      .find((group) => group.get(".global-settings__group-title").text() === "Cache");
+    const cachePathInput = wrapper.get<HTMLInputElement>('input[aria-labelledby="cache-path-label"]');
+
+    expect(cacheGroup?.text()).not.toContain("Enabled");
+    expect(wrapper.find("#cache-enabled-label").exists()).toBe(false);
+    expect(cachePathInput.element.value).toBe("");
+    expect(cachePathInput.attributes("placeholder")).toBe("Default: app data/subtitle-cache");
   });
 
   it("renders endpoint pills as extension URLs", () => {
@@ -164,8 +179,10 @@ describe("SettingsGlobal", () => {
     await wrapper.findAll('[role="switch"]')[0]!.trigger("click");
     expect(updateGlobalSpy).toHaveBeenCalledWith("autoLaunch", true);
 
-    const cacheRow = wrapper.get("#cache-enabled-label").element.closest('[data-slot="setting-row"]');
-    const cacheSwitch = cacheRow?.querySelector<HTMLElement>('[role="switch"]');
+    const cacheGroup = wrapper
+      .findAll(".global-settings__group")
+      .find((group) => group.get(".global-settings__group-title").text() === "缓存");
+    const cacheSwitch = cacheGroup?.get<HTMLElement>(".global-settings__group-heading [role='switch']").element;
     expect(cacheSwitch).toBeInstanceOf(HTMLElement);
     cacheSwitch!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await nextTick();

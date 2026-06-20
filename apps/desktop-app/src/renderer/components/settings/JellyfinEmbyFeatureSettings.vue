@@ -1,132 +1,148 @@
 <template>
-  <div class="settings-split jellyfin-emby-settings">
-    <aside class="settings-split__sidebar profile-list-sidebar">
-      <div class="settings-split__sidebar-header">
-        <UiToolbar class="settings-split__sidebar-buttons" :label="t('feature-jellyfin-emby-server-list')" density="compact">
-          <UiIconButton
-            :label="t('button-add')"
-            size="compact"
-            data-testid="feature-jellyfin-emby-add-server"
-            @click="addServer"
-          >
-            <IconAdd size="sm" />
-          </UiIconButton>
-          <UiIconButton
-            :label="t('button-duplicate')"
-            size="compact"
-            data-testid="feature-jellyfin-emby-duplicate-server"
-            :disabled="!selectedServerId"
-            @click="duplicateSelectedServer"
-          >
-            <IconCopy size="sm" />
-          </UiIconButton>
-          <UiIconButton
-            :label="t('button-delete')"
-            size="compact"
-            variant="danger"
-            :disabled="!selectedServerId"
-            @click="removeSelectedServer"
-          >
-            <IconDelete size="sm" />
-          </UiIconButton>
-        </UiToolbar>
-      </div>
-      <div v-if="visibleServers.length" class="profile-list">
-        <UiListItem
-          v-for="(server, index) in visibleServers"
-          :key="server.id"
-          as="div"
-          density="compact"
-          class="profile-list__item"
-          :highlighted="dragOverIndex === index"
-          :selected="server.id === selectedServerId"
-          :draggable="true"
-          :data-testid="`feature-jellyfin-emby-server-${server.id}`"
-          @click="selectedServerId = server.id"
-          @dragstart="onDragStart($event, index)"
-          @dragover.prevent="dragOverIndex = index"
-          @dragleave="dragOverIndex = null"
-          @drop.prevent="onDrop(index)"
-          @dragend="resetDrag"
-        >
-          <span class="profile-list__content">
-            <UiInput
-              v-if="editingServerId === server.id"
-              class="profile-list__name-input"
+  <UiSection :title="t('feature-jellyfin-emby-title')">
+    <div class="settings-split jellyfin-emby-settings">
+      <aside class="settings-split__sidebar profile-list-sidebar">
+        <div class="settings-split__sidebar-header">
+          <UiToolbar class="settings-split__sidebar-buttons" :label="t('feature-jellyfin-emby-server-list')" density="compact">
+            <UiIconButton
+              :label="t('button-add')"
               size="compact"
-              data-testid="feature-jellyfin-emby-server-name"
-              :data-server-id="server.id"
-              v-model="draftServerName"
-              :aria-label="t('feature-jellyfin-emby-server-name')"
-              @click.stop
-              @mousedown.stop
-              @dragstart.stop
-              @keydown="onServerNameInputKeydown"
-              @blur="commitServerName(server.id)"
-            />
-            <UiButton
-              v-else
-              variant="editable"
-              size="sm"
-              block
-              data-testid="feature-jellyfin-emby-server-name-action"
-              @click.stop="startServerNameEdit(server)"
+              data-testid="feature-jellyfin-emby-add-server"
+              @click="addServer"
+            >
+              <IconAdd size="sm" />
+            </UiIconButton>
+            <UiIconButton
+              :label="t('button-duplicate')"
+              size="compact"
+              data-testid="feature-jellyfin-emby-duplicate-server"
+              :disabled="!selectedServerId"
+              @click="duplicateSelectedServer"
+            >
+              <IconCopy size="sm" />
+            </UiIconButton>
+            <UiIconButton
+              :label="t('button-delete')"
+              size="compact"
+              variant="danger"
+              :disabled="!selectedServerId"
+              @click="removeSelectedServer"
+            >
+              <IconDelete size="sm" />
+            </UiIconButton>
+          </UiToolbar>
+        </div>
+        <div v-if="visibleServers.length" class="profile-list">
+          <UiListItem
+            v-for="(server, index) in visibleServers"
+            :key="server.id"
+            as="div"
+            density="compact"
+            class="profile-list__item"
+            :highlighted="dragOverIndex === index"
+            :selected="server.id === selectedServerId"
+            :draggable="true"
+            :data-testid="`feature-jellyfin-emby-server-${server.id}`"
+            @click="selectedServerId = server.id"
+            @dragstart="onDragStart($event, index)"
+            @dragover.prevent="dragOverIndex = index"
+            @dragleave="dragOverIndex = null"
+            @drop.prevent="onDrop(index)"
+            @dragend="resetDrag"
+          >
+            <span class="profile-list__content">
+              <UiInput
+                v-if="editingServerId === server.id"
+                class="profile-list__name-input"
+                size="compact"
+                data-testid="feature-jellyfin-emby-server-name"
+                :data-server-id="server.id"
+                v-model="draftServerName"
+                :aria-label="t('feature-jellyfin-emby-server-name')"
+                @click.stop
+                @mousedown.stop
+                @dragstart.stop
+                @keydown="onServerNameInputKeydown"
+                @blur="commitServerName(server.id)"
+              />
+              <UiButton
+                v-else
+                variant="editable"
+                size="sm"
+                block
+                data-testid="feature-jellyfin-emby-server-name-action"
+                @click.stop="startServerNameEdit(server)"
+                @mousedown.stop
+                @dragstart.stop
+              >
+                {{ server.name || t("feature-jellyfin-emby-untitled") }}
+              </UiButton>
+              <span class="profile-list__meta">{{ serverMeta(server) }}</span>
+            </span>
+            <button
+              type="button"
+              class="profile-list__status-action"
+              :class="{ 'is-active': server.enabled }"
+              :aria-label="t('feature-jellyfin-emby-server-enabled')"
+              :aria-pressed="server.enabled ? 'true' : 'false'"
+              :data-testid="`feature-jellyfin-emby-server-enabled-${server.id}`"
+              @click.stop="updateServer(server.id, { enabled: !server.enabled })"
               @mousedown.stop
               @dragstart.stop
             >
-              {{ server.name || t("feature-jellyfin-emby-untitled") }}
-            </UiButton>
-            <span class="profile-list__meta">{{ serverMeta(server) }}</span>
-          </span>
-          <button
-            type="button"
-            class="profile-list__status-action"
-            :class="{ 'is-active': server.enabled }"
-            :aria-label="t('feature-jellyfin-emby-server-enabled')"
-            :aria-pressed="server.enabled ? 'true' : 'false'"
-            :data-testid="`feature-jellyfin-emby-server-enabled-${server.id}`"
-            @click.stop="updateServer(server.id, { enabled: !server.enabled })"
-            @mousedown.stop
-            @dragstart.stop
-          >
-            <IconCheck v-if="server.enabled" size="sm" />
-          </button>
-        </UiListItem>
-      </div>
-      <UiEmptyState v-else :message="t('feature-jellyfin-emby-empty')" />
-    </aside>
+              <IconCheck v-if="server.enabled" size="sm" />
+            </button>
+          </UiListItem>
+        </div>
+        <UiEmptyState v-else :message="t('feature-jellyfin-emby-empty')" />
+      </aside>
 
-    <section v-if="editableServer" class="settings-split__editor">
-      <UiSettingRow
-        id="feature-jellyfin-emby-server-url-row"
-        :label="t('feature-jellyfin-emby-server-url')"
-        :error="serverUrlsError(editableServer)"
-        control-width="wide"
-      >
-        <UiInput
-          id="feature-jellyfin-emby-server-url"
-          :model-value="editableServer.serverUrls"
-          @update:model-value="updateSelectedServer({ serverUrls: String($event) })"
-        />
-      </UiSettingRow>
-      <UiSettingRow
-        id="feature-jellyfin-emby-api-key-row"
-        :label="t('feature-jellyfin-emby-api-key')"
-        :error="serverApiKeyError(editableServer)"
-        control-width="wide"
-      >
-        <UiInput
-          id="feature-jellyfin-emby-api-key"
-          :model-value="editableServer.apiKey"
-          type="password"
-          @update:model-value="updateSelectedServer({ apiKey: String($event) })"
-        />
-      </UiSettingRow>
-    </section>
-    <section v-else class="settings-split__editor">
-      <UiEmptyState :message="t('feature-jellyfin-emby-empty')" />
-    </section>
-  </div>
+      <section v-if="editableServer" class="settings-split__editor">
+        <UiSettingRow
+          id="feature-jellyfin-emby-server-url-row"
+          :label="t('feature-jellyfin-emby-server-url')"
+          :hint="t('feature-jellyfin-emby-server-url-hint')"
+          :error="serverUrlsError(editableServer)"
+          control-width="wide"
+        >
+          <UiInput
+            id="feature-jellyfin-emby-server-url"
+            :model-value="editableServer.serverUrls"
+            @update:model-value="updateSelectedServer({ serverUrls: String($event) })"
+          />
+        </UiSettingRow>
+        <UiSettingRow
+          id="feature-jellyfin-emby-api-key-row"
+          :label="t('feature-jellyfin-emby-api-key')"
+          :error="serverApiKeyError(editableServer)"
+          control-width="wide"
+        >
+          <div class="ui-input-action">
+            <UiInput
+              id="feature-jellyfin-emby-api-key"
+              class="ui-input-action__input"
+              :model-value="editableServer.apiKey"
+              :type="apiKeyVisible ? 'text' : 'password'"
+              @update:model-value="updateSelectedServer({ apiKey: String($event) })"
+            />
+            <UiIconButton
+              class="ui-input-action__button"
+              data-testid="feature-jellyfin-emby-api-key-visibility"
+              size="sm"
+              :label="apiKeyVisible ? t('feature-jellyfin-emby-api-key-hide') : t('feature-jellyfin-emby-api-key-show')"
+              @click="apiKeyVisible = !apiKeyVisible"
+            >
+              <IconEyeOff v-if="apiKeyVisible" size="sm" />
+              <IconEye v-else size="sm" />
+            </UiIconButton>
+          </div>
+        </UiSettingRow>
+      </section>
+      <section v-else class="settings-split__editor">
+        <UiEmptyState :message="t('feature-jellyfin-emby-empty')" />
+      </section>
+    </div>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -135,8 +151,8 @@ import { isValidJellyfinEmbyServerUrls, parseJellyfinEmbyServerUrls } from "../.
 import type { JellyfinEmbyServerConfig } from "../../../main/types";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
-import { IconAdd, IconCheck, IconCopy, IconDelete } from "../icons";
-import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem, UiSettingRow, UiToolbar } from "../ui";
+import { IconAdd, IconCheck, IconCopy, IconDelete, IconEye, IconEyeOff } from "../icons";
+import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem, UiSection, UiSettingRow, UiToolbar } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);
@@ -148,6 +164,7 @@ const dragIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
 const editingServerId = ref<string | null>(null);
 const draftServerName = ref("");
+const apiKeyVisible = ref(false);
 const servers = computed(() => store.settings?.features.jellyfinEmby.config.servers ?? []);
 const visibleServers = computed(() => {
   const persisted = servers.value.map((server) => serverDrafts.value[server.id] ?? server);
@@ -299,10 +316,7 @@ function commitServerName(serverId: string) {
 
 function serverUrlsError(server: JellyfinEmbyServerConfig): string | null {
   if (!server.serverUrls.trim()) {
-    if (!server.enabled) {
-      return null;
-    }
-    return t("feature-jellyfin-emby-url-required");
+    return null;
   }
   if (!isValidJellyfinEmbyServerUrls(server.serverUrls)) {
     return t("feature-jellyfin-emby-url-http");

@@ -1,87 +1,92 @@
 <template>
-  <div class="feature-settings">
-    <UiSettingRow id="feature-word-lookup-path" :label="t('feature-word-lookup-path')" control-width="wide">
-      <div class="word-lookup-path-row">
-        <UiInput
-          :model-value="config.wordListPath"
-          data-testid="feature-word-lookup-path"
-          @update:model-value="update({ wordListPath: String($event) })"
+  <UiSection :title="t('feature-word-lookup-title')">
+    <div class="feature-settings">
+      <UiSettingRow id="feature-word-lookup-path" :label="t('feature-word-lookup-path')" control-width="wide">
+        <div class="word-lookup-path-row">
+          <UiInput
+            :model-value="config.wordListPath"
+            data-testid="feature-word-lookup-path"
+            @update:model-value="update({ wordListPath: String($event) })"
+          />
+          <UiIconButton
+            :label="t('button-select')"
+            data-testid="feature-word-lookup-select-file"
+            @click="selectFile"
+          >
+            <IconFolder size="sm" />
+          </UiIconButton>
+        </div>
+      </UiSettingRow>
+      <UiSettingRow id="feature-word-lookup-trigger" :label="t('feature-word-lookup-trigger')" control-width="field">
+        <UiSelect
+          :model-value="config.modifierKey"
+          :options="modifierOptions"
+          @update:model-value="update({ modifierKey: $event as 'alt' | 'ctrl' | 'shift' })"
         />
-        <UiButton size="sm" variant="secondary" data-testid="feature-word-lookup-select-file" @click="selectFile">
-          <IconFolder size="sm" />
-          {{ t("button-select") }}
+      </UiSettingRow>
+      <div class="word-lookup-dimensions" data-testid="feature-word-lookup-dimensions">
+        <UiField
+          id="feature-word-lookup-width"
+          density="compact"
+          :label="t('feature-word-lookup-panel-width')"
+          :value="`${config.panelWidth}px`"
+        >
+          <UiSlider
+            :model-value="config.panelWidth"
+            :min="260"
+            :max="720"
+            :step="1"
+            :label="t('feature-word-lookup-panel-width')"
+            @update:model-value="update({ panelWidth: $event })"
+          />
+        </UiField>
+        <UiField
+          id="feature-word-lookup-height"
+          density="compact"
+          :label="t('feature-word-lookup-panel-height')"
+          :value="`${config.panelHeight}px`"
+        >
+          <UiSlider
+            :model-value="config.panelHeight"
+            :min="180"
+            :max="640"
+            :step="1"
+            :label="t('feature-word-lookup-panel-height')"
+            @update:model-value="update({ panelHeight: $event })"
+          />
+        </UiField>
+      </div>
+      <div class="word-lookup-actions">
+        <UiButton
+          size="sm"
+          data-testid="feature-word-lookup-refresh"
+          :disabled="isRefreshing"
+          @click="refresh"
+        >
+          <IconRefresh size="sm" :class="{ 'icon--spinning': isRefreshing }" />
+          {{ isRefreshing ? t("feature-word-lookup-refreshing") : t("feature-word-lookup-refresh") }}
         </UiButton>
       </div>
-    </UiSettingRow>
-    <UiSettingRow id="feature-word-lookup-trigger" :label="t('feature-word-lookup-trigger')" control-width="field">
-      <UiSelect
-        :model-value="config.modifierKey"
-        :options="modifierOptions"
-        @update:model-value="update({ modifierKey: $event as 'alt' | 'ctrl' | 'shift' })"
-      />
-    </UiSettingRow>
-    <div class="word-lookup-dimensions" data-testid="feature-word-lookup-dimensions">
-      <UiField
-        id="feature-word-lookup-width"
-        density="compact"
-        :label="t('feature-word-lookup-panel-width')"
-        :value="`${config.panelWidth}px`"
-      >
-        <UiSlider
-          :model-value="config.panelWidth"
-          :min="260"
-          :max="720"
-          :step="1"
-          :label="t('feature-word-lookup-panel-width')"
-          @update:model-value="update({ panelWidth: $event })"
-        />
-      </UiField>
-      <UiField
-        id="feature-word-lookup-height"
-        density="compact"
-        :label="t('feature-word-lookup-panel-height')"
-        :value="`${config.panelHeight}px`"
-      >
-        <UiSlider
-          :model-value="config.panelHeight"
-          :min="180"
-          :max="640"
-          :step="1"
-          :label="t('feature-word-lookup-panel-height')"
-          @update:model-value="update({ panelHeight: $event })"
-        />
-      </UiField>
+      <dl class="word-lookup-status" data-testid="feature-word-lookup-status">
+        <div>
+          <dt>{{ t("feature-word-lookup-status") }}</dt>
+          <dd><UiBadge :tone="statusTone">{{ statusLabel }}</UiBadge></dd>
+        </div>
+        <div>
+          <dt>{{ t("feature-word-lookup-entry-count") }}</dt>
+          <dd>{{ status?.entryCount ?? 0 }}</dd>
+        </div>
+        <div>
+          <dt>{{ t("feature-word-lookup-file-modified") }}</dt>
+          <dd>{{ formatTimestamp(status?.fileMtimeMs) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t("feature-word-lookup-loaded-at") }}</dt>
+          <dd>{{ formatTimestamp(status?.loadedAt) }}</dd>
+        </div>
+      </dl>
     </div>
-    <div class="word-lookup-actions">
-      <UiButton
-        size="sm"
-        data-testid="feature-word-lookup-refresh"
-        :disabled="isRefreshing"
-        @click="refresh"
-      >
-        <IconRefresh size="sm" :class="{ 'icon--spinning': isRefreshing }" />
-        {{ isRefreshing ? t("feature-word-lookup-refreshing") : t("feature-word-lookup-refresh") }}
-      </UiButton>
-    </div>
-    <dl class="word-lookup-status" data-testid="feature-word-lookup-status">
-      <div>
-        <dt>{{ t("feature-word-lookup-status") }}</dt>
-        <dd><UiBadge :tone="statusTone">{{ statusLabel }}</UiBadge></dd>
-      </div>
-      <div>
-        <dt>{{ t("feature-word-lookup-entry-count") }}</dt>
-        <dd>{{ status?.entryCount ?? 0 }}</dd>
-      </div>
-      <div>
-        <dt>{{ t("feature-word-lookup-file-modified") }}</dt>
-        <dd>{{ formatTimestamp(status?.fileMtimeMs) }}</dd>
-      </div>
-      <div>
-        <dt>{{ t("feature-word-lookup-loaded-at") }}</dt>
-        <dd>{{ formatTimestamp(status?.loadedAt) }}</dd>
-      </div>
-    </dl>
-  </div>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
@@ -92,7 +97,7 @@ import type { WordLookupStatus } from "../../../common/wordLookupTypes";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
 import { IconFolder, IconRefresh } from "../icons";
-import { UiBadge, UiButton, UiField, UiInput, UiSelect, UiSettingRow, UiSlider } from "../ui";
+import { UiBadge, UiButton, UiField, UiIconButton, UiInput, UiSection, UiSelect, UiSettingRow, UiSlider } from "../ui";
 
 const store = useDesktopStore();
 const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGUAGE);

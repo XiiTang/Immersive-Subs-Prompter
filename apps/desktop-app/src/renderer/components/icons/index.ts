@@ -5,6 +5,8 @@ import {
   ChevronUp,
   Copy,
   Download,
+  Eye,
+  EyeOff,
   ExternalLink,
   Folder,
   Lock,
@@ -58,6 +60,8 @@ export const IconClose = icon(X);
 export const IconCopy = icon(Copy);
 export const IconDelete = icon(Trash2);
 export const IconDownload = icon(Download);
+export const IconEye = icon(Eye);
+export const IconEyeOff = icon(EyeOff);
 export const IconExternalLink = icon(ExternalLink);
 export const IconFolder = icon(Folder);
 export const IconFullscreen = icon(Maximize);

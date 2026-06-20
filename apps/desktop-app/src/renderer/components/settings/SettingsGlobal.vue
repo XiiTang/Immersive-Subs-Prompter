@@ -8,7 +8,7 @@
           <UiSelect v-model="languageSetting" :options="languageOptions" />
         </UiSettingRow>
 
-        <UiSettingRow id="appearance-theme" :label="t('appearance-theme-label')" control-width="editor">
+        <UiSettingRow id="appearance-theme" :label="t('appearance-theme-label')" control-width="field">
           <UiSegmentedControl
             v-model="appearanceTheme"
             :label="t('appearance-theme-label')"
@@ -87,22 +87,21 @@
       </section>
 
       <section class="global-settings__group">
-        <h3 class="global-settings__group-title">{{ t("global-cache") }}</h3>
-
-        <UiSettingRow id="cache-enabled" :label="t('enable-cache-label')" control-width="compact">
-          <UiSwitch v-model="cacheEnabled" :label="cacheEnabled ? t('toggle-on') : t('toggle-off')" />
-        </UiSettingRow>
+        <div class="global-settings__group-heading">
+          <h3 class="global-settings__group-title">{{ t("global-cache") }}</h3>
+          <UiSwitch v-model="cacheEnabled" :label="t('global-cache')" :show-label="false" />
+        </div>
 
         <template v-if="cacheEnabled">
           <UiSettingRow
             id="cache-path"
             :label="t('cache-path-label')"
-            :hint="t('cache-path-hint')"
             control-width="wide"
           >
             <div class="ui-inline-control">
               <UiInput
                 v-model="cachePath"
+                :placeholder="t('cache-path-placeholder')"
               />
               <UiIconButton :label="t('button-open-cache')" @click="openCacheFolder">
                 <IconFolder size="md" />

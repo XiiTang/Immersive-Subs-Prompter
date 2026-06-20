@@ -112,12 +112,16 @@ describe("SettingsFeatures", () => {
     store.settings!.features.wordLookup.enabled = false;
     const wrapper = mount(SettingsFeatures);
 
-    expect(wrapper.get('[data-testid="feature-enabled-wordLookup"]').attributes("aria-label")).toBe("Disabled");
+    expect(wrapper.get('[data-testid="feature-enabled-wordLookup"]').attributes("aria-label")).toBe("Word Lookup");
+    expect(wrapper.text()).not.toContain("Enabled");
+    expect(wrapper.text()).not.toContain("Disabled");
 
     store.settings!.features.wordLookup.enabled = true;
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.get('[data-testid="feature-enabled-wordLookup"]').attributes("aria-label")).toBe("Enabled");
+    expect(wrapper.get('[data-testid="feature-enabled-wordLookup"]').attributes("aria-label")).toBe("Word Lookup");
+    expect(wrapper.text()).not.toContain("Enabled");
+    expect(wrapper.text()).not.toContain("Disabled");
   });
 
   it("renders feature enablement only without feature configuration controls", () => {
@@ -133,10 +137,25 @@ describe("SettingsFeatures", () => {
   it("updates Word Lookup config through explicit controls", async () => {
     const store = seedStore();
     const wrapper = mount(WordLookupFeatureSettings);
+    const fileButton = wrapper.get('[data-testid="feature-word-lookup-select-file"]');
+
+    expect(fileButton.classes()).toContain("ui-icon-button");
+    expect(fileButton.text()).not.toContain("Select");
 
     await wrapper.get('[data-testid="feature-word-lookup-path"]').setValue("/tmp/words.jsonl");
 
     expect(store.setFeatureConfig).toHaveBeenCalledWith("wordLookup", { wordListPath: "/tmp/words.jsonl" });
+  });
+
+  it("renders independent feature settings pages with section titles", () => {
+    const store = seedStore();
+    store.settings!.features.jellyfinEmby.config.servers = [
+      { id: "server-1", name: "Home", serverUrls: "https://home.example.test", apiKey: "token", enabled: true }
+    ];
+
+    expect(mount(WordLookupFeatureSettings).get(".ui-section__title").text()).toBe("Word Lookup");
+    expect(mount(TranscriptionFeatureSettings).get(".ui-section__title").text()).toBe("Speech Transcription");
+    expect(mount(JellyfinEmbyFeatureSettings).get(".ui-section__title").text()).toBe("Jellyfin / Emby");
   });
 
   it("renders Word Lookup panel dimensions with compact slider controls", async () => {
@@ -396,12 +415,61 @@ describe("SettingsFeatures", () => {
     const wrapper = mount(JellyfinEmbyFeatureSettings);
 
     expect(wrapper.find(".server-errors").exists()).toBe(false);
+    expect(wrapper.get("#feature-jellyfin-emby-server-url-row .ui-setting-row__hint").text()).toBe(
+      "Separate multiple URLs for the same server with commas."
+    );
     expect(wrapper.get("#feature-jellyfin-emby-server-url-row .ui-setting-row__error").text()).toBe(
       "Every server URL must be HTTP(S)"
     );
     expect(wrapper.get("#feature-jellyfin-emby-api-key-row .ui-setting-row__error").text()).toBe(
       "API key is required"
     );
+  });
+
+  it("keeps the Jellyfin / Emby URL guidance visible without an empty-value error", () => {
+    const store = seedStore();
+    store.settings!.features.jellyfinEmby.config.servers = [
+      {
+        id: "server-1",
+        name: "Home",
+        serverUrls: "",
+        apiKey: "",
+        enabled: true
+      }
+    ];
+
+    const wrapper = mount(JellyfinEmbyFeatureSettings);
+
+    expect(wrapper.get("#feature-jellyfin-emby-server-url-row .ui-setting-row__hint").text()).toBe(
+      "Separate multiple URLs for the same server with commas."
+    );
+    expect(wrapper.find("#feature-jellyfin-emby-server-url-row .ui-setting-row__error").exists()).toBe(false);
+  });
+
+  it("toggles Jellyfin / Emby API key visibility from the editor field", async () => {
+    const store = seedStore();
+    store.settings!.features.jellyfinEmby.config.servers = [
+      {
+        id: "server-1",
+        name: "Home",
+        serverUrls: "https://home.example.test",
+        apiKey: "secret-token",
+        enabled: true
+      }
+    ];
+
+    const wrapper = mount(JellyfinEmbyFeatureSettings);
+    const input = () => wrapper.get<HTMLInputElement>("#feature-jellyfin-emby-api-key");
+    const visibilityButton = () => wrapper.get('[data-testid="feature-jellyfin-emby-api-key-visibility"]');
+
+    expect(input().attributes("type")).toBe("password");
+    expect(visibilityButton().element.closest(".ui-input-action")).not.toBeNull();
+
+    await visibilityButton().trigger("click");
+    expect(input().attributes("type")).toBe("text");
+
+    await visibilityButton().trigger("click");
+    expect(input().attributes("type")).toBe("password");
   });
 
   it("localizes transcription settings labels", () => {

@@ -173,6 +173,11 @@ describe("SettingsWindowShell", () => {
     expect(rendererStylesheet).toContain("-webkit-app-region: drag;");
   });
 
+  it("keeps segmented controls on one line", () => {
+    expect(rendererStylesheet).toMatch(/\.ui-segmented\s*\{[^}]*display:\s*inline-flex;[^}]*flex-wrap:\s*nowrap;/s);
+    expect(rendererStylesheet).toMatch(/\.ui-segmented__item\s*\{[^}]*white-space:\s*nowrap;/s);
+  });
+
   it("uses a renderer-owned rounded settings shell boundary", () => {
     expect(rendererStylesheet).toContain("--window-boundary-radius: 10px;");
     expect(rendererStylesheet).toMatch(

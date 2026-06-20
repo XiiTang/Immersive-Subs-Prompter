@@ -316,6 +316,20 @@ describe("SettingsProfiles", () => {
     expect(wrapper.get("#subtitle-autoscroll-label").text()).toBe("Restore (s)");
   });
 
+  it("keeps restore seconds as a narrow spinner-free number input", () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SettingsProfiles, { attachTo: document.body });
+    const restoreInput = wrapper.get<HTMLInputElement>(".subtitle-style-fields__autoscroll-input");
+    const style = getComputedStyle(restoreInput.element);
+
+    expect(restoreInput.attributes("type")).toBe("number");
+    expect(Number.parseFloat(style.width)).toBe(18);
+    expect(style.appearance).toBe("textfield");
+  });
+
   it("updates independent typography settings from the profile editor", async () => {
     const store = useDesktopStore();
     const arialFont = SUBTITLE_FONT_OPTIONS.find((option) => option.label === "Arial")!.value;

@@ -16,7 +16,8 @@
         <UiSwitch
           class="feature-enable-row__switch"
           :model-value="isFeatureEnabled(feature.id)"
-          :label="featureStateLabel(feature.id)"
+          :label="feature.title"
+          :show-label="false"
           :input-test-id="`feature-enabled-${feature.id}`"
           @update:model-value="setFeatureEnabled(feature.id, $event)"
         />
@@ -57,10 +58,6 @@ const featureDefinitions = computed(() => [
 
 function isFeatureEnabled(featureId: FeatureId) {
   return features.value[featureId].enabled;
-}
-
-function featureStateLabel(featureId: FeatureId) {
-  return isFeatureEnabled(featureId) ? t("feature-enabled") : t("feature-disabled");
 }
 
 function setFeatureEnabled(featureId: FeatureId, enabled: boolean) {

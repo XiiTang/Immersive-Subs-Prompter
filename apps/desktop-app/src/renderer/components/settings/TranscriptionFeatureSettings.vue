@@ -1,5 +1,6 @@
 <template>
-  <div class="settings-split transcription-feature-settings">
+  <UiSection :title="t('feature-transcription-title')">
+    <div class="settings-split transcription-feature-settings">
     <TranscriptionConfigList
       :transcription-configs="transcriptionConfigs"
       :selected-config-id="selectedConfigId"
@@ -73,14 +74,15 @@
       </UiSettingRow>
     </div>
     <UiEmptyState v-else :message="t('feature-transcription-no-config')" />
-  </div>
+    </div>
+  </UiSection>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { DEFAULT_LANGUAGE, useI18n } from "../../i18n";
 import { useDesktopStore } from "../../stores/desktop";
-import { UiEmptyState, UiMessage, UiSelect, UiSettingRow, UiTextarea } from "../ui";
+import { UiEmptyState, UiMessage, UiSection, UiSelect, UiSettingRow, UiTextarea } from "../ui";
 import TranscriptionConfigList from "./transcription/TranscriptionConfigList.vue";
 import WhisperApiForm from "./transcription/WhisperApiForm.vue";
 import FasterWhisperBinariesCard from "./transcription/FasterWhisperBinariesCard.vue";
