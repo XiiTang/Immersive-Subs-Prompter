@@ -112,7 +112,9 @@ const wordLookupConfig = computed(() => {
 });
 const transcriptionConfigs = computed(() => (
   transcriptionEnabled.value
-    ? transcriptionFeature.value?.configs.map((config) => ({ id: config.id, name: config.name })) ?? []
+    ? transcriptionFeature.value?.configs
+      .filter((config) => config.enabled)
+      .map((config) => ({ id: config.id, name: config.name })) ?? []
     : []
 ));
 const transcriptionConfigNames = computed(() =>
@@ -335,7 +337,7 @@ const canTranscribe = computed(() => {
   if (!transcriptionEnabled.value) {
     return false;
   }
-  if (!transcriptionConfigs.value.length) {
+  if (!transcriptionConfigs.value.some((config) => config.id === activeTranscriptionId.value)) {
     return false;
   }
   const state = store.desktopState;

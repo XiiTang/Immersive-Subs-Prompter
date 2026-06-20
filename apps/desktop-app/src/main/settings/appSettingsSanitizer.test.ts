@@ -55,6 +55,7 @@ describe("appSettingsSanitizer", () => {
           configs: [
             expect.objectContaining({
               id: "default-transcription",
+              enabled: true,
               name: "Default Whisper API",
               provider: "whisper-api",
               baseUrl: "https://api.openai.com/v1",
@@ -112,6 +113,7 @@ describe("appSettingsSanitizer", () => {
         configs: [
           expect.objectContaining({
             id: "default-transcription",
+            enabled: true,
             name: "Default Whisper API",
             provider: "whisper-api",
             baseUrl: "https://api.openai.com/v1",
@@ -123,6 +125,70 @@ describe("appSettingsSanitizer", () => {
         ]
       });
       expect(sanitizeSettings(settings).features.transcription).toEqual(settings.features.transcription);
+    });
+
+    it("requires enablement on every Speech Transcription config", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const config = settings.features.transcription.configs[0]!;
+      const { enabled: _enabled, ...withoutEnabled } = config;
+
+      expect(() =>
+        sanitizeSettings({
+          ...settings,
+          features: {
+            ...settings.features,
+            transcription: {
+              ...settings.features.transcription,
+              configs: [withoutEnabled]
+            }
+          }
+        })
+      ).toThrow("features.transcription.configs.0 must include current settings");
+    });
+
+    it("requires active Speech Transcription config to be enabled when enabled configs exist", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const configA = settings.features.transcription.configs[0]!;
+      const configB = {
+        ...configA,
+        id: "config-b",
+        name: "Config B",
+        enabled: false
+      };
+
+      expect(() =>
+        sanitizeSettings({
+          ...settings,
+          features: {
+            ...settings.features,
+            transcription: {
+              enabled: true,
+              activeConfigId: configB.id,
+              configs: [
+                { ...configA, enabled: true },
+                configB
+              ]
+            }
+          }
+        })
+      ).toThrow("features.transcription.activeConfigId must reference an enabled config");
+    });
+
+    it("allows all Speech Transcription configs to be disabled without inventing a runtime config", () => {
+      const settings = DEFAULT_SETTINGS_FACTORY();
+      const config = settings.features.transcription.configs[0]!;
+
+      expect(sanitizeSettings({
+        ...settings,
+        features: {
+          ...settings.features,
+          transcription: {
+            enabled: true,
+            activeConfigId: config.id,
+            configs: [{ ...config, enabled: false }]
+          }
+        }
+      }).features.transcription.configs[0]?.enabled).toBe(false);
     });
 
     it("rejects arbitrary top-level settings outside the current schema", () => {

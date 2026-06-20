@@ -6,6 +6,7 @@ export const DEFAULT_TRANSCRIPTION_YTDLP_ARGS =
 export const DEFAULT_TRANSCRIPTION_CONFIG_ID = "default-transcription";
 
 export const BASE_TRANSCRIPTION_CONFIG: Omit<TranscriptionConfig, "id"> = {
+  enabled: true,
   name: "Default Whisper API",
   provider: "whisper-api",
   baseUrl: "https://api.openai.com/v1",

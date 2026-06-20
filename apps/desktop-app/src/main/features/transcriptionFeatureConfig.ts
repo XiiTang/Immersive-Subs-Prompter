@@ -5,6 +5,9 @@ export function buildFeatureTranscriptionConfig(settings: TranscriptionFeatureSe
   if (!active) {
     throw new Error("Active transcription config is not available.");
   }
+  if (!active.enabled) {
+    throw new Error("Active transcription config is disabled.");
+  }
   return {
     ...active,
     extraParams: { ...active.extraParams }

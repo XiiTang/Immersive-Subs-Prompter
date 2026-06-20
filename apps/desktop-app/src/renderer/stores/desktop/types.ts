@@ -85,13 +85,15 @@ interface DesktopStoreActions {
     configs: FeatureSettings["transcription"]["configs"],
     activeConfigId: string
   ): Promise<void>;
-  addJellyfinEmbyServer(): Promise<string | null>;
+  toggleTranscriptionConfigEnabled(configId: string, enabled: boolean): Promise<void>;
+  reorderTranscriptionConfig(fromIndex: number, toIndex: number): Promise<void>;
   duplicateJellyfinEmbyServer(serverId: string): Promise<string | null>;
   updateJellyfinEmbyServer(
     serverId: string,
     patch: Partial<FeatureSettings["jellyfinEmby"]["config"]["servers"][number]>
   ): Promise<void>;
   deleteJellyfinEmbyServer(serverId: string): Promise<void>;
+  reorderJellyfinEmbyServer(fromIndex: number, toIndex: number): Promise<void>;
 
   // cache
   refreshCacheStats(): Promise<CacheStats>;

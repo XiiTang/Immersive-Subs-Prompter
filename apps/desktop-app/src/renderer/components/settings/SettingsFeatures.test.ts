@@ -26,6 +26,7 @@ function seedStore(language = "en") {
 function createTranscriptionConfig(patch: Partial<TranscriptionConfig>): TranscriptionConfig {
   return {
     id: "config-a",
+    enabled: true,
     name: "Whisper A",
     provider: "whisper-api",
     baseUrl: "https://api.openai.com/v1",
@@ -190,28 +191,31 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get('[data-testid="feature-word-lookup-status"]').text()).toContain("2");
   });
 
-  it("adds and edits Jellyfin / Emby servers through the split editor", async () => {
+  it("adds an enabled Jellyfin / Emby draft and persists it only when saveable", async () => {
     const store = seedStore();
-    vi.spyOn(store, "addJellyfinEmbyServer").mockImplementation(async () => {
-      store.settings!.features.jellyfinEmby.config.servers.push({
-        id: "server-1",
-        name: "Server 1",
-        serverUrls: "",
-        apiKey: "",
-        enabled: false
-      });
-      return "server-1";
-    });
-    vi.spyOn(store, "updateJellyfinEmbyServer").mockResolvedValue();
+    const updateServer = vi.spyOn(store, "updateJellyfinEmbyServer").mockResolvedValue();
     const wrapper = mount(JellyfinEmbyFeatureSettings);
 
     await wrapper.get('[data-testid="feature-jellyfin-emby-add-server"]').trigger("click");
     await wrapper.vm.$nextTick();
-    await wrapper.get("#feature-jellyfin-emby-server-url").setValue("http://localhost:8096, http://127.0.0.1:8096");
 
-    expect(store.updateJellyfinEmbyServer).toHaveBeenCalledWith("server-1", expect.objectContaining({
-      serverUrls: "http://localhost:8096, http://127.0.0.1:8096"
-    }));
+    const enabledAction = wrapper.get('[data-testid^="feature-jellyfin-emby-server-enabled-"]');
+    expect(enabledAction.attributes("aria-pressed")).toBe("true");
+    expect(updateServer).not.toHaveBeenCalled();
+
+    await wrapper.get("#feature-jellyfin-emby-server-url").setValue("http://localhost:8096");
+    expect(updateServer).not.toHaveBeenCalled();
+
+    await wrapper.get("#feature-jellyfin-emby-api-key").setValue("token");
+
+    expect(updateServer).toHaveBeenCalledWith(
+      expect.stringMatching(/^jellyfin-emby-/),
+      expect.objectContaining({
+        serverUrls: "http://localhost:8096",
+        apiKey: "token",
+        enabled: true
+      })
+    );
   });
 
   it("keeps invalid Jellyfin / Emby server URL lists in a local draft until every entry is saveable", async () => {
@@ -360,6 +364,23 @@ describe("SettingsFeatures", () => {
     expect(wrapper.get('[data-testid="feature-jellyfin-emby-server-server-b"]').classes()).not.toContain("is-selected");
   });
 
+  it("reorders Jellyfin / Emby servers from the settings list", async () => {
+    const store = seedStore();
+    store.settings!.features.jellyfinEmby.config.servers = [
+      { id: "server-a", name: "Home", serverUrls: "https://home.example.test", apiKey: "token-a", enabled: true },
+      { id: "server-b", name: "Office", serverUrls: "https://office.example.test", apiKey: "token-b", enabled: true }
+    ];
+    const reorder = vi.spyOn(store, "reorderJellyfinEmbyServer").mockResolvedValue();
+    const wrapper = mount(JellyfinEmbyFeatureSettings);
+    const dataTransfer = { setData: vi.fn(), effectAllowed: "" };
+
+    await wrapper.get('[data-testid="feature-jellyfin-emby-server-server-b"]').trigger("dragstart", { dataTransfer });
+    await wrapper.get('[data-testid="feature-jellyfin-emby-server-server-a"]').trigger("dragover");
+    await wrapper.get('[data-testid="feature-jellyfin-emby-server-server-a"]').trigger("drop");
+
+    expect(reorder).toHaveBeenCalledWith(1, 0);
+  });
+
   it("shows Jellyfin / Emby server validation errors under their fields", () => {
     const store = seedStore();
     store.settings!.features.jellyfinEmby.config.servers = [
@@ -462,25 +483,41 @@ describe("SettingsFeatures", () => {
     expect(wrapper.find('[data-testid="feature-transcription-config-name"]').exists()).toBe(false);
   });
 
-  it("activates a speech transcription config from the list row circle without selecting it for editing", async () => {
+  it("toggles speech transcription config enablement from the list row circle without selecting it", async () => {
     const store = seedStore();
-    const configA = createTranscriptionConfig({ id: "config-a", name: "Whisper A" });
-    const configB = createTranscriptionConfig({ id: "config-b", name: "Local B" });
+    const configA = createTranscriptionConfig({ id: "config-a", name: "Whisper A", enabled: true });
+    const configB = createTranscriptionConfig({ id: "config-b", name: "Local B", enabled: false });
     store.settings!.features.transcription.activeConfigId = configA.id;
     store.settings!.features.transcription.configs = [configA, configB];
+    const toggleEnabled = vi.spyOn(store, "toggleTranscriptionConfigEnabled").mockResolvedValue();
     const setActiveTranscriptionConfig = vi.spyOn(store, "setActiveTranscriptionConfig").mockResolvedValue();
-    const setTranscriptionConfigs = vi.spyOn(store, "setTranscriptionConfigs").mockResolvedValue();
     const wrapper = mount(TranscriptionFeatureSettings);
 
-    const activeAction = wrapper.get('[data-testid="feature-transcription-config-active-config-b"]');
-    expect(activeAction.attributes("aria-pressed")).toBe("false");
+    const enableAction = wrapper.get('[data-testid="feature-transcription-config-enabled-config-b"]');
+    expect(enableAction.attributes("aria-pressed")).toBe("false");
 
-    await activeAction.trigger("click");
+    await enableAction.trigger("click");
 
-    expect(setActiveTranscriptionConfig).toHaveBeenCalledWith("config-b");
-    expect(setTranscriptionConfigs).not.toHaveBeenCalled();
+    expect(toggleEnabled).toHaveBeenCalledWith("config-b", true);
+    expect(setActiveTranscriptionConfig).not.toHaveBeenCalled();
     expect(wrapper.get('[data-testid="feature-transcription-config-config-a"]').classes()).toContain("is-selected");
     expect(wrapper.get('[data-testid="feature-transcription-config-config-b"]').classes()).not.toContain("is-selected");
+  });
+
+  it("reorders speech transcription configs from the settings list", async () => {
+    const store = seedStore();
+    const configA = createTranscriptionConfig({ id: "config-a", name: "Whisper A", enabled: true });
+    const configB = createTranscriptionConfig({ id: "config-b", name: "Local B", enabled: true });
+    store.settings!.features.transcription.configs = [configA, configB];
+    const reorder = vi.spyOn(store, "reorderTranscriptionConfig").mockResolvedValue();
+    const wrapper = mount(TranscriptionFeatureSettings);
+    const dataTransfer = { setData: vi.fn(), effectAllowed: "" };
+
+    await wrapper.get('[data-testid="feature-transcription-config-config-b"]').trigger("dragstart", { dataTransfer });
+    await wrapper.get('[data-testid="feature-transcription-config-config-a"]').trigger("dragover");
+    await wrapper.get('[data-testid="feature-transcription-config-config-a"]').trigger("drop");
+
+    expect(reorder).toHaveBeenCalledWith(1, 0);
   });
 
   it("edits the selected transcription config while keeping the existing active config", async () => {

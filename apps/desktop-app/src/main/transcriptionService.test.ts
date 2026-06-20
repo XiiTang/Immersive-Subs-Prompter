@@ -9,6 +9,7 @@ import type { SubtitleTrack, TranscriptionConfig } from "./types.js";
 function createConfig(overrides: Partial<TranscriptionConfig> = {}): TranscriptionConfig {
   return {
     id: "config-1",
+    enabled: true,
     name: "Default",
     provider: "whisper-api",
     baseUrl: "https://api.openai.com/v1",

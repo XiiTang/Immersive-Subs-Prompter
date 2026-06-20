@@ -12,6 +12,7 @@ import "../../style.css";
 function createTranscriptionConfig(patch: Partial<TranscriptionConfig>): TranscriptionConfig {
   return {
     id: "config-a",
+    enabled: true,
     name: "Whisper A",
     provider: "whisper-api",
     baseUrl: "https://api.openai.com/v1",

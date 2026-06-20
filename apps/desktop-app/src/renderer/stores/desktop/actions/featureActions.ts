@@ -58,8 +58,47 @@ export async function setFeatureConfig<FeatureKey extends ConfigurableFeatureId>
   } as Partial<AppSettings>);
 }
 
+function resolveActiveTranscriptionConfigId(
+  configs: FeatureSettings["transcription"]["configs"],
+  requestedActiveId: string
+): string | null {
+  const enabledConfigs = configs.filter((config) => config.enabled);
+  if (!enabledConfigs.length) {
+    return configs.some((config) => config.id === requestedActiveId)
+      ? requestedActiveId
+      : configs[0]?.id ?? null;
+  }
+  if (enabledConfigs.some((config) => config.id === requestedActiveId)) {
+    return requestedActiveId;
+  }
+  return enabledConfigs[0]!.id;
+}
+
+function moveArrayItem<T>(items: readonly T[], fromIndex: number, toIndex: number): T[] | null {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return null;
+  }
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) {
+    return null;
+  }
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
 export async function setActiveTranscriptionConfig(this: DesktopStoreThis, configId: string) {
   if (!this.settings) {
+    return;
+  }
+  const configs = this.settings.features.transcription.configs;
+  if (!configs.some((config) => config.id === configId && config.enabled)) {
     return;
   }
   await this.updateSettings({
@@ -80,15 +119,53 @@ export async function setTranscriptionConfigs(
   if (!this.settings) {
     return;
   }
+  const resolvedActiveId = resolveActiveTranscriptionConfigId(configs, activeConfigId);
+  if (!resolvedActiveId) {
+    return;
+  }
   await this.updateSettings({
     features: {
       transcription: {
         enabled: this.settings.features.transcription.enabled,
-        activeConfigId,
+        activeConfigId: resolvedActiveId,
         configs
       }
     } as Partial<FeatureSettings>
   } as Partial<AppSettings>);
+}
+
+export async function toggleTranscriptionConfigEnabled(
+  this: DesktopStoreThis,
+  configId: string,
+  enabled: boolean
+) {
+  if (!this.settings) {
+    return;
+  }
+  const feature = this.settings.features.transcription;
+  if (!feature.configs.some((config) => config.id === configId)) {
+    return;
+  }
+  const configs = feature.configs.map((config) =>
+    config.id === configId ? { ...config, enabled } : config
+  );
+  await setTranscriptionConfigs.call(this, configs, feature.activeConfigId);
+}
+
+export async function reorderTranscriptionConfig(
+  this: DesktopStoreThis,
+  fromIndex: number,
+  toIndex: number
+) {
+  if (!this.settings) {
+    return;
+  }
+  const feature = this.settings.features.transcription;
+  const configs = moveArrayItem(feature.configs, fromIndex, toIndex);
+  if (!configs) {
+    return;
+  }
+  await setTranscriptionConfigs.call(this, configs, feature.activeConfigId);
 }
 
 async function writeJellyfinEmbyServers(
@@ -106,25 +183,6 @@ async function writeJellyfinEmbyServers(
       }
     } as Partial<FeatureSettings>
   } as Partial<AppSettings>);
-}
-
-export async function addJellyfinEmbyServer(this: DesktopStoreThis): Promise<string | null> {
-  if (!this.settings) {
-    return null;
-  }
-  const servers = this.settings.features.jellyfinEmby.config.servers;
-  const id = createId("jellyfin-emby");
-  await writeJellyfinEmbyServers.call(this, [
-    ...servers,
-    {
-      id,
-      name: `Server ${servers.length + 1}`,
-      serverUrls: "",
-      apiKey: "",
-      enabled: false
-    }
-  ]);
-  return id;
 }
 
 export async function duplicateJellyfinEmbyServer(
@@ -161,9 +219,34 @@ export async function updateJellyfinEmbyServer(
   if (!this.settings) {
     return;
   }
+  const servers = this.settings.features.jellyfinEmby.config.servers;
+  const existing = servers.find((server) => server.id === serverId);
+  if (!existing) {
+    if (
+      typeof patch.id !== "string" ||
+      patch.id !== serverId ||
+      typeof patch.name !== "string" ||
+      typeof patch.serverUrls !== "string" ||
+      typeof patch.apiKey !== "string" ||
+      typeof patch.enabled !== "boolean"
+    ) {
+      return;
+    }
+    await writeJellyfinEmbyServers.call(this, [
+      ...servers,
+      {
+        id: patch.id,
+        name: patch.name,
+        serverUrls: patch.serverUrls,
+        apiKey: patch.apiKey,
+        enabled: patch.enabled
+      }
+    ]);
+    return;
+  }
   await writeJellyfinEmbyServers.call(
     this,
-    this.settings.features.jellyfinEmby.config.servers.map((server) =>
+    servers.map((server) =>
       server.id === serverId ? { ...server, ...patch } : server
     )
   );
@@ -179,13 +262,30 @@ export async function deleteJellyfinEmbyServer(this: DesktopStoreThis, serverId:
   );
 }
 
+export async function reorderJellyfinEmbyServer(
+  this: DesktopStoreThis,
+  fromIndex: number,
+  toIndex: number
+) {
+  if (!this.settings) {
+    return;
+  }
+  const servers = moveArrayItem(this.settings.features.jellyfinEmby.config.servers, fromIndex, toIndex);
+  if (!servers) {
+    return;
+  }
+  await writeJellyfinEmbyServers.call(this, servers);
+}
+
 export const featureActions = {
   setFeatureEnabled,
   setFeatureConfig,
   setActiveTranscriptionConfig,
   setTranscriptionConfigs,
-  addJellyfinEmbyServer,
+  toggleTranscriptionConfigEnabled,
+  reorderTranscriptionConfig,
   duplicateJellyfinEmbyServer,
   updateJellyfinEmbyServer,
-  deleteJellyfinEmbyServer
+  deleteJellyfinEmbyServer,
+  reorderJellyfinEmbyServer
 };

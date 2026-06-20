@@ -5,6 +5,7 @@ import { startFeatureTranscription } from "./transcriptionFeatureService.js";
 function createRuntimeConfig(overrides: Partial<import("../types.js").TranscriptionConfig> = {}) {
   return {
     id: "config-a",
+    enabled: true,
     name: "Config A",
     provider: "whisper-api" as const,
     baseUrl: "https://api.example.test",
@@ -82,6 +83,16 @@ describe("buildFeatureTranscriptionConfig", () => {
         configs: [createRuntimeConfig()]
       })
     ).toThrow("Active transcription config is not available.");
+  });
+
+  it("rejects disabled active transcription configs", () => {
+    expect(() =>
+      buildFeatureTranscriptionConfig({
+        enabled: true,
+        activeConfigId: "config-a",
+        configs: [createRuntimeConfig({ enabled: false })]
+      })
+    ).toThrow("Active transcription config is disabled.");
   });
 
   it("rejects a missing active transcription config id instead of using the first config", () => {

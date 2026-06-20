@@ -25,6 +25,10 @@ const topControlPanelStub = defineComponent({
       type: String,
       default: ""
     },
+    canTranscribe: {
+      type: Boolean,
+      default: false
+    },
     statusBanner: {
       type: Object,
       default: () => ({ text: "", tone: "info" })
@@ -35,6 +39,7 @@ const topControlPanelStub = defineComponent({
       h("div", { "data-testid": "transcription-enabled" }, String(this.transcriptionEnabled)),
       h("div", { "data-testid": "transcription-config-count" }, String(this.transcriptionConfigs.length)),
       h("div", { "data-testid": "transcription-active-id" }, String(this.activeTranscriptionId)),
+      h("div", { "data-testid": "transcription-can-transcribe" }, String(this.canTranscribe)),
       h("div", { "data-testid": "transcription-config-names" }, (this.transcriptionConfigs as any[])
         .map((config) => config.name)
         .join(",")),
@@ -899,6 +904,70 @@ describe("SubtitleView", () => {
 
     expect(wrapper.get('[data-testid="transcription-config-names"]').text()).toContain("Fast local");
     expect(wrapper.get('[data-testid="transcription-active-id"]').text()).toBe("fast-local");
+  });
+
+  it("shows only enabled transcription configs in settings order", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const defaultConfig = store.settings.features.transcription.configs[0]!;
+    store.settings.features.transcription = {
+      enabled: true,
+      activeConfigId: "config-b",
+      configs: [
+        { ...defaultConfig, id: "config-a", name: "Disabled A", enabled: false },
+        { ...defaultConfig, id: "config-b", name: "Enabled B", enabled: true },
+        { ...defaultConfig, id: "config-c", name: "Enabled C", enabled: true }
+      ]
+    };
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("2");
+    expect(wrapper.get('[data-testid="transcription-config-names"]').text()).toBe("Enabled B,Enabled C");
+    expect(wrapper.get('[data-testid="transcription-active-id"]').text()).toBe("config-b");
+  });
+
+  it("disables transcription when every transcription config is disabled", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const defaultConfig = store.settings.features.transcription.configs[0]!;
+    store.settings.features.transcription = {
+      enabled: true,
+      activeConfigId: "config-a",
+      configs: [
+        { ...defaultConfig, id: "config-a", name: "Disabled A", enabled: false },
+        { ...defaultConfig, id: "config-b", name: "Disabled B", enabled: false }
+      ]
+    };
+    store.desktopState = createDesktopState();
+    store.playback = store.desktopState.playback;
+    store.editingProfileId = DEFAULT_PROFILE_ID;
+
+    const wrapper = mount(SubtitleView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          TopControlPanel: topControlPanelStub
+        }
+      }
+    });
+
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="transcription-config-count"]').text()).toBe("0");
+    expect(wrapper.get('[data-testid="transcription-can-transcribe"]').text()).toBe("false");
   });
 
   it("opens word lookup when the trigger key is pressed after hovering a token", async () => {

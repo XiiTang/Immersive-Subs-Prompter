@@ -9,9 +9,10 @@ export interface UseTranscriptionConfigReturn {
   selectedConfigId: Ref<string>;
   selectedConfig: ComputedRef<TranscriptionConfig | null>;
   selectConfig: (id: string) => void;
-  makeConfigActive: (id: string) => void;
   updateConfig: (patch: Partial<TranscriptionConfig>) => void;
   renameConfig: (id: string, name: string) => void;
+  toggleConfigEnabled: (id: string, enabled: boolean) => void;
+  reorderConfig: (fromIndex: number, toIndex: number) => void;
   handleAddConfig: () => void;
   handleDuplicateConfig: () => void;
   handleDeleteConfig: () => void;
@@ -111,7 +112,13 @@ export function useTranscriptionConfig(t: (key: string) => string): UseTranscrip
 
   function handleAddConfig() {
     const next = createTranscriptionConfig();
-    writeConfigs([...transcriptionConfigs.value, next]);
+    const activeStillEnabled = transcriptionConfigs.value.some(
+      (config) => config.id === activeConfigId.value && config.enabled
+    );
+    writeConfigs(
+      [...transcriptionConfigs.value, next],
+      activeStillEnabled ? activeConfigId.value : next.id
+    );
     selectedConfigId.value = next.id;
   }
 
@@ -151,10 +158,14 @@ export function useTranscriptionConfig(t: (key: string) => string): UseTranscrip
     writeConfigs(nextConfigs, nextActiveId);
   }
 
-  function makeConfigActive(id: string) {
-    if (id !== activeConfigId.value && transcriptionConfigs.value.some((config) => config.id === id)) {
-      void store.setActiveTranscriptionConfig(id);
+  function toggleConfigEnabled(id: string, enabled: boolean) {
+    if (transcriptionConfigs.value.some((config) => config.id === id)) {
+      void store.toggleTranscriptionConfigEnabled(id, enabled);
     }
+  }
+
+  function reorderConfig(fromIndex: number, toIndex: number) {
+    void store.reorderTranscriptionConfig(fromIndex, toIndex);
   }
 
   const extraParamsText = computed({
@@ -194,9 +205,10 @@ export function useTranscriptionConfig(t: (key: string) => string): UseTranscrip
     selectedConfigId,
     selectedConfig,
     selectConfig,
-    makeConfigActive,
     updateConfig,
     renameConfig,
+    toggleConfigEnabled,
+    reorderConfig,
     handleAddConfig,
     handleDuplicateConfig,
     handleDeleteConfig,

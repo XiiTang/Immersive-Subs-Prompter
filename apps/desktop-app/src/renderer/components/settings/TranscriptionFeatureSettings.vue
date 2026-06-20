@@ -2,7 +2,6 @@
   <div class="settings-split transcription-feature-settings">
     <TranscriptionConfigList
       :transcription-configs="transcriptionConfigs"
-      :active-config-id="activeConfigId"
       :selected-config-id="selectedConfigId"
       :t="t"
       @add="handleAddConfig"
@@ -10,7 +9,8 @@
       @delete="handleDeleteConfig"
       @rename="renameConfig"
       @select="selectConfig"
-      @activate="makeConfigActive"
+      @reorder="reorderConfig"
+      @toggle-enabled="toggleConfigEnabled"
     />
     <div v-if="selectedConfig" class="settings-split__editor">
       <UiSettingRow id="feature-transcription-provider" :label="t('feature-transcription-provider')" control-width="field">
@@ -99,13 +99,13 @@ const providerOptions = [
 
 const {
   transcriptionConfigs,
-  activeConfigId,
   selectedConfigId,
   selectedConfig,
   selectConfig,
-  makeConfigActive,
   updateConfig,
   renameConfig,
+  toggleConfigEnabled,
+  reorderConfig,
   handleAddConfig,
   handleDuplicateConfig,
   handleDeleteConfig,

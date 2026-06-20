@@ -33,14 +33,21 @@
       </div>
       <div v-if="visibleServers.length" class="profile-list">
         <UiListItem
-          v-for="server in visibleServers"
+          v-for="(server, index) in visibleServers"
           :key="server.id"
           as="div"
           density="compact"
           class="profile-list__item"
+          :highlighted="dragOverIndex === index"
           :selected="server.id === selectedServerId"
+          :draggable="true"
           :data-testid="`feature-jellyfin-emby-server-${server.id}`"
           @click="selectedServerId = server.id"
+          @dragstart="onDragStart($event, index)"
+          @dragover.prevent="dragOverIndex = index"
+          @dragleave="dragOverIndex = null"
+          @drop.prevent="onDrop(index)"
+          @dragend="resetDrag"
         >
           <span class="profile-list__content">
             <UiInput
@@ -53,6 +60,7 @@
               :aria-label="t('feature-jellyfin-emby-server-name')"
               @click.stop
               @mousedown.stop
+              @dragstart.stop
               @keydown="onServerNameInputKeydown"
               @blur="commitServerName(server.id)"
             />
@@ -64,6 +72,7 @@
               data-testid="feature-jellyfin-emby-server-name-action"
               @click.stop="startServerNameEdit(server)"
               @mousedown.stop
+              @dragstart.stop
             >
               {{ server.name || t("feature-jellyfin-emby-untitled") }}
             </UiButton>
@@ -78,6 +87,7 @@
             :data-testid="`feature-jellyfin-emby-server-enabled-${server.id}`"
             @click.stop="updateServer(server.id, { enabled: !server.enabled })"
             @mousedown.stop
+            @dragstart.stop
           >
             <IconCheck v-if="server.enabled" size="sm" />
           </button>
@@ -133,19 +143,25 @@ const language = computed(() => store.settings?.global.language ?? DEFAULT_LANGU
 const { t } = useI18n(language);
 const selectedServerId = ref<string | null>(null);
 const serverDrafts = ref<Record<string, JellyfinEmbyServerConfig>>({});
+const draftServerIds = ref<Set<string>>(new Set());
+const dragIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 const editingServerId = ref<string | null>(null);
 const draftServerName = ref("");
 const servers = computed(() => store.settings?.features.jellyfinEmby.config.servers ?? []);
-const visibleServers = computed(() =>
-  servers.value.map((server) => serverDrafts.value[server.id] ?? server)
-);
+const visibleServers = computed(() => {
+  const persisted = servers.value.map((server) => serverDrafts.value[server.id] ?? server);
+  const persistedIds = new Set(persisted.map((server) => server.id));
+  const drafts = Object.values(serverDrafts.value).filter((server) => !persistedIds.has(server.id));
+  return [...persisted, ...drafts];
+});
 const selectedServer = computed(() =>
   visibleServers.value.find((server) => server.id === selectedServerId.value) ?? visibleServers.value[0] ?? null
 );
 const editableServer = computed(() => selectedServer.value);
 
 watch(
-  servers,
+  visibleServers,
   (nextServers) => {
     if (!nextServers.some((server) => server.id === selectedServerId.value)) {
       selectedServerId.value = nextServers[0]?.id ?? null;
@@ -154,8 +170,25 @@ watch(
   { immediate: true, deep: true }
 );
 
-async function addServer() {
-  selectedServerId.value = await store.addJellyfinEmbyServer();
+function createServerDraftId(): string {
+  return `jellyfin-emby-${crypto.randomUUID()}`;
+}
+
+function addServer() {
+  const id = createServerDraftId();
+  const draft: JellyfinEmbyServerConfig = {
+    id,
+    name: `Server ${visibleServers.value.length + 1}`,
+    serverUrls: "",
+    apiKey: "",
+    enabled: true
+  };
+  draftServerIds.value = new Set([...draftServerIds.value, id]);
+  serverDrafts.value = {
+    ...serverDrafts.value,
+    [id]: draft
+  };
+  selectedServerId.value = id;
 }
 
 async function duplicateSelectedServer() {
@@ -177,6 +210,9 @@ function updateServer(serverId: string, patch: Partial<JellyfinEmbyServerConfig>
     [nextServer.id]: nextServer
   };
   if (canPersistServerDraft(nextServer)) {
+    if (draftServerIds.value.has(nextServer.id)) {
+      draftServerIds.value = new Set([...draftServerIds.value].filter((id) => id !== nextServer.id));
+    }
     void store.updateJellyfinEmbyServer(nextServer.id, nextServer);
   }
 }
@@ -193,10 +229,13 @@ async function removeSelectedServer() {
   if (!id) {
     return;
   }
-  await store.deleteJellyfinEmbyServer(id);
+  if (!draftServerIds.value.has(id)) {
+    await store.deleteJellyfinEmbyServer(id);
+  }
   const { [id]: _removed, ...remainingDrafts } = serverDrafts.value;
+  draftServerIds.value = new Set([...draftServerIds.value].filter((draftId) => draftId !== id));
   serverDrafts.value = remainingDrafts;
-  selectedServerId.value = servers.value.find((server) => server.id !== id)?.id ?? null;
+  selectedServerId.value = visibleServers.value.find((server) => server.id !== id)?.id ?? null;
 }
 
 function serverMeta(server: JellyfinEmbyServerConfig): string {
@@ -286,6 +325,27 @@ function canPersistServerDraft(server: JellyfinEmbyServerConfig): boolean {
     return true;
   }
   return Boolean(server.serverUrls.trim() && server.apiKey.trim());
+}
+
+function onDragStart(event: DragEvent, index: number) {
+  dragIndex.value = index;
+  dragOverIndex.value = index;
+  event.dataTransfer?.setData("text/plain", String(index));
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onDrop(index: number) {
+  if (dragIndex.value !== null && dragIndex.value !== index) {
+    void store.reorderJellyfinEmbyServer(dragIndex.value, index);
+  }
+  resetDrag();
+}
+
+function resetDrag() {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
 }
 </script>
 

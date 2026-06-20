@@ -96,6 +96,7 @@ export interface GlobalSettings {
 
 export interface TranscriptionConfig {
   id: string;
+  enabled: boolean;
   name: string;
   provider: TranscriptionProvider;
   baseUrl: string;

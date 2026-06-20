@@ -348,6 +348,15 @@ describe("desktop store profile selection", () => {
   it("sets active transcription config", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
+    const existingConfig = store.settings.features.transcription.configs[0]!;
+    store.settings.features.transcription.configs = [
+      existingConfig,
+      {
+        ...existingConfig,
+        id: "config-b",
+        name: "Config B"
+      }
+    ];
     const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
 
     await store.setActiveTranscriptionConfig("config-b");
@@ -384,26 +393,143 @@ describe("desktop store profile selection", () => {
     });
   });
 
-  it("adds Jellyfin / Emby server configs", async () => {
+  it("toggles Speech Transcription config enablement and moves active id off disabled configs", async () => {
     const store = useDesktopStore();
     store.settings = createSettings();
+    const configA = {
+      ...store.settings.features.transcription.configs[0]!,
+      id: "config-a",
+      name: "A",
+      enabled: true
+    };
+    const configB = {
+      ...configA,
+      id: "config-b",
+      name: "B",
+      enabled: true
+    };
+    store.settings.features.transcription.activeConfigId = "config-a";
+    store.settings.features.transcription.configs = [configA, configB];
     const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
 
-    const id = await store.addJellyfinEmbyServer();
+    await store.toggleTranscriptionConfigEnabled("config-a", false);
 
-    expect(id).toMatch(/^jellyfin-emby-/);
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        transcription: {
+          enabled: store.settings.features.transcription.enabled,
+          activeConfigId: "config-b",
+          configs: [
+            expect.objectContaining({ id: "config-a", enabled: false }),
+            expect.objectContaining({ id: "config-b", enabled: true })
+          ]
+        }
+      }
+    });
+  });
+
+  it("keeps active Speech Transcription id when disabling the only enabled config", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const config = {
+      ...store.settings.features.transcription.configs[0]!,
+      id: "config-a",
+      enabled: true
+    };
+    store.settings.features.transcription.activeConfigId = config.id;
+    store.settings.features.transcription.configs = [config];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.toggleTranscriptionConfigEnabled("config-a", false);
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        transcription: {
+          enabled: store.settings.features.transcription.enabled,
+          activeConfigId: "config-a",
+          configs: [expect.objectContaining({ id: "config-a", enabled: false })]
+        }
+      }
+    });
+  });
+
+  it("reorders Speech Transcription configs and keeps active id when it remains enabled", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    const configA = { ...store.settings.features.transcription.configs[0]!, id: "config-a", name: "A", enabled: true };
+    const configB = { ...configA, id: "config-b", name: "B", enabled: true };
+    store.settings.features.transcription.activeConfigId = "config-b";
+    store.settings.features.transcription.configs = [configA, configB];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.reorderTranscriptionConfig(1, 0);
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        transcription: {
+          enabled: store.settings.features.transcription.enabled,
+          activeConfigId: "config-b",
+          configs: [
+            expect.objectContaining({ id: "config-b" }),
+            expect.objectContaining({ id: "config-a" })
+          ]
+        }
+      }
+    });
+  });
+
+  it("reorders Jellyfin / Emby servers", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.settings.features.jellyfinEmby.config.servers = [
+      { id: "server-a", name: "A", serverUrls: "https://a.example.test", apiKey: "token-a", enabled: true },
+      { id: "server-b", name: "B", serverUrls: "https://b.example.test", apiKey: "token-b", enabled: true }
+    ];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.reorderJellyfinEmbyServer(1, 0);
+
     expect(updateSettings).toHaveBeenCalledWith({
       features: {
         jellyfinEmby: {
-          enabled: store.settings!.features.jellyfinEmby.enabled,
+          enabled: store.settings.features.jellyfinEmby.enabled,
+          config: {
+            servers: [
+              expect.objectContaining({ id: "server-b" }),
+              expect.objectContaining({ id: "server-a" })
+            ]
+          }
+        }
+      }
+    });
+  });
+
+  it("inserts new Jellyfin / Emby server configs through update", async () => {
+    const store = useDesktopStore();
+    store.settings = createSettings();
+    store.settings.features.jellyfinEmby.config.servers = [];
+    const updateSettings = vi.spyOn(store, "updateSettings").mockResolvedValue();
+
+    await store.updateJellyfinEmbyServer("server-1", {
+      id: "server-1",
+      name: "Home",
+      serverUrls: "https://home.example.test",
+      apiKey: "token",
+      enabled: true
+    });
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      features: {
+        jellyfinEmby: {
+          enabled: store.settings.features.jellyfinEmby.enabled,
           config: {
             servers: [
               {
-                id,
-                name: "Server 1",
-                serverUrls: "",
-                apiKey: "",
-                enabled: false
+                id: "server-1",
+                name: "Home",
+                serverUrls: "https://home.example.test",
+                apiKey: "token",
+                enabled: true
               }
             ]
           }

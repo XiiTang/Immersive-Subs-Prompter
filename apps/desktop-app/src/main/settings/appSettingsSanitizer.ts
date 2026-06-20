@@ -19,6 +19,7 @@ const WORD_LOOKUP_CONFIG_KEYS = ["wordListPath", "modifierKey", "panelWidth", "p
 const TRANSCRIPTION_FEATURE_KEYS = ["enabled", "activeConfigId", "configs"] as const;
 const TRANSCRIPTION_CONFIG_KEYS = [
   "id",
+  "enabled",
   "name",
   "provider",
   "baseUrl",
@@ -199,11 +200,23 @@ function validateTranscriptionFeature(input: unknown, requireAllKeys: boolean): 
     throw new Error("features.transcription.configs must include at least one config");
   }
   const seenIds = new Set<string>();
+  const enabledIds = new Set<string>();
   record.configs.forEach((config, index) => {
     validateTranscriptionConfigRecord(config, `features.transcription.configs.${index}`, seenIds);
+    const configRecord = config as Record<string, unknown>;
+    if (configRecord.enabled === true) {
+      enabledIds.add(configRecord.id as string);
+    }
   });
   if (typeof record.activeConfigId === "string" && !seenIds.has(record.activeConfigId)) {
     throw new Error("features.transcription.activeConfigId must reference an existing config");
+  }
+  if (
+    typeof record.activeConfigId === "string" &&
+    enabledIds.size > 0 &&
+    !enabledIds.has(record.activeConfigId)
+  ) {
+    throw new Error("features.transcription.activeConfigId must reference an enabled config");
   }
 }
 
@@ -261,6 +274,7 @@ function validateTranscriptionConfigRecord(input: unknown, context: string, seen
     throw new Error(`${context}.fasterWhisperDevice must be cpu or cuda`);
   }
   for (const key of [
+    "enabled",
     "enableWordTimestamps",
     "fasterWhisperVadFilter",
     "fasterWhisperUseKim2"

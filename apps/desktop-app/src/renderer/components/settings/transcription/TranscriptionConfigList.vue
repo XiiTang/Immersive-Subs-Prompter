@@ -26,14 +26,21 @@
     </div>
     <div class="profile-list">
       <UiListItem
-        v-for="config in transcriptionConfigs"
+        v-for="(config, index) in transcriptionConfigs"
         :key="config.id"
         as="div"
         density="compact"
         class="profile-list__item"
+        :highlighted="dragOverIndex === index"
         :selected="config.id === selectedConfigId"
+        :draggable="true"
         :data-testid="`feature-transcription-config-${config.id}`"
         @click="$emit('select', config.id)"
+        @dragstart="onDragStart($event, index)"
+        @dragover.prevent="dragOverIndex = index"
+        @dragleave="dragOverIndex = null"
+        @drop.prevent="onDrop(index)"
+        @dragend="resetDrag"
       >
         <span class="profile-list__content">
           <UiInput
@@ -46,6 +53,7 @@
             :aria-label="t('feature-transcription-config-name')"
             @click.stop
             @mousedown.stop
+            @dragstart.stop
             @keydown="onConfigNameInputKeydown"
             @blur="commitConfigName(config.id)"
           />
@@ -57,6 +65,7 @@
             data-testid="feature-transcription-config-name-action"
             @click.stop="startConfigNameEdit(config)"
             @mousedown.stop
+            @dragstart.stop
           >
             {{ config.name }}
           </UiButton>
@@ -65,14 +74,15 @@
         <button
           type="button"
           class="profile-list__status-action"
-          :class="{ 'is-active': config.id === activeConfigId }"
-          :aria-label="config.id === activeConfigId ? t('feature-transcription-active') : t('feature-transcription-make-active')"
-          :aria-pressed="config.id === activeConfigId ? 'true' : 'false'"
-          :data-testid="`feature-transcription-config-active-${config.id}`"
-          @click.stop="$emit('activate', config.id)"
+          :class="{ 'is-active': config.enabled }"
+          :aria-label="config.enabled ? t('feature-transcription-enabled') : t('feature-transcription-enable')"
+          :aria-pressed="config.enabled ? 'true' : 'false'"
+          :data-testid="`feature-transcription-config-enabled-${config.id}`"
+          @click.stop="$emit('toggle-enabled', config.id, !config.enabled)"
           @mousedown.stop
+          @dragstart.stop
         >
-          <IconCheck v-if="config.id === activeConfigId" size="sm" />
+          <IconCheck v-if="config.enabled" size="sm" />
         </button>
       </UiListItem>
       <UiEmptyState v-if="!transcriptionConfigs.length" :message="t('feature-transcription-no-config')" />
@@ -88,7 +98,6 @@ import { UiButton, UiEmptyState, UiIconButton, UiInput, UiListItem, UiToolbar } 
 
 const props = defineProps<{
   transcriptionConfigs: TranscriptionConfig[];
-  activeConfigId: string;
   selectedConfigId: string;
   t: (key: string) => string;
 }>();
@@ -99,11 +108,14 @@ const emit = defineEmits<{
   delete: [];
   rename: [id: string, name: string];
   select: [id: string];
-  activate: [id: string];
+  reorder: [fromIndex: number, toIndex: number];
+  "toggle-enabled": [id: string, enabled: boolean];
 }>();
 
 const editingConfigId = ref<string | null>(null);
 const draftConfigName = ref("");
+const dragIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 
 function providerLabel(config: TranscriptionConfig): string {
   return config.provider === "faster-whisper" ? "Faster-Whisper" : "Whisper API";
@@ -149,5 +161,26 @@ function commitConfigName(configId: string) {
     return;
   }
   emit("rename", configId, name);
+}
+
+function onDragStart(event: DragEvent, index: number) {
+  dragIndex.value = index;
+  dragOverIndex.value = index;
+  event.dataTransfer?.setData("text/plain", String(index));
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onDrop(index: number) {
+  if (dragIndex.value !== null && dragIndex.value !== index) {
+    emit("reorder", dragIndex.value, index);
+  }
+  resetDrag();
+}
+
+function resetDrag() {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
 }
 </script>
