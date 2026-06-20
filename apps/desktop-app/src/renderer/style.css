@@ -1265,8 +1265,16 @@ body.main-window-body {
 
 .subtitle-style-fields__behavior-row {
   display: grid;
-  grid-template-columns: minmax(132px, 1.25fr) minmax(96px, 0.8fr) minmax(96px, 0.75fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.subtitle-style-fields__behavior-controls {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(96px, 1fr);
+  gap: 8px 0;
   align-items: start;
   min-width: 0;
 }
@@ -1279,6 +1287,17 @@ body.main-window-body {
 .subtitle-style-fields__field--behavior {
   min-height: 28px;
   gap: 6px;
+}
+
+.subtitle-style-fields__field--restore {
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.subtitle-style-fields__field--restore .ui-field__label-row,
+.subtitle-style-fields__field--restore .ui-field__label-meta,
+.subtitle-style-fields__field--restore .ui-field__control {
+  flex: 0 0 auto;
 }
 
 .subtitle-style-fields__colors .settings-color-grid {
@@ -1296,8 +1315,17 @@ body.main-window-body {
 .subtitle-style-fields__autoscroll-input {
   width: 18px;
   min-width: 18px;
+  border: 0;
+  background: transparent;
   appearance: textfield;
+  color: var(--ui-text-muted);
   text-align: center;
+}
+
+.subtitle-style-fields__autoscroll-input:focus-visible {
+  outline: 1px solid var(--ui-accent);
+  outline-offset: 1px;
+  color: var(--ui-text);
 }
 
 .subtitle-style-fields__autoscroll-input::-webkit-outer-spin-button,

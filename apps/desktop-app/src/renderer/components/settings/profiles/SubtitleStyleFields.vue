@@ -157,38 +157,40 @@
           @change="commitDraftProfileSetting('subtitleTimestampFontSize')"
         />
       </UiField>
-      <UiField
-        id="subtitle-meta-auto-hide"
-        class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
-        density="compact"
-        :label="t('subtitle-meta-auto-hide-label')"
-        inline
-      >
-        <UiSwitch
-          v-model="subtitleAutoHideMetaRow"
-          input-test-id="subtitle-meta-auto-hide-toggle"
-          :label="subtitleAutoHideMetaRow ? t('toggle-on') : t('toggle-off')"
-          :show-label="false"
-        />
-      </UiField>
-      <UiField
-        id="subtitle-autoscroll"
-        class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
-        density="compact"
-        :label="t('subtitle-autoscroll-label')"
-        inline
-      >
-        <UiInput
-          :model-value="subtitleAutoScrollTimeoutDraft"
-          class="subtitle-style-fields__autoscroll-input"
-          size="compact"
-          type="number"
-          min="1"
-          max="60"
-          step="1"
-          @update:model-value="updateSubtitleAutoScrollTimeoutDraft(String($event))"
-        />
-      </UiField>
+      <div class="subtitle-style-fields__behavior-controls">
+        <UiField
+          id="subtitle-meta-auto-hide"
+          class="subtitle-style-fields__field subtitle-style-fields__field--behavior"
+          density="compact"
+          :label="t('subtitle-meta-auto-hide-label')"
+          inline
+        >
+          <UiSwitch
+            v-model="subtitleAutoHideMetaRow"
+            input-test-id="subtitle-meta-auto-hide-toggle"
+            :label="subtitleAutoHideMetaRow ? t('toggle-on') : t('toggle-off')"
+            :show-label="false"
+          />
+        </UiField>
+        <UiField
+          id="subtitle-autoscroll"
+          class="subtitle-style-fields__field subtitle-style-fields__field--behavior subtitle-style-fields__field--restore"
+          density="compact"
+          :label="t('subtitle-autoscroll-label')"
+          inline
+        >
+          <UiInput
+            :model-value="subtitleAutoScrollTimeoutDraft"
+            class="subtitle-style-fields__autoscroll-input"
+            size="compact"
+            type="number"
+            min="1"
+            max="60"
+            step="1"
+            @update:model-value="updateSubtitleAutoScrollTimeoutDraft(String($event))"
+          />
+        </UiField>
+      </div>
     </div>
   </div>
 </template>

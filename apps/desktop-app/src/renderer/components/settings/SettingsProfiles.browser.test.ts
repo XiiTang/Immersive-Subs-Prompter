@@ -312,6 +312,20 @@ describe("SettingsProfiles", () => {
     expect(Math.round(restoreField.getBoundingClientRect().top)).toBe(
       Math.round(autoHideField.getBoundingClientRect().top)
     );
+    expect(Math.round(timestampField.getBoundingClientRect().left)).toBe(Math.round(behaviorRow.getBoundingClientRect().left));
+    expect(Math.round(timestampField.getBoundingClientRect().width)).toBeGreaterThanOrEqual(
+      Math.round(behaviorRow.getBoundingClientRect().width * 0.48)
+    );
+    expect(Math.round(timestampField.getBoundingClientRect().right)).toBeLessThanOrEqual(
+      Math.round(autoHideField.getBoundingClientRect().left)
+    );
+    expect(Math.round(restoreField.getBoundingClientRect().left)).toBeGreaterThan(
+      Math.round(timestampField.getBoundingClientRect().right)
+    );
+    expect(Math.round(restoreField.getBoundingClientRect().left - autoHideField.getBoundingClientRect().right)).toBeLessThanOrEqual(0);
+    expect(Math.round(restoreField.getBoundingClientRect().right)).toBeLessThanOrEqual(
+      Math.round(behaviorRow.getBoundingClientRect().right)
+    );
     expect(wrapper.get("#subtitle-meta-auto-hide-label").text()).toBe("Auto-hide");
     expect(wrapper.get("#subtitle-autoscroll-label").text()).toBe("Restore (s)");
   });
@@ -324,10 +338,18 @@ describe("SettingsProfiles", () => {
     const wrapper = mount(SettingsProfiles, { attachTo: document.body });
     const restoreInput = wrapper.get<HTMLInputElement>(".subtitle-style-fields__autoscroll-input");
     const style = getComputedStyle(restoreInput.element);
+    const restoreField = restoreInput.element.closest(".subtitle-style-fields__field") as HTMLElement;
+    const restoreLabel = wrapper.get("#subtitle-autoscroll-label").element as HTMLElement;
 
     expect(restoreInput.attributes("type")).toBe("number");
     expect(Number.parseFloat(style.width)).toBe(18);
     expect(style.appearance).toBe("textfield");
+    expect(style.borderTopWidth).toBe("0px");
+    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(Math.round(restoreInput.element.getBoundingClientRect().left - restoreLabel.getBoundingClientRect().right)).toBeLessThanOrEqual(4);
+    expect(Math.round(restoreInput.element.getBoundingClientRect().right)).toBeLessThanOrEqual(
+      Math.round(restoreField.getBoundingClientRect().right)
+    );
   });
 
   it("updates independent typography settings from the profile editor", async () => {
